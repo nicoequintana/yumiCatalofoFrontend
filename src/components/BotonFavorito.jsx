@@ -23,7 +23,7 @@ function BotonFavorito({ productoId, className = "" }) {
       onClick={handleClick}
       aria-label={favorito ? "Quitar de favoritos" : "Agregar a favoritos"}
       aria-pressed={favorito}
-      className={`inline-flex items-center justify-center text-on-surface-variant hover:text-error ${className}`}
+      className={`inline-flex items-center justify-center p-1.5 text-on-surface-variant hover:text-error ${className}`}
     >
       <span
         className={`material-symbols-outlined text-[22px] ${favorito ? "text-error" : ""}`}
