@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 import Catalogo from "./pages/Catalogo.jsx";
+import Favoritos from "./pages/Favoritos.jsx";
 import ProductoDetalle from "./pages/ProductoDetalle.jsx";
 import AdminProductos from "./pages/admin/AdminProductos.jsx";
 import AdminProductoForm from "./pages/admin/AdminProductoForm.jsx";
@@ -16,6 +17,7 @@ function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Catalogo />} />
+        <Route path="/favoritos" element={<Favoritos />} />
         <Route path="/producto/:id" element={<ProductoDetalle />} />
         <Route path="/catalogo/admin" element={<AdminProductos />} />
         <Route path="/catalogo/admin/nuevo" element={<AdminProductoForm />} />
