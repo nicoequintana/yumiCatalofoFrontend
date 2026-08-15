@@ -14,15 +14,6 @@ export default defineConfig({
         target: 'http://localhost:4000',
         changeOrigin: true,
       },
-      // Open Graph: el backend decide bot-vs-humano y devuelve HTML con
-      // meta tags (bot) o un 302 a esta misma SPA (humano). Sin este
-      // proxy, en dev '/producto/:id' lo serviría directamente Vite sin
-      // pasar por el backend, y el flujo de bots no sería probable localmente.
-      '/producto': {
-        target: 'http://localhost:4000/og/producto',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/producto/, ''),
-      },
     },
   },
 })
