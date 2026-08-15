@@ -14,7 +14,14 @@ function leerFavoritos() {
 }
 
 function escribirFavoritos(ids) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+  } catch {
+    // localStorage can throw (quota exceeded, private browsing storage
+    // restrictions, storage disabled) — this is best-effort persistence for
+    // a soft feature, so a failed write should still update in-memory state
+    // for the current session instead of crashing the click handler.
+  }
   listeners.forEach((listener) => listener(ids));
 }
 

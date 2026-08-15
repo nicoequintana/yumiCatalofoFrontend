@@ -16,7 +16,13 @@ import { getProducts } from "../api/products.js";
  */
 function Favoritos() {
   const { favoritos, establecerFavoritos } = useFavoritos();
-  const [productos, setProductos] = useState([]);
+  // Holds ALL fetched products (unfiltered) — the displayed grid is derived
+  // from this + the live `favoritos` state on every render (see below), not
+  // stored as a pre-filtered snapshot. Storing a snapshot would leave a card
+  // visible after unfavoriting it from this very page: `favoritos` updates
+  // live via the shared hook, but a state snapshot set once wouldn't react
+  // to that change.
+  const [todosLosProductos, setTodosLosProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -34,7 +40,7 @@ function Favoritos() {
         establecerFavoritos(favoritosLimpios);
       }
 
-      setProductos(data.filter((p) => favoritosLimpios.includes(p.id)));
+      setTodosLosProductos(data);
       setCargando(false);
     });
 
@@ -46,6 +52,8 @@ function Favoritos() {
     // every toggle, including this same effect's own cleanup calls above),
     // or it would create a re-fetch loop.
   }, []);
+
+  const productos = todosLosProductos.filter((p) => favoritos.includes(p.id));
 
   return (
     <section className="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop md:py-24">
