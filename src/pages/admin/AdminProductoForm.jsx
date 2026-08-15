@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import MediaUploader from "../../components/MediaUploader.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import BotonVolver from "../../components/BotonVolver.jsx";
 import { createProduct, deletePhoto, getProductById, updateProduct } from "../../api/products.js";
 
 const SUGERENCIAS_ETIQUETA = ["Exclusivo", "Nuevo", "Best Seller", "Trending", "Popular"];
@@ -163,6 +164,9 @@ function AdminProductoForm() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-margin-mobile py-8 md:px-margin-desktop md:py-16">
+      <div className="mb-6">
+        <BotonVolver />
+      </div>
       <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
         Panel de administración
       </span>

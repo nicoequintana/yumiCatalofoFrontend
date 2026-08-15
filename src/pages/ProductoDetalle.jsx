@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import PhotoGallery from "../components/PhotoGallery.jsx";
 import Badge from "../components/Badge.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
+import BotonVolver from "../components/BotonVolver.jsx";
 import { getProductById } from "../api/products.js";
 import { formatPrecio } from "../utils/formato.js";
 
@@ -66,6 +67,9 @@ function ProductoDetalle() {
       </header>
 
       <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
+        <div className="mb-6 hidden md:block">
+          <BotonVolver />
+        </div>
         <div className="grid grid-cols-1 items-center gap-gutter md:grid-cols-12">
           <div className="col-span-1 md:col-span-7">
             <PhotoGallery fotos={producto.fotos} video={producto.video} nombre={producto.nombre} />
