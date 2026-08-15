@@ -46,7 +46,11 @@ function useFavoritos() {
     escribirFavoritos(siguiente);
   }
 
-  return { favoritos, esFavorito, toggleFavorito };
+  function establecerFavoritos(ids) {
+    escribirFavoritos(ids);
+  }
+
+  return { favoritos, esFavorito, toggleFavorito, establecerFavoritos };
 }
 
 export default useFavoritos;

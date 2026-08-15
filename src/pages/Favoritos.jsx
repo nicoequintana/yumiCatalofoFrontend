@@ -15,7 +15,7 @@ import { getProducts } from "../api/products.js";
  * design decision.
  */
 function Favoritos() {
-  const { favoritos, toggleFavorito } = useFavoritos();
+  const { favoritos, establecerFavoritos } = useFavoritos();
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
 
@@ -29,10 +29,12 @@ function Favoritos() {
 
       // Clean up stale ids (favorited products that no longer exist) —
       // silent, no user-facing message, per the finalized design decision.
-      const idsInvalidos = favoritos.filter((id) => !idsExistentes.has(id));
-      idsInvalidos.forEach((id) => toggleFavorito(id));
+      const favoritosLimpios = favoritos.filter((id) => idsExistentes.has(id));
+      if (favoritosLimpios.length !== favoritos.length) {
+        establecerFavoritos(favoritosLimpios);
+      }
 
-      setProductos(data.filter((p) => favoritos.includes(p.id)));
+      setProductos(data.filter((p) => favoritosLimpios.includes(p.id)));
       setCargando(false);
     });
 
