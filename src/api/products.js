@@ -110,3 +110,13 @@ export async function deleteProduct(id) {
 export async function deletePhoto(productId, fotoId) {
   return pedir(`${BASE}/products/${productId}/fotos/${fotoId}`, { method: "DELETE" });
 }
+
+/** Fire-and-forget: increments the product's share counter. Never throws. */
+export async function registrarCompartido(id) {
+  try {
+    await fetch(`${BASE}/products/${id}/compartir`, { method: "POST" });
+  } catch {
+    // Soft analytics counter — a failed request here must never disrupt
+    // the actual share action the user just completed.
+  }
+}

@@ -1,6 +1,5 @@
 import { useState } from "react";
-
-const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api`;
+import { registrarCompartido } from "../api/products.js";
 
 /**
  * Share button — Web Share API on capable browsers (opens the native OS
@@ -13,17 +12,13 @@ const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/ap
 function BotonCompartir({ producto, className = "" }) {
   const [copiado, setCopiado] = useState(false);
 
-  function registrarCompartido() {
+  async function handleClick() {
     // Fire-and-forget (design decision): counted the moment the button is
     // tapped, not on confirmed share-sheet completion — navigator.share()'s
     // promise resolution isn't a reliable "the user actually sent it" signal
     // across browsers. Never blocks or surfaces an error to the user; the
     // share action itself already succeeded from their perspective either way.
-    fetch(`${BASE}/products/${producto.id}/compartir`, { method: "POST" }).catch(() => {});
-  }
-
-  async function handleClick() {
-    registrarCompartido();
+    registrarCompartido(producto.id);
 
     const url = window.location.href;
 
