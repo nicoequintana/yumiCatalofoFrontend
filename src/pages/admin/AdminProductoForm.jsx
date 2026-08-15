@@ -5,6 +5,7 @@ import EstadoVacio from "../../components/EstadoVacio.jsx";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import { createProduct, deletePhoto, getProductById, updateProduct } from "../../api/products.js";
+import { formatearPrecioInput } from "../../utils/formato.js";
 
 const SUGERENCIAS_ETIQUETA = ["Exclusivo", "Nuevo", "Best Seller", "Trending", "Popular"];
 
@@ -38,6 +39,7 @@ function AdminProductoForm() {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [precio, setPrecio] = useState("");
+  const [precioVisual, setPrecioVisual] = useState("");
   const [etiqueta, setEtiqueta] = useState("");
   const [caracteristicas, setCaracteristicas] = useState([]);
   const [nuevaCaracteristica, setNuevaCaracteristica] = useState("");
@@ -63,6 +65,7 @@ function AdminProductoForm() {
       setNombre(producto.nombre);
       setDescripcion(producto.descripcion ?? "");
       setPrecio(producto.precio ?? "");
+      setPrecioVisual(producto.precio ? formatearPrecioInput(String(producto.precio)).formateado : "");
       setEtiqueta(producto.etiqueta ?? "");
       setCaracteristicas(producto.caracteristicas ?? []);
       setFotos(producto.fotos ?? []);
@@ -220,12 +223,15 @@ function AdminProductoForm() {
               <span className="font-body-md text-body-md text-on-surface-variant">$</span>
               <input
                 id="precio"
-                type="number"
-                min="0"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 required
-                value={precio}
-                onChange={(e) => setPrecio(e.target.value)}
+                value={precioVisual}
+                onChange={(e) => {
+                  const { formateado, crudo } = formatearPrecioInput(e.target.value);
+                  setPrecioVisual(formateado);
+                  setPrecio(crudo);
+                }}
                 className="font-body-md text-body-md w-full bg-transparent px-2 py-3 text-on-surface focus:outline-none"
               />
             </div>
