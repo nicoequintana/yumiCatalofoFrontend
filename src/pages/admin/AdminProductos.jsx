@@ -119,6 +119,9 @@ function AdminProductos() {
                   Etiqueta
                 </th>
                 <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  Categoría
+                </th>
+                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
                   Precio
                 </th>
                 <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
@@ -148,6 +151,9 @@ function AdminProductos() {
                   <td className="font-body-md text-body-md px-6 py-4 text-on-surface">{producto.nombre}</td>
                   <td className="px-6 py-4">
                     <Badge etiqueta={producto.etiqueta} />
+                  </td>
+                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
+                    {producto.categoria?.nombre ?? "—"}
                   </td>
                   <td className="font-body-md text-body-md px-6 py-4 text-on-surface">
                     {formatPrecio(producto.precio)}
