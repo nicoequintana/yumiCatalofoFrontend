@@ -103,6 +103,9 @@ function AdminProductos() {
             <thead>
               <tr className="border-b border-outline-variant">
                 <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  Foto
+                </th>
+                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
                   Nombre
                 </th>
                 <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
@@ -122,6 +125,19 @@ function AdminProductos() {
             <tbody>
               {productos.map((producto) => (
                 <tr key={producto.id} className="border-b border-outline-variant last:border-b-0">
+                  <td className="px-6 py-4">
+                    {producto.fotos?.[0]?.url ? (
+                      <img
+                        src={producto.fotos[0].url}
+                        alt={producto.nombre}
+                        className="h-12 w-12 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant">
+                        <span className="material-symbols-outlined text-[20px]">image</span>
+                      </div>
+                    )}
+                  </td>
                   <td className="font-body-md text-body-md px-6 py-4 text-on-surface">{producto.nombre}</td>
                   <td className="px-6 py-4">
                     <Badge etiqueta={producto.etiqueta} />
@@ -130,7 +146,7 @@ function AdminProductos() {
                     {formatPrecio(producto.precio)}
                   </td>
                   <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
-                    {producto.fotos?.length ?? 0}/4
+                    {producto.fotos?.length ?? 0}/10
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">

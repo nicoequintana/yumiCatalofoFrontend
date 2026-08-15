@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const MAX_FOTOS = 4;
+const MAX_FOTOS = 10;
 const TIPOS_FOTO = ["image/jpeg", "image/png", "image/webp"];
 const TIPOS_VIDEO = ["video/mp4", "video/webm"];
 
@@ -111,7 +111,7 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
         <h3 className="font-label-md text-label-md mb-3 uppercase tracking-widest text-on-surface">
           Fotos ({fotos.length}/{MAX_FOTOS})
         </h3>
-        <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
           {fotos.map((foto, index) => (
             <div
               key={foto.url}
