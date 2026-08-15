@@ -12,6 +12,8 @@
  * a destructive reseed action to any UI visitor.
  */
 
+import { fetchAutenticado } from "./authClient.js";
+
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api`;
 
 /**
@@ -23,6 +25,20 @@ async function pedir(url, options) {
   const res = await fetch(url, options);
 
   // 204/empty-body responses (none currently exist, but keep this safe).
+  const texto = await res.text();
+  const body = texto ? JSON.parse(texto) : null;
+
+  if (!res.ok) {
+    throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
+  }
+
+  return body;
+}
+
+/** Igual que `pedir`, pero usa el wrapper autenticado (agrega el JWT y maneja 401). */
+async function pedirAutenticado(url, options) {
+  const res = await fetchAutenticado(url, options);
+
   const texto = await res.text();
   const body = texto ? JSON.parse(texto) : null;
 
@@ -87,7 +103,7 @@ export async function getProductById(id, { admin = false } = {}) {
 
 /** @returns {Promise<Object>} the newly created product */
 export async function createProduct(data) {
-  return pedir(`${BASE}/products`, {
+  return pedirAutenticado(`${BASE}/products`, {
     method: "POST",
     body: construirFormData(data),
   });
@@ -95,7 +111,7 @@ export async function createProduct(data) {
 
 /** @returns {Promise<Object>} the updated product */
 export async function updateProduct(id, data) {
-  return pedir(`${BASE}/products/${id}`, {
+  return pedirAutenticado(`${BASE}/products/${id}`, {
     method: "PUT",
     body: construirFormData(data),
   });
@@ -103,12 +119,12 @@ export async function updateProduct(id, data) {
 
 /** @returns {Promise<{ok: true}>} */
 export async function deleteProduct(id) {
-  return pedir(`${BASE}/products/${id}`, { method: "DELETE" });
+  return pedirAutenticado(`${BASE}/products/${id}`, { method: "DELETE" });
 }
 
 /** @returns {Promise<Object>} the product with the photo removed and `orden` re-normalized */
 export async function deletePhoto(productId, fotoId) {
-  return pedir(`${BASE}/products/${productId}/fotos/${fotoId}`, { method: "DELETE" });
+  return pedirAutenticado(`${BASE}/products/${productId}/fotos/${fotoId}`, { method: "DELETE" });
 }
 
 /** Fire-and-forget: increments the product's share counter. Never throws. */
