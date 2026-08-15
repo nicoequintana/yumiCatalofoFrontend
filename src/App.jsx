@@ -4,6 +4,7 @@ import Catalogo from "./pages/Catalogo.jsx";
 import ProductoDetalle from "./pages/ProductoDetalle.jsx";
 import AdminProductos from "./pages/admin/AdminProductos.jsx";
 import AdminProductoForm from "./pages/admin/AdminProductoForm.jsx";
+import AdminCategorias from "./pages/admin/AdminCategorias.jsx";
 
 // Admin routes wired per PR 4 (Phase 5). They reuse the same public `Layout`
 // (Navbar + Outlet + Footer) — nothing in design.md calls for distinct admin
@@ -18,6 +19,7 @@ function App() {
         <Route path="/catalogo/admin" element={<AdminProductos />} />
         <Route path="/catalogo/admin/nuevo" element={<AdminProductoForm />} />
         <Route path="/catalogo/admin/:id/editar" element={<AdminProductoForm />} />
+        <Route path="/catalogo/admin/categorias" element={<AdminCategorias />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
