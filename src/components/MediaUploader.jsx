@@ -10,8 +10,8 @@ const TIPOS_VIDEO = ["video/mp4", "video/webm"];
  * Per design D6: file inputs produce `URL.createObjectURL(file)` previews
  * held in local state — never persisted as base64 (would blow localStorage's
  * quota). Object URLs are revoked on unmount. Hard caps mirror the mock
- * API's own validation (`products.js` MAX_FOTOS = 4, 1 video max) so the
- * user gets an immediate client-side rejection message on the 5th photo
+ * API's own validation (`products.js` MAX_FOTOS = 10, 1 video max) so the
+ * user gets an immediate client-side rejection message on the 11th photo
  * attempt instead of only discovering it on submit.
  *
  * `fotos`/`video` are controlled by the parent form (AdminProductoForm,
