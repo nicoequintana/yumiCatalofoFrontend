@@ -16,8 +16,7 @@ function ProductCard({ producto, variant = "vertical" }) {
   const foto = producto.fotos?.[0];
   const href = `/producto/${producto.id}`;
 
-  const shell =
-    "bg-surface-container-lowest rounded-xl shadow-ambient p-6 relative group transition-transform duration-500 hover:-translate-y-2 flex flex-col h-full";
+  const shell = "bg-surface-container-lowest rounded-xl shadow-ambient p-6 relative group flex flex-col h-full";
 
   if (variant === "horizontal") {
     return (
@@ -26,7 +25,7 @@ function ProductCard({ producto, variant = "vertical" }) {
         <div className="mb-6 flex h-64 w-full items-center justify-center pr-0 sm:mb-0 sm:h-auto sm:w-1/2 sm:pr-6">
           {foto ? (
             <img
-              className="h-full max-h-64 w-full transform object-contain transition-transform duration-700 ease-out group-hover:scale-105"
+              className="h-full max-h-64 w-full object-contain"
               src={foto.url}
               alt={producto.nombre}
             />
@@ -51,7 +50,7 @@ function ProductCard({ producto, variant = "vertical" }) {
       <div className="mb-6 flex h-64 flex-grow items-center justify-center">
         {foto ? (
           <img
-            className="h-full w-full transform object-contain transition-transform duration-700 ease-out group-hover:scale-105"
+            className="h-full w-full object-contain"
             src={foto.url}
             alt={producto.nombre}
           />

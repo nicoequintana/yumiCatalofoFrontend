@@ -43,7 +43,7 @@ function PhotoGallery({ fotos = [], video = null, nombre = "" }) {
       ) : slideActivo ? (
         <img
           alt={nombre}
-          className="relative z-10 max-h-[80%] w-3/4 object-contain float-animation"
+          className="relative z-10 max-h-[80%] w-3/4 object-contain"
           src={slideActivo.url}
         />
       ) : null}
