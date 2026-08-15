@@ -41,6 +41,9 @@ function construirFormData(data) {
   if (data.descripcion !== undefined) fd.append("descripcion", data.descripcion ?? "");
   if (data.precio !== undefined) fd.append("precio", String(data.precio));
   if (data.etiqueta !== undefined && data.etiqueta !== null) fd.append("etiqueta", data.etiqueta);
+  if (data.categoriaId !== undefined) {
+    fd.append("categoriaId", data.categoriaId === null ? "" : data.categoriaId);
+  }
 
   if (data.caracteristicas !== undefined) {
     fd.append("caracteristicas", JSON.stringify(data.caracteristicas.map((c) => ({ texto: c.texto }))));

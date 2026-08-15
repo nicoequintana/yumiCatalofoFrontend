@@ -6,6 +6,7 @@ import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import { createProduct, deletePhoto, getProductById, updateProduct } from "../../api/products.js";
 import { formatearPrecioInput } from "../../utils/formato.js";
+import { getCategorias } from "../../api/categorias.js";
 
 const SUGERENCIAS_ETIQUETA = ["Exclusivo", "Nuevo", "Best Seller", "Trending", "Popular"];
 
@@ -41,6 +42,8 @@ function AdminProductoForm() {
   const [precio, setPrecio] = useState("");
   const [precioVisual, setPrecioVisual] = useState("");
   const [etiqueta, setEtiqueta] = useState("");
+  const [categoriaId, setCategoriaId] = useState("");
+  const [categorias, setCategorias] = useState([]);
   const [caracteristicas, setCaracteristicas] = useState([]);
   const [nuevaCaracteristica, setNuevaCaracteristica] = useState("");
   const [fotos, setFotos] = useState([]);
@@ -67,6 +70,7 @@ function AdminProductoForm() {
       setPrecio(producto.precio ?? "");
       setPrecioVisual(producto.precio ? formatearPrecioInput(String(producto.precio)).formateado : "");
       setEtiqueta(producto.etiqueta ?? "");
+      setCategoriaId(producto.categoria?.id ? String(producto.categoria.id) : "");
       setCaracteristicas(producto.caracteristicas ?? []);
       setFotos(producto.fotos ?? []);
       setVideo(producto.video ?? null);
@@ -77,6 +81,16 @@ function AdminProductoForm() {
       activo = false;
     };
   }, [id, esEdicion]);
+
+  useEffect(() => {
+    let activo = true;
+    getCategorias().then((data) => {
+      if (activo) setCategorias(data);
+    });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   function agregarCaracteristica() {
     const texto = nuevaCaracteristica.trim();
@@ -126,6 +140,7 @@ function AdminProductoForm() {
       descripcion,
       precio,
       etiqueta: etiqueta.trim() === "" ? null : etiqueta.trim(),
+      categoriaId: categoriaId === "" ? null : categoriaId,
       caracteristicas: caracteristicas.map((c) => ({ texto: c.texto })),
       // Persisted photos (numeric id, no local `file`) are referenced by id
       // so the backend keeps them as-is; freshly picked photos (`f.file`
@@ -214,7 +229,7 @@ function AdminProductoForm() {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label htmlFor="precio" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">
               Precio
@@ -254,6 +269,25 @@ function AdminProductoForm() {
                 <option key={sugerencia} value={sugerencia} />
               ))}
             </datalist>
+          </div>
+
+          <div>
+            <label htmlFor="categoria" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">
+              Categoría (opcional)
+            </label>
+            <select
+              id="categoria"
+              value={categoriaId}
+              onChange={(e) => setCategoriaId(e.target.value)}
+              className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
+            >
+              <option value="">Sin categoría</option>
+              {categorias.map((categoria) => (
+                <option key={categoria.id} value={categoria.id}>
+                  {categoria.nombre}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
