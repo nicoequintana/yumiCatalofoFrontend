@@ -8,7 +8,7 @@ import { formatPrecio } from "../utils/formato.js";
  * `variant: "vertical" | "horizontal"` switches between catalogo.html's
  * stacked layout (L131-145) and its `sm:flex-row` wide layout (L179-209).
  * Both share the same shell (`bg-surface-container-lowest rounded-xl
- * shadow-ambient p-6 relative group hover:-translate-y-2`), the same
+ * shadow-ambient p-6 relative group`), the same
  * `Badge`, and the same title/desc/price block. Grid spans (`md:col-span-*`)
  * are intentionally NOT set here — they belong to the parent page's grid.
  */
