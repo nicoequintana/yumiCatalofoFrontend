@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import MediaUploader from "../../components/MediaUploader.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import BotonVolver from "../../components/BotonVolver.jsx";
+import Spinner from "../../components/Spinner.jsx";
 import { createProduct, deletePhoto, getProductById, updateProduct } from "../../api/products.js";
 
 const SUGERENCIAS_ETIQUETA = ["Exclusivo", "Nuevo", "Best Seller", "Trending", "Popular"];
@@ -149,7 +150,12 @@ function AdminProductoForm() {
   }
 
   if (cargando) {
-    return <EstadoVacio icono="hourglass_empty" mensaje="Cargando producto…" />;
+    return (
+      <div className="flex w-full flex-col items-center justify-center gap-4 px-margin-mobile py-24 text-center md:px-margin-desktop">
+        <Spinner className="h-8 w-8 text-on-surface-variant" />
+        <p className="font-body-md text-body-md text-on-surface-variant">Cargando producto…</p>
+      </div>
+    );
   }
 
   if (noEncontrado) {
@@ -310,6 +316,7 @@ function AdminProductoForm() {
             disabled={guardando}
             className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
           >
+            {guardando ? <Spinner className="h-4 w-4 text-on-primary" /> : null}
             {guardando ? "Guardando…" : "Guardar"}
           </button>
           <button

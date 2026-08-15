@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Badge from "../../components/Badge.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import Spinner from "../../components/Spinner.jsx";
 import { deleteProduct, getProducts } from "../../api/products.js";
 import { formatPrecio } from "../../utils/formato.js";
 
@@ -20,6 +21,7 @@ function AdminProductos() {
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [confirmandoId, setConfirmandoId] = useState(null);
+  const [eliminandoId, setEliminandoId] = useState(null);
   const [error, setError] = useState(null);
 
   async function cargarProductos() {
@@ -45,12 +47,15 @@ function AdminProductos() {
 
   async function handleEliminar(id) {
     setError(null);
+    setEliminandoId(id);
     try {
       await deleteProduct(id);
       setConfirmandoId(null);
       await cargarProductos();
     } catch (err) {
       setError(err.message ?? "No se pudo eliminar el producto.");
+    } finally {
+      setEliminandoId(null);
     }
   }
 
@@ -82,7 +87,10 @@ function AdminProductos() {
       ) : null}
 
       {cargando ? (
-        <EstadoVacio icono="hourglass_empty" mensaje="Cargando productos…" />
+        <div className="flex w-full flex-col items-center justify-center gap-4 px-margin-mobile py-24 text-center md:px-margin-desktop">
+          <Spinner className="h-8 w-8 text-on-surface-variant" />
+          <p className="font-body-md text-body-md text-on-surface-variant">Cargando productos…</p>
+        </div>
       ) : productos.length === 0 ? (
         <EstadoVacio
           icono="inventory_2"
@@ -140,8 +148,10 @@ function AdminProductos() {
                           <button
                             type="button"
                             onClick={() => handleEliminar(producto.id)}
-                            className="font-label-md text-label-md uppercase tracking-widest text-error hover:underline"
+                            disabled={eliminandoId === producto.id}
+                            className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60"
                           >
+                            {eliminandoId === producto.id ? <Spinner className="h-3.5 w-3.5" /> : null}
                             Sí
                           </button>
                           <button
