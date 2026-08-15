@@ -55,7 +55,7 @@ function AdminProductoForm() {
     let activo = true;
     setCargando(true);
 
-    getProductById(id).then((producto) => {
+    getProductById(id, { admin: true }).then((producto) => {
       if (!activo) return;
 
       if (!producto) {

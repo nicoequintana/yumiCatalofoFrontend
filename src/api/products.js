@@ -72,8 +72,9 @@ export async function getProducts() {
 }
 
 /** @returns {Promise<Object|null>} a single product by id, or null if not found (404) */
-export async function getProductById(id) {
-  const res = await fetch(`${BASE}/products/${id}`);
+export async function getProductById(id, { admin = false } = {}) {
+  const query = admin ? "?admin=1" : "";
+  const res = await fetch(`${BASE}/products/${id}${query}`);
   if (res.status === 404) return null;
 
   const texto = await res.text();
