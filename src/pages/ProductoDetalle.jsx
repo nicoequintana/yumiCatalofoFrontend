@@ -4,6 +4,7 @@ import PhotoGallery from "../components/PhotoGallery.jsx";
 import Badge from "../components/Badge.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
+import BotonCompartir from "../components/BotonCompartir.jsx";
 import { getProductById } from "../api/products.js";
 import { formatPrecio } from "../utils/formato.js";
 
@@ -76,8 +77,9 @@ function ProductoDetalle() {
           </div>
 
           <div className="col-span-1 flex flex-col pt-8 md:col-span-5 md:pt-0 md:pl-8">
-            <div className="mb-2">
+            <div className="mb-2 flex items-center justify-between">
               <Badge etiqueta={producto.etiqueta} />
+              <BotonCompartir producto={producto} />
             </div>
 
             <h1 className="font-display-lg text-headline-lg-mobile mb-4 mt-4 text-on-background md:text-display-lg">
