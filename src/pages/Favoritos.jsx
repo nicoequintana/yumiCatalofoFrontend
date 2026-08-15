@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
+import BotonVolver from "../components/BotonVolver.jsx";
 import useFavoritos from "../hooks/useFavoritos.js";
 import { getProducts } from "../api/products.js";
 
@@ -57,6 +58,10 @@ function Favoritos() {
 
   return (
     <section className="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop md:py-24">
+      <div className="mb-6">
+        <BotonVolver />
+      </div>
+
       <div className="mb-16 flex flex-col items-center">
         <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
           Tu selección
