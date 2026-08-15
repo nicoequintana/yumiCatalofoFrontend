@@ -63,6 +63,7 @@ function AdminCategorias() {
   }
 
   function iniciarEdicion(categoria) {
+    setConfirmandoId(null);
     setEditandoId(categoria.id);
     setNombreEditado(categoria.nombre);
   }
@@ -187,7 +188,7 @@ function AdminCategorias() {
                           <button
                             type="button"
                             onClick={() => handleGuardarEdicion(categoria.id)}
-                            disabled={guardandoEdicion}
+                            disabled={guardandoEdicion || eliminandoId === categoria.id}
                             className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline disabled:opacity-60"
                           >
                             {guardandoEdicion ? <Spinner className="h-3.5 w-3.5" /> : null}
@@ -218,7 +219,7 @@ function AdminCategorias() {
                           <button
                             type="button"
                             onClick={() => handleEliminar(categoria.id)}
-                            disabled={eliminandoId === categoria.id}
+                            disabled={eliminandoId === categoria.id || guardandoEdicion}
                             className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60"
                           >
                             {eliminandoId === categoria.id ? <Spinner className="h-3.5 w-3.5" /> : null}
@@ -235,7 +236,10 @@ function AdminCategorias() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setConfirmandoId(categoria.id)}
+                          onClick={() => {
+                            setEditandoId(null);
+                            setConfirmandoId(categoria.id);
+                          }}
                           className="flex items-center gap-1 font-label-md text-label-md uppercase tracking-widest text-error hover:underline"
                         >
                           <span className="material-symbols-outlined text-[18px]">delete</span>
