@@ -102,6 +102,15 @@ export default {
         // real Tailwind token so it's usable as `shadow-ambient`.
         ambient: "0px 10px 30px rgba(26, 26, 26, 0.05)",
       },
+      keyframes: {
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+      },
+      animation: {
+        fadeIn: "fadeIn 200ms ease-in-out",
+      },
     },
   },
   plugins: [],
