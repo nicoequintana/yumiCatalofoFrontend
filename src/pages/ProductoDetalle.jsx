@@ -115,7 +115,7 @@ function ProductoDetalle() {
                 <span className="font-label-sm text-label-sm mb-1 block uppercase tracking-widest text-on-tertiary-container">
                   Inversión
                 </span>
-                <span className="font-headline-lg text-headline-lg text-on-background">
+                <span className="font-headline-lg text-headline-lg text-on-tertiary-container">
                   {formatPrecio(producto.precio)}
                 </span>
               </div>

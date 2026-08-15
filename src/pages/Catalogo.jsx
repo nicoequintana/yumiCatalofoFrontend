@@ -36,9 +36,9 @@ function Catalogo() {
       {/* Hero Section — ported from home.html L121-130 */}
       <section className="relative flex w-full flex-col items-center justify-center px-margin-mobile py-24 text-center md:px-margin-desktop md:py-32">
         <h1 className="font-display-lg text-display-lg mx-auto mb-6 max-w-4xl tracking-tight text-primary md:text-[64px]">
-          Regalate, Regalá
+          Fernando Segovia
           <br />
-          con Elegancia
+          Nicolas Quintana
         </h1>
         <p className="font-body-lg text-body-lg mx-auto mb-12 max-w-2xl text-on-surface-variant">
           Descubra una colección curada de objetos extraordinarios diseñados para elevar sus

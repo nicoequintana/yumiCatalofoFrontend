@@ -5,7 +5,7 @@ import EstadoVacio from "../../components/EstadoVacio.jsx";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import { createProduct, deletePhoto, getProductById, updateProduct } from "../../api/products.js";
-import { formatearPrecioInput } from "../../utils/formato.js";
+import { formatearPrecioInput, formatearPrecioParaEdicion } from "../../utils/formato.js";
 import { getCategorias } from "../../api/categorias.js";
 
 const SUGERENCIAS_ETIQUETA = ["Exclusivo", "Nuevo", "Best Seller", "Trending", "Popular"];
@@ -22,7 +22,7 @@ const SUGERENCIAS_ETIQUETA = ["Exclusivo", "Nuevo", "Best Seller", "Trending", "
  *
  * MediaUploader (PR 2) already caps fotos/video in its own UI, but this form
  * is the final guard before calling the mock API — `createProduct`/
- * `updateProduct` (PR 1) re-validate max 4 fotos / max 1 video server-side
+ * `updateProduct` (PR 1) re-validate max 10 fotos / max 1 video server-side
  * (D6/spec), so a thrown `Error` here always means real invalid state, not a
  * UI bug users could otherwise bypass.
  */
@@ -67,8 +67,11 @@ function AdminProductoForm() {
       setProductoId(producto.id);
       setNombre(producto.nombre);
       setDescripcion(producto.descripcion ?? "");
-      setPrecio(producto.precio ?? "");
-      setPrecioVisual(producto.precio ? formatearPrecioInput(String(producto.precio)).formateado : "");
+      const { crudo, formateado } = producto.precio
+        ? formatearPrecioParaEdicion(String(producto.precio))
+        : { crudo: "", formateado: "" };
+      setPrecio(crudo);
+      setPrecioVisual(formateado);
       setEtiqueta(producto.etiqueta ?? "");
       setCategoriaId(producto.categoria?.id ? String(producto.categoria.id) : "");
       setCaracteristicas(producto.caracteristicas ?? []);

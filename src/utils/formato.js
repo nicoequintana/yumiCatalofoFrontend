@@ -52,3 +52,36 @@ export function formatearPrecioInput(valor) {
 
   return { formateado, crudo };
 }
+
+/**
+ * Converts an already-valid backend `precio` value (dot-decimal string, e.g.
+ * Prisma `Decimal.toString()` -> "1500.00" or "1500") into the shape the edit
+ * form needs to prefill the price field: `formateado` (comma-decimal display,
+ * e.g. "1.500,00") and `crudo` (dot-decimal, ready for submission as-is).
+ *
+ * This is a prefill-only conversion, distinct from `formatearPrecioInput`:
+ * that function parses raw, possibly-partial keystroke input (comma-decimal,
+ * digits typed live) and would corrupt an already-normalized dot-decimal
+ * value (e.g. "1500.00" -> strips the "." as a non-digit/non-comma char ->
+ * "150000" -> displayed as "150.000", a 100x price bug). Use this function
+ * whenever prefilling from a trusted backend value instead.
+ *
+ * @param {string} valor - backend dot-decimal numeric string, e.g. "1500.00"
+ * @returns {{ formateado: string, crudo: string }}
+ */
+export function formatearPrecioParaEdicion(valor) {
+  const numero = typeof valor === "number" ? valor : parseFloat(valor);
+
+  if (Number.isNaN(numero)) {
+    return { formateado: "", crudo: "" };
+  }
+
+  const formateado = new Intl.NumberFormat("es-AR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numero);
+
+  const crudo = numero.toFixed(2);
+
+  return { formateado, crudo };
+}
