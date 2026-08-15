@@ -1,16 +1,18 @@
 import { useState } from "react";
+import Lightbox from "./Lightbox.jsx";
 
 /**
  * Product detail image panel, ported from detalle-producto.html L149-167.
  *
- * Dot count == foto count (1-4, per spec's "hasta 4 fotos"), NO arrows
- * (mockup only has dot indicators), NO color swatches (removed per the
- * finalized design decision). When a video is present it is exposed as an
- * extra "slide" reachable from the dots, matching the spec scenario
- * "the video is accessible from the gallery".
+ * Dot count == slide count (fotos + optional video, up to 10 fotos per
+ * design item 2). Prev/next arrows are always visible (design item 5, not
+ * hover-only, so mobile gets them without needing hover support). Clicking
+ * a photo slide opens the Lightbox; clicking the video slide does nothing
+ * extra since <video> already has native controls.
  */
 function PhotoGallery({ fotos = [], video = null, nombre = "" }) {
   const [activo, setActivo] = useState(0);
+  const [lightboxAbierto, setLightboxAbierto] = useState(false);
 
   const slides = [
     ...fotos.map((foto) => ({ tipo: "foto", ...foto })),
@@ -18,6 +20,18 @@ function PhotoGallery({ fotos = [], video = null, nombre = "" }) {
   ];
 
   const slideActivo = slides[activo];
+
+  function irA(index) {
+    setActivo(index);
+  }
+
+  function siguiente() {
+    setActivo((prev) => (prev + 1) % slides.length);
+  }
+
+  function anterior() {
+    setActivo((prev) => (prev - 1 + slides.length) % slides.length);
+  }
 
   return (
     <div
@@ -42,10 +56,33 @@ function PhotoGallery({ fotos = [], video = null, nombre = "" }) {
         />
       ) : slideActivo ? (
         <img
+          key={slideActivo.id ?? activo}
           alt={nombre}
-          className="relative z-10 max-h-[80%] w-3/4 object-contain"
+          onClick={() => setLightboxAbierto(true)}
+          className="relative z-10 max-h-[80%] w-3/4 cursor-zoom-in object-contain transition-opacity duration-200 ease-in-out"
           src={slideActivo.url}
         />
+      ) : null}
+
+      {slides.length > 1 ? (
+        <>
+          <button
+            type="button"
+            onClick={anterior}
+            aria-label="Anterior"
+            className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
+          >
+            <span className="material-symbols-outlined">chevron_left</span>
+          </button>
+          <button
+            type="button"
+            onClick={siguiente}
+            aria-label="Siguiente"
+            className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
+          >
+            <span className="material-symbols-outlined">chevron_right</span>
+          </button>
+        </>
       ) : null}
 
       {slides.length >= 1 ? (
@@ -55,11 +92,25 @@ function PhotoGallery({ fotos = [], video = null, nombre = "" }) {
               key={`${slide.tipo}-${slide.id ?? index}`}
               type="button"
               aria-label={slide.tipo === "video" ? "Ver video" : `Ver foto ${index + 1}`}
-              onClick={() => setActivo(index)}
+              onClick={() => irA(index)}
               className={`h-2 w-2 rounded-full ${index === activo ? "bg-primary" : "bg-outline-variant"}`}
             />
           ))}
         </div>
+      ) : null}
+
+      {lightboxAbierto && slideActivo?.tipo === "foto" ? (
+        <Lightbox
+          slides={slides.filter((s) => s.tipo === "foto")}
+          activo={slides.filter((s) => s.tipo === "foto").findIndex((s) => s === slideActivo)}
+          onNavegar={(index) => {
+            const fotosSlides = slides.filter((s) => s.tipo === "foto");
+            const target = fotosSlides[index];
+            setActivo(slides.indexOf(target));
+          }}
+          onCerrar={() => setLightboxAbierto(false)}
+          nombre={nombre}
+        />
       ) : null}
     </div>
   );
