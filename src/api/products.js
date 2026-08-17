@@ -82,9 +82,10 @@ function construirFormData(data) {
   return fd;
 }
 
-/** @returns {Promise<Array>} all products from the backend */
-export async function getProducts() {
-  return pedir(`${BASE}/products`);
+/** @returns {Promise<Array>} products from the backend. Pass admin:true to include hidden products (used by admin screens). */
+export async function getProducts({ admin = false } = {}) {
+  const query = admin ? "?admin=1" : "";
+  return pedir(`${BASE}/products${query}`);
 }
 
 /** @returns {Promise<Object|null>} a single product by id, or null if not found (404) */
@@ -120,6 +121,15 @@ export async function updateProduct(id, data) {
 /** @returns {Promise<{ok: true}>} */
 export async function deleteProduct(id) {
   return pedirAutenticado(`${BASE}/products/${id}`, { method: "DELETE" });
+}
+
+/** @returns {Promise<Object>} the updated product, with its new visibleEnCatalogo value */
+export async function updateVisibilidad(id, visibleEnCatalogo) {
+  return pedirAutenticado(`${BASE}/products/${id}/visibilidad`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ visibleEnCatalogo }),
+  });
 }
 
 /** @returns {Promise<Object>} the product with the photo removed and `orden` re-normalized */

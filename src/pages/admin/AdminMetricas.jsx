@@ -17,7 +17,7 @@ function AdminMetricas() {
   useEffect(() => {
     let activo = true;
 
-    getProducts().then((data) => {
+    getProducts({ admin: true }).then((data) => {
       if (!activo) return;
       // Most-viewed first — the most immediately useful ordering for an
       // admin checking "what's popular" at a glance.

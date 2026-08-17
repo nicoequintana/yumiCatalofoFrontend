@@ -26,7 +26,7 @@ function AdminProductos() {
 
   async function cargarProductos() {
     setCargando(true);
-    const data = await getProducts();
+    const data = await getProducts({ admin: true });
     setProductos(data);
     setCargando(false);
   }
@@ -34,7 +34,7 @@ function AdminProductos() {
   useEffect(() => {
     let activo = true;
 
-    getProducts().then((data) => {
+    getProducts({ admin: true }).then((data) => {
       if (!activo) return;
       setProductos(data);
       setCargando(false);
