@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Badge from "../../components/Badge.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
-import { deleteProduct, getProducts } from "../../api/products.js";
+import { deleteProduct, getProducts, updateVisibilidad } from "../../api/products.js";
 import { formatPrecio } from "../../utils/formato.js";
 
 /**
@@ -23,6 +23,7 @@ function AdminProductos() {
   const [confirmandoId, setConfirmandoId] = useState(null);
   const [eliminandoId, setEliminandoId] = useState(null);
   const [error, setError] = useState(null);
+  const [actualizandoVisibilidadId, setActualizandoVisibilidadId] = useState(null);
 
   async function cargarProductos() {
     setCargando(true);
@@ -56,6 +57,19 @@ function AdminProductos() {
       setError(err.message ?? "No se pudo eliminar el producto.");
     } finally {
       setEliminandoId(null);
+    }
+  }
+
+  async function handleToggleVisibilidad(producto) {
+    setError(null);
+    setActualizandoVisibilidadId(producto.id);
+    try {
+      const actualizado = await updateVisibilidad(producto.id, !producto.visibleEnCatalogo);
+      setProductos((actuales) => actuales.map((p) => (p.id === actualizado.id ? actualizado : p)));
+    } catch (err) {
+      setError(err.message ?? "No se pudo actualizar la visibilidad del producto.");
+    } finally {
+      setActualizandoVisibilidadId(null);
     }
   }
 
@@ -99,7 +113,7 @@ function AdminProductos() {
         />
       ) : (
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-ambient">
-          <table className="w-full min-w-[640px] text-left">
+          <table className="w-full min-w-[820px] text-left">
             <thead>
               <tr className="border-b border-outline-variant">
                 <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
@@ -107,6 +121,9 @@ function AdminProductos() {
                 </th>
                 <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
                   Nombre
+                </th>
+                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  SKU
                 </th>
                 <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
                   Etiqueta
@@ -119,6 +136,9 @@ function AdminProductos() {
                 </th>
                 <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
                   Fotos
+                </th>
+                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  Catálogo
                 </th>
                 <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
                   Acciones
@@ -142,6 +162,7 @@ function AdminProductos() {
                     )}
                   </td>
                   <td className="font-body-md text-body-md px-6 py-4 text-on-surface">{producto.nombre}</td>
+                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">{producto.sku}</td>
                   <td className="px-6 py-4">
                     <Badge etiqueta={producto.etiqueta} />
                   </td>
@@ -153,6 +174,20 @@ function AdminProductos() {
                   </td>
                   <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
                     {producto.fotos?.length ?? 0}/10
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleVisibilidad(producto)}
+                      disabled={actualizandoVisibilidadId === producto.id}
+                      aria-pressed={producto.visibleEnCatalogo}
+                      className={`inline-flex items-center gap-2 font-label-md text-label-md uppercase tracking-widest disabled:opacity-60 ${
+                        producto.visibleEnCatalogo ? "text-secondary" : "text-on-surface-variant"
+                      }`}
+                    >
+                      {actualizandoVisibilidadId === producto.id ? <Spinner className="h-3.5 w-3.5" /> : null}
+                      {producto.visibleEnCatalogo ? "Sí" : "No"}
+                    </button>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
