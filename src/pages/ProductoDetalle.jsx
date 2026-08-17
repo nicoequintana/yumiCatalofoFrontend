@@ -64,7 +64,7 @@ function ProductoDetalle() {
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <div className="font-headline-lg-mobile text-headline-lg-mobile tracking-tighter text-primary">
-          AURA
+          {producto.nombre}
         </div>
         <span className="w-10" aria-hidden="true" />
       </header>
@@ -113,9 +113,9 @@ function ProductoDetalle() {
 
             <div className="mt-auto flex items-center justify-between rounded-2xl bg-tertiary-container p-6 shadow-lg md:p-8">
               <div>
-                <span className="font-label-sm text-label-sm mb-1 block uppercase tracking-widest text-on-tertiary-container">
+                {/* <span className="font-label-sm text-label-sm mb-1 block uppercase tracking-widest text-on-tertiary-container">
                   Inversión
-                </span>
+                </span> */}
                 <span className="font-headline-lg text-headline-lg text-on-tertiary-container">
                   {formatPrecio(producto.precio)}
                 </span>

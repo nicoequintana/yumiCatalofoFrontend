@@ -53,7 +53,7 @@ function ProductCard({ producto, variant = "vertical" }) {
       <div className="mb-6 flex h-64 flex-grow items-center justify-center">
         {foto ? (
           <img
-            className="h-full w-full object-contain"
+            className="h-full w-full object-contain object-fit"
             src={foto.url}
             alt={producto.nombre}
           />

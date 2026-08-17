@@ -36,13 +36,12 @@ function Catalogo() {
       {/* Hero Section — ported from home.html L121-130 */}
       <section className="relative flex w-full flex-col items-center justify-center px-margin-mobile py-24 text-center md:px-margin-desktop md:py-32">
         <h1 className="font-display-lg text-display-lg mx-auto mb-6 max-w-4xl tracking-tight text-primary md:text-[64px]">
-          Fernando Segovia
-          <br />
-          Nicolas Quintana
+          ¿Qué vas a descubrir hoy?
         </h1>
         <p className="font-body-lg text-body-lg mx-auto mb-12 max-w-2xl text-on-surface-variant">
-          Descubra una colección curada de objetos extraordinarios diseñados para elevar sus
-          momentos cotidianos. Un tributo al diseño atemporal y la artesanía impecable.
+          Entrá por una cosa. Quedate por muchas. 
+          <br></br>
+          Encontrá eso que buscabas y algo que no sabías que querías.
         </p>
       </section>
 
@@ -53,7 +52,7 @@ function Catalogo() {
             Nuestra Colección
           </span>
           <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">
-            Piezas Destacadas
+            Productos
           </h2>
         </div>
 
