@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { clearToken } from "../api/authClient.js";
 
@@ -23,6 +23,12 @@ function AdminSidebar({ colapsada, onCerrar }) {
   const [configuracionAbierta, setConfiguracionAbierta] = useState(
     location.pathname.startsWith("/catalogo/admin/configuracion"),
   );
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/catalogo/admin/configuracion")) {
+      setConfiguracionAbierta(true);
+    }
+  }, [location.pathname]);
 
   function handleCerrarSesion() {
     clearToken();
