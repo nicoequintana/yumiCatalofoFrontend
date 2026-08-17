@@ -1,0 +1,138 @@
+/**
+ * Real REST client for the `/api/products` backend (Express + Prisma +
+ * SQL Server + Google Drive). Every export here preserves the exact
+ * signature the mock localStorage implementation used, so page components
+ * (`Catalogo.jsx`, `ProductoDetalle.jsx`, `AdminProductos.jsx`,
+ * `AdminProductoForm.jsx`) required zero call-site changes for this swap
+ * (design.md "Frontend products.js Rewrite").
+ *
+ * `resetStore` is intentionally NOT ported — reseeding is CLI-only
+ * (`npx prisma db seed`), per design D7 / spec's "Restaurar datos de
+ * ejemplo removed (FINAL)". A real, unauthenticated backend must not expose
+ * a destructive reseed action to any UI visitor.
+ */
+
+import { fetchAutenticado } from "./authClient.js";
+
+const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api`;
+
+/**
+ * Shared fetch helper. Parses the JSON body and throws a plain `Error` with
+ * the backend's Spanish message on non-2xx responses, so existing
+ * `catch (err) => setError(err.message)` call sites keep working unchanged.
+ */
+async function pedir(url, options) {
+  const res = await fetch(url, options);
+
+  // 204/empty-body responses (none currently exist, but keep this safe).
+  const texto = await res.text();
+  const body = texto ? JSON.parse(texto) : null;
+
+  if (!res.ok) {
+    throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
+  }
+
+  return body;
+}
+
+/** Igual que `pedir`, pero usa el wrapper autenticado (agrega el JWT y maneja 401). */
+async function pedirAutenticado(url, options) {
+  const res = await fetchAutenticado(url, options);
+
+  const texto = await res.text();
+  const body = texto ? JSON.parse(texto) : null;
+
+  if (!res.ok) {
+    throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
+  }
+
+  return body;
+}
+
+/** Builds the shared `FormData` payload for create/update from the form's `data` shape. */
+function construirFormData(data) {
+  const fd = new FormData();
+
+  if (data.nombre !== undefined) fd.append("nombre", data.nombre);
+  if (data.descripcion !== undefined) fd.append("descripcion", data.descripcion ?? "");
+  if (data.precio !== undefined) fd.append("precio", String(data.precio));
+  if (data.etiqueta !== undefined && data.etiqueta !== null) fd.append("etiqueta", data.etiqueta);
+  if (data.categoriaId !== undefined) {
+    fd.append("categoriaId", data.categoriaId === null ? "" : data.categoriaId);
+  }
+
+  if (data.caracteristicas !== undefined) {
+    fd.append("caracteristicas", JSON.stringify(data.caracteristicas.map((c) => ({ texto: c.texto }))));
+  }
+
+  if (data.fotosExistentes !== undefined) {
+    fd.append("fotosExistentes", JSON.stringify(data.fotosExistentes));
+  }
+
+  for (const file of data.fotosNuevas ?? []) {
+    fd.append("fotos", file);
+  }
+
+  if (data.videoNuevo) {
+    fd.append("video", data.videoNuevo);
+  } else if (data.eliminarVideo) {
+    fd.append("eliminarVideo", "true");
+  }
+
+  return fd;
+}
+
+/** @returns {Promise<Array>} all products from the backend */
+export async function getProducts() {
+  return pedir(`${BASE}/products`);
+}
+
+/** @returns {Promise<Object|null>} a single product by id, or null if not found (404) */
+export async function getProductById(id, { admin = false } = {}) {
+  const query = admin ? "?admin=1" : "";
+  const res = await fetch(`${BASE}/products/${id}${query}`);
+  if (res.status === 404) return null;
+
+  const texto = await res.text();
+  const body = texto ? JSON.parse(texto) : null;
+  if (!res.ok) {
+    throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
+  }
+  return body;
+}
+
+/** @returns {Promise<Object>} the newly created product */
+export async function createProduct(data) {
+  return pedirAutenticado(`${BASE}/products`, {
+    method: "POST",
+    body: construirFormData(data),
+  });
+}
+
+/** @returns {Promise<Object>} the updated product */
+export async function updateProduct(id, data) {
+  return pedirAutenticado(`${BASE}/products/${id}`, {
+    method: "PUT",
+    body: construirFormData(data),
+  });
+}
+
+/** @returns {Promise<{ok: true}>} */
+export async function deleteProduct(id) {
+  return pedirAutenticado(`${BASE}/products/${id}`, { method: "DELETE" });
+}
+
+/** @returns {Promise<Object>} the product with the photo removed and `orden` re-normalized */
+export async function deletePhoto(productId, fotoId) {
+  return pedirAutenticado(`${BASE}/products/${productId}/fotos/${fotoId}`, { method: "DELETE" });
+}
+
+/** Fire-and-forget: increments the product's share counter. Never throws. */
+export async function registrarCompartido(id) {
+  try {
+    await fetch(`${BASE}/products/${id}/compartir`, { method: "POST" });
+  } catch {
+    // Soft analytics counter — a failed request here must never disrupt
+    // the actual share action the user just completed.
+  }
+}
