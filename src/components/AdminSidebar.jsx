@@ -54,11 +54,11 @@ function AdminSidebar({ colapsada, onCerrar }) {
             Aura Admin
           </span>
           <nav className="flex flex-col gap-1">
-            <NavLink to="/catalogo/admin/productos" className={claseLink}>
+            <NavLink to="/catalogo/admin/productos" className={claseLink} onClick={onCerrar}>
               <span className="material-symbols-outlined text-[18px]">inventory_2</span>
               Productos
             </NavLink>
-            <NavLink to="/catalogo/admin/metricas" className={claseLink}>
+            <NavLink to="/catalogo/admin/metricas" className={claseLink} onClick={onCerrar}>
               <span className="material-symbols-outlined text-[18px]">query_stats</span>
               Métricas
             </NavLink>
@@ -78,10 +78,18 @@ function AdminSidebar({ colapsada, onCerrar }) {
             </button>
             {configuracionAbierta && (
               <div className="ml-4 flex flex-col gap-1 border-l border-outline-variant pl-4">
-                <NavLink to="/catalogo/admin/configuracion/categorias" className={claseLink}>
+                <NavLink
+                  to="/catalogo/admin/configuracion/categorias"
+                  className={claseLink}
+                  onClick={onCerrar}
+                >
                   Categorías
                 </NavLink>
-                <NavLink to="/catalogo/admin/configuracion/usuarios" className={claseLink}>
+                <NavLink
+                  to="/catalogo/admin/configuracion/usuarios"
+                  className={claseLink}
+                  onClick={onCerrar}
+                >
                   Usuarios
                 </NavLink>
               </div>
