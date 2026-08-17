@@ -20,7 +20,7 @@ import { formatPrecio } from "../../utils/formato.js";
 function AdminProductos() {
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const [confirmandoId, setConfirmandoId] = useState(null);
+  const [productoAEliminar, setProductoAEliminar] = useState(null);
   const [eliminandoId, setEliminandoId] = useState(null);
   const [error, setError] = useState(null);
   const [actualizandoVisibilidadId, setActualizandoVisibilidadId] = useState(null);
@@ -51,7 +51,7 @@ function AdminProductos() {
     setEliminandoId(id);
     try {
       await deleteProduct(id);
-      setConfirmandoId(null);
+      setProductoAEliminar(null);
       await cargarProductos();
     } catch (err) {
       setError(err.message ?? "No se pudo eliminar el producto.");
@@ -212,37 +212,15 @@ function AdminProductos() {
                         <span className="material-symbols-outlined text-[20px]">edit</span>
                       </Link>
 
-                      {confirmandoId === producto.id ? (
-                        <div className="flex items-center gap-2">
-                          <span className="font-body-md text-body-md text-on-surface-variant">¿Confirmar?</span>
-                          <button
-                            type="button"
-                            onClick={() => handleEliminar(producto.id)}
-                            disabled={eliminandoId === producto.id}
-                            className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60"
-                          >
-                            {eliminandoId === producto.id ? <Spinner className="h-3.5 w-3.5" /> : null}
-                            Sí
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmandoId(null)}
-                            className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant hover:underline"
-                          >
-                            No
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setConfirmandoId(producto.id)}
-                          aria-label={`Eliminar ${producto.nombre}`}
-                          title="Eliminar"
-                          className="flex h-9 w-9 items-center justify-center rounded-full text-error hover:bg-error-container"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">delete</span>
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setProductoAEliminar(producto)}
+                        aria-label={`Eliminar ${producto.nombre}`}
+                        title="Eliminar"
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-error hover:bg-error-container"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -251,6 +229,42 @@ function AdminProductos() {
           </table>
         </div>
       )}
+
+      {productoAEliminar ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-margin-mobile">
+          <div className="w-full max-w-sm rounded-xl bg-surface-container-lowest p-6 shadow-ambient">
+            <h2 className="font-headline-md text-headline-md mb-2 text-on-background">Eliminar producto</h2>
+            <p className="font-body-md text-body-md mb-6 text-on-surface-variant">
+              ¿Seguro que querés eliminar <strong className="text-on-surface">{productoAEliminar.nombre}</strong>?
+              Esta acción no se puede deshacer.
+            </p>
+            {error ? (
+              <p className="font-body-md text-body-md mb-4 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
+                {error}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setProductoAEliminar(null)}
+                disabled={eliminandoId === productoAEliminar.id}
+                className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleEliminar(productoAEliminar.id)}
+                disabled={eliminandoId === productoAEliminar.id}
+                className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-error px-5 py-3 uppercase tracking-widest text-on-error disabled:opacity-60"
+              >
+                {eliminandoId === productoAEliminar.id ? <Spinner className="h-4 w-4 text-on-error" /> : null}
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
