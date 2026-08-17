@@ -56,9 +56,12 @@ function AdminMetricas() {
         />
       ) : (
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-ambient">
-          <table className="w-full min-w-[480px] text-left">
+          <table className="w-full min-w-[600px] text-left">
             <thead>
               <tr className="border-b border-outline-variant">
+                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  SKU
+                </th>
                 <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
                   Nombre
                 </th>
@@ -73,6 +76,7 @@ function AdminMetricas() {
             <tbody>
               {productos.map((producto) => (
                 <tr key={producto.id} className="border-b border-outline-variant last:border-b-0">
+                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">{producto.sku}</td>
                   <td className="font-body-md text-body-md px-6 py-4 text-on-surface">{producto.nombre}</td>
                   <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">{producto.vistas}</td>
                   <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
