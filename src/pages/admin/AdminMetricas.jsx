@@ -33,7 +33,7 @@ function AdminMetricas() {
   return (
     <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
       <div className="mb-6">
-        <BotonVolver />
+        <BotonVolver fallback="/catalogo/admin/productos" />
       </div>
 
       <div className="mb-10">
