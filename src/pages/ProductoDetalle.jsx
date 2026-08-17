@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import PhotoGallery from "../components/PhotoGallery.jsx";
 import Badge from "../components/Badge.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
+import { useVolver } from "../hooks/useVolver.js";
 import BotonCompartir from "../components/BotonCompartir.jsx";
 import BotonFavorito from "../components/BotonFavorito.jsx";
 import { getProductById } from "../api/products.js";
@@ -21,7 +22,7 @@ import { formatPrecio } from "../utils/formato.js";
  */
 function ProductoDetalle() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const volver = useVolver();
   const [producto, setProducto] = useState(null);
   const [cargando, setCargando] = useState(true);
 
@@ -59,7 +60,7 @@ function ProductoDetalle() {
       {/* Mobile header — the one page-specific mobile-nav exception, ported
           from detalle-producto.html L136-145 */}
       <header className="sticky top-0 z-40 flex w-full items-center justify-between bg-background px-margin-mobile py-4 md:hidden">
-        <button type="button" className="p-2 text-on-surface" onClick={() => navigate(-1)}>
+        <button type="button" className="p-2 text-on-surface" onClick={volver}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <div className="font-headline-lg-mobile text-headline-lg-mobile tracking-tighter text-primary">

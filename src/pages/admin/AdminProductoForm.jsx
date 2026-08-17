@@ -192,7 +192,7 @@ function AdminProductoForm() {
   return (
     <main className="mx-auto w-full max-w-3xl px-margin-mobile py-8 md:px-margin-desktop md:py-16">
       <div className="mb-6">
-        <BotonVolver />
+        <BotonVolver fallback="/catalogo/admin/productos" />
       </div>
       <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
         Panel de administración
