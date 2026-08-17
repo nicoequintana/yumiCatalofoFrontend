@@ -162,41 +162,54 @@ function AdminProductos() {
                     )}
                   </td>
                   <td className="font-body-md text-body-md px-6 py-4 text-on-surface">{producto.nombre}</td>
-                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">{producto.sku}</td>
+                  <td className="font-body-md text-body-md whitespace-nowrap px-6 py-4 text-on-surface-variant">
+                    {producto.sku}
+                  </td>
                   <td className="px-6 py-4">
                     <Badge etiqueta={producto.etiqueta} />
                   </td>
                   <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
                     {producto.categoria?.nombre ?? "—"}
                   </td>
-                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface">
+                  <td className="font-body-md text-body-md whitespace-nowrap px-6 py-4 text-on-surface">
                     {formatPrecio(producto.precio)}
                   </td>
                   <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
                     {producto.fotos?.length ?? 0}/10
                   </td>
                   <td className="px-6 py-4">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleVisibilidad(producto)}
-                      disabled={actualizandoVisibilidadId === producto.id}
-                      aria-pressed={producto.visibleEnCatalogo}
-                      className={`inline-flex items-center gap-2 font-label-md text-label-md uppercase tracking-widest disabled:opacity-60 ${
-                        producto.visibleEnCatalogo ? "text-secondary" : "text-on-surface-variant"
-                      }`}
-                    >
-                      {actualizandoVisibilidadId === producto.id ? <Spinner className="h-3.5 w-3.5" /> : null}
-                      {producto.visibleEnCatalogo ? "Sí" : "No"}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={producto.visibleEnCatalogo}
+                        aria-label={`Mostrar ${producto.nombre} en el catálogo`}
+                        onClick={() => handleToggleVisibilidad(producto)}
+                        disabled={actualizandoVisibilidadId === producto.id}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
+                          producto.visibleEnCatalogo ? "bg-secondary" : "bg-outline-variant"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-surface-container-lowest shadow transition-transform ${
+                            producto.visibleEnCatalogo ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                      {actualizandoVisibilidadId === producto.id ? (
+                        <Spinner className="h-3.5 w-3.5 text-on-surface-variant" />
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
                       <Link
                         to={`/catalogo/admin/productos/${producto.id}/editar`}
-                        className="flex items-center gap-1 font-label-md text-label-md uppercase tracking-widest text-secondary hover:underline"
+                        aria-label={`Editar ${producto.nombre}`}
+                        title="Editar"
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-secondary hover:bg-surface-container-high"
                       >
-                        <span className="material-symbols-outlined text-[18px]">edit</span>
-                        Editar
+                        <span className="material-symbols-outlined text-[20px]">edit</span>
                       </Link>
 
                       {confirmandoId === producto.id ? (
@@ -223,10 +236,11 @@ function AdminProductos() {
                         <button
                           type="button"
                           onClick={() => setConfirmandoId(producto.id)}
-                          className="flex items-center gap-1 font-label-md text-label-md uppercase tracking-widest text-error hover:underline"
+                          aria-label={`Eliminar ${producto.nombre}`}
+                          title="Eliminar"
+                          className="flex h-9 w-9 items-center justify-center rounded-full text-error hover:bg-error-container"
                         >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                          Eliminar
+                          <span className="material-symbols-outlined text-[20px]">delete</span>
                         </button>
                       )}
                     </div>
