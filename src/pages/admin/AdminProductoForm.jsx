@@ -163,7 +163,7 @@ function AdminProductoForm() {
       } else {
         await createProduct(data);
       }
-      navigate("/catalogo/admin");
+      navigate("/catalogo/admin/productos");
     } catch (err) {
       setError(err.message ?? "No se pudo guardar el producto.");
       setGuardando(false);
@@ -364,7 +364,7 @@ function AdminProductoForm() {
           </button>
           <button
             type="button"
-            onClick={() => navigate("/catalogo/admin")}
+            onClick={() => navigate("/catalogo/admin/productos")}
             className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-6 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
           >
             Cancelar

@@ -17,7 +17,7 @@ function AdminLogin() {
     try {
       const { token } = await login(email, password);
       setToken(token);
-      navigate("/catalogo/admin");
+      navigate("/catalogo/admin/productos");
     } catch (err) {
       setError(err.message);
     } finally {
