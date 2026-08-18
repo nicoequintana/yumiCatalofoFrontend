@@ -50,7 +50,7 @@ function PhotoGallery({ fotos = [], video = null, nombre = "" }) {
 
       {slideActivo?.tipo === "video" ? (
         <video
-          className="relative z-10 max-h-[80%] w-3/4 object-contain"
+          className="relative z-10 h-full w-full object-cover"
           src={slideActivo.url}
           controls
         />
@@ -59,7 +59,7 @@ function PhotoGallery({ fotos = [], video = null, nombre = "" }) {
           key={slideActivo.id ?? activo}
           alt={nombre}
           onClick={() => setLightboxAbierto(true)}
-          className="relative z-10 max-h-[80%] w-3/4 cursor-zoom-in object-contain animate-fadeIn"
+          className="relative z-10 h-full w-full cursor-zoom-in object-cover animate-fadeIn"
           src={slideActivo.url}
         />
       ) : null}
