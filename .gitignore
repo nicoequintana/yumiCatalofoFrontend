@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Playwright E2E output (Sprint 7) — traces/screenshots/HTML report from
+# local runs, never meant to be committed.
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # Environment variables (dev-convenience values only, but keep the pattern
 # consistent with backend/.gitignore — .env.example stays tracked)
 .env
