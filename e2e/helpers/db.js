@@ -43,6 +43,7 @@
 import { config as cargarEnv } from "dotenv";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import bcrypt from "bcryptjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 cargarEnv({ path: path.resolve(__dirname, "../../../backend/.env") });
@@ -50,6 +51,11 @@ cargarEnv({ path: path.resolve(__dirname, "../../../backend/.env") });
 const { prisma } = await import("../../../backend/src/lib/prisma.js");
 
 export const MARCA_TEST = "E2E-TEST-";
+
+// Mismo costo que `backend/src/scripts/create-admin.js` — no hay razón para
+// que el hash de test sea más barato/caro que el de producción, el tiempo de
+// bcrypt.hash acá no es un cuello de botella real para un puñado de tests.
+const SALT_ROUNDS = 10;
 
 /**
  * Genera un DNI sintético de 8 dígitos, válido para `esDniValido` (7-8
@@ -213,6 +219,56 @@ export async function borrarOrdenDeTest(ordenId, clienteId) {
 }
 
 /**
+ * Crea (o reusa) un usuario admin de test vía Prisma directo, replicando a
+ * mano el mismo patrón que `backend/src/scripts/create-admin.js`
+ * (`bcrypt.hash` con `SALT_ROUNDS = 10` sobre `Usuario.passwordHash`) — no se
+ * puede shell-ear a ese script desde un test de Playwright de forma simple, y
+ * el script además hace `process.exit(1)` ante un email duplicado, algo que
+ * SÍ pasaría acá si corridas repetidas de test reusaran el mismo email fijo.
+ *
+ * Por eso, a diferencia de `crearProductoDeTest`/`crearClienteDeTest` (que
+ * siempre crean una fila nueva), este helper es idempotente: si el email ya
+ * existe (test anterior que no llegó a limpiar), actualiza su
+ * `passwordHash` en vez de fallar — así un test de login puede asumir
+ * siempre una contraseña conocida sin importar el estado dejado por una
+ * corrida previa interrumpida.
+ *
+ * `Usuario.email` no tiene un campo de texto libre donde meter el prefijo
+ * `MARCA_TEST` de forma útil (es el email de login, no un campo mostrado en
+ * ninguna UI) — se usa igual como prefijo del local-part
+ * (`e2e-test-admin@...`) para que `limpiarTodoRastroDeTest` pueda barrerlo
+ * por patrón igual que el resto de las filas de test.
+ * @param {object} [overrides]
+ * @param {string} [overrides.email]
+ * @param {string} [overrides.password] contraseña en texto plano (mínimo 8
+ *   caracteres, misma regla que `create-admin.js`) — se devuelve tal cual
+ *   para que el test pueda loguearse con ella por UI.
+ * @returns {Promise<{id: number, email: string, password: string}>}
+ */
+export async function crearUsuarioAdminDeTest(overrides = {}) {
+  const email = overrides.email ?? "e2e-test-admin@yumi.test";
+  const password = overrides.password ?? "E2E-Test-Pass-1234";
+
+  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+  const usuario = await prisma.usuario.upsert({
+    where: { email },
+    create: { email, passwordHash },
+    update: { passwordHash },
+  });
+
+  return { id: usuario.id, email: usuario.email, password };
+}
+
+/**
+ * Borra un usuario admin de test por id. Silencioso si ya no existe.
+ * @param {number} usuarioId
+ */
+export async function borrarUsuarioAdminDeTest(usuarioId) {
+  await prisma.usuario.delete({ where: { id: usuarioId } }).catch(() => {});
+}
+
+/**
  * Limpieza global por patrón: barre CUALQUIER fila marcada `E2E-TEST-` que
  * haya quedado huérfana (un test anterior que crasheó antes de su propio
  * cleanup puntual). Pensado para correr como global teardown, además del
@@ -236,6 +292,14 @@ export async function limpiarTodoRastroDeTest() {
 
   // Productos de test (cascade se lleva fotos/video/características).
   await prisma.product.deleteMany({ where: { sku: { startsWith: MARCA_TEST } } });
+
+  // Usuarios admin de test (ver crearUsuarioAdminDeTest) — NO se borran acá
+  // por defecto para no matar un usuario de test que otra corrida en
+  // paralelo esté usando; en la práctica esta suite corre con `workers: 1`
+  // (ver playwright.config.js), así que no hay corridas concurrentes reales,
+  // pero igual se acota el patrón al dominio reservado `@yumi.test` en vez de
+  // un `startsWith` sobre el prefijo genérico, más explícito sobre qué barre.
+  await prisma.usuario.deleteMany({ where: { email: { endsWith: "@yumi.test" } } });
 }
 
 export { prisma };
