@@ -204,20 +204,31 @@ function Carrito() {
             </p>
           ) : null}
 
-          <Link
-            to="/checkout"
-            aria-disabled={ctaDeshabilitado}
-            onClick={(e) => {
-              if (ctaDeshabilitado) e.preventDefault();
-            }}
-            className={`font-label-md text-label-md inline-flex items-center justify-center rounded-full px-8 py-4 text-center uppercase tracking-widest transition-colors ${
-              ctaDeshabilitado
-                ? "cursor-not-allowed bg-surface-container-high text-on-surface-variant"
-                : "bg-primary text-on-primary hover:bg-primary-container"
-            }`}
-          >
-            Confirmar pedido
-          </Link>
+          {ctaDeshabilitado ? (
+            // `aria-disabled` sobre un <Link>/<a> no es confiable entre
+            // lectores de pantalla (NVDA/JAWS/VoiceOver suelen seguir
+            // anunciándolo como link enfocable y clickeable, y el
+            // preventDefault bloquea la navegación en silencio sin ninguna
+            // explicación audible). Por eso, en vez de simular "deshabilitado"
+            // con ARIA sobre un elemento de navegación, se cambia de elemento:
+            // un <button disabled> nativo, que trae esa semántica gratis
+            // (no-focuseable, anunciado como deshabilitado, sin necesidad de
+            // handlers de click que cancelar).
+            <button
+              type="button"
+              disabled
+              className="font-label-md text-label-md inline-flex cursor-not-allowed items-center justify-center rounded-full bg-surface-container-high px-8 py-4 text-center uppercase tracking-widest text-on-surface-variant"
+            >
+              Confirmar pedido
+            </button>
+          ) : (
+            <Link
+              to="/checkout"
+              className="font-label-md text-label-md inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
+            >
+              Confirmar pedido
+            </Link>
+          )}
         </div>
       )}
     </section>

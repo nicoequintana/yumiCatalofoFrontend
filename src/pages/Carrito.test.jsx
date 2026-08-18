@@ -159,10 +159,13 @@ describe("Carrito", () => {
 
     await screen.findByText(/ya no está disponible/i);
 
-    expect(screen.getByRole("link", { name: /confirmar pedido/i })).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
+    // `aria-disabled` sobre un <Link>/<a> no es confiable entre lectores de
+    // pantalla, así que el CTA deshabilitado se renderiza como <button
+    // disabled> nativo en vez de un link con ARIA — no debe existir ningún
+    // link "Confirmar pedido" enfocable/clickeable en este estado.
+    expect(screen.queryByRole("link", { name: /confirmar pedido/i })).not.toBeInTheDocument();
+    const cta = screen.getByRole("button", { name: /confirmar pedido/i });
+    expect(cta).toBeDisabled();
   });
 
   it("habilita el CTA cuando todas las líneas son válidas", async () => {
@@ -177,8 +180,9 @@ describe("Carrito", () => {
 
     expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
 
+    // Habilitado: debe ser un <Link> real (navegable), no un botón.
+    expect(screen.queryByRole("button", { name: /confirmar pedido/i })).not.toBeInTheDocument();
     const cta = screen.getByRole("link", { name: /confirmar pedido/i });
-    expect(cta).not.toHaveAttribute("aria-disabled", "true");
     expect(cta).toHaveAttribute("href", "/checkout");
   });
 
