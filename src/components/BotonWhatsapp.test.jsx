@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import BotonWhatsapp from "./BotonWhatsapp.jsx";
@@ -14,10 +14,6 @@ describe("BotonWhatsapp", () => {
   });
 
   afterEach(() => {
-    // No global RTL auto-cleanup configured in this project's vitest setup
-    // (test.globals is off) — clean up explicitly so each test's render
-    // doesn't leak into the next one's DOM/query scope.
-    cleanup();
     vi.restoreAllMocks();
   });
 
