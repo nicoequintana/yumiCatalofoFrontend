@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /catalogo/admin
+
+# NOTE: frontend and backend live on separate EasyPanel subdomains with no
+# shared root domain today, so this Sitemap URL is aspirational — it assumes
+# the backend's /sitemap.xml is reachable at the frontend's own domain,
+# which it is not yet (see CLAUDE.md, "Autenticación del admin" section, for
+# the same subdomain-topology context). Update this once that gap is closed.
+Sitemap: https://yumi.example.com/sitemap.xml
