@@ -166,10 +166,14 @@ function Checkout() {
               type="text"
               value={dni}
               onChange={(e) => setDni(e.target.value)}
+              aria-invalid={Boolean(erroresCampos.dni)}
+              aria-describedby={erroresCampos.dni ? "dni-error" : undefined}
               className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
             />
             {erroresCampos.dni ? (
-              <p className="font-body-md text-body-md text-error">{erroresCampos.dni}</p>
+              <p id="dni-error" className="font-body-md text-body-md text-error">
+                {erroresCampos.dni}
+              </p>
             ) : null}
           </div>
 
@@ -182,10 +186,14 @@ function Checkout() {
               type="text"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
+              aria-invalid={Boolean(erroresCampos.nombre)}
+              aria-describedby={erroresCampos.nombre ? "nombre-error" : undefined}
               className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
             />
             {erroresCampos.nombre ? (
-              <p className="font-body-md text-body-md text-error">{erroresCampos.nombre}</p>
+              <p id="nombre-error" className="font-body-md text-body-md text-error">
+                {erroresCampos.nombre}
+              </p>
             ) : null}
           </div>
 
@@ -198,10 +206,14 @@ function Checkout() {
               type="text"
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
+              aria-invalid={Boolean(erroresCampos.telefono)}
+              aria-describedby={erroresCampos.telefono ? "telefono-error" : undefined}
               className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
             />
             {erroresCampos.telefono ? (
-              <p className="font-body-md text-body-md text-error">{erroresCampos.telefono}</p>
+              <p id="telefono-error" className="font-body-md text-body-md text-error">
+                {erroresCampos.telefono}
+              </p>
             ) : null}
           </div>
 
@@ -232,7 +244,10 @@ function Checkout() {
           </div>
 
           {errorEnvio ? (
-            <p className="rounded-lg bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container">
+            <p
+              role="alert"
+              className="rounded-lg bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container"
+            >
               {errorEnvio}
             </p>
           ) : null}

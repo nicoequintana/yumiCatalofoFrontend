@@ -109,6 +109,14 @@ describe("Checkout", () => {
     expect(screen.getByText("El nombre es obligatorio.")).toBeInTheDocument();
     expect(screen.getByText("El teléfono es obligatorio.")).toBeInTheDocument();
     expect(ordenesApi.crearOrden).not.toHaveBeenCalled();
+
+    // Accesibilidad: cada input inválido queda marcado y conectado a su
+    // mensaje de error vía aria-describedby, para que un lector de pantalla
+    // lo anuncie al tabular al campo.
+    const dniInput = screen.getByLabelText(/dni/i);
+    expect(dniInput).toHaveAttribute("aria-invalid", "true");
+    expect(dniInput).toHaveAttribute("aria-describedby", "dni-error");
+    expect(screen.getByText("El DNI es obligatorio.")).toHaveAttribute("id", "dni-error");
   });
 
   it("envía la orden con las líneas válidas y navega a la confirmación con el state", async () => {
@@ -184,6 +192,41 @@ describe("Checkout", () => {
     });
 
     resolverCrear({ id: 1, items: [] });
+  });
+
+  it("muestra el error del backend cuando rechaza el DNI por formato, y permite reintentar", async () => {
+    // Costura donde la validación cliente es más débil que la del backend:
+    // el cliente solo chequea "no vacío", el backend valida 7-8 dígitos.
+    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    ordenesApi.crearOrden.mockRejectedValue(new Error("El DNI debe tener 7 u 8 dígitos."));
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    const user = userEvent.setup();
+    renderCheckout();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+
+    await screen.findByLabelText(/dni/i);
+
+    await user.type(screen.getByLabelText(/dni/i), "123"); // formato inválido, pero no vacío
+    await user.type(screen.getByLabelText(/nombre/i), "Juana Pérez");
+    await user.type(screen.getByLabelText(/teléfono/i), "1122334455");
+
+    await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
+
+    const mensajeError = await screen.findByText("El DNI debe tener 7 u 8 dígitos.");
+    expect(mensajeError).toBeInTheDocument();
+    // El banner de error de envío se anuncia a lectores de pantalla.
+    expect(mensajeError).toHaveAttribute("role", "alert");
+
+    const boton = screen.getByRole("button", { name: /confirmar pedido/i });
+    expect(boton).not.toBeDisabled();
+
+    // El carrito y el formulario quedan intactos para poder reintentar.
+    expect(carritoHook.current.carrito).toEqual([{ productId: 1, cantidad: 1 }]);
+    expect(screen.getByLabelText(/dni/i)).toHaveValue("123");
   });
 
   it("muestra el error del backend y no navega ni limpia el formulario si la request falla", async () => {
