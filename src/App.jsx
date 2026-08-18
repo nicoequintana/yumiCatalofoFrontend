@@ -5,6 +5,8 @@ import RequireAuth from "./components/RequireAuth.jsx";
 import Catalogo from "./pages/Catalogo.jsx";
 import Favoritos from "./pages/Favoritos.jsx";
 import Carrito from "./pages/Carrito.jsx";
+import Checkout from "./pages/Checkout.jsx";
+import OrdenConfirmada from "./pages/OrdenConfirmada.jsx";
 import ProductoDetalle from "./pages/ProductoDetalle.jsx";
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
 import AdminProductos from "./pages/admin/AdminProductos.jsx";
@@ -25,6 +27,8 @@ function App() {
         <Route path="/" element={<Catalogo />} />
         <Route path="/favoritos" element={<Favoritos />} />
         <Route path="/carrito" element={<Carrito />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/checkout/confirmacion" element={<OrdenConfirmada />} />
         <Route path="/producto/:id" element={<ProductoDetalle />} />
         <Route path="/catalogo/admin/login" element={<AdminLogin />} />
       </Route>
