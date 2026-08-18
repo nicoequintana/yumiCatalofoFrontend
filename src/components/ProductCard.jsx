@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import Badge from "./Badge.jsx";
 import BotonFavorito from "./BotonFavorito.jsx";
 import { formatPrecio } from "../utils/formato.js";
 
@@ -28,8 +29,8 @@ function ProductCard({ producto, variant = "vertical" }) {
 
   const agotadoBadge =
     producto.disponibilidad === "AGOTADO" ? (
-      <span className="font-label-sm text-label-sm absolute right-2 bottom-2 z-10 rounded bg-error-container px-2 py-1 uppercase tracking-wide text-on-error-container">
-        Agotado
+      <span className="absolute right-2 bottom-2 z-10">
+        <Badge disponibilidad={producto.disponibilidad} />
       </span>
     ) : null;
 

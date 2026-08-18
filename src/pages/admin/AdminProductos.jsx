@@ -93,23 +93,34 @@ function AdminProductos() {
     setOrdenEditando((actuales) => ({ ...actuales, [producto.id]: valor }));
   }
 
+  /**
+   * Clears the local draft for a product's `orden` ONLY if it still matches
+   * the value that triggered this particular save (`valorEnvio`, captured in
+   * the calling closure). Guards against a race: blur fires an async PATCH,
+   * the admin refocuses and types a new value before that PATCH resolves,
+   * and the late `finally` would otherwise wipe the newer, still-unsaved
+   * draft out from under them — silently reverting the input to the old
+   * `producto.orden` with no error or "unsaved" indicator.
+   */
+  function limpiarDraftOrdenSiVigente(productoId, valorEnvio) {
+    setOrdenEditando((actuales) => {
+      if (actuales[productoId] !== valorEnvio) return actuales;
+      const { [productoId]: _omitido, ...resto } = actuales;
+      return resto;
+    });
+  }
+
   async function handleGuardarOrden(producto) {
     const valor = ordenEditando[producto.id];
     if (valor === undefined) return;
 
     const ordenNum = Number(valor);
     if (valor === "" || !Number.isInteger(ordenNum)) {
-      setOrdenEditando((actuales) => {
-        const { [producto.id]: _omitido, ...resto } = actuales;
-        return resto;
-      });
+      limpiarDraftOrdenSiVigente(producto.id, valor);
       return;
     }
     if (ordenNum === producto.orden) {
-      setOrdenEditando((actuales) => {
-        const { [producto.id]: _omitido, ...resto } = actuales;
-        return resto;
-      });
+      limpiarDraftOrdenSiVigente(producto.id, valor);
       return;
     }
 
@@ -120,10 +131,7 @@ function AdminProductos() {
     } catch (err) {
       setError(err.message ?? "No se pudo actualizar el orden del producto.");
     } finally {
-      setOrdenEditando((actuales) => {
-        const { [producto.id]: _omitido, ...resto } = actuales;
-        return resto;
-      });
+      limpiarDraftOrdenSiVigente(producto.id, valor);
     }
   }
 
