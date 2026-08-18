@@ -221,12 +221,16 @@ describe("Carrito", () => {
   });
 
   it("calcula el total sumando en centavos para evitar drift de punto flotante", async () => {
-    // Caso clásico de drift: 0.1 + 0.2 !== 0.3 en floats. Usamos 3 líneas de
-    // productos a $0.10, $0.20 y $0.30 (cantidad 1 c/u) — sumados como floats
-    // decimales ingenuamente da 0.6000000000000001, no 0.60.
-    const PROD_A = { id: 10, nombre: "A", precio: "0.10", disponibilidad: "DISPONIBLE", fotos: [] };
-    const PROD_B = { id: 11, nombre: "B", precio: "0.20", disponibilidad: "DISPONIBLE", fotos: [] };
-    const PROD_C = { id: 12, nombre: "C", precio: "0.30", disponibilidad: "DISPONIBLE", fotos: [] };
+    // Caso que SÍ detecta una regresión (a diferencia de 0.10+0.20+0.30, que
+    // formatea igual con Intl.NumberFormat sin importar el método de suma —
+    // falso guardián). Con tres líneas de $2,675, la suma naive en float
+    // da 8.024999999999999 -> formatea a "8,02"; la suma correcta en
+    // centavos (redondeando cada línea a centavos antes de sumar) da
+    // 8.04 -> formatea a "8,04". Si alguien revierte `precioACentavos` a una
+    // suma naive con parseFloat, este test falla.
+    const PROD_A = { id: 10, nombre: "A", precio: "2.675", disponibilidad: "DISPONIBLE", fotos: [] };
+    const PROD_B = { id: 11, nombre: "B", precio: "2.675", disponibilidad: "DISPONIBLE", fotos: [] };
+    const PROD_C = { id: 12, nombre: "C", precio: "2.675", disponibilidad: "DISPONIBLE", fotos: [] };
 
     productsApi.getProducts.mockResolvedValue([PROD_A, PROD_B, PROD_C]);
 
@@ -241,7 +245,7 @@ describe("Carrito", () => {
 
     await screen.findByText("A");
 
-    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 0,60");
+    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 8,04");
   });
 
   it("usa BotonVolver para la navegación hacia atrás", async () => {
