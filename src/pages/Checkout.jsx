@@ -20,6 +20,16 @@ import { crearOrden } from "../api/ordenes.js";
  * El submit solo envía las líneas válidas (`lineasValidas`) — el backend es
  * la autoridad final igual, pero de esta forma no le mandamos items que ya
  * sabemos que van a ser rechazados.
+ *
+ * `disponibilidad === "AGOTADO"` originalmente sumaba a `noDisponible` acá
+ * también. Gate eliminado por decisión de producto (misma corrección que
+ * `Carrito.jsx`, ver commit `a7bb8cf`): no existe gestión de stock real, así
+ * que un producto AGOTADO debe llegar a checkout y poder confirmarse como
+ * cualquier otro — el backend (`POST /api/ordenes`,
+ * `validarYSnapshotearProductos`) sigue rechazando la orden si el producto
+ * está agotado al momento de confirmar, y ese rechazo se muestra vía
+ * `errorEnvio` como cualquier otro error del backend. Caso DISTINTO del
+ * producto borrado/oculto (`!producto`), que sigue bloqueando normalmente.
  */
 function Checkout() {
   const navigate = useNavigate();
@@ -56,7 +66,12 @@ function Checkout() {
 
   const lineas = carrito.map((linea) => {
     const producto = productosPorId.get(linea.productId);
-    const noDisponible = !producto || producto.disponibilidad === "AGOTADO";
+    // `agotadoIgnorado` se calcula pero NO participa de `noDisponible` (ver
+    // doc comment arriba) — queda solo para dejar registrado, sin borrar
+    // código, qué mitad de la condición original está desactivada.
+    const agotadoIgnorado = producto?.disponibilidad === "AGOTADO";
+    void agotadoIgnorado;
+    const noDisponible = !producto;
     return { ...linea, producto, noDisponible };
   });
 

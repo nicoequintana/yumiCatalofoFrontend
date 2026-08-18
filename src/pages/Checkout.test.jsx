@@ -60,7 +60,9 @@ describe("Checkout", () => {
     });
   });
 
-  it("redirige a /carrito cuando todas las líneas quedaron no disponibles", async () => {
+  it("redirige a /carrito cuando todas las líneas quedaron con producto borrado/oculto", async () => {
+    // Caso `!producto` (borrado o `visibleEnCatalogo: false`) — sigue
+    // bloqueando normalmente, a diferencia de AGOTADO (ver test de abajo).
     productsApi.getProducts.mockResolvedValue([]); // producto 1 ya no existe
 
     const { result: carritoHook } = renderHook(() => useCarrito());
@@ -73,6 +75,27 @@ describe("Checkout", () => {
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith("/carrito", { replace: true });
     });
+  });
+
+  it("muestra el formulario con una línea AGOTADA, sin redirigir ni marcarla como problema", async () => {
+    // Gate de AGOTADO eliminado por decisión de producto (ver commit
+    // `a7bb8cf` y doc comment de `Checkout.jsx`): una línea AGOTADA es
+    // "válida" acá igual que cualquier otra — llega a checkout y se envía al
+    // backend, que es quien la rechaza si corresponde.
+    productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO_1, disponibilidad: "AGOTADO" }]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCheckout();
+
+    act(() => {
+      carritoHook.current.agregar(1, 2);
+    });
+
+    expect(await screen.findByLabelText(/dni/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 × Reloj Clásico/)).toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+    // Sin banner de "algunos productos ya no están disponibles".
+    expect(screen.queryByText(/ya no están disponibles/i)).not.toBeInTheDocument();
   });
 
   it("muestra el formulario cuando hay al menos una línea válida", async () => {

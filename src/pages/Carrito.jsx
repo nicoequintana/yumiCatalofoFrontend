@@ -30,13 +30,25 @@ function precioACentavos(precio) {
  * cacheados en el momento en que se agregó el producto al carrito.
  *
  * Diferencia deliberada con `Favoritos.jsx`: acá NO se limpia en silencio una
- * línea cuyo producto ya no existe (borrado) o quedó AGOTADO — hay plata de
- * por medio (esto alimenta un checkout en Sprint 6), así que se muestra un
+ * línea cuyo producto ya no existe (borrado u oculto) — hay plata de por
+ * medio (esto alimenta un checkout en Sprint 6), así que se muestra un
  * aviso inline en esa línea puntual y se deja que el usuario la quite a
  * mano vía `quitar(productId)`. `getProducts()` sin `admin: true` ya excluye
  * productos ocultos (`visibleEnCatalogo: false`) de sus resultados, así que
  * "no encontrado en el fetch en vivo" cubre tanto el caso borrado como el
  * caso oculto sin necesidad de chequear ese campo aparte.
+ *
+ * `disponibilidad === "AGOTADO"` originalmente sumaba a este mismo aviso
+ * (línea excluida del total, CTA bloqueado). Gate eliminado por decisión de
+ * producto (misma corrección que `Badge.jsx`/`BotonAgregarCarrito.jsx`/
+ * `FiltrosCatalogo.jsx`/`Catalogo.jsx`, ver commit `a7bb8cf`): no existe
+ * gestión de stock real, así que un producto AGOTADO debe poder agregarse,
+ * verse y comprarse en el carrito como cualquier otro — el backend
+ * (`POST /api/ordenes`, `validarYSnapshotearProductos`) sigue siendo la
+ * autoridad real y rechaza la orden igual si el producto está agotado al
+ * momento de confirmar. Importante: esto es un caso DISTINTO del producto
+ * borrado/oculto de arriba — `producto` sí existe acá, solo se ignora su
+ * `disponibilidad`. Ver `producto` vs. `agotadoIgnorado` más abajo.
  *
  * Nota sobre el estado vacío: se muestra `EstadoVacio` solo cuando el
  * carrito no tiene NINGUNA línea (ni siquiera con problemas). Si hay líneas
@@ -72,7 +84,12 @@ function Carrito() {
 
   const lineas = carrito.map((linea) => {
     const producto = productosPorId.get(linea.productId);
-    const noDisponible = !producto || producto.disponibilidad === "AGOTADO";
+    // `agotadoIgnorado` se calcula pero NO participa de `noDisponible` (ver
+    // doc comment arriba) — queda solo para dejar registrado, sin borrar
+    // código, qué mitad de la condición original está desactivada.
+    const agotadoIgnorado = producto?.disponibilidad === "AGOTADO";
+    void agotadoIgnorado;
+    const noDisponible = !producto;
     return { ...linea, producto, noDisponible };
   });
 

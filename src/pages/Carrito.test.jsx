@@ -114,7 +114,11 @@ describe("Carrito", () => {
     ]);
   });
 
-  it("advierte sobre una línea cuyo producto está AGOTADO", async () => {
+  it("trata una línea AGOTADA como normal: sin aviso, incluida en el total y con selector de cantidad", async () => {
+    // Gate de AGOTADO eliminado por decisión de producto (ver commit
+    // `a7bb8cf` y doc comment de `Carrito.jsx`): no existe gestión de stock
+    // real, así que el carrito no debe distinguir AGOTADO de DISPONIBLE. El
+    // backend sigue rechazando la orden al confirmar si corresponde.
     productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO_1, disponibilidad: "AGOTADO" }]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
@@ -124,7 +128,16 @@ describe("Carrito", () => {
       carritoHook.current.agregar(1, 1);
     });
 
-    expect(await screen.findByText(/ya no está disponible/i)).toBeInTheDocument();
+    expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
+    expect(screen.queryByText(/ya no está disponible/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 1.500,00");
+
+    // CTA habilitado (Link real, no botón disabled).
+    expect(screen.queryByRole("button", { name: /confirmar pedido/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /confirmar pedido/i })).toHaveAttribute(
+      "href",
+      "/checkout",
+    );
   });
 
   it("permite quitar una línea con problema de reconciliación mediante el botón de aviso", async () => {
