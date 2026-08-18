@@ -8,6 +8,7 @@ import { useVolver } from "../hooks/useVolver.js";
 import BotonCompartir from "../components/BotonCompartir.jsx";
 import BotonFavorito from "../components/BotonFavorito.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
+import BotonAgregarCarrito from "../components/BotonAgregarCarrito.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import { getProductById } from "../api/products.js";
 import { formatPrecio } from "../utils/formato.js";
@@ -17,10 +18,12 @@ import { formatPrecio } from "../utils/formato.js";
  * detalle-producto.html.
  *
  * Explicit exclusions per the finalized design decisions: NO color/finish
- * swatches (mockup L181-189 dropped entirely), NO CTA/contact button on the
- * price panel (mockup's price block had none either — nothing to remove
- * there, just nothing to add). Price uses `$` via `formatPrecio()`, NOT the
- * mockup's `€` (locked decision, corrects detalle-producto.html L216).
+ * swatches (mockup L181-189 dropped entirely). Price uses `$` via
+ * `formatPrecio()`, NOT the mockup's `€` (locked decision, corrects
+ * detalle-producto.html L216).
+ *
+ * The price panel's CTA slot was deliberately left empty until the cart
+ * feature existed (Sprint 5) — now filled by `BotonAgregarCarrito`.
  */
 function ProductoDetalle() {
   const { id } = useParams();
@@ -125,6 +128,7 @@ function ProductoDetalle() {
                   {formatPrecio(producto.precio)}
                 </span>
               </div>
+              <BotonAgregarCarrito producto={producto} />
             </div>
           </div>
         </div>
