@@ -193,6 +193,16 @@ export async function registrarCompartido(id) {
   }
 }
 
+/** Fire-and-forget: increments the product's favoritos counter. Never throws. */
+export async function registrarFavorito(id) {
+  try {
+    await fetch(`${BASE}/products/${id}/favorito`, { method: "POST" });
+  } catch {
+    // Soft analytics counter — a failed request here must never disrupt
+    // the local favorite toggle the user just completed.
+  }
+}
+
 /** Fire-and-forget: logs a traffic event (e.g. CLICK_WHATSAPP). Never throws. */
 export async function registrarEvento(tipo, productId) {
   try {

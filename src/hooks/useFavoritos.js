@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { registrarFavorito } from "../api/products.js";
 
 const STORAGE_KEY = "aura-favoritos";
 const listeners = new Set();
@@ -49,8 +50,17 @@ function useFavoritos() {
   }
 
   function toggleFavorito(id) {
-    const siguiente = favoritos.includes(id) ? favoritos.filter((f) => f !== id) : [...favoritos, id];
+    const agregando = !favoritos.includes(id);
+    const siguiente = agregando ? [...favoritos, id] : favoritos.filter((f) => f !== id);
     escribirFavoritos(siguiente);
+
+    // Social-proof counter: only fires when ADDING a favorite, never on
+    // removal (spec: an approximate "this got saved N times" signal, not a
+    // precise live count — decrementing is intentionally not wanted).
+    // Fire-and-forget, never awaited: must not block the local toggle.
+    if (agregando) {
+      registrarFavorito(id);
+    }
   }
 
   function establecerFavoritos(ids) {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { getProducts } from "./products.js";
+import { getProducts, registrarFavorito } from "./products.js";
 
 const BASE = "http://localhost:4000/api";
 
@@ -89,5 +89,21 @@ describe("getProducts", () => {
 
     expect(params.get("admin")).toBe("1");
     expect(params.get("categoria")).toBe("3");
+  });
+});
+
+describe("registrarFavorito", () => {
+  it("hace POST a /products/:id/favorito", async () => {
+    mockFetchOnce({ ok: true });
+
+    await registrarFavorito(7);
+
+    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products/7/favorito`, { method: "POST" });
+  });
+
+  it("no lanza si el fetch falla (fire-and-forget)", async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error("network error"));
+
+    await expect(registrarFavorito(7)).resolves.toBeUndefined();
   });
 });
