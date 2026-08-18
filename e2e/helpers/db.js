@@ -53,14 +53,37 @@ export const MARCA_TEST = "E2E-TEST-";
 
 /**
  * Genera un DNI sintético de 8 dígitos, válido para `esDniValido` (7-8
- * dígitos) pero reservado para tests: siempre arranca con "00" seguido de un
- * timestamp truncado, un prefijo que ningún DNI argentino real puede tener
- * (arrancan en rangos bajos pero no en "00"). No puede llevar el prefijo de
- * texto `E2E-TEST-` porque el campo es numérico puro.
+ * dígitos) pero reservado para tests: siempre arranca con "00" seguido de 6
+ * dígitos, un prefijo que ningún DNI argentino real puede tener (arrancan en
+ * rangos bajos pero no en "00"). No puede llevar el prefijo de texto
+ * `E2E-TEST-` porque el campo es numérico puro.
+ *
+ * Los 6 dígitos siguientes NO son un timestamp truncado (`Date.now().slice(-6)`
+ * repite cada ~16.6 minutos, un rollover real entre corridas de test
+ * separadas — CI reintentando, o dos corridas locales seguidas). En vez de
+ * eso se combinan los nanosegundos de `process.hrtime()` (variables incluso
+ * entre llamadas microsegundos aparte, a diferencia de `Date.now()`) con un
+ * componente random, reduciendo la colisión a un caso de laboratorio en vez
+ * de un riesgo real de una corrida cada 16-33 minutos.
+ *
+ * Por qué esto importa más de lo que parece: `upsertClienteConReintento`
+ * (backend, `ordenes.controller.js`) NO rechaza un dni repetido — actualiza
+ * en silencio el `Cliente` existente. Una colisión entre dos corridas de
+ * test fusionaría sus Cliente sin error visible, y el cleanup de una corrida
+ * (`borrarOrdenDeTest`/`afterEach`) podría borrar una fila que la otra
+ * corrida todavía está usando.
  * @returns {string}
  */
 export function crearDniDeTest() {
-  const sufijo = String(Date.now()).slice(-6);
+  const [, nanosegundos] = process.hrtime();
+  // `nanosegundos` es el resto sub-segundo de hrtime (0-999999999) — de por
+  // sí ya cambia en cada llamada, aunque dos llamadas caigan en el mismo
+  // milisegundo de Date.now(). Se lo combina con 3 dígitos random para que
+  // incluso dos llamadas que cayeran en el mismo nanosegundo (imposible en
+  // la práctica, pero sin depender de esa garantía) sigan divergiendo.
+  const partehrtime = nanosegundos % 1000;
+  const random = Math.floor(Math.random() * 1000);
+  const sufijo = String(partehrtime).padStart(3, "0") + String(random).padStart(3, "0");
   return `00${sufijo}`;
 }
 
@@ -105,6 +128,68 @@ export async function crearProductoDeTest(overrides = {}) {
  */
 export async function borrarProductoDeTest(productId) {
   await prisma.product.delete({ where: { id: productId } }).catch(() => {});
+}
+
+/**
+ * Crea un cliente de test directo vía Prisma (sin pasar por el checkout de
+ * la UI). Usa `Cliente.nombre` marcado con `E2E-TEST-` y, si no se pasa un
+ * `dni` explícito, uno generado por `crearDniDeTest()`.
+ *
+ * Para escenarios (Task 2) que necesitan un cliente ya existente ANTES de
+ * ejercitar la UI — ej. "cliente recurrente con historial" — sin tener que
+ * reimplementar a mano la regla de negocio de upsert-por-dni del backend
+ * (`upsertClienteConReintento` en `ordenes.controller.js`): acá se crea
+ * directo porque en un seed de test el dni es sintético y garantizado nuevo
+ * (ver `crearDniDeTest`), así que no hace falta esa lógica de reintento.
+ * @param {object} [overrides] campos a pisar sobre los defaults
+ * @returns {Promise<object>} el cliente creado
+ */
+export async function crearClienteDeTest(overrides = {}) {
+  return prisma.cliente.create({
+    data: {
+      dni: overrides.dni ?? crearDniDeTest(),
+      nombre: overrides.nombre ?? `${MARCA_TEST}Cliente E2E`,
+      telefono: overrides.telefono ?? "1122334455",
+      email: overrides.email ?? null,
+    },
+  });
+}
+
+/**
+ * Crea una orden de test directo vía Prisma (sin pasar por
+ * `POST /api/ordenes` ni por el formulario de checkout), para escenarios que
+ * necesitan una orden preexistente como fixture — ej. "cliente con órdenes
+ * anteriores" o "admin cambia el estado de una orden ya creada" — sin forzar
+ * un segundo recorrido completo de checkout por UI solo para tener datos de
+ * partida.
+ *
+ * Si no se pasa `clienteId`, crea un cliente de test nuevo con
+ * `crearClienteDeTest()`. Los items siguen la misma forma que
+ * `ItemOrden`/el snapshot que arma `validarYSnapshotearProductos` en el
+ * backend (`nombreProducto`/`precioUnitario`/`cantidad`) — el caller decide
+ * ese snapshot explícitamente en vez de que este helper lo recalcule desde
+ * un Product en vivo, para poder fijar valores exactos en el test.
+ * @param {object} [opciones]
+ * @param {number} [opciones.clienteId] cliente existente a reusar
+ * @param {string} [opciones.estado] uno de PENDIENTE/CONFIRMADA/EN_PREPARACION/ENTREGADA/CANCELADA
+ * @param {Array<{productId: number, nombreProducto: string, precioUnitario: string, cantidad: number}>} opciones.items
+ * @returns {Promise<object>} la orden creada, con `cliente` e `items` incluidos
+ */
+export async function crearOrdenDeTest({ clienteId, estado, items } = {}) {
+  const clienteIdFinal = clienteId ?? (await crearClienteDeTest()).id;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error("crearOrdenDeTest requiere al menos un item en `items`.");
+  }
+
+  return prisma.orden.create({
+    data: {
+      clienteId: clienteIdFinal,
+      estado: estado ?? "PENDIENTE",
+      items: { create: items },
+    },
+    include: { cliente: true, items: true },
+  });
 }
 
 /**

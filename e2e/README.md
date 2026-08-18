@@ -66,5 +66,13 @@ seed/cleanup en escenarios nuevos (Sprint 7 Task 2).
 - `helpers/db.js` — seed/cleanup de datos de test vía Prisma directo
   (import de `backend/src/lib/prisma.js` — los tests de Playwright corren en
   Node, así que esto es acceso directo a DB legítimo, sin pasar por HTTP).
+  Incluye tanto helpers de creación (`crearProductoDeTest`,
+  `crearClienteDeTest`, `crearOrdenDeTest`) como de borrado
+  (`borrarProductoDeTest`, `borrarOrdenDeTest`, `limpiarTodoRastroDeTest`).
 - `flujo-feliz.spec.js` — Escenario 1: catálogo -> detalle -> carrito ->
   checkout -> confirmación, con verificación final directa en la DB.
+- `global-setup.js` — pre-flight check: falla rápido y con un mensaje claro
+  si el backend no responde en `http://localhost:4000/health` antes de
+  arrancar los tests, en vez de dejar que el primer test falle por timeout.
+- `global-teardown.js` — red de seguridad final: corre
+  `limpiarTodoRastroDeTest()` al terminar toda la corrida.
