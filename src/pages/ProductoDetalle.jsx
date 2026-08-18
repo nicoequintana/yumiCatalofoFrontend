@@ -8,6 +8,7 @@ import { useVolver } from "../hooks/useVolver.js";
 import BotonCompartir from "../components/BotonCompartir.jsx";
 import BotonFavorito from "../components/BotonFavorito.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
+import ProductCard from "../components/ProductCard.jsx";
 import { getProductById } from "../api/products.js";
 import { formatPrecio } from "../utils/formato.js";
 
@@ -127,6 +128,19 @@ function ProductoDetalle() {
             </div>
           </div>
         </div>
+
+        {producto.relacionados?.length > 0 ? (
+          <section className="mt-16 border-t border-outline-variant pt-12 md:mt-24 md:pt-16">
+            <h2 className="font-headline-md text-headline-md mb-8 text-primary">
+              También te puede interesar
+            </h2>
+            <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-4">
+              {producto.relacionados.map((relacionado) => (
+                <ProductCard key={relacionado.id} producto={relacionado} />
+              ))}
+            </div>
+          </section>
+        ) : null}
       </main>
 
       <BotonWhatsapp contexto={{ tipo: "producto", producto }} productId={producto.id} />

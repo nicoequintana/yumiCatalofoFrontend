@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
+import FiltrosCatalogo from "../components/FiltrosCatalogo.jsx";
 import { getProducts } from "../api/products.js";
+import { getCategorias } from "../api/categorias.js";
+
+const DEBOUNCE_SEARCH_MS = 350;
 
 /**
  * `/` — landing + full catalog in one scroll, per design D1.
@@ -13,15 +18,67 @@ import { getProducts } from "../api/products.js";
  * breaks for an arbitrary product count, so ALL products render in ONE
  * grid using catalogo.html's padded-card idiom (`ProductCard`, no bento).
  * Grid spans stay here (the parent page), not inside `ProductCard` (D2).
+ *
+ * Filters (Sprint 3, Task 2): `searchParams` is the single source of truth
+ * for categoria/disponibilidad/precio — reading + writing them directly
+ * avoids a duplicate local-state/URL sync loop. The free-text search input
+ * is the one exception: it keeps its own local state so keystrokes don't
+ * write to the URL (and thus don't trigger a refetch) on every character —
+ * a `setTimeout` debounce commits it into `searchParams` after the user
+ * pauses typing, which is what the fetch effect actually reacts to.
  */
 function Catalogo() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const categoria = searchParams.get("categoria") ?? "";
+  const disponibilidad = searchParams.get("disponibilidad") ?? "";
+  const minPrecio = searchParams.get("minPrecio") ?? "";
+  const maxPrecio = searchParams.get("maxPrecio") ?? "";
+  const searchUrl = searchParams.get("search") ?? "";
+
+  const [searchInput, setSearchInput] = useState(searchUrl);
   const [productos, setProductos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
+
+  function actualizarFiltro(clave, valor) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (valor) {
+        next.set(clave, valor);
+      } else {
+        next.delete(clave);
+      }
+      return next;
+    });
+  }
+
+  // Debounce: commit the free-text search into the URL (and therefore into
+  // the fetch effect's deps) only after the user stops typing.
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      actualizarFiltro("search", searchInput);
+    }, DEBOUNCE_SEARCH_MS);
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
 
   useEffect(() => {
     let activo = true;
+    getCategorias().then((data) => {
+      if (activo) setCategorias(data);
+    });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
-    getProducts().then((data) => {
+  useEffect(() => {
+    let activo = true;
+    setCargando(true);
+
+    getProducts({ categoria, search: searchUrl, minPrecio, maxPrecio, disponibilidad }).then((data) => {
       if (!activo) return;
       setProductos(data);
       setCargando(false);
@@ -30,7 +87,9 @@ function Catalogo() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [categoria, searchUrl, minPrecio, maxPrecio, disponibilidad]);
+
+  const hayFiltrosActivos = Boolean(categoria || searchUrl || minPrecio || maxPrecio || disponibilidad);
 
   return (
     <>
@@ -57,13 +116,31 @@ function Catalogo() {
           </h2>
         </div>
 
+        <FiltrosCatalogo
+          categorias={categorias}
+          categoria={categoria}
+          onChangeCategoria={(valor) => actualizarFiltro("categoria", valor)}
+          search={searchInput}
+          onChangeSearch={setSearchInput}
+          minPrecio={minPrecio}
+          onChangeMinPrecio={(valor) => actualizarFiltro("minPrecio", valor)}
+          maxPrecio={maxPrecio}
+          onChangeMaxPrecio={(valor) => actualizarFiltro("maxPrecio", valor)}
+          disponibilidad={disponibilidad}
+          onChangeDisponibilidad={(valor) => actualizarFiltro("disponibilidad", valor)}
+        />
+
         {cargando ? (
           <EstadoVacio icono="hourglass_empty" mensaje="Cargando productos…" />
         ) : productos.length === 0 ? (
           <EstadoVacio
-            icono="inventory_2"
-            titulo="Todavía no hay productos"
-            mensaje="Pronto vamos a sumar piezas a la colección."
+            icono={hayFiltrosActivos ? "search_off" : "inventory_2"}
+            titulo={hayFiltrosActivos ? "Sin resultados" : "Todavía no hay productos"}
+            mensaje={
+              hayFiltrosActivos
+                ? "Ningún producto coincide con los filtros aplicados."
+                : "Pronto vamos a sumar piezas a la colección."
+            }
           />
         ) : (
           <div className="grid grid-cols-1 gap-gutter md:grid-cols-12">

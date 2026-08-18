@@ -83,10 +83,42 @@ function construirFormData(data) {
   return fd;
 }
 
-/** @returns {Promise<Array>} products from the backend. Pass admin:true to include hidden products (used by admin screens). */
-export async function getProducts({ admin = false } = {}) {
-  const query = admin ? "?admin=1" : "";
-  return pedir(`${BASE}/products${query}`);
+/**
+ * @returns {Promise<Array>} products from the backend. Pass admin:true to
+ * include hidden products (used by admin screens). The remaining options
+ * map 1:1 to the backend's public catalog filter query params (`categoria`,
+ * `search`, `minPrecio`, `maxPrecio`, `disponibilidad`) — omitted/empty
+ * values are left out of the query string entirely.
+ */
+export async function getProducts({
+  admin = false,
+  categoria,
+  search,
+  minPrecio,
+  maxPrecio,
+  disponibilidad,
+} = {}) {
+  const params = new URLSearchParams();
+
+  if (admin) params.set("admin", "1");
+  if (categoria !== undefined && categoria !== null && categoria !== "") {
+    params.set("categoria", categoria);
+  }
+  if (search !== undefined && search !== null && search !== "") {
+    params.set("search", search);
+  }
+  if (minPrecio !== undefined && minPrecio !== null && minPrecio !== "") {
+    params.set("minPrecio", minPrecio);
+  }
+  if (maxPrecio !== undefined && maxPrecio !== null && maxPrecio !== "") {
+    params.set("maxPrecio", maxPrecio);
+  }
+  if (disponibilidad !== undefined && disponibilidad !== null && disponibilidad !== "") {
+    params.set("disponibilidad", disponibilidad);
+  }
+
+  const query = params.toString();
+  return pedir(`${BASE}/products${query ? `?${query}` : ""}`);
 }
 
 /** @returns {Promise<Object|null>} a single product by id, or null if not found (404) */
