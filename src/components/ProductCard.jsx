@@ -27,12 +27,19 @@ function ProductCard({ producto, variant = "vertical" }) {
     </span>
   ) : null;
 
-  const agotadoBadge =
-    producto.disponibilidad === "AGOTADO" ? (
-      <span className="absolute right-2 bottom-2 z-10">
-        <Badge disponibilidad={producto.disponibilidad} />
-      </span>
-    ) : null;
+  // `agotadoBadge` intentionally stays `null` on the public catalog: no real
+  // stock-management workflow exists yet (product decision, see Badge.jsx's
+  // doc comment on `disponibilidad`), so this wrapper — which used to gate
+  // rendering an "Agotado" pill via `Badge` — is now inert. `Badge` itself
+  // already no-ops for `disponibilidad`, but this wrapper's own conditional
+  // is kept and disabled the same way rather than removed, so both the
+  // gating logic and the `<Badge disponibilidad=... />` call site are ready
+  // to re-enable later without touching data or plumbing.
+  const agotadoBadge = false ? (
+    <span className="absolute right-2 bottom-2 z-10">
+      <Badge disponibilidad={producto.disponibilidad} />
+    </span>
+  ) : null;
 
   const textoCategoria = producto.categoria?.nombre ? (
     <span className="font-label-sm text-label-sm mb-1 block truncate uppercase tracking-wide text-on-surface-variant">

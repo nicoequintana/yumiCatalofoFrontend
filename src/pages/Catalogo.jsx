@@ -26,6 +26,18 @@ const DEBOUNCE_SEARCH_MS = 350;
  * write to the URL (and thus don't trigger a refetch) on every character —
  * a `setTimeout` debounce commits it into `searchParams` after the user
  * pauses typing, which is what the fetch effect actually reacts to.
+ *
+ * `disponibilidad` specifically (product-decision correction, post-Sprint 3):
+ * still read from `searchParams` and still passed down to
+ * `FiltrosCatalogo`/wired through `actualizarFiltro` — the URL/state
+ * plumbing is untouched — but deliberately NOT forwarded into the
+ * `getProducts()` query below. `FiltrosCatalogo` no longer renders the
+ * control that would ever set it, so `disponibilidad` is always `""` in
+ * practice; the query param is dropped here too as a second, independent
+ * layer of the same no-op (matching `Badge.jsx`'s documented pattern) so a
+ * hand-crafted `?disponibilidad=...` URL can't smuggle a live filter back
+ * in through the querystring. No real stock-management workflow exists yet
+ * — reinstate this line, and `FiltrosCatalogo`'s field, together when it does.
  */
 function Catalogo() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -87,7 +99,8 @@ function Catalogo() {
     let activo = true;
     setCargando(true);
 
-    getProducts({ categoria, search: searchUrl, minPrecio, maxPrecio, disponibilidad }).then((data) => {
+    // `disponibilidad` intentionally NOT forwarded — see doc comment above.
+    getProducts({ categoria, search: searchUrl, minPrecio, maxPrecio, disponibilidad: "" }).then((data) => {
       if (!activo) return;
       setProductos(data);
       setCargando(false);

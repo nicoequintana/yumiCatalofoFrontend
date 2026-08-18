@@ -21,23 +21,26 @@ function renderCard(producto, variant) {
   );
 }
 
-describe("ProductCard - badge de Agotado", () => {
+// Product-decision correction: no real stock-management workflow exists yet,
+// so the "Agotado" badge must not be visible on the public catalog for any
+// `disponibilidad` value (see Badge.jsx's doc comment).
+describe("ProductCard - badge de Agotado (oculto por decisión de producto)", () => {
   it("no muestra el badge Agotado cuando el producto está disponible", () => {
     renderCard(PRODUCTO_BASE);
     expect(screen.queryByText("Agotado")).not.toBeInTheDocument();
   });
 
-  it("muestra el badge Agotado cuando disponibilidad es AGOTADO (variant vertical)", () => {
+  it("no muestra el badge Agotado aunque disponibilidad sea AGOTADO (variant vertical)", () => {
     renderCard({ ...PRODUCTO_BASE, disponibilidad: "AGOTADO" });
-    expect(screen.getByText("Agotado")).toBeInTheDocument();
+    expect(screen.queryByText("Agotado")).not.toBeInTheDocument();
   });
 
-  it("muestra el badge Agotado en variant horizontal también", () => {
+  it("no muestra el badge Agotado en variant horizontal tampoco", () => {
     renderCard({ ...PRODUCTO_BASE, disponibilidad: "AGOTADO" }, "horizontal");
-    expect(screen.getByText("Agotado")).toBeInTheDocument();
+    expect(screen.queryByText("Agotado")).not.toBeInTheDocument();
   });
 
-  it("no muestra el badge para A_PEDIDO (solo AGOTADO lo dispara)", () => {
+  it("no muestra el badge para A_PEDIDO", () => {
     renderCard({ ...PRODUCTO_BASE, disponibilidad: "A_PEDIDO" });
     expect(screen.queryByText("Agotado")).not.toBeInTheDocument();
   });

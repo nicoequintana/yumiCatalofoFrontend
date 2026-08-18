@@ -14,6 +14,12 @@ const CLASE_INPUT =
  * in sync with the URL querystring (`useSearchParams`) and drive the
  * `getProducts()` refetch. Reuses the same Tailwind input/select classes as
  * `AdminProductoForm.jsx` for visual consistency across the app.
+ *
+ * `disponibilidad`/`onChangeDisponibilidad`: kept as real, accepted props —
+ * `Catalogo.jsx` still passes them — but the field they used to control no
+ * longer renders here (see below), matching `Badge.jsx`'s dead-by-design
+ * pattern for the same product decision: no real stock-management workflow
+ * exists yet, so `disponibilidad` must not be a usable public filter.
  */
 function FiltrosCatalogo({
   categorias,
@@ -28,6 +34,11 @@ function FiltrosCatalogo({
   disponibilidad,
   onChangeDisponibilidad,
 }) {
+  // `disponibilidad`/`onChangeDisponibilidad` intentionally unused below —
+  // accepted as props only so `Catalogo.jsx` doesn't need to change.
+  void disponibilidad;
+  void onChangeDisponibilidad;
+
   return (
     <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
       <div className="lg:col-span-2">
@@ -63,23 +74,9 @@ function FiltrosCatalogo({
         </select>
       </div>
 
-      <div>
-        <label htmlFor="filtro-disponibilidad" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">
-          Disponibilidad
-        </label>
-        <select
-          id="filtro-disponibilidad"
-          value={disponibilidad}
-          onChange={(e) => onChangeDisponibilidad(e.target.value)}
-          className={CLASE_INPUT}
-        >
-          {OPCIONES_DISPONIBILIDAD.map((opcion) => (
-            <option key={opcion.value} value={opcion.value}>
-              {opcion.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Disponibilidad field intentionally not rendered — see doc comment
+          above. `OPCIONES_DISPONIBILIDAD` stays defined so this block can be
+          restored verbatim once a real stock-management workflow exists. */}
 
       <div>
         <label htmlFor="filtro-precio-min" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">

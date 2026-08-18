@@ -8,17 +8,25 @@ import { registrarEvento } from "../api/products.js";
  * CTA that panel has ever had (see ProductoDetalle.jsx's doc comment on the
  * prior "no CTA" decision, now superseded by the cart feature).
  *
- * Disabled whenever `producto.disponibilidad === "AGOTADO"`: the panel's
- * Badge already shows "Agotado" for context, this button just backs off and
- * shows a short inline note instead of letting the user add unavailable
- * stock to the cart.
+ * `agotado` originally disabled this button whenever
+ * `producto.disponibilidad === "AGOTADO"`, showing "No disponible" instead.
+ * That gate is now dead-by-design (product-decision correction, same reason
+ * as `Badge.jsx`'s `disponibilidad` no-op): no real stock-management
+ * workflow exists yet, so the public "agregar al carrito" flow must stay
+ * available regardless of `disponibilidad` — the backend's own
+ * `POST /api/ordenes` check is the real, still-active defense against
+ * ordering an AGOTADO product, independent of what this button does. The
+ * `agotado` variable and its branch below are kept, just forced off, so this
+ * can be re-enabled later without touching data or plumbing.
  */
 function BotonAgregarCarrito({ producto }) {
   const { agregar } = useCarrito();
   const [cantidad, setCantidad] = useState(1);
   const [agregado, setAgregado] = useState(false);
 
-  const agotado = producto.disponibilidad === "AGOTADO";
+  // Forced `false`: see doc comment above. `producto.disponibilidad` is
+  // still read here (not deleted) so re-enabling is a one-line revert.
+  const agotado = false && producto.disponibilidad === "AGOTADO";
 
   function handleClick() {
     // Re-entrancy guard: while `agregado` is true (the whole 2.5s feedback

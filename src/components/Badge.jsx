@@ -1,5 +1,6 @@
 /**
- * Small uppercase pill label, shared by two independent, unrelated flags:
+ * Small uppercase pill label, shared by two independent, unrelated flags —
+ * both intentionally dead on the public frontend:
  *
  * - `etiqueta` ("Nuevo", "Best Seller", etc.): hidden by explicit user
  *   request. Stays in the data model and the admin form (so it can be
@@ -7,23 +8,23 @@
  *   renders — passing only `etiqueta` always yields `null`. This behavior
  *   predates `disponibilidad` and must not change as a side effect of
  *   reusing this component for it.
- * - `disponibilidad` (Sprint 3, `AGOTADO` only): opt-in via an explicit
- *   separate prop, NOT routed through the same hidden `etiqueta` path — a
- *   product being out of stock is real merchandising information the admin
- *   needs visible, unlike the disabled `etiqueta` chip.
+ * - `disponibilidad` (Sprint 3, `AGOTADO` only): originally rendered an
+ *   "Agotado" pill whenever `disponibilidad === "AGOTADO"`. Hidden as of a
+ *   deliberate product-decision correction: there is no real stock-
+ *   management workflow yet (the admin has no reliable way to keep
+ *   `disponibilidad` accurate day to day), so it must not be a visible
+ *   public signal until that workflow exists — "esa información es del
+ *   admin" (explicit user decision). The prop is still accepted and still
+ *   passed by `ProductCard.jsx`/`ProductoDetalle.jsx` so call sites don't
+ *   need to change, and the field/logic stays intact so this can be
+ *   re-enabled later without a data migration — only the render path is
+ *   disabled, same pattern as `etiqueta` above.
  */
 function Badge({ etiqueta, disponibilidad }) {
-  if (disponibilidad === "AGOTADO") {
-    return (
-      <span className="font-label-sm text-label-sm rounded bg-error-container px-2 py-1 uppercase tracking-wide text-on-error-container">
-        Agotado
-      </span>
-    );
-  }
-
-  // `etiqueta` intentionally stays hidden (see doc comment above) — accepted
-  // as a prop only so existing call sites don't need to change.
+  // Both flags intentionally stay hidden (see doc comment above) — accepted
+  // as props only so existing call sites don't need to change.
   void etiqueta;
+  void disponibilidad;
   return null;
 }
 

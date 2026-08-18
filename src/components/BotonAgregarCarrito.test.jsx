@@ -77,18 +77,24 @@ describe("BotonAgregarCarrito", () => {
     vi.useRealTimers();
   });
 
-  it("está deshabilitado cuando el producto está AGOTADO", () => {
+  // Product-decision correction: no real stock-management workflow exists
+  // yet, so `disponibilidad === "AGOTADO"` must NOT disable this button on
+  // the public flow anymore (see BotonAgregarCarrito.jsx's doc comment). The
+  // button stays enabled regardless of `disponibilidad`.
+  it("sigue habilitado y con el texto normal cuando el producto está AGOTADO", () => {
     render(<BotonAgregarCarrito producto={{ ...PRODUCTO, disponibilidad: "AGOTADO" }} />);
 
-    expect(screen.getByRole("button")).toBeDisabled();
-    expect(screen.queryByRole("button", { name: /agregar al carrito/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /agregar al carrito/i })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /no disponible/i })).not.toBeInTheDocument();
   });
 
-  it("no permite agregar al carrito ni dispara el evento cuando está AGOTADO", () => {
+  it("permite agregar al carrito y dispara el evento aunque el producto esté AGOTADO", async () => {
+    const user = userEvent.setup();
     render(<BotonAgregarCarrito producto={{ ...PRODUCTO, disponibilidad: "AGOTADO" }} />);
 
-    expect(screen.getByRole("button")).toBeDisabled();
-    expect(productsApi.registrarEvento).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: /agregar al carrito/i }));
+
+    expect(productsApi.registrarEvento).toHaveBeenCalledWith("AGREGADO_CARRITO", 5);
   });
 
   it("está habilitado para DISPONIBLE y A_PEDIDO", () => {

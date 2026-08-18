@@ -65,13 +65,22 @@ describe("Catalogo - filtros", () => {
 
     expect(await screen.findByLabelText("Categoría")).toBeInTheDocument();
     expect(screen.getByLabelText("Buscar")).toBeInTheDocument();
-    expect(screen.getByLabelText("Disponibilidad")).toBeInTheDocument();
     expect(screen.getByLabelText("Precio min.")).toBeInTheDocument();
     expect(screen.getByLabelText("Precio máx.")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByRole("option", { name: "Relojes" })).toBeInTheDocument();
     });
+  });
+
+  // Product-decision correction: no real stock-management workflow exists
+  // yet, so disponibilidad must not be a usable public filter (see
+  // FiltrosCatalogo.jsx's doc comment).
+  it("no renderiza el filtro de Disponibilidad", async () => {
+    renderPagina();
+
+    await screen.findByLabelText("Categoría");
+    expect(screen.queryByLabelText("Disponibilidad")).not.toBeInTheDocument();
   });
 
   it("hace fetch inicial sin filtros", async () => {
@@ -121,19 +130,12 @@ describe("Catalogo - filtros", () => {
     expect(llamadasSetSearchParams.every((opts) => opts?.replace === true)).toBe(true);
   });
 
-  it("cambiar disponibilidad refetch con el filtro correcto", async () => {
-    const user = userEvent.setup();
-    renderPagina();
-
-    await screen.findByText("Reloj Clásico");
-    productsApi.getProducts.mockClear();
-
-    const select = screen.getByLabelText("Disponibilidad");
-    await user.selectOptions(select, "AGOTADO");
+  it("un ?disponibilidad= en la URL no se filtra al pedir productos (filtro inerte)", async () => {
+    renderPagina("/?disponibilidad=AGOTADO");
 
     await waitFor(() => {
       expect(productsApi.getProducts).toHaveBeenCalledWith(
-        expect.objectContaining({ disponibilidad: "AGOTADO" }),
+        expect.objectContaining({ disponibilidad: "" }),
       );
     });
   });
@@ -146,8 +148,8 @@ describe("Catalogo - filtros", () => {
     await screen.findByText("Reloj Clásico");
 
     productsApi.getProducts.mockResolvedValue([]);
-    const select = screen.getByLabelText("Disponibilidad");
-    await user.selectOptions(select, "AGOTADO");
+    const select = screen.getByLabelText("Categoría");
+    await user.selectOptions(select, "1");
 
     expect(await screen.findByText("Sin resultados")).toBeInTheDocument();
   });
