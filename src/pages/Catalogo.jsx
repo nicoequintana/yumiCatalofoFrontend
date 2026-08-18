@@ -41,16 +41,25 @@ function Catalogo() {
   const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
 
+  // { replace: true }: react-router-dom v7's useSearchParams pushes a new
+  // history entry by default. A filter change is a refinement of the same
+  // view, not a new page to visit — without replace, every categoria/precio/
+  // disponibilidad tweak (and each debounced search commit) stacks its own
+  // "atrás" entry, so a user who filters and then hits back needs one click
+  // per filter change before actually leaving the page.
   function actualizarFiltro(clave, valor) {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (valor) {
-        next.set(clave, valor);
-      } else {
-        next.delete(clave);
-      }
-      return next;
-    });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (valor) {
+          next.set(clave, valor);
+        } else {
+          next.delete(clave);
+        }
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   // Debounce: commit the free-text search into the URL (and therefore into

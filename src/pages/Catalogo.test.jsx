@@ -9,6 +9,26 @@ import * as categoriasApi from "../api/categorias.js";
 vi.mock("../api/products.js");
 vi.mock("../api/categorias.js");
 
+// Spy that records every setSearchParams(next, options) call made through
+// react-router-dom's real useSearchParams, so we can assert Catalogo.jsx
+// passes { replace: true } on every filter change — without this, v7's
+// default push behavior stacks one browser-history entry per filter tweak.
+const llamadasSetSearchParams = [];
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    useSearchParams: (...args) => {
+      const [params, setParams] = actual.useSearchParams(...args);
+      const wrapped = (next, options) => {
+        llamadasSetSearchParams.push(options);
+        return setParams(next, options);
+      };
+      return [params, wrapped];
+    },
+  };
+});
+
 const PRODUCTO = {
   id: 1,
   nombre: "Reloj Clásico",
@@ -35,6 +55,7 @@ function renderPagina(ruta = "/") {
 describe("Catalogo - filtros", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    llamadasSetSearchParams.length = 0;
     productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO }]);
     categoriasApi.getCategorias.mockResolvedValue(CATEGORIAS);
   });
@@ -82,6 +103,22 @@ describe("Catalogo - filtros", () => {
         expect.objectContaining({ categoria: "1" }),
       );
     });
+  });
+
+  it("cambiar un filtro usa { replace: true } para no apilar historial", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+
+    await screen.findByText("Reloj Clásico");
+    llamadasSetSearchParams.length = 0;
+
+    const select = screen.getByLabelText("Categoría");
+    await user.selectOptions(select, "1");
+
+    await waitFor(() => {
+      expect(llamadasSetSearchParams.length).toBeGreaterThan(0);
+    });
+    expect(llamadasSetSearchParams.every((opts) => opts?.replace === true)).toBe(true);
   });
 
   it("cambiar disponibilidad refetch con el filtro correcto", async () => {
