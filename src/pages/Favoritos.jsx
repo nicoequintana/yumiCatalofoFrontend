@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
+import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import useFavoritos from "../hooks/useFavoritos.js";
 import { getProducts } from "../api/products.js";
 
@@ -86,6 +87,8 @@ function Favoritos() {
           ))}
         </div>
       )}
+
+      <BotonWhatsapp contexto={{ tipo: "favoritos", productos }} />
     </section>
   );
 }

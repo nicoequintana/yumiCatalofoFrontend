@@ -7,6 +7,7 @@ import BotonVolver from "../components/BotonVolver.jsx";
 import { useVolver } from "../hooks/useVolver.js";
 import BotonCompartir from "../components/BotonCompartir.jsx";
 import BotonFavorito from "../components/BotonFavorito.jsx";
+import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import { getProductById } from "../api/products.js";
 import { formatPrecio } from "../utils/formato.js";
 
@@ -124,6 +125,8 @@ function ProductoDetalle() {
           </div>
         </div>
       </main>
+
+      <BotonWhatsapp contexto={{ tipo: "producto", producto }} productId={producto.id} />
     </>
   );
 }

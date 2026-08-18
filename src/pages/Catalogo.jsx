@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
+import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import { getProducts } from "../api/products.js";
 
 /**
@@ -84,6 +85,8 @@ function Catalogo() {
           </div>
         )}
       </section>
+
+      <BotonWhatsapp contexto={{ tipo: "home" }} />
     </>
   );
 }

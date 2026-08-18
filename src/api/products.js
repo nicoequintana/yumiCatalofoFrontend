@@ -146,3 +146,17 @@ export async function registrarCompartido(id) {
     // the actual share action the user just completed.
   }
 }
+
+/** Fire-and-forget: logs a traffic event (e.g. CLICK_WHATSAPP). Never throws. */
+export async function registrarEvento(tipo, productId) {
+  try {
+    await fetch(`${BASE}/eventos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(productId !== undefined ? { tipo, productId } : { tipo }),
+    });
+  } catch {
+    // Soft analytics counter — a failed request here must never disrupt
+    // the actual action (opening WhatsApp) the user just triggered.
+  }
+}
