@@ -58,6 +58,10 @@ function AdminSidebar({ colapsada, onCerrar }) {
               <span className="material-symbols-outlined text-[18px]">inventory_2</span>
               Productos
             </NavLink>
+            <NavLink to="/catalogo/admin/ordenes" className={claseLink} onClick={onCerrar}>
+              <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+              Órdenes
+            </NavLink>
             <NavLink to="/catalogo/admin/metricas" className={claseLink} onClick={onCerrar}>
               <span className="material-symbols-outlined text-[18px]">query_stats</span>
               Métricas

@@ -7,6 +7,8 @@
  * 401 — wrong for a public customer-facing flow).
  */
 
+import { fetchAutenticado } from "./authClient.js";
+
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api`;
 
 /**
@@ -26,6 +28,17 @@ async function pedir(url, options) {
   return body;
 }
 
+/** Igual que `pedir`, pero usa el wrapper autenticado (agrega el JWT y maneja 401). */
+async function pedirAutenticado(url, options) {
+  const res = await fetchAutenticado(url, options);
+  const texto = await res.text();
+  const body = texto ? JSON.parse(texto) : null;
+  if (!res.ok) {
+    throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
+  }
+  return body;
+}
+
 /**
  * Crea una orden de checkout de invitado.
  * @param {{dni: string, nombre: string, telefono: string, email?: string, notas?: string, items: Array<{productId: number, cantidad: number}>}} data
@@ -37,4 +50,59 @@ export async function crearOrden(data) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
+}
+
+/**
+ * Listado paginado de órdenes para el panel admin. Requiere sesión.
+ * @param {{estado?: string, desde?: string, hasta?: string, dni?: string, nombre?: string, page?: number, pageSize?: number}} filtros
+ * @returns {Promise<{data: Array, page: number, pageSize: number, total: number}>}
+ */
+export async function getOrdenes(filtros = {}) {
+  const { estado, desde, hasta, dni, nombre, page, pageSize } = filtros;
+  const params = new URLSearchParams();
+
+  if (estado !== undefined && estado !== null && estado !== "") params.set("estado", estado);
+  if (desde !== undefined && desde !== null && desde !== "") params.set("desde", desde);
+  if (hasta !== undefined && hasta !== null && hasta !== "") params.set("hasta", hasta);
+  if (dni !== undefined && dni !== null && dni !== "") params.set("dni", dni);
+  if (nombre !== undefined && nombre !== null && nombre !== "") params.set("nombre", nombre);
+  if (page !== undefined && page !== null && page !== "") params.set("page", page);
+  if (pageSize !== undefined && pageSize !== null && pageSize !== "") params.set("pageSize", pageSize);
+
+  const query = params.toString();
+  return pedirAutenticado(`${BASE}/ordenes${query ? `?${query}` : ""}`);
+}
+
+/**
+ * Detalle completo de una orden (cliente + items), para el panel admin.
+ * @param {number|string} id
+ * @returns {Promise<Object>}
+ */
+export async function getOrdenById(id) {
+  return pedirAutenticado(`${BASE}/ordenes/${id}`);
+}
+
+/**
+ * Cambia el estado de una orden. Sin restricciones de transición — cualquier
+ * estado válido puede pasar a cualquier otro (ver
+ * `backend/src/controllers/ordenes.controller.js`'s `actualizarEstado`).
+ * @param {number|string} id
+ * @param {string} estado uno de: PENDIENTE, CONFIRMADA, EN_PREPARACION, ENTREGADA, CANCELADA
+ * @returns {Promise<Object>} la orden actualizada
+ */
+export async function actualizarEstadoOrden(id, estado) {
+  return pedirAutenticado(`${BASE}/ordenes/${id}/estado`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ estado }),
+  });
+}
+
+/**
+ * Historial de órdenes de un cliente por DNI, para el panel admin.
+ * @param {string} dni
+ * @returns {Promise<Array>} array vacío si el cliente no tiene órdenes.
+ */
+export async function getHistorialCliente(dni) {
+  return pedirAutenticado(`${BASE}/clientes/${dni}/ordenes`);
 }

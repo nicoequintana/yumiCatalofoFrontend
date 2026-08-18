@@ -1,0 +1,254 @@
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import BotonVolver from "../../components/BotonVolver.jsx";
+import EstadoVacio from "../../components/EstadoVacio.jsx";
+import Spinner from "../../components/Spinner.jsx";
+import { getOrdenById, actualizarEstadoOrden } from "../../api/ordenes.js";
+import { formatPrecio } from "../../utils/formato.js";
+
+const ESTADOS = ["PENDIENTE", "CONFIRMADA", "EN_PREPARACION", "ENTREGADA", "CANCELADA"];
+
+const ETIQUETA_ESTADO = {
+  PENDIENTE: "Pendiente",
+  CONFIRMADA: "Confirmada",
+  EN_PREPARACION: "En preparación",
+  ENTREGADA: "Entregada",
+  CANCELADA: "Cancelada",
+};
+
+/**
+ * Convierte un `precioUnitario` (string/number, snapshot de ItemOrden) a
+ * centavos enteros, redondeando al entero más cercano. Suma en centavos para
+ * evitar drift de punto flotante al acumular varias líneas — misma técnica
+ * que `Carrito.jsx`'s `precioACentavos` (duplicada acá a propósito, patrón
+ * ya establecido de utilidades chicas duplicadas por archivo en este repo).
+ * @param {string|number} precio
+ * @returns {number} centavos, 0 si el precio no es un número válido
+ */
+function precioACentavos(precio) {
+  const numero = typeof precio === "number" ? precio : parseFloat(precio);
+  if (Number.isNaN(numero)) return 0;
+  return Math.round(numero * 100);
+}
+
+function formatFecha(fecha) {
+  return new Date(fecha).toLocaleDateString("es-AR");
+}
+
+/**
+ * `/catalogo/admin/ordenes/:id` — detalle de una orden (Sprint 6, Task 2).
+ * El select de estado NO restringe transiciones — cualquiera de los 5
+ * estados es siempre seleccionable, sin importar el estado actual (mismo
+ * criterio deliberado del backend, ver `ordenes.controller.js`'s
+ * `actualizarEstado`).
+ */
+function AdminOrdenDetalle() {
+  const { id } = useParams();
+
+  const [orden, setOrden] = useState(null);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
+  const [guardandoEstado, setGuardandoEstado] = useState(false);
+  const [errorEstado, setErrorEstado] = useState(null);
+
+  useEffect(() => {
+    let activo = true;
+    setCargando(true);
+    setError(null);
+
+    getOrdenById(id)
+      .then((data) => {
+        if (!activo) return;
+        setOrden(data);
+        setCargando(false);
+      })
+      .catch((err) => {
+        if (!activo) return;
+        setError(err.message ?? "No se pudo cargar la orden.");
+        setCargando(false);
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, [id]);
+
+  async function handleCambiarEstado(event) {
+    const nuevoEstado = event.target.value;
+    const estadoAnterior = orden.estado;
+
+    setErrorEstado(null);
+    setGuardandoEstado(true);
+    // Reflejo optimista para que el select no "salte" mientras espera.
+    setOrden((actual) => ({ ...actual, estado: nuevoEstado }));
+
+    try {
+      const actualizado = await actualizarEstadoOrden(id, nuevoEstado);
+      setOrden(actualizado);
+    } catch (err) {
+      setErrorEstado(err.message ?? "No se pudo actualizar el estado de la orden.");
+      // Revierte al estado realmente persistido ante un error.
+      setOrden((actual) => ({ ...actual, estado: estadoAnterior }));
+    } finally {
+      setGuardandoEstado(false);
+    }
+  }
+
+  if (cargando) {
+    return (
+      <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
+        <div className="flex w-full flex-col items-center justify-center gap-4 px-margin-mobile py-24 text-center md:px-margin-desktop">
+          <Spinner className="h-8 w-8 text-on-surface-variant" />
+          <p className="font-body-md text-body-md text-on-surface-variant">Cargando orden…</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !orden) {
+    return (
+      <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
+        <div className="mb-6">
+          <BotonVolver fallback="/catalogo/admin/ordenes" />
+        </div>
+        <EstadoVacio
+          icono="error"
+          titulo="No se pudo cargar la orden"
+          mensaje={error ?? "Orden no encontrada."}
+        />
+      </main>
+    );
+  }
+
+  const totalCentavos = orden.items.reduce(
+    (total, item) => total + precioACentavos(item.precioUnitario) * item.cantidad,
+    0,
+  );
+  const total = formatPrecio(totalCentavos / 100);
+
+  return (
+    <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
+      <div className="mb-6">
+        <BotonVolver fallback="/catalogo/admin/ordenes" />
+      </div>
+
+      <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
+            Panel de administración
+          </span>
+          <h1 className="font-headline-lg text-headline-lg text-primary">Orden #{orden.id}</h1>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <select
+            value={orden.estado}
+            onChange={handleCambiarEstado}
+            disabled={guardandoEstado}
+            aria-label="Cambiar estado de la orden"
+            className="font-body-md text-body-md rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none disabled:opacity-60"
+          >
+            {ESTADOS.map((e) => (
+              <option key={e} value={e}>
+                {ETIQUETA_ESTADO[e]}
+              </option>
+            ))}
+          </select>
+          {guardandoEstado ? <Spinner className="h-5 w-5 text-on-surface-variant" /> : null}
+        </div>
+      </div>
+
+      {errorEstado ? (
+        <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
+          {errorEstado}
+        </p>
+      ) : null}
+
+      <div className="mb-8 grid gap-6 md:grid-cols-2">
+        <div className="rounded-xl bg-surface-container-lowest p-6 shadow-ambient">
+          <h2 className="font-headline-md text-headline-md mb-4 text-on-background">Cliente</h2>
+          <dl className="flex flex-col gap-2">
+            <div className="flex justify-between gap-4">
+              <dt className="font-body-md text-body-md text-on-surface-variant">Nombre</dt>
+              <dd className="font-body-md text-body-md text-on-surface">{orden.cliente.nombre}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="font-body-md text-body-md text-on-surface-variant">DNI</dt>
+              <dd className="font-body-md text-body-md text-on-surface">
+                <Link
+                  to={`/catalogo/admin/ordenes?dni=${orden.cliente.dni}`}
+                  className="text-secondary hover:underline"
+                >
+                  {orden.cliente.dni}
+                </Link>
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="font-body-md text-body-md text-on-surface-variant">Teléfono</dt>
+              <dd className="font-body-md text-body-md text-on-surface">{orden.cliente.telefono}</dd>
+            </div>
+            {orden.cliente.email ? (
+              <div className="flex justify-between gap-4">
+                <dt className="font-body-md text-body-md text-on-surface-variant">Email</dt>
+                <dd className="font-body-md text-body-md text-on-surface">{orden.cliente.email}</dd>
+              </div>
+            ) : null}
+            <div className="flex justify-between gap-4">
+              <dt className="font-body-md text-body-md text-on-surface-variant">Fecha</dt>
+              <dd className="font-body-md text-body-md text-on-surface">{formatFecha(orden.createdAt)}</dd>
+            </div>
+          </dl>
+        </div>
+
+        {orden.notas ? (
+          <div className="rounded-xl bg-surface-container-lowest p-6 shadow-ambient">
+            <h2 className="font-headline-md text-headline-md mb-4 text-on-background">Notas</h2>
+            <p className="font-body-md text-body-md text-on-surface-variant">{orden.notas}</p>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-ambient">
+        <table className="w-full min-w-[560px] text-left">
+          <thead>
+            <tr className="border-b border-outline-variant">
+              <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                Producto
+              </th>
+              <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                Precio unitario
+              </th>
+              <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                Cantidad
+              </th>
+              <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                Subtotal
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {orden.items.map((item) => (
+              <tr key={item.id} className="border-b border-outline-variant last:border-b-0">
+                <td className="font-body-md text-body-md px-6 py-4 text-on-surface">{item.nombreProducto}</td>
+                <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
+                  {formatPrecio(item.precioUnitario)}
+                </td>
+                <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">{item.cantidad}</td>
+                <td className="font-body-md text-body-md px-6 py-4 text-on-surface">
+                  {formatPrecio((precioACentavos(item.precioUnitario) * item.cantidad) / 100)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="flex items-center justify-between border-t border-outline-variant px-6 py-4">
+          <span className="font-headline-md text-headline-md text-primary">Total</span>
+          <strong className="font-headline-md text-headline-md text-primary">{total}</strong>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export default AdminOrdenDetalle;
