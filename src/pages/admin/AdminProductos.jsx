@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Badge from "../../components/Badge.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
-import { deleteProduct, getProducts, updateVisibilidad } from "../../api/products.js";
+import { deleteProduct, getProducts, updateMerchandising, updateVisibilidad } from "../../api/products.js";
 import { formatPrecio } from "../../utils/formato.js";
 
 /**
@@ -24,6 +24,8 @@ function AdminProductos() {
   const [eliminandoId, setEliminandoId] = useState(null);
   const [error, setError] = useState(null);
   const [actualizandoVisibilidadId, setActualizandoVisibilidadId] = useState(null);
+  const [actualizandoDestacadoId, setActualizandoDestacadoId] = useState(null);
+  const [ordenEditando, setOrdenEditando] = useState({});
 
   async function cargarProductos() {
     setCargando(true);
@@ -70,6 +72,58 @@ function AdminProductos() {
       setError(err.message ?? "No se pudo actualizar la visibilidad del producto.");
     } finally {
       setActualizandoVisibilidadId(null);
+    }
+  }
+
+  async function handleToggleDestacado(producto) {
+    setError(null);
+    setActualizandoDestacadoId(producto.id);
+    try {
+      const actualizado = await updateMerchandising(producto.id, { destacado: !producto.destacado });
+      setProductos((actuales) => actuales.map((p) => (p.id === actualizado.id ? actualizado : p)));
+    } catch (err) {
+      setError(err.message ?? "No se pudo actualizar el destacado del producto.");
+    } finally {
+      setActualizandoDestacadoId(null);
+    }
+  }
+
+  /** Local, per-row draft while the admin types a new `orden` — committed on blur via `handleGuardarOrden`. */
+  function handleCambiarOrdenLocal(producto, valor) {
+    setOrdenEditando((actuales) => ({ ...actuales, [producto.id]: valor }));
+  }
+
+  async function handleGuardarOrden(producto) {
+    const valor = ordenEditando[producto.id];
+    if (valor === undefined) return;
+
+    const ordenNum = Number(valor);
+    if (valor === "" || !Number.isInteger(ordenNum)) {
+      setOrdenEditando((actuales) => {
+        const { [producto.id]: _omitido, ...resto } = actuales;
+        return resto;
+      });
+      return;
+    }
+    if (ordenNum === producto.orden) {
+      setOrdenEditando((actuales) => {
+        const { [producto.id]: _omitido, ...resto } = actuales;
+        return resto;
+      });
+      return;
+    }
+
+    setError(null);
+    try {
+      const actualizado = await updateMerchandising(producto.id, { orden: ordenNum });
+      setProductos((actuales) => actuales.map((p) => (p.id === actualizado.id ? actualizado : p)));
+    } catch (err) {
+      setError(err.message ?? "No se pudo actualizar el orden del producto.");
+    } finally {
+      setOrdenEditando((actuales) => {
+        const { [producto.id]: _omitido, ...resto } = actuales;
+        return resto;
+      });
     }
   }
 
@@ -141,6 +195,12 @@ function AdminProductos() {
                   Catálogo
                 </th>
                 <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  Destacado
+                </th>
+                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  Orden
+                </th>
+                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
                   Acciones
                 </th>
               </tr>
@@ -200,6 +260,40 @@ function AdminProductos() {
                         <Spinner className="h-3.5 w-3.5 text-on-surface-variant" />
                       ) : null}
                     </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={producto.destacado}
+                        aria-label={`Destacar ${producto.nombre}`}
+                        onClick={() => handleToggleDestacado(producto)}
+                        disabled={actualizandoDestacadoId === producto.id}
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
+                          producto.destacado ? "bg-secondary" : "bg-outline-variant"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-surface-container-lowest shadow transition-transform ${
+                            producto.destacado ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                      {actualizandoDestacadoId === producto.id ? (
+                        <Spinner className="h-3.5 w-3.5 text-on-surface-variant" />
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <input
+                      type="number"
+                      aria-label={`Orden de ${producto.nombre}`}
+                      value={ordenEditando[producto.id] ?? producto.orden}
+                      onChange={(e) => handleCambiarOrdenLocal(producto, e.target.value)}
+                      onBlur={() => handleGuardarOrden(producto)}
+                      className="font-body-md text-body-md w-20 rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
+                    />
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">

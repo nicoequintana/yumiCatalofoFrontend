@@ -10,6 +10,12 @@ import { getCategorias } from "../../api/categorias.js";
 
 const SUGERENCIAS_ETIQUETA = ["Exclusivo", "Nuevo", "Best Seller", "Trending", "Popular"];
 
+const OPCIONES_DISPONIBILIDAD = [
+  { value: "DISPONIBLE", label: "Disponible" },
+  { value: "AGOTADO", label: "Agotado" },
+  { value: "A_PEDIDO", label: "A pedido" },
+];
+
 /**
  * Shared create/edit form.
  *
@@ -43,6 +49,7 @@ function AdminProductoForm() {
   const [precioVisual, setPrecioVisual] = useState("");
   const [etiqueta, setEtiqueta] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
+  const [disponibilidad, setDisponibilidad] = useState("DISPONIBLE");
   const [categorias, setCategorias] = useState([]);
   const [caracteristicas, setCaracteristicas] = useState([]);
   const [nuevaCaracteristica, setNuevaCaracteristica] = useState("");
@@ -74,6 +81,7 @@ function AdminProductoForm() {
       setPrecioVisual(formateado);
       setEtiqueta(producto.etiqueta ?? "");
       setCategoriaId(producto.categoria?.id ? String(producto.categoria.id) : "");
+      setDisponibilidad(producto.disponibilidad ?? "DISPONIBLE");
       setCaracteristicas(producto.caracteristicas ?? []);
       setFotos(producto.fotos ?? []);
       setVideo(producto.video ?? null);
@@ -144,6 +152,7 @@ function AdminProductoForm() {
       precio,
       etiqueta: etiqueta.trim() === "" ? null : etiqueta.trim(),
       categoriaId: categoriaId === "" ? null : categoriaId,
+      disponibilidad,
       caracteristicas: caracteristicas.map((c) => ({ texto: c.texto })),
       // Persisted photos (numeric id, no local `file`) are referenced by id
       // so the backend keeps them as-is; freshly picked photos (`f.file`
@@ -288,6 +297,27 @@ function AdminProductoForm() {
               {categorias.map((categoria) => (
                 <option key={categoria.id} value={categoria.id}>
                   {categoria.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="disponibilidad"
+              className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface"
+            >
+              Disponibilidad
+            </label>
+            <select
+              id="disponibilidad"
+              value={disponibilidad}
+              onChange={(e) => setDisponibilidad(e.target.value)}
+              className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
+            >
+              {OPCIONES_DISPONIBILIDAD.map((opcion) => (
+                <option key={opcion.value} value={opcion.value}>
+                  {opcion.label}
                 </option>
               ))}
             </select>

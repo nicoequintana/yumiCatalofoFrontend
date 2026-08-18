@@ -60,6 +60,7 @@ function construirFormData(data) {
   if (data.categoriaId !== undefined) {
     fd.append("categoriaId", data.categoriaId === null ? "" : data.categoriaId);
   }
+  if (data.disponibilidad !== undefined) fd.append("disponibilidad", data.disponibilidad);
 
   if (data.caracteristicas !== undefined) {
     fd.append("caracteristicas", JSON.stringify(data.caracteristicas.map((c) => ({ texto: c.texto }))));
@@ -129,6 +130,19 @@ export async function updateVisibilidad(id, visibleEnCatalogo) {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ visibleEnCatalogo }),
+  });
+}
+
+/**
+ * @param {number} id
+ * @param {{destacado?: boolean, orden?: number}} cambios at least one of the two
+ * @returns {Promise<Object>} the updated product, with its new destacado/orden values
+ */
+export async function updateMerchandising(id, cambios) {
+  return pedirAutenticado(`${BASE}/products/${id}/merchandising`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(cambios),
   });
 }
 

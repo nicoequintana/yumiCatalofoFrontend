@@ -81,7 +81,14 @@ function ProductoDetalle() {
 
           <div className="col-span-1 flex flex-col pt-8 md:col-span-5 md:pt-0 md:pl-8">
             <div className="mb-2 flex items-center justify-between">
-              <Badge etiqueta={producto.etiqueta} />
+              <div className="flex items-center gap-2">
+                <Badge etiqueta={producto.etiqueta} />
+                {producto.disponibilidad === "AGOTADO" ? (
+                  <span className="font-label-sm text-label-sm rounded bg-error-container px-2 py-1 uppercase tracking-wide text-on-error-container">
+                    Agotado
+                  </span>
+                ) : null}
+              </div>
               <div className="flex items-center gap-3">
                 <BotonFavorito productoId={producto.id} />
                 <BotonCompartir producto={producto} />

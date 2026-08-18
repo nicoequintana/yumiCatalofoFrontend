@@ -26,6 +26,13 @@ function ProductCard({ producto, variant = "vertical" }) {
     </span>
   ) : null;
 
+  const agotadoBadge =
+    producto.disponibilidad === "AGOTADO" ? (
+      <span className="font-label-sm text-label-sm absolute right-2 bottom-2 z-10 rounded bg-error-container px-2 py-1 uppercase tracking-wide text-on-error-container">
+        Agotado
+      </span>
+    ) : null;
+
   const textoCategoria = producto.categoria?.nombre ? (
     <span className="font-label-sm text-label-sm mb-1 block truncate uppercase tracking-wide text-on-surface-variant">
       {producto.categoria.nombre}
@@ -41,6 +48,7 @@ function ProductCard({ producto, variant = "vertical" }) {
             <img className="h-full w-full object-cover" src={foto.url} alt={producto.nombre} />
           ) : null}
           {etiquetaChip}
+          {agotadoBadge}
         </div>
         <div className="flex w-full flex-col justify-center p-4 sm:w-1/2 sm:p-6">
           {textoCategoria}
@@ -61,6 +69,7 @@ function ProductCard({ producto, variant = "vertical" }) {
           <img className="h-full w-full object-cover" src={foto.url} alt={producto.nombre} />
         ) : null}
         {etiquetaChip}
+        {agotadoBadge}
       </div>
       <div className="flex flex-1 flex-col p-4">
         {textoCategoria}
