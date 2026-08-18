@@ -28,6 +28,16 @@ describe("useCarrito", () => {
     expect(result.current.carrito).toEqual([{ productId: 1, cantidad: 1 }]);
   });
 
+  it("agregar con cantidad negativa no reduce ni elimina la línea (guard, trata como 1)", () => {
+    const { result } = renderHook(() => useCarrito());
+
+    act(() => {
+      result.current.agregar(1, -5);
+    });
+
+    expect(result.current.carrito).toEqual([{ productId: 1, cantidad: 1 }]);
+  });
+
   it("agregar acepta cantidad explícita", () => {
     const { result } = renderHook(() => useCarrito());
 
@@ -136,6 +146,25 @@ describe("useCarrito", () => {
 
     act(() => {
       a.result.current.agregar(1, 2);
+    });
+
+    expect(a.result.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);
+    expect(b.result.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);
+  });
+
+  it("dos instancias llamando agregar(id, 1) sobre el mismo producto en el mismo tick no pierden cantidad (race del closure)", () => {
+    // Both hook instances render once, each capturing `carrito: []` in its
+    // own closure. If the mutators read that stale closure instead of the
+    // latest module-level state, both calls compute "next" from the same
+    // empty array and the second write clobbers the first — ending at
+    // cantidad: 1 instead of 2. Both calls happen inside ONE `act()` so
+    // neither instance re-renders between them, reproducing the race.
+    const a = renderHook(() => useCarrito());
+    const b = renderHook(() => useCarrito());
+
+    act(() => {
+      a.result.current.agregar(1, 1);
+      b.result.current.agregar(1, 1);
     });
 
     expect(a.result.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);

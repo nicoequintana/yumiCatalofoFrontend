@@ -13,7 +13,19 @@ function leerCarrito() {
   }
 }
 
+// Module-level source of truth for the current cart, kept in sync with
+// every write via `escribirCarrito`. Mutators read FROM HERE instead of
+// their own hook instance's `carrito` closure (captured at last render).
+// Reason: two mounted instances can each call a mutator in the same tick,
+// before either re-renders — both would otherwise compute "next" from the
+// same stale render-time closure, and the second write clobbers the first
+// (e.g. two `agregar(id, 1)` racing would net cantidad: 1 instead of 2).
+// Reading `carritoActual` instead makes every mutation see the latest
+// write, regardless of which instance's render last captured it.
+let carritoActual = leerCarrito();
+
 function escribirCarrito(lineas) {
+  carritoActual = lineas;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(lineas));
   } catch {
@@ -46,33 +58,45 @@ function useCarrito() {
   }, []);
 
   function agregar(productId, cantidad = 1) {
-    const existente = carrito.find((linea) => linea.productId === productId);
+    // Guard against non-positive quantities: `agregar(id, -5)` must not
+    // silently shrink or delete a line — only `actualizarCantidad`/`quitar`
+    // are allowed to do that, and only explicitly. Adding always adds.
+    const cantidadValida = Math.max(1, cantidad);
+    const actual = carritoActual;
+    const existente = actual.find((linea) => linea.productId === productId);
     const siguiente = existente
-      ? carrito.map((linea) =>
+      ? actual.map((linea) =>
           linea.productId === productId
-            ? { ...linea, cantidad: linea.cantidad + cantidad }
+            ? { ...linea, cantidad: linea.cantidad + cantidadValida }
             : linea,
         )
-      : [...carrito, { productId, cantidad }];
+      : [...actual, { productId, cantidad: cantidadValida }];
     escribirCarrito(siguiente);
   }
 
   function quitar(productId) {
-    escribirCarrito(carrito.filter((linea) => linea.productId !== productId));
+    escribirCarrito(carritoActual.filter((linea) => linea.productId !== productId));
   }
 
-  // Deliberate design decision: setting cantidad to 0 removes the line
-  // entirely instead of leaving a zero-quantity line in the cart — same
-  // effect as `quitar`. A line with cantidad 0 has no meaningful UI
-  // representation (nothing to display/checkout), so this API collapses
-  // that state instead of letting callers create it.
+  /**
+   * Sets a line's quantity directly. Deliberate design decision:
+   * `cantidad <= 0` REMOVES the line entirely instead of leaving a
+   * zero-or-negative-quantity line in the cart — same effect as `quitar`.
+   * A line with cantidad <= 0 has no meaningful UI representation (nothing
+   * to display/checkout), so this API collapses that state instead of
+   * letting callers create it.
+   * @param {number} productId
+   * @param {number} cantidad - new quantity; `<= 0` removes the line.
+   */
   function actualizarCantidad(productId, cantidad) {
     if (cantidad <= 0) {
       quitar(productId);
       return;
     }
     escribirCarrito(
-      carrito.map((linea) => (linea.productId === productId ? { ...linea, cantidad } : linea)),
+      carritoActual.map((linea) =>
+        linea.productId === productId ? { ...linea, cantidad } : linea,
+      ),
     );
   }
 
