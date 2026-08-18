@@ -99,4 +99,40 @@ describe("BotonAgregarCarrito", () => {
     render(<BotonAgregarCarrito producto={{ ...PRODUCTO, disponibilidad: "A_PEDIDO" }} />);
     expect(screen.getByRole("button", { name: /agregar al carrito/i })).toBeEnabled();
   });
+
+  it("un doble-click rápido no duplica el agregado (guard de re-entrada durante la ventana de feedback)", () => {
+    // Hook instance mounted BEFORE the clicks so it's a live listener (see
+    // comment on the first test above re: broken real localStorage).
+    const { result: carritoHook } = renderHook(() => useCarrito());
+
+    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+
+    const boton = screen.getByRole("button", { name: /agregar al carrito/i });
+    fireEvent.click(boton);
+    fireEvent.click(boton); // fires while `agregado` is still true — must be a no-op
+
+    expect(carritoHook.current.carrito).toEqual([{ productId: 5, cantidad: 1 }]);
+    expect(productsApi.registrarEvento).toHaveBeenCalledTimes(1);
+  });
+
+  it("el botón queda deshabilitado durante la ventana de feedback, evitando un segundo click", () => {
+    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+
+    const boton = screen.getByRole("button", { name: /agregar al carrito/i });
+    fireEvent.click(boton);
+
+    expect(screen.getByRole("button", { name: /agregado/i })).toBeDisabled();
+  });
+
+  it("resetea la cantidad del selector a 1 después de agregar", () => {
+    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /aumentar/i }));
+    fireEvent.click(screen.getByRole("button", { name: /aumentar/i }));
+    expect(screen.getByText("3")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /agregar al carrito/i }));
+
+    expect(screen.getByText("1")).toBeInTheDocument();
+  });
 });

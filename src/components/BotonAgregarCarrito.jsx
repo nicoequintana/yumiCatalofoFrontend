@@ -21,6 +21,13 @@ function BotonAgregarCarrito({ producto }) {
   const agotado = producto.disponibilidad === "AGOTADO";
 
   function handleClick() {
+    // Re-entrancy guard: while `agregado` is true (the whole 2.5s feedback
+    // window, not just the click instant) a second click/tap is a no-op.
+    // Without this, a fast double-click/double-tap calls `agregar` twice —
+    // double the selected quantity in the cart plus a duplicate
+    // AGREGADO_CARRITO event.
+    if (agregado) return;
+
     agregar(producto.id, cantidad);
 
     // Fire-and-forget analytics, same non-blocking pattern as
@@ -29,6 +36,10 @@ function BotonAgregarCarrito({ producto }) {
     registrarEvento("AGREGADO_CARRITO", producto.id);
 
     setAgregado(true);
+    // Reset the selector back to its default: adding confirms the chosen
+    // quantity, the next decision starts fresh at 1 instead of silently
+    // reusing the last value on a later click.
+    setCantidad(1);
     setTimeout(() => setAgregado(false), 2500);
   }
 
@@ -55,7 +66,8 @@ function BotonAgregarCarrito({ producto }) {
       <button
         type="button"
         onClick={handleClick}
-        className="font-label-md text-label-md inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 uppercase tracking-wide text-on-primary hover:opacity-90"
+        disabled={agregado}
+        className="font-label-md text-label-md inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 uppercase tracking-wide text-on-primary hover:opacity-90 disabled:opacity-70"
       >
         <span className="material-symbols-outlined text-[18px]">
           {agregado ? "check" : "shopping_cart"}
