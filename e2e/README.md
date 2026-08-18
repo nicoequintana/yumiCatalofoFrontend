@@ -67,12 +67,43 @@ seed/cleanup en escenarios nuevos (Sprint 7 Task 2).
   (import de `backend/src/lib/prisma.js` — los tests de Playwright corren en
   Node, así que esto es acceso directo a DB legítimo, sin pasar por HTTP).
   Incluye tanto helpers de creación (`crearProductoDeTest`,
-  `crearClienteDeTest`, `crearOrdenDeTest`) como de borrado
-  (`borrarProductoDeTest`, `borrarOrdenDeTest`, `limpiarTodoRastroDeTest`).
+  `crearClienteDeTest`, `crearOrdenDeTest`, `crearUsuarioAdminDeTest`) como
+  de borrado (`borrarProductoDeTest`, `borrarOrdenDeTest`,
+  `borrarUsuarioAdminDeTest`, `limpiarTodoRastroDeTest`).
 - `flujo-feliz.spec.js` — Escenario 1: catálogo -> detalle -> carrito ->
   checkout -> confirmación, con verificación final directa en la DB.
+- `cliente-recurrente.spec.js` — Escenario 2: dos órdenes con el mismo dni
+  (una sembrada, una por checkout real de UI) resuelven a un único `Cliente`.
+- `producto-agotado.spec.js` — Escenario 3: badge "Agotado" + CTA
+  deshabilitado en la UI, más defensa en profundidad verificando que
+  `POST /api/ordenes` también rechaza el producto server-side.
+- `whatsapp-detalle.spec.js` — Escenario 4: el botón de WhatsApp arma el link
+  esperado (número real desde `GET /api/config/whatsapp`, mensaje con el
+  nombre del producto) sin navegar de verdad a wa.me. Se salta
+  (`test.skip`) si `WHATSAPP_NUMERO` no está configurado en el `.env` del
+  backend local — es una variable de entorno, no algo que el test pueda
+  sembrar.
+- `admin-cambio-estado.spec.js` — Escenario 5: login real de admin -> cambiar
+  el estado de una orden por UI -> reload -> el estado persiste (verificado
+  también directo en la DB).
+- `checkout-accesibilidad.spec.js` — pasada de accesibilidad sobre el
+  formulario de checkout: labels asociados, `aria-invalid`/
+  `aria-describedby` en campos inválidos, `role="alert"` en errores de envío
+  (fixes del Sprint 6, confirmados bajo render real de browser).
 - `global-setup.js` — pre-flight check: falla rápido y con un mensaje claro
   si el backend no responde en `http://localhost:4000/health` antes de
   arrancar los tests, en vez de dejar que el primer test falle por timeout.
 - `global-teardown.js` — red de seguridad final: corre
   `limpiarTodoRastroDeTest()` al terminar toda la corrida.
+
+## Rate limiting y corridas repetidas
+
+`POST /api/ordenes` está limitado a 10 requests/10min por IP (ver
+`ordenes.routes.js`). La suite completa dispara ~3 POST reales por corrida
+(flujo-feliz, cliente-recurrente, la defensa en profundidad de
+producto-agotado). Correr la suite 3 veces seguidas está cómodo bajo el
+límite (~9 de 10), pero corridas manuales repetidas EN EL MEDIO (debugging,
+`npx playwright test` sueltos) sí pueden gatillar un 429 real — el store del
+limitador es en memoria por proceso (`rateLimit.middleware.js`), así que
+reiniciar el backend local resetea el contador si hace falta desbloquear una
+corrida de verificación.
