@@ -32,7 +32,7 @@ describe("AdminSidebar", () => {
   it("mantiene el resto de las entradas de navegación", () => {
     renderSidebar();
 
-    for (const etiqueta of [/productos/i, /órdenes/i, /métricas/i, /logs/i]) {
+    for (const etiqueta of [/productos/i, /órdenes/i, /embudo/i, /métricas/i, /logs/i]) {
       expect(screen.getAllByRole("link", { name: etiqueta })).toHaveLength(2);
     }
   });

@@ -27,6 +27,7 @@ const ITEMS_NAV = [
   { to: "/catalogo/admin/productos", icono: "inventory_2", label: "Productos" },
   { to: "/catalogo/admin/ordenes", icono: "receipt_long", label: "Órdenes" },
   { to: "/catalogo/admin/ventas", icono: "payments", label: "Ventas" },
+  { to: "/catalogo/admin/embudo", icono: "filter_alt", label: "Embudo" },
   { to: "/catalogo/admin/metricas", icono: "query_stats", label: "Métricas" },
   { to: "/catalogo/admin/logs", icono: "history", label: "Logs" },
 ];
