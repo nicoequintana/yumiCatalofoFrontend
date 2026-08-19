@@ -65,6 +65,7 @@ export default {
         unit: "8px",
         gutter: "24px",
         "margin-mobile": "20px",
+        "navbar-height": "88px",
       },
       fontFamily: {
         "headline-md": ["Playfair Display"],

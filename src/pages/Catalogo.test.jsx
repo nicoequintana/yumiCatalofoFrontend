@@ -36,7 +36,6 @@ const PRODUCTO = {
   categoria: null,
   precio: "1000",
   fotos: [],
-  disponibilidad: "DISPONIBLE",
 };
 
 const CATEGORIAS = [
@@ -73,16 +72,6 @@ describe("Catalogo - filtros", () => {
     });
   });
 
-  // Product-decision correction: no real stock-management workflow exists
-  // yet, so disponibilidad must not be a usable public filter (see
-  // FiltrosCatalogo.jsx's doc comment).
-  it("no renderiza el filtro de Disponibilidad", async () => {
-    renderPagina();
-
-    await screen.findByLabelText("Categoría");
-    expect(screen.queryByLabelText("Disponibilidad")).not.toBeInTheDocument();
-  });
-
   it("hace fetch inicial sin filtros", async () => {
     renderPagina();
 
@@ -92,7 +81,6 @@ describe("Catalogo - filtros", () => {
         search: "",
         minPrecio: "",
         maxPrecio: "",
-        disponibilidad: "",
       });
     });
   });
@@ -128,16 +116,6 @@ describe("Catalogo - filtros", () => {
       expect(llamadasSetSearchParams.length).toBeGreaterThan(0);
     });
     expect(llamadasSetSearchParams.every((opts) => opts?.replace === true)).toBe(true);
-  });
-
-  it("un ?disponibilidad= en la URL no se filtra al pedir productos (filtro inerte)", async () => {
-    renderPagina("/?disponibilidad=AGOTADO");
-
-    await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith(
-        expect.objectContaining({ disponibilidad: "" }),
-      );
-    });
   });
 
   it("muestra el estado vacío 'Sin resultados' cuando no hay coincidencias con filtros", async () => {

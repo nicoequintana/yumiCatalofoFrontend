@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
@@ -20,45 +20,47 @@ const DEBOUNCE_SEARCH_MS = 350;
  * Grid spans stay here (the parent page), not inside `ProductCard` (D2).
  *
  * Filters (Sprint 3, Task 2): `searchParams` is the single source of truth
- * for categoria/disponibilidad/precio — reading + writing them directly
- * avoids a duplicate local-state/URL sync loop. The free-text search input
- * is the one exception: it keeps its own local state so keystrokes don't
- * write to the URL (and thus don't trigger a refetch) on every character —
- * a `setTimeout` debounce commits it into `searchParams` after the user
- * pauses typing, which is what the fetch effect actually reacts to.
- *
- * `disponibilidad` specifically (product-decision correction, post-Sprint 3):
- * still read from `searchParams` and still passed down to
- * `FiltrosCatalogo`/wired through `actualizarFiltro` — the URL/state
- * plumbing is untouched — but deliberately NOT forwarded into the
- * `getProducts()` query below. `FiltrosCatalogo` no longer renders the
- * control that would ever set it, so `disponibilidad` is always `""` in
- * practice; the query param is dropped here too as a second, independent
- * layer of the same no-op (matching `Badge.jsx`'s documented pattern) so a
- * hand-crafted `?disponibilidad=...` URL can't smuggle a live filter back
- * in through the querystring. No real stock-management workflow exists yet
- * — reinstate this line, and `FiltrosCatalogo`'s field, together when it does.
+ * for categoria/precio — reading + writing them directly avoids a duplicate
+ * local-state/URL sync loop. The free-text search input is the one
+ * exception: it keeps its own local state so keystrokes don't write to the
+ * URL (and thus don't trigger a refetch) on every character — a `setTimeout`
+ * debounce commits it into `searchParams` after the user pauses typing,
+ * which is what the fetch effect actually reacts to.
  */
 function Catalogo() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const categoria = searchParams.get("categoria") ?? "";
-  const disponibilidad = searchParams.get("disponibilidad") ?? "";
   const minPrecio = searchParams.get("minPrecio") ?? "";
   const maxPrecio = searchParams.get("maxPrecio") ?? "";
   const searchUrl = searchParams.get("search") ?? "";
 
-  const [searchInput, setSearchInput] = useState(searchUrl);
+  // Los filtros se reinician a cero en cada carga/entrada a la pantalla —
+  // no deben persistir entre visitas (decisión de producto), sin importar
+  // con qué querystring haya llegado la navegación (ej. un link compartido
+  // con `?categoria=...`). Se limpia de forma síncrona durante el primer
+  // render (no en un efecto, para que ningún otro estado/efecto llegue a
+  // leer un filtro heredado) — el `ref` asegura que esto corra una única
+  // vez y no vuelva a pisar los filtros que el usuario aplique después.
+  const reseteoInicialHecho = useRef(false);
+  if (!reseteoInicialHecho.current) {
+    reseteoInicialHecho.current = true;
+    if (searchParams.toString() !== "") {
+      setSearchParams(new URLSearchParams(), { replace: true });
+    }
+  }
+
+  const [searchInput, setSearchInput] = useState("");
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   // { replace: true }: react-router-dom v7's useSearchParams pushes a new
   // history entry by default. A filter change is a refinement of the same
-  // view, not a new page to visit — without replace, every categoria/precio/
-  // disponibilidad tweak (and each debounced search commit) stacks its own
-  // "atrás" entry, so a user who filters and then hits back needs one click
-  // per filter change before actually leaving the page.
+  // view, not a new page to visit — without replace, every categoria/precio
+  // tweak (and each debounced search commit) stacks its own "atrás" entry,
+  // so a user who filters and then hits back needs one click per filter
+  // change before actually leaving the page.
   function actualizarFiltro(clave, valor) {
     setSearchParams(
       (prev) => {
@@ -99,8 +101,7 @@ function Catalogo() {
     let activo = true;
     setCargando(true);
 
-    // `disponibilidad` intentionally NOT forwarded — see doc comment above.
-    getProducts({ categoria, search: searchUrl, minPrecio, maxPrecio, disponibilidad: "" }).then((data) => {
+    getProducts({ categoria, search: searchUrl, minPrecio, maxPrecio }).then((data) => {
       if (!activo) return;
       setProductos(data);
       setCargando(false);
@@ -109,27 +110,39 @@ function Catalogo() {
     return () => {
       activo = false;
     };
-  }, [categoria, searchUrl, minPrecio, maxPrecio, disponibilidad]);
+  }, [categoria, searchUrl, minPrecio, maxPrecio]);
 
-  const hayFiltrosActivos = Boolean(categoria || searchUrl || minPrecio || maxPrecio || disponibilidad);
+  const hayFiltrosActivos = Boolean(categoria || searchUrl || minPrecio || maxPrecio);
 
   return (
     <>
       {/* Hero Section — ported from home.html L121-130 */}
-      <section className="relative flex w-full flex-col items-center justify-center px-margin-mobile py-24 text-center md:px-margin-desktop md:py-32">
+      <section className="relative flex w-full flex-col items-center justify-center px-margin-mobile py-12 text-center md:px-margin-desktop md:py-20">
         <h1 className="font-display-lg text-display-lg mx-auto mb-6 max-w-4xl tracking-tight text-primary md:text-[64px]">
           ¿Qué vas a descubrir hoy?
         </h1>
-        <p className="font-body-lg text-body-lg mx-auto mb-12 max-w-2xl text-on-surface-variant">
-          Entrá por una cosa. Quedate por muchas. 
+        <p className="font-body-lg text-body-lg mx-auto mb-4 max-w-2xl text-on-surface-variant">
+          Entrá por una cosa. Quedate por muchas.
           <br></br>
           Encontrá eso que buscabas y algo que no sabías que querías.
         </p>
       </section>
 
+      <FiltrosCatalogo
+        categorias={categorias}
+        categoria={categoria}
+        onChangeCategoria={(valor) => actualizarFiltro("categoria", valor)}
+        search={searchInput}
+        onChangeSearch={setSearchInput}
+        minPrecio={minPrecio}
+        onChangeMinPrecio={(valor) => actualizarFiltro("minPrecio", valor)}
+        maxPrecio={maxPrecio}
+        onChangeMaxPrecio={(valor) => actualizarFiltro("maxPrecio", valor)}
+      />
+
       {/* Collection Grid — section header from home.html L132-136, card grid idiom from catalogo.html */}
-      <section className="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop md:py-24">
-        <div className="mb-16 flex flex-col items-center">
+      <section className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-12">
+        <div className="mb-8 flex flex-col items-center">
           <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
             Nuestra Colección
           </span>
@@ -137,20 +150,6 @@ function Catalogo() {
             Productos
           </h2>
         </div>
-
-        <FiltrosCatalogo
-          categorias={categorias}
-          categoria={categoria}
-          onChangeCategoria={(valor) => actualizarFiltro("categoria", valor)}
-          search={searchInput}
-          onChangeSearch={setSearchInput}
-          minPrecio={minPrecio}
-          onChangeMinPrecio={(valor) => actualizarFiltro("minPrecio", valor)}
-          maxPrecio={maxPrecio}
-          onChangeMaxPrecio={(valor) => actualizarFiltro("maxPrecio", valor)}
-          disponibilidad={disponibilidad}
-          onChangeDisponibilidad={(valor) => actualizarFiltro("disponibilidad", valor)}
-        />
 
         {cargando ? (
           <EstadoVacio icono="hourglass_empty" mensaje="Cargando productos…" />
