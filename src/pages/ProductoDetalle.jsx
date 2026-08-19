@@ -74,7 +74,7 @@ function ProductoDetalle() {
         <span className="w-10" aria-hidden="true" />
       </header>
 
-      <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
+      <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 pb-24 md:px-margin-desktop md:py-16 md:pb-16">
         <div className="mb-6 hidden md:block">
           <BotonVolver />
         </div>
@@ -253,6 +253,15 @@ function ProductoDetalle() {
           </section>
         ) : null}
       </main>
+
+      <div
+        data-testid="cta-sticky-mobile"
+        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-4 border-t border-outline-variant bg-surface-container-lowest px-margin-mobile py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:hidden"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
+        <span className="font-headline-md text-headline-md text-primary">{formatPrecio(producto.precio)}</span>
+        <BotonAgregarCarrito producto={producto} />
+      </div>
 
       <BotonWhatsapp contexto={{ tipo: "producto", producto }} productId={producto.id} />
     </>

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -248,5 +248,32 @@ describe("ProductoDetalle — Miralo en acción", () => {
     renderPagina();
     await screen.findAllByText(PRODUCTO_BASE.nombre);
     expect(screen.queryByText("Miralo en acción")).not.toBeInTheDocument();
+  });
+});
+
+describe("ProductoDetalle — CTA sticky mobile", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("muestra una barra sticky inferior con precio y Agregar al carrito", async () => {
+    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_BASE });
+    renderPagina();
+    await screen.findAllByText(PRODUCTO_BASE.nombre);
+
+    const barrasSticky = screen.getAllByTestId("cta-sticky-mobile");
+    expect(barrasSticky).toHaveLength(1);
+  });
+
+  it("el CTA sticky permite agregar al carrito", async () => {
+    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_BASE });
+    renderPagina();
+    await screen.findAllByText(PRODUCTO_BASE.nombre);
+
+    const barraSticky = screen.getByTestId("cta-sticky-mobile");
+    const boton = within(barraSticky).getByRole("button", { name: /Agregar al carrito/i });
+    fireEvent.click(boton);
+
+    expect(await within(barraSticky).findByText(/Agregado/i)).toBeInTheDocument();
   });
 });
