@@ -8,7 +8,7 @@ import { registrarEvento } from "../api/products.js";
  * CTA that panel has ever had (see ProductoDetalle.jsx's doc comment on the
  * prior "no CTA" decision, now superseded by the cart feature).
  */
-function BotonAgregarCarrito({ producto }) {
+function BotonAgregarCarrito({ producto, alineacion = "end" }) {
   const { agregar } = useCarrito();
   const [cantidad, setCantidad] = useState(1);
   const [agregado, setAgregado] = useState(false);
@@ -37,7 +37,7 @@ function BotonAgregarCarrito({ producto }) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-3">
+    <div className={`flex flex-col gap-3 ${alineacion === "start" ? "items-start" : "items-end"}`}>
       <SelectorCantidad value={cantidad} onChange={setCantidad} />
       <button
         type="button"

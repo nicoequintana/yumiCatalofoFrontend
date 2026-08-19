@@ -216,18 +216,14 @@ function ProductoDetalle() {
               </ul>
             ) : null}
 
-            <div className="mt-auto flex flex-col gap-6 rounded-2xl bg-tertiary-container p-6 shadow-lg sm:flex-row sm:items-center sm:justify-between md:p-8">
-              <div>
-                <span className="font-label-sm text-label-sm mb-1 block uppercase tracking-[0.15em] text-on-tertiary-container/70">
-                  Precio
-                </span>
-                <span className="font-headline-lg text-headline-lg text-on-tertiary-container">
-                  {formatPrecio(producto.precio)}
-                </span>
-              </div>
-              <div className="flex flex-col items-start border-t border-on-tertiary-container/15 pt-6 sm:items-end sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
-                <BotonAgregarCarrito producto={producto} />
-              </div>
+            <div className="mt-auto border-t border-outline-variant pt-6">
+              <span className="font-label-sm text-label-sm mb-1 block uppercase tracking-[0.15em] text-on-surface-variant">
+                Precio
+              </span>
+              <span className="font-display-lg text-headline-lg mb-6 block text-primary md:text-display-lg">
+                {formatPrecio(producto.precio)}
+              </span>
+              <BotonAgregarCarrito producto={producto} alineacion="start" />
             </div>
           </div>
         </div>
