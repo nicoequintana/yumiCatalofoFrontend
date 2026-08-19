@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import ProductoDetalle from "./ProductoDetalle.jsx";
 import * as productsApi from "../api/products.js";
+import { ToastProvider } from "../context/ToastContext.jsx";
 
 vi.mock("../api/products.js");
 
@@ -46,9 +47,12 @@ const RELACIONADO = {
 function renderPagina(id = "1") {
   return render(
     <MemoryRouter initialEntries={[`/producto/${id}`]}>
-      <Routes>
-        <Route path="/producto/:id" element={<ProductoDetalle />} />
-      </Routes>
+      <ToastProvider>
+        <Routes>
+          <Route path="/" element={<div>Catálogo (mock)</div>} />
+          <Route path="/producto/:id" element={<ProductoDetalle />} />
+        </Routes>
+      </ToastProvider>
     </MemoryRouter>,
   );
 }
@@ -301,5 +305,27 @@ describe("ProductoDetalle — CTA sticky mobile", () => {
     });
 
     global.IntersectionObserver.mockRestore();
+  });
+});
+
+describe("ProductoDetalle — producto no disponible", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("redirige al catálogo cuando el producto no existe (404/oculto/sin stock)", async () => {
+    productsApi.getProductById.mockResolvedValue(null);
+
+    renderPagina();
+
+    expect(await screen.findByText("Catálogo (mock)")).toBeInTheDocument();
+  });
+
+  it("muestra un toast de error al redirigir por producto no disponible", async () => {
+    productsApi.getProductById.mockResolvedValue(null);
+
+    renderPagina();
+
+    expect(await screen.findByText("Este producto ya no está disponible.")).toBeInTheDocument();
   });
 });

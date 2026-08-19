@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import PhotoGallery from "../components/PhotoGallery.jsx";
 import Badge from "../components/Badge.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
@@ -12,6 +12,7 @@ import BotonAgregarCarrito from "../components/BotonAgregarCarrito.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import { getProductById } from "../api/products.js";
 import { formatPrecio } from "../utils/formato.js";
+import { useToast } from "../context/ToastContext.jsx";
 
 /**
  * `/producto/:id` — informational-only detail view, ported from
@@ -27,6 +28,8 @@ import { formatPrecio } from "../utils/formato.js";
  */
 function ProductoDetalle() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { mostrarToast } = useToast();
   const volver = useVolver();
   const [producto, setProducto] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -39,6 +42,17 @@ function ProductoDetalle() {
 
     getProductById(id).then((data) => {
       if (!activo) return;
+
+      // Producto inexistente, eliminado, oculto o sin stock (el backend ya
+      // excluye estos casos del catálogo público) — en vez de mostrar una
+      // página "no encontrado" en un link roto, mandamos al usuario de
+      // vuelta al catálogo con un aviso, así puede seguir navegando.
+      if (!data) {
+        navigate("/", { replace: true });
+        mostrarToast("Este producto ya no está disponible.", { tipo: "error" });
+        return;
+      }
+
       setProducto(data);
       setCargando(false);
     });
@@ -46,6 +60,7 @@ function ProductoDetalle() {
     return () => {
       activo = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Oculta el CTA sticky mobile una vez que el final de la página (justo
