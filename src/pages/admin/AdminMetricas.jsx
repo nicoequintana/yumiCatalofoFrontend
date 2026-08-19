@@ -31,7 +31,7 @@ function AdminMetricas() {
   }, []);
 
   return (
-    <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
+    <main className="w-full px-4 py-6 md:px-8 md:py-8">
       <div className="mb-6">
         <BotonVolver fallback="/catalogo/admin/productos" />
       </div>
@@ -44,7 +44,7 @@ function AdminMetricas() {
       </div>
 
       {cargando ? (
-        <div className="flex w-full flex-col items-center justify-center gap-4 px-margin-mobile py-24 text-center md:px-margin-desktop">
+        <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
           <p className="font-body-md text-body-md text-on-surface-variant">Cargando métricas…</p>
         </div>
@@ -59,16 +59,16 @@ function AdminMetricas() {
           <table className="w-full min-w-[600px] text-left">
             <thead>
               <tr className="border-b border-outline-variant">
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   SKU
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Nombre
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Vistas
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Compartidos
                 </th>
               </tr>
@@ -76,10 +76,10 @@ function AdminMetricas() {
             <tbody>
               {productos.map((producto) => (
                 <tr key={producto.id} className="border-b border-outline-variant last:border-b-0">
-                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">{producto.sku}</td>
-                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface">{producto.nombre}</td>
-                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">{producto.vistas}</td>
-                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
+                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">{producto.sku}</td>
+                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface">{producto.nombre}</td>
+                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">{producto.vistas}</td>
+                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
                     {producto.compartidos}
                   </td>
                 </tr>

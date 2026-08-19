@@ -96,8 +96,8 @@ function AdminOrdenDetalle() {
 
   if (cargando) {
     return (
-      <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
-        <div className="flex w-full flex-col items-center justify-center gap-4 px-margin-mobile py-24 text-center md:px-margin-desktop">
+      <main className="w-full px-4 py-6 md:px-8 md:py-8">
+        <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
           <p className="font-body-md text-body-md text-on-surface-variant">Cargando orden…</p>
         </div>
@@ -107,7 +107,7 @@ function AdminOrdenDetalle() {
 
   if (error || !orden) {
     return (
-      <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
+      <main className="w-full px-4 py-6 md:px-8 md:py-8">
         <div className="mb-6">
           <BotonVolver fallback="/catalogo/admin/ordenes" />
         </div>
@@ -127,7 +127,7 @@ function AdminOrdenDetalle() {
   const total = formatPrecio(totalCentavos / 100);
 
   return (
-    <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
+    <main className="w-full px-4 py-6 md:px-8 md:py-8">
       <div className="mb-6">
         <BotonVolver fallback="/catalogo/admin/ordenes" />
       </div>
@@ -212,16 +212,16 @@ function AdminOrdenDetalle() {
         <table className="w-full min-w-[560px] text-left">
           <thead>
             <tr className="border-b border-outline-variant">
-              <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+              <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                 Producto
               </th>
-              <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+              <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                 Precio unitario
               </th>
-              <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+              <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                 Cantidad
               </th>
-              <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+              <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                 Subtotal
               </th>
             </tr>
@@ -229,12 +229,12 @@ function AdminOrdenDetalle() {
           <tbody>
             {orden.items.map((item) => (
               <tr key={item.id} className="border-b border-outline-variant last:border-b-0">
-                <td className="font-body-md text-body-md px-6 py-4 text-on-surface">{item.nombreProducto}</td>
-                <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
+                <td className="font-body-md text-body-md px-4 py-3 text-on-surface">{item.nombreProducto}</td>
+                <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
                   {formatPrecio(item.precioUnitario)}
                 </td>
-                <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">{item.cantidad}</td>
-                <td className="font-body-md text-body-md px-6 py-4 text-on-surface">
+                <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">{item.cantidad}</td>
+                <td className="font-body-md text-body-md px-4 py-3 text-on-surface">
                   {formatPrecio((precioACentavos(item.precioUnitario) * item.cantidad) / 100)}
                 </td>
               </tr>
@@ -242,7 +242,7 @@ function AdminOrdenDetalle() {
           </tbody>
         </table>
 
-        <div className="flex items-center justify-between border-t border-outline-variant px-6 py-4">
+        <div className="flex items-center justify-between border-t border-outline-variant px-4 py-3">
           <span className="font-headline-md text-headline-md text-primary">Total</span>
           <strong className="font-headline-md text-headline-md text-primary">{total}</strong>
         </div>

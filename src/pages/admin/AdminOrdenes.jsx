@@ -106,7 +106,7 @@ function AdminOrdenes() {
   const haySiguiente = page * pageSize < total;
 
   return (
-    <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
+    <main className="w-full px-4 py-6 md:px-8 md:py-8">
       <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
           <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
@@ -153,7 +153,7 @@ function AdminOrdenes() {
       ) : null}
 
       {cargando ? (
-        <div className="flex w-full flex-col items-center justify-center gap-4 px-margin-mobile py-24 text-center md:px-margin-desktop">
+        <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
           <p className="font-body-md text-body-md text-on-surface-variant">Cargando órdenes…</p>
         </div>
@@ -169,25 +169,25 @@ function AdminOrdenes() {
             <table className="w-full min-w-[720px] text-left">
               <thead>
                 <tr className="border-b border-outline-variant">
-                  <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                     Orden
                   </th>
-                  <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                     Cliente
                   </th>
-                  <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                     DNI
                   </th>
-                  <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                     Items
                   </th>
-                  <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                     Estado
                   </th>
-                  <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                     Fecha
                   </th>
-                  <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                     Acciones
                   </th>
                 </tr>
@@ -195,21 +195,21 @@ function AdminOrdenes() {
               <tbody>
                 {ordenes.map((orden) => (
                   <tr key={orden.id} className="border-b border-outline-variant last:border-b-0">
-                    <td className="font-body-md text-body-md px-6 py-4 text-on-surface">#{orden.id}</td>
-                    <td className="font-body-md text-body-md px-6 py-4 text-on-surface">{orden.cliente?.nombre}</td>
-                    <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
+                    <td className="font-body-md text-body-md px-4 py-3 text-on-surface">#{orden.id}</td>
+                    <td className="font-body-md text-body-md px-4 py-3 text-on-surface">{orden.cliente?.nombre}</td>
+                    <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
                       {orden.cliente?.dni}
                     </td>
-                    <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
+                    <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
                       {orden._count?.items ?? 0}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <BadgeEstado estado={orden.estado} />
                     </td>
-                    <td className="font-body-md text-body-md whitespace-nowrap px-6 py-4 text-on-surface-variant">
+                    <td className="font-body-md text-body-md whitespace-nowrap px-4 py-3 text-on-surface-variant">
                       {formatFecha(orden.createdAt)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <Link
                         to={`/catalogo/admin/ordenes/${orden.id}`}
                         className="font-label-md text-label-md uppercase tracking-widest text-secondary hover:underline"

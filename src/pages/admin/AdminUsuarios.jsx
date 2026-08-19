@@ -118,7 +118,7 @@ function AdminUsuarios() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
+    <main className="w-full px-4 py-6 md:px-8 md:py-8">
       <div className="mb-6">
         <BotonVolver fallback="/catalogo/admin/productos" />
       </div>
@@ -162,7 +162,7 @@ function AdminUsuarios() {
       ) : null}
 
       {cargando ? (
-        <div className="flex w-full flex-col items-center justify-center gap-4 px-margin-mobile py-24 text-center md:px-margin-desktop">
+        <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
           <p className="font-body-md text-body-md text-on-surface-variant">Cargando usuarios…</p>
         </div>
@@ -177,13 +177,13 @@ function AdminUsuarios() {
           <table className="w-full min-w-[480px] text-left">
             <thead>
               <tr className="border-b border-outline-variant">
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Email
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Creado
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Acciones
                 </th>
               </tr>
@@ -191,7 +191,7 @@ function AdminUsuarios() {
             <tbody>
               {usuarios.map((usuario) => (
                 <tr key={usuario.id} className="border-b border-outline-variant last:border-b-0">
-                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface">
+                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface">
                     {editandoId === usuario.id ? (
                       <div className="flex flex-col gap-2">
                         <input
@@ -212,10 +212,10 @@ function AdminUsuarios() {
                       usuario.email
                     )}
                   </td>
-                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
+                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
                     {formatearFecha(usuario.createdAt)}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-4">
                       {editandoId === usuario.id ? (
                         <>
