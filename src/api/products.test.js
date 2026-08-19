@@ -50,11 +50,6 @@ describe("getProducts", () => {
     expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?maxPrecio=500`, undefined);
   });
 
-  it("agrega disponibilidad cuando se provee", async () => {
-    await getProducts({ disponibilidad: "DISPONIBLE" });
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?disponibilidad=DISPONIBLE`, undefined);
-  });
-
   it("omite params no provistos o vacíos de la URL", async () => {
     await getProducts({ search: "", categoria: undefined, minPrecio: null });
     expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products`, undefined);
@@ -66,7 +61,6 @@ describe("getProducts", () => {
       search: "reloj",
       minPrecio: 100,
       maxPrecio: 500,
-      disponibilidad: "DISPONIBLE",
     });
 
     const url = global.fetch.mock.calls[0][0];
@@ -77,7 +71,6 @@ describe("getProducts", () => {
     expect(params.get("search")).toBe("reloj");
     expect(params.get("minPrecio")).toBe("100");
     expect(params.get("maxPrecio")).toBe("500");
-    expect(params.get("disponibilidad")).toBe("DISPONIBLE");
   });
 
   it("combina admin con filtros", async () => {

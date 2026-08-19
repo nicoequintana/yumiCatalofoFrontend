@@ -69,6 +69,26 @@ export function formatearPrecioInput(valor) {
  * @param {string} valor - backend dot-decimal numeric string, e.g. "1500.00"
  * @returns {{ formateado: string, crudo: string }}
  */
+/**
+ * Formats raw user input for a live-typing integer-only price filter (e.g.
+ * catalog min/max price): keeps only digits, strips leading zeros, and
+ * re-inserts dots as thousands separators — e.g. typing "10000" shows
+ * "10.000". No decimal separator is ever accepted.
+ *
+ * Returns `formateado` (what to show in the input) and `crudo` (plain digit
+ * string, ready for `Number()`/submission as a query param).
+ *
+ * @param {string} valor - raw input value (may already contain dots from a
+ *   previous formatting pass)
+ * @returns {{ formateado: string, crudo: string }}
+ */
+export function formatearPrecioFiltro(valor) {
+  const soloDigitos = valor.replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+  const formateado = soloDigitos === "" ? "" : new Intl.NumberFormat("es-AR").format(Number(soloDigitos));
+
+  return { formateado, crudo: soloDigitos };
+}
+
 export function formatearPrecioParaEdicion(valor) {
   const numero = typeof valor === "number" ? valor : parseFloat(valor);
 

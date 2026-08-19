@@ -87,7 +87,11 @@ function ProductoDetalle() {
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Badge etiqueta={producto.etiqueta} />
-                <Badge disponibilidad={producto.disponibilidad} />
+                {producto.stock > 0 && producto.stock <= 3 ? (
+                  <span className="font-label-sm text-label-sm rounded bg-error px-2 py-1 uppercase tracking-wide text-on-primary">
+                    Últimos {producto.stock}
+                  </span>
+                ) : null}
               </div>
               <div className="flex items-center gap-3">
                 <BotonFavorito productoId={producto.id} />

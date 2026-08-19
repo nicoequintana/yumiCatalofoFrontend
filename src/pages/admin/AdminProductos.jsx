@@ -136,7 +136,7 @@ function AdminProductos() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-16">
+    <main className="w-full px-4 py-6 md:px-8 md:py-8">
       <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
           <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
@@ -163,7 +163,7 @@ function AdminProductos() {
       ) : null}
 
       {cargando ? (
-        <div className="flex w-full flex-col items-center justify-center gap-4 px-margin-mobile py-24 text-center md:px-margin-desktop">
+        <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
           <p className="font-body-md text-body-md text-on-surface-variant">Cargando productos…</p>
         </div>
@@ -175,48 +175,56 @@ function AdminProductos() {
         />
       ) : (
         <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-ambient">
-          <table className="w-full min-w-[820px] text-left">
+          <table className="w-full min-w-[900px] text-left">
             <thead>
               <tr className="border-b border-outline-variant">
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Foto
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Nombre
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   SKU
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Etiqueta
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Categoría
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Precio
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                  Stock
+                </th>
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Fotos
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Catálogo
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Destacado
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Orden
                 </th>
-                <th className="font-label-sm text-label-sm px-6 py-4 uppercase tracking-widest text-on-surface-variant">
+                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Acciones
                 </th>
               </tr>
             </thead>
             <tbody>
               {productos.map((producto) => (
-                <tr key={producto.id} className="border-b border-outline-variant last:border-b-0">
-                  <td className="px-6 py-4">
+                <tr
+                  key={producto.id}
+                  className={`border-b border-outline-variant last:border-b-0 ${
+                    producto.stock === 0 ? "bg-error-container/40" : ""
+                  }`}
+                >
+                  <td className="px-4 py-3">
                     {producto.fotos?.[0]?.url ? (
                       <img
                         src={producto.fotos[0].url}
@@ -229,23 +237,38 @@ function AdminProductos() {
                       </div>
                     )}
                   </td>
-                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface">{producto.nombre}</td>
-                  <td className="font-body-md text-body-md whitespace-nowrap px-6 py-4 text-on-surface-variant">
+                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface">{producto.nombre}</td>
+                  <td className="font-body-md text-body-md whitespace-nowrap px-4 py-3 text-on-surface-variant">
                     {producto.sku}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3">
                     <Badge etiqueta={producto.etiqueta} />
                   </td>
-                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
+                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
                     {producto.categoria?.nombre ?? "—"}
                   </td>
-                  <td className="font-body-md text-body-md whitespace-nowrap px-6 py-4 text-on-surface">
+                  <td className="font-body-md text-body-md whitespace-nowrap px-4 py-3 text-on-surface">
                     {formatPrecio(producto.precio)}
                   </td>
-                  <td className="font-body-md text-body-md px-6 py-4 text-on-surface-variant">
+                  <td className="px-4 py-3">
+                    {producto.stock === 0 ? (
+                      <span className="font-label-sm text-label-sm inline-block rounded bg-error-container px-2 py-1 uppercase tracking-wide text-on-error-container">
+                        Sin stock
+                      </span>
+                    ) : (
+                      <span
+                        className={`font-body-md text-body-md ${
+                          producto.stock <= 3 ? "font-semibold text-secondary" : "text-on-surface-variant"
+                        }`}
+                      >
+                        {producto.stock}
+                      </span>
+                    )}
+                  </td>
+                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
                     {producto.fotos?.length ?? 0}/10
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -269,7 +292,7 @@ function AdminProductos() {
                       ) : null}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -293,7 +316,7 @@ function AdminProductos() {
                       ) : null}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3">
                     <input
                       type="number"
                       aria-label={`Orden de ${producto.nombre}`}
@@ -303,7 +326,7 @@ function AdminProductos() {
                       className="font-body-md text-body-md w-20 rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
                     />
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-4">
                       <Link
                         to={`/catalogo/admin/productos/${producto.id}/editar`}

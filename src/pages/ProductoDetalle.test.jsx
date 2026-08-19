@@ -19,7 +19,6 @@ const PRODUCTO_BASE = {
   descripcion: "Un reloj elegante.",
   precio: "1000",
   etiqueta: null,
-  disponibilidad: "DISPONIBLE",
   caracteristicas: [],
   fotos: [],
   video: null,
@@ -33,7 +32,6 @@ const RELACIONADO = {
   etiqueta: null,
   categoria: null,
   fotos: [],
-  disponibilidad: "DISPONIBLE",
 };
 
 function renderPagina(id = "1") {

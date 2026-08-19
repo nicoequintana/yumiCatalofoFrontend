@@ -12,7 +12,6 @@ const PRODUCTO_1 = {
   id: 1,
   nombre: "Reloj Clásico",
   precio: "1500.00",
-  disponibilidad: "DISPONIBLE",
   fotos: [{ url: "https://ejemplo.com/foto1.jpg" }],
 };
 
@@ -20,7 +19,6 @@ const PRODUCTO_2 = {
   id: 2,
   nombre: "Anillo Elegance",
   precio: "2300.50",
-  disponibilidad: "DISPONIBLE",
   fotos: [],
 };
 
@@ -112,32 +110,6 @@ describe("Carrito", () => {
       { productId: 1, cantidad: 1 },
       { productId: 99, cantidad: 1 },
     ]);
-  });
-
-  it("trata una línea AGOTADA como normal: sin aviso, incluida en el total y con selector de cantidad", async () => {
-    // Gate de AGOTADO eliminado por decisión de producto (ver commit
-    // `a7bb8cf` y doc comment de `Carrito.jsx`): no existe gestión de stock
-    // real, así que el carrito no debe distinguir AGOTADO de DISPONIBLE. El
-    // backend sigue rechazando la orden al confirmar si corresponde.
-    productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO_1, disponibilidad: "AGOTADO" }]);
-
-    const { result: carritoHook } = renderHook(() => useCarrito());
-    renderCarrito();
-
-    act(() => {
-      carritoHook.current.agregar(1, 1);
-    });
-
-    expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
-    expect(screen.queryByText(/ya no está disponible/i)).not.toBeInTheDocument();
-    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 1.500,00");
-
-    // CTA habilitado (Link real, no botón disabled).
-    expect(screen.queryByRole("button", { name: /confirmar pedido/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /confirmar pedido/i })).toHaveAttribute(
-      "href",
-      "/checkout",
-    );
   });
 
   it("permite quitar una línea con problema de reconciliación mediante el botón de aviso", async () => {
@@ -245,9 +217,9 @@ describe("Carrito", () => {
     // centavos (redondeando cada línea a centavos antes de sumar) da
     // 8.04 -> formatea a "8,04". Si alguien revierte `precioACentavos` a una
     // suma naive con parseFloat, este test falla.
-    const PROD_A = { id: 10, nombre: "A", precio: "2.675", disponibilidad: "DISPONIBLE", fotos: [] };
-    const PROD_B = { id: 11, nombre: "B", precio: "2.675", disponibilidad: "DISPONIBLE", fotos: [] };
-    const PROD_C = { id: 12, nombre: "C", precio: "2.675", disponibilidad: "DISPONIBLE", fotos: [] };
+    const PROD_A = { id: 10, nombre: "A", precio: "2.675", fotos: [] };
+    const PROD_B = { id: 11, nombre: "B", precio: "2.675", fotos: [] };
+    const PROD_C = { id: 12, nombre: "C", precio: "2.675", fotos: [] };
 
     productsApi.getProducts.mockResolvedValue([PROD_A, PROD_B, PROD_C]);
 

@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import Badge from "./Badge.jsx";
 import BotonFavorito from "./BotonFavorito.jsx";
 import { formatPrecio } from "../utils/formato.js";
 
@@ -18,8 +17,16 @@ function ProductCard({ producto, variant = "vertical" }) {
   const foto = producto.fotos?.[0];
   const href = `/producto/${producto.id}`;
 
-  const shell =
-    "bg-surface-container-lowest rounded-xl shadow-ambient relative group flex flex-col h-full overflow-hidden transition-shadow hover:shadow-lg";
+  const shell = `bg-surface-container-lowest rounded-xl shadow-ambient relative group flex flex-col h-full overflow-hidden transition-shadow hover:shadow-lg ${
+    producto.destacado ? "ring-2 ring-secondary shadow-[0_0_24px_-8px_rgba(119,89,47,0.5)]" : ""
+  }`;
+
+  const destacadoChip = producto.destacado ? (
+    <span className="font-label-sm text-label-sm absolute left-2 top-2 z-10 flex items-center gap-1 rounded bg-secondary px-2 py-1 uppercase tracking-wide text-on-primary">
+      <span className="material-symbols-outlined text-[14px]">star</span>
+      Destacado
+    </span>
+  ) : null;
 
   const etiquetaChip = producto.etiqueta ? (
     <span className="font-label-sm text-label-sm absolute bottom-2 left-2 z-10 rounded bg-secondary-container px-2 py-1 uppercase tracking-wide text-on-secondary-container">
@@ -27,19 +34,12 @@ function ProductCard({ producto, variant = "vertical" }) {
     </span>
   ) : null;
 
-  // `agotadoBadge` intentionally stays `null` on the public catalog: no real
-  // stock-management workflow exists yet (product decision, see Badge.jsx's
-  // doc comment on `disponibilidad`), so this wrapper — which used to gate
-  // rendering an "Agotado" pill via `Badge` — is now inert. `Badge` itself
-  // already no-ops for `disponibilidad`, but this wrapper's own conditional
-  // is kept and disabled the same way rather than removed, so both the
-  // gating logic and the `<Badge disponibilidad=... />` call site are ready
-  // to re-enable later without touching data or plumbing.
-  const agotadoBadge = false ? (
-    <span className="absolute right-2 bottom-2 z-10">
-      <Badge disponibilidad={producto.disponibilidad} />
-    </span>
-  ) : null;
+  const pocoStockChip =
+    producto.stock > 0 && producto.stock <= 3 ? (
+      <span className="font-label-sm text-label-sm absolute bottom-2 right-2 z-10 rounded bg-error px-2 py-1 uppercase tracking-wide text-on-primary">
+        Últimos {producto.stock}
+      </span>
+    ) : null;
 
   const textoCategoria = producto.categoria?.nombre ? (
     <span className="font-label-sm text-label-sm mb-1 block truncate uppercase tracking-wide text-on-surface-variant">
@@ -55,8 +55,9 @@ function ProductCard({ producto, variant = "vertical" }) {
           {foto ? (
             <img className="h-full w-full object-cover" src={foto.url} alt={producto.nombre} />
           ) : null}
+          {destacadoChip}
           {etiquetaChip}
-          {agotadoBadge}
+          {pocoStockChip}
         </div>
         <div className="flex w-full flex-col justify-center p-4 sm:w-1/2 sm:p-6">
           {textoCategoria}
@@ -76,8 +77,9 @@ function ProductCard({ producto, variant = "vertical" }) {
         {foto ? (
           <img className="h-full w-full object-cover" src={foto.url} alt={producto.nombre} />
         ) : null}
+        {destacadoChip}
         {etiquetaChip}
-        {agotadoBadge}
+        {pocoStockChip}
       </div>
       <div className="flex flex-1 flex-col p-4">
         {textoCategoria}

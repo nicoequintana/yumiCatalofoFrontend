@@ -60,7 +60,7 @@ function construirFormData(data) {
   if (data.categoriaId !== undefined) {
     fd.append("categoriaId", data.categoriaId === null ? "" : data.categoriaId);
   }
-  if (data.disponibilidad !== undefined) fd.append("disponibilidad", data.disponibilidad);
+  if (data.stock !== undefined) fd.append("stock", String(data.stock));
 
   if (data.caracteristicas !== undefined) {
     fd.append("caracteristicas", JSON.stringify(data.caracteristicas.map((c) => ({ texto: c.texto }))));
@@ -87,17 +87,10 @@ function construirFormData(data) {
  * @returns {Promise<Array>} products from the backend. Pass admin:true to
  * include hidden products (used by admin screens). The remaining options
  * map 1:1 to the backend's public catalog filter query params (`categoria`,
- * `search`, `minPrecio`, `maxPrecio`, `disponibilidad`) — omitted/empty
- * values are left out of the query string entirely.
+ * `search`, `minPrecio`, `maxPrecio`) — omitted/empty values are left out of
+ * the query string entirely.
  */
-export async function getProducts({
-  admin = false,
-  categoria,
-  search,
-  minPrecio,
-  maxPrecio,
-  disponibilidad,
-} = {}) {
+export async function getProducts({ admin = false, categoria, search, minPrecio, maxPrecio } = {}) {
   const params = new URLSearchParams();
 
   if (admin) params.set("admin", "1");
@@ -112,9 +105,6 @@ export async function getProducts({
   }
   if (maxPrecio !== undefined && maxPrecio !== null && maxPrecio !== "") {
     params.set("maxPrecio", maxPrecio);
-  }
-  if (disponibilidad !== undefined && disponibilidad !== null && disponibilidad !== "") {
-    params.set("disponibilidad", disponibilidad);
   }
 
   const query = params.toString();

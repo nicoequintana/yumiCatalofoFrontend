@@ -10,7 +10,6 @@ vi.mock("../api/products.js");
 const PRODUCTO = {
   id: 5,
   nombre: "Reloj Clásico",
-  disponibilidad: "DISPONIBLE",
 };
 
 describe("BotonAgregarCarrito", () => {
@@ -75,35 +74,6 @@ describe("BotonAgregarCarrito", () => {
 
     expect(screen.getByRole("button", { name: /agregar al carrito/i })).toBeInTheDocument();
     vi.useRealTimers();
-  });
-
-  // Product-decision correction: no real stock-management workflow exists
-  // yet, so `disponibilidad === "AGOTADO"` must NOT disable this button on
-  // the public flow anymore (see BotonAgregarCarrito.jsx's doc comment). The
-  // button stays enabled regardless of `disponibilidad`.
-  it("sigue habilitado y con el texto normal cuando el producto está AGOTADO", () => {
-    render(<BotonAgregarCarrito producto={{ ...PRODUCTO, disponibilidad: "AGOTADO" }} />);
-
-    expect(screen.getByRole("button", { name: /agregar al carrito/i })).toBeEnabled();
-    expect(screen.queryByRole("button", { name: /no disponible/i })).not.toBeInTheDocument();
-  });
-
-  it("permite agregar al carrito y dispara el evento aunque el producto esté AGOTADO", async () => {
-    const user = userEvent.setup();
-    render(<BotonAgregarCarrito producto={{ ...PRODUCTO, disponibilidad: "AGOTADO" }} />);
-
-    await user.click(screen.getByRole("button", { name: /agregar al carrito/i }));
-
-    expect(productsApi.registrarEvento).toHaveBeenCalledWith("AGREGADO_CARRITO", 5);
-  });
-
-  it("está habilitado para DISPONIBLE y A_PEDIDO", () => {
-    const { unmount } = render(<BotonAgregarCarrito producto={PRODUCTO} />);
-    expect(screen.getByRole("button", { name: /agregar al carrito/i })).toBeEnabled();
-    unmount();
-
-    render(<BotonAgregarCarrito producto={{ ...PRODUCTO, disponibilidad: "A_PEDIDO" }} />);
-    expect(screen.getByRole("button", { name: /agregar al carrito/i })).toBeEnabled();
   });
 
   it("un doble-click rápido no duplica el agregado (guard de re-entrada durante la ventana de feedback)", () => {
