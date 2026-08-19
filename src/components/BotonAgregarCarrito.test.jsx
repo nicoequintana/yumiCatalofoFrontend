@@ -10,6 +10,13 @@ vi.mock("../api/products.js");
 const PRODUCTO = {
   id: 5,
   nombre: "Reloj Clásico",
+  stock: 10,
+};
+
+const PRODUCTO_AGOTADO = {
+  id: 6,
+  nombre: "Reloj Agotado",
+  stock: 0,
 };
 
 describe("BotonAgregarCarrito", () => {
@@ -110,5 +117,31 @@ describe("BotonAgregarCarrito", () => {
     fireEvent.click(screen.getByRole("button", { name: /agregar al carrito/i }));
 
     expect(screen.getByText("1")).toBeInTheDocument();
+  });
+
+  describe("producto agotado (stock 0)", () => {
+    it("deshabilita el CTA y lo etiqueta 'Sin stock'", () => {
+      render(<BotonAgregarCarrito producto={PRODUCTO_AGOTADO} />);
+
+      const boton = screen.getByRole("button", { name: /sin stock/i });
+      expect(boton).toBeDisabled();
+      expect(screen.queryByRole("button", { name: /agregar al carrito/i })).toBeNull();
+    });
+
+    it("oculta el selector de cantidad", () => {
+      render(<BotonAgregarCarrito producto={PRODUCTO_AGOTADO} />);
+
+      expect(screen.queryByRole("button", { name: /aumentar/i })).toBeNull();
+    });
+
+    it("no agrega nada al carrito aunque se dispare el click", () => {
+      const { result: carritoHook } = renderHook(() => useCarrito());
+
+      render(<BotonAgregarCarrito producto={PRODUCTO_AGOTADO} />);
+      fireEvent.click(screen.getByRole("button", { name: /sin stock/i }));
+
+      expect(carritoHook.current.carrito).toEqual([]);
+      expect(productsApi.registrarEvento).not.toHaveBeenCalled();
+    });
   });
 });

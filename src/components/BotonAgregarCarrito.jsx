@@ -13,7 +13,14 @@ function BotonAgregarCarrito({ producto, alineacion = "end", compacto = false })
   const [cantidad, setCantidad] = useState(1);
   const [agregado, setAgregado] = useState(false);
 
+  // Un producto agotado se sigue mostrando en su ficha, pero no se puede
+  // comprar: el CTA queda deshabilitado. El backend rechaza igual la orden
+  // (`ordenes.controller.js`), así que esto es UX, no la defensa real.
+  const sinStock = producto.stock <= 0;
+
   function handleClick() {
+    if (sinStock) return;
+
     // Re-entrancy guard: while `agregado` is true (the whole 2.5s feedback
     // window, not just the click instant) a second click/tap is a no-op.
     // Without this, a fast double-click/double-tap calls `agregar` twice —
@@ -40,19 +47,21 @@ function BotonAgregarCarrito({ producto, alineacion = "end", compacto = false })
     <div
       className={`flex flex-wrap items-center gap-3 ${alineacion === "start" ? "justify-start" : "justify-end"}`}
     >
-      <SelectorCantidad value={cantidad} onChange={setCantidad} compacto={compacto} />
+      {sinStock ? null : (
+        <SelectorCantidad value={cantidad} onChange={setCantidad} compacto={compacto} />
+      )}
       <button
         type="button"
         onClick={handleClick}
-        disabled={agregado}
-        className={`font-label-md text-label-md inline-flex items-center gap-2 rounded-full bg-primary uppercase tracking-wide text-on-primary hover:opacity-90 disabled:opacity-70 ${
+        disabled={agregado || sinStock}
+        className={`font-label-md text-label-md inline-flex items-center gap-2 rounded-full bg-primary uppercase tracking-wide text-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70 ${
           compacto ? "h-9 px-4" : "h-10 px-6"
         }`}
       >
         <span className="material-symbols-outlined text-[18px]">
-          {agregado ? "check" : "shopping_cart"}
+          {sinStock ? "remove_shopping_cart" : agregado ? "check" : "shopping_cart"}
         </span>
-        {agregado ? "Agregado ✓" : compacto ? "Agregar" : "Agregar al carrito"}
+        {sinStock ? "Sin stock" : agregado ? "Agregado ✓" : compacto ? "Agregar" : "Agregar al carrito"}
       </button>
     </div>
   );

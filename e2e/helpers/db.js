@@ -110,7 +110,7 @@ export async function crearProductoDeTest(overrides = {}) {
       precio: overrides.precio ?? "1000.00",
       sku,
       visibleEnCatalogo: overrides.visibleEnCatalogo ?? true,
-      disponibilidad: overrides.disponibilidad ?? "DISPONIBLE",
+      stock: overrides.stock ?? 10,
       fotos: {
         create: [
           {

@@ -4,33 +4,33 @@ import { crearProductoDeTest, borrarProductoDeTest } from "./helpers/db.js";
 /**
  * Sprint 7, Task 2 — Escenario 3: producto agotado.
  *
- * Actualizado tras una corrección de decisión de producto (post-Sprint 3):
- * todavía no existe un flujo real de gestión de stock, así que
- * `disponibilidad` dejó de ser una señal pública — ver el doc comment de
- * `Badge.jsx`. Ahora se prueban tres cosas, por separado:
- *   1. UI: el badge "Agotado" NO se ve en ningún lado público (detalle ni
- *      catálogo) y el CTA de agregar al carrito queda siempre habilitado,
- *      aunque el producto tenga `disponibilidad: "AGOTADO"`.
- *   2. UI, carrito/checkout: el mismo gate se extiende a `Carrito.jsx` y
- *      `Checkout.jsx` (ver sus doc comments) — un producto AGOTADO se puede
- *      agregar, ver en el carrito y llegar hasta el submit de checkout sin
- *      ningún aviso ni bloqueo distinto de un producto disponible.
- *   3. Backend: aunque el público no vea nada distinto, si alguien pega
- *      directo a `POST /api/ordenes` con ese producto en `items` (o llega
- *      hasta ahí vía la UI, ver test de abajo), el backend lo sigue
- *      rechazando (400) — `validarYSnapshotearProductos` en
- *      `ordenes.controller.js` chequea `disponibilidad === "AGOTADO"` server
- *      side, sin depender de lo que haga el frontend. Esta defensa NO se
- *      tocó.
+ * Decisión de producto vigente: un producto sin stock (`stock: 0`) SE VE pero
+ * NO SE PUEDE COMPRAR. El campo `disponibilidad` fue reemplazado por `stock`
+ * (entero), así que "agotado" hoy significa `stock: 0`. Se prueban cuatro
+ * cosas, por separado:
+ *   1. Detalle: la ficha sigue siendo accesible (no 404 ni redirección), con
+ *      el badge "Agotado" visible y el CTA de compra deshabilitado.
+ *   2. Listado: el producto agotado NO ocupa lugar en la grilla pública de
+ *      `/coleccion` — se lo excluye del listado (`construirFiltrosListado`),
+ *      aunque su link directo siga abriendo.
+ *   3. Backend: si alguien pega directo a `POST /api/ordenes` con ese producto
+ *      en `items`, el backend lo rechaza (400) —
+ *      `validarYSnapshotearProductos` en `ordenes.controller.js` chequea
+ *      `stock <= 0` server side, sin depender de lo que haga el frontend.
+ *      Esta es la defensa real; el CTA deshabilitado es solo UX.
+ *   4. Carrito: un producto que se quedó sin stock DESPUÉS de haber sido
+ *      agregado al carrito (el carrito vive en localStorage) no llega a
+ *      pagarse — `Checkout.jsx` lo detecta al reconciliar contra el listado
+ *      público y redirige a `/carrito`, que muestra el aviso por línea.
  */
-test.describe("Producto agotado — bloqueo en UI y defensa en el backend", () => {
+test.describe("Producto agotado — visible pero no comprable", () => {
   let producto;
 
   test.beforeEach(async () => {
     producto = await crearProductoDeTest({
       nombre: "E2E-TEST-Producto Agotado",
       precio: "3200.00",
-      disponibilidad: "AGOTADO",
+      stock: 0,
     });
   });
 
@@ -40,36 +40,33 @@ test.describe("Producto agotado — bloqueo en UI y defensa en el backend", () =
     }
   });
 
-  test("el detalle NO muestra el badge Agotado y el CTA de agregar al carrito sigue habilitado", async ({
+  test("el detalle es accesible, muestra el badge Agotado y el CTA de compra queda deshabilitado", async ({
     page,
   }) => {
     await page.goto(`/producto/${producto.id}`);
+
+    // La ficha abre de verdad: no redirige a la home ni devuelve 404.
+    await expect(page).toHaveURL(new RegExp(`/producto/${producto.id}$`));
     await expect(page.getByRole("heading", { name: "E2E-TEST-Producto Agotado" })).toBeVisible();
 
-    // Badge "Agotado" oculto por decisión de producto (Badge.jsx no-op).
-    await expect(page.getByText("Agotado", { exact: true })).toHaveCount(0);
+    // El badge "Agotado" ahora SÍ es una señal pública.
+    await expect(page.getByText("Agotado", { exact: true }).first()).toBeVisible();
 
-    // El CTA normal sigue presente y habilitado — no se reemplaza por "No
-    // disponible" (BotonAgregarCarrito.jsx, gate desactivado a propósito).
-    // Nombre accesible real: "shopping_cart Agregar al carrito" (el ícono es
-    // un <span> de texto con el nombre del ligature de Material Symbols, no
-    // aria-hidden, así que entra en el accessible name) — por eso sin ancla
-    // `^...$` exacta, que nunca matcheó contra el markup real.
-    const botonAgregar = page.getByRole("button", { name: /agregar al carrito/i });
-    await expect(botonAgregar).toBeVisible();
-    await expect(botonAgregar).toBeEnabled();
-    await expect(page.getByRole("button", { name: "No disponible" })).toHaveCount(0);
-    await expect(page.getByText("Este producto está agotado.")).toHaveCount(0);
+    // El CTA existe pero está deshabilitado: se ve que el producto existe,
+    // no se puede comprar. El ícono es un <span> de texto con el ligature de
+    // Material Symbols (no aria-hidden), así que entra en el accessible name.
+    const botonSinStock = page.getByRole("button", { name: /sin stock/i });
+    await expect(botonSinStock).toBeVisible();
+    await expect(botonSinStock).toBeDisabled();
   });
 
-  test("el catálogo tampoco muestra el badge Agotado en la card del producto", async ({ page }) => {
+  test("el producto agotado no aparece en el listado público de /coleccion", async ({ page }) => {
     await page.goto("/coleccion");
     await page.getByPlaceholder(/buscar/i).fill("E2E-TEST-Producto Agotado");
     await expect(page).toHaveURL(/search=E2E-TEST-Producto/);
 
-    const card = page.getByRole("link", { name: /E2E-TEST-Producto Agotado/i });
-    await expect(card).toBeVisible();
-    await expect(card.getByText("Agotado", { exact: true })).toHaveCount(0);
+    // Excluido de la grilla pública: no ocupa un slot del listado.
+    await expect(page.getByRole("link", { name: /E2E-TEST-Producto Agotado/i })).toHaveCount(0);
   });
 
   test("defensa en profundidad: POST /api/ordenes rechaza el producto agotado aunque se salte la UI", async ({
@@ -89,40 +86,26 @@ test.describe("Producto agotado — bloqueo en UI y defensa en el backend", () =
     expect(body.error).toContain("agotado");
   });
 
-  test("se puede agregar al carrito y llegar a checkout sin aviso, y el backend rechaza al confirmar", async ({
+  test("un producto que se agotó estando en el carrito frena el checkout y avisa en /carrito", async ({
     page,
   }) => {
-    // Prueba end-to-end de la UI la corrección de esta task: el carrito y el
-    // checkout ya no tratan AGOTADO como "no disponible" (ver doc comments
-    // de Carrito.jsx/Checkout.jsx). El backend sigue siendo quien rechaza.
+    // El carrito vive en localStorage: un producto agregado cuando todavía
+    // había stock sigue ahí cuando se agota. `Checkout.jsx` reconcilia contra
+    // el listado público en vivo — como un agotado ya no figura ahí, la línea
+    // queda inválida, no hay nada que cobrar y se redirige a `/carrito`, que
+    // es quien muestra el aviso puntual por línea (ver su doc comment).
     await page.goto("/");
-    await page.evaluate(() => localStorage.removeItem("yumi-carrito"));
+    await page.evaluate(
+      ([id]) => {
+        localStorage.setItem("yumi-carrito", JSON.stringify([{ productId: id, cantidad: 1 }]));
+      },
+      [producto.id],
+    );
 
-    await page.goto(`/producto/${producto.id}`);
-    await page.getByRole("button", { name: /agregar al carrito/i }).click();
-    await expect(page.getByRole("button", { name: /agregado/i })).toBeVisible();
+    await page.goto("/checkout");
 
-    // Carrito: sin aviso de "no disponible", CTA habilitado como Link real.
-    await page.goto("/carrito");
-    const linea = page.getByRole("listitem").filter({ hasText: "E2E-TEST-Producto Agotado" });
-    await expect(linea).toBeVisible();
-    await expect(page.getByText(/ya no está disponible/i)).toHaveCount(0);
-    const ctaConfirmar = page.getByRole("link", { name: "Confirmar pedido" });
-    await expect(ctaConfirmar).toBeVisible();
-    await ctaConfirmar.click();
-
-    // Checkout: llega al formulario sin redirección ni banner de aviso.
-    await expect(page).toHaveURL(/\/checkout$/);
-    await expect(page.getByText(/ya no están disponibles/i)).toHaveCount(0);
-
-    await page.getByLabel("DNI").fill("00999777");
-    await page.getByLabel("Nombre").fill("E2E-TEST-Cliente Agotado Checkout");
-    await page.getByLabel("Teléfono").fill("1122334455");
-    await page.getByRole("button", { name: "Confirmar pedido" }).click();
-
-    // El backend rechaza al confirmar — se muestra como error de envío, sin
-    // navegar a la confirmación.
-    await expect(page.getByRole("alert")).toContainText(/agotado/i);
-    await expect(page).toHaveURL(/\/checkout$/);
+    // No se llega al formulario: la única línea del carrito quedó inválida.
+    await expect(page).toHaveURL(/\/carrito$/);
+    await expect(page.getByText(/ya no está disponible/i).first()).toBeVisible();
   });
 });
