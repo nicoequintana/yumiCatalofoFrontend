@@ -3,6 +3,7 @@ import Layout from "./components/Layout.jsx";
 import AdminLayout from "./components/AdminLayout.jsx";
 import RequireAuth from "./components/RequireAuth.jsx";
 import Catalogo from "./pages/Catalogo.jsx";
+import Coleccion from "./pages/Coleccion.jsx";
 import Favoritos from "./pages/Favoritos.jsx";
 import Carrito from "./pages/Carrito.jsx";
 import Checkout from "./pages/Checkout.jsx";
@@ -27,6 +28,7 @@ function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Catalogo />} />
+        <Route path="/coleccion" element={<Coleccion />} />
         <Route path="/favoritos" element={<Favoritos />} />
         <Route path="/carrito" element={<Carrito />} />
         <Route path="/checkout" element={<Checkout />} />
