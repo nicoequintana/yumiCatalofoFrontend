@@ -31,15 +31,26 @@ function AdminUsuarios() {
     setUsuarios(data);
   }
 
+  // NOTA: `cargarUsuarios` se llama solo desde handlers que ya envuelven todo
+  // en try/catch y muestran el error, así que no necesita su propio guard.
+
   useEffect(() => {
     let activo = true;
     setCargando(true);
 
-    getUsuarios().then((data) => {
-      if (!activo) return;
-      setUsuarios(data);
-      setCargando(false);
-    });
+    getUsuarios()
+      .then((data) => {
+        if (!activo) return;
+        setUsuarios(data);
+        setCargando(false);
+      })
+      // Sin este catch, un backend caído deja la promesa rechazada sin manejar
+      // y el spinner girando para siempre, sin decir qué pasó.
+      .catch(() => {
+        if (!activo) return;
+        setError("No se pudieron cargar los usuarios. Revisá tu conexión e intentá de nuevo.");
+        setCargando(false);
+      });
 
     return () => {
       activo = false;

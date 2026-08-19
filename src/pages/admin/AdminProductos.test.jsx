@@ -7,6 +7,25 @@ import * as productsApi from "../../api/products.js";
 
 vi.mock("../../api/products.js");
 
+describe("AdminProductos — fallos de red", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("muestra un error en vez de quedarse cargando para siempre", async () => {
+    productsApi.getProducts.mockRejectedValue(new Error("Failed to fetch"));
+
+    render(
+      <MemoryRouter>
+        <AdminProductos />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/No se pudieron cargar los productos/i)).toBeInTheDocument();
+    expect(screen.queryByText("Cargando productos…")).not.toBeInTheDocument();
+  });
+});
+
 const PRODUCTO = {
   id: 1,
   nombre: "Reloj Clásico",

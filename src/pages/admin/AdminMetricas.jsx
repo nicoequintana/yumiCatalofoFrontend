@@ -13,17 +13,26 @@ import { getProducts } from "../../api/products.js";
 function AdminMetricas() {
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let activo = true;
 
-    getProducts({ admin: true }).then((data) => {
-      if (!activo) return;
-      // Most-viewed first — the most immediately useful ordering for an
-      // admin checking "what's popular" at a glance.
-      setProductos([...data].sort((a, b) => b.vistas - a.vistas));
-      setCargando(false);
-    });
+    getProducts({ admin: true })
+      .then((data) => {
+        if (!activo) return;
+        // Most-viewed first — the most immediately useful ordering for an
+        // admin checking "what's popular" at a glance.
+        setProductos([...data].sort((a, b) => b.vistas - a.vistas));
+        setCargando(false);
+      })
+      // Sin este catch, un backend caído deja la promesa rechazada sin manejar
+      // y el spinner girando para siempre, sin decir qué pasó.
+      .catch(() => {
+        if (!activo) return;
+        setError("No se pudieron cargar las métricas. Revisá tu conexión e intentá de nuevo.");
+        setCargando(false);
+      });
 
     return () => {
       activo = false;
@@ -43,12 +52,18 @@ function AdminMetricas() {
         <h1 className="font-headline-lg text-headline-lg text-primary">Métricas</h1>
       </div>
 
+      {error ? (
+        <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
+          {error}
+        </p>
+      ) : null}
+
       {cargando ? (
         <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
           <p className="font-body-md text-body-md text-on-surface-variant">Cargando métricas…</p>
         </div>
-      ) : productos.length === 0 ? (
+      ) : error ? null : productos.length === 0 ? (
         <EstadoVacio
           icono="query_stats"
           titulo="Todavía no hay productos"

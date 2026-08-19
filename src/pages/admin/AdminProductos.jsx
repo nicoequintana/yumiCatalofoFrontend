@@ -29,19 +29,34 @@ function AdminProductos() {
 
   async function cargarProductos() {
     setCargando(true);
-    const data = await getProducts({ admin: true });
-    setProductos(data);
-    setCargando(false);
+    try {
+      const data = await getProducts({ admin: true });
+      setProductos(data);
+    } catch {
+      setError("No se pudieron cargar los productos. Revisá tu conexión e intentá de nuevo.");
+    } finally {
+      // En `finally` a propósito: si la recarga falla, el spinner tiene que
+      // apagarse igual y dejar la tabla anterior a la vista.
+      setCargando(false);
+    }
   }
 
   useEffect(() => {
     let activo = true;
 
-    getProducts({ admin: true }).then((data) => {
-      if (!activo) return;
-      setProductos(data);
-      setCargando(false);
-    });
+    getProducts({ admin: true })
+      .then((data) => {
+        if (!activo) return;
+        setProductos(data);
+        setCargando(false);
+      })
+      // Sin este catch, un backend caído deja la promesa rechazada sin manejar
+      // y el spinner girando para siempre, sin decir qué pasó.
+      .catch(() => {
+        if (!activo) return;
+        setError("No se pudieron cargar los productos. Revisá tu conexión e intentá de nuevo.");
+        setCargando(false);
+      });
 
     return () => {
       activo = false;

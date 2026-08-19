@@ -33,11 +33,20 @@ function AdminCategorias() {
     let activo = true;
     setCargando(true);
 
-    getCategorias().then((data) => {
-      if (!activo) return;
-      setCategorias(data);
-      setCargando(false);
-    });
+    getCategorias()
+      .then((data) => {
+        if (!activo) return;
+        setCategorias(data);
+        setCargando(false);
+      })
+      // Sin este catch, un backend caído deja la promesa rechazada sin manejar
+      // y el spinner girando para siempre — el admin no tiene forma de saber
+      // que el problema es la conexión.
+      .catch(() => {
+        if (!activo) return;
+        setError("No se pudieron cargar las categorías. Revisá tu conexión e intentá de nuevo.");
+        setCargando(false);
+      });
 
     return () => {
       activo = false;
