@@ -23,6 +23,15 @@ const PRODUCTO_BASE = {
   fotos: [],
   video: null,
   relacionados: [],
+  fraseComercial: null,
+  porQueLoVasAQuerer: null,
+  tePasaEsto: null,
+  beneficios: [],
+  usos: [],
+  idealPara: [],
+  incluye: [],
+  especificaciones: [],
+  stock: 10,
 };
 
 const RELACIONADO = {
@@ -90,5 +99,132 @@ describe("ProductoDetalle - relacionados", () => {
 
     const link = await screen.findByRole("link", { name: /Reloj Deportivo/ });
     expect(link).toHaveAttribute("href", "/producto/2");
+  });
+});
+
+describe("ProductoDetalle — contenido comercial", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("muestra la frase comercial cuando existe", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      fraseComercial: "Iluminá donde quieras.",
+    });
+    renderPagina();
+    expect(await screen.findByText("Iluminá donde quieras.")).toBeInTheDocument();
+  });
+
+  it("no muestra la frase comercial cuando no existe", async () => {
+    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_BASE, fraseComercial: null });
+    renderPagina();
+    await screen.findAllByText(PRODUCTO_BASE.nombre);
+    expect(screen.queryByText("Iluminá donde quieras.")).not.toBeInTheDocument();
+  });
+
+  it("muestra la sección ¿Por qué lo vas a querer? solo cuando hay contenido", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      porQueLoVasAQuerer: "Porque te simplifica la vida.",
+    });
+    renderPagina();
+    expect(await screen.findByText("¿Por qué lo vas a querer?")).toBeInTheDocument();
+    expect(screen.getByText("Porque te simplifica la vida.")).toBeInTheDocument();
+  });
+
+  it("no renderiza ¿Por qué lo vas a querer? cuando el campo es null", async () => {
+    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_BASE, porQueLoVasAQuerer: null });
+    renderPagina();
+    await screen.findAllByText(PRODUCTO_BASE.nombre);
+    expect(screen.queryByText("¿Por qué lo vas a querer?")).not.toBeInTheDocument();
+  });
+
+  it("muestra ¿Te pasa esto? solo cuando hay contenido", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      tePasaEsto: "¿Te pasó no tener enchufe cerca?",
+    });
+    renderPagina();
+    expect(await screen.findByText("¿Te pasa esto?")).toBeInTheDocument();
+  });
+
+  it("muestra hasta 3 beneficios rápidos en el hero", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      beneficios: [
+        { id: 1, texto: "Recargable por USB" },
+        { id: 2, texto: "Fácil de transportar" },
+        { id: 3, texto: "Ocupa poco espacio" },
+        { id: 4, texto: "Adapta la intensidad" },
+      ],
+    });
+    renderPagina();
+    expect(await screen.findByText("Recargable por USB")).toBeInTheDocument();
+    expect(screen.getByText("Fácil de transportar")).toBeInTheDocument();
+    expect(screen.getByText("Ocupa poco espacio")).toBeInTheDocument();
+    expect(screen.queryByText("Adapta la intensidad")).not.toBeInTheDocument();
+  });
+
+  it("no muestra ningún beneficio rápido cuando la lista está vacía", async () => {
+    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_BASE, beneficios: [] });
+    renderPagina();
+    await screen.findAllByText(PRODUCTO_BASE.nombre);
+    expect(screen.queryByText("Recargable por USB")).not.toBeInTheDocument();
+  });
+
+  it("muestra ¿Cómo podés usarlo? con sus items cuando hay usos cargados", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      usos: [{ id: 1, texto: "Para estudiar" }, { id: 2, texto: "Para viajar" }],
+    });
+    renderPagina();
+    expect(await screen.findByText("¿Cómo podés usarlo?")).toBeInTheDocument();
+    expect(screen.getByText("Para estudiar")).toBeInTheDocument();
+    expect(screen.getByText("Para viajar")).toBeInTheDocument();
+  });
+
+  it("muestra Ideal para solo cuando hay contenido", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      idealPara: [{ id: 1, texto: "Estudiantes" }],
+    });
+    renderPagina();
+    expect(await screen.findByText("Ideal para...")).toBeInTheDocument();
+    expect(screen.getByText("Estudiantes")).toBeInTheDocument();
+  });
+
+  it("muestra Especificaciones como tabla nombre/valor cuando existen", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      especificaciones: [{ id: 1, nombre: "Material", valor: "ABS" }],
+    });
+    renderPagina();
+    expect(await screen.findByText("Especificaciones")).toBeInTheDocument();
+    expect(screen.getByText("Material")).toBeInTheDocument();
+    expect(screen.getByText("ABS")).toBeInTheDocument();
+  });
+
+  it("muestra ¿Qué incluye? solo cuando hay contenido", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      incluye: [{ id: 1, texto: "1 × Cable USB" }],
+    });
+    renderPagina();
+    expect(await screen.findByText("¿Qué incluye?")).toBeInTheDocument();
+    expect(screen.getByText("1 × Cable USB")).toBeInTheDocument();
+  });
+
+  it("un producto sin ningún campo comercial nuevo no muestra ninguna de las secciones nuevas", async () => {
+    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_BASE });
+    renderPagina();
+    await screen.findAllByText(PRODUCTO_BASE.nombre);
+
+    expect(screen.queryByText("¿Por qué lo vas a querer?")).not.toBeInTheDocument();
+    expect(screen.queryByText("¿Te pasa esto?")).not.toBeInTheDocument();
+    expect(screen.queryByText("¿Cómo podés usarlo?")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ideal para...")).not.toBeInTheDocument();
+    expect(screen.queryByText("Especificaciones")).not.toBeInTheDocument();
+    expect(screen.queryByText("¿Qué incluye?")).not.toBeInTheDocument();
   });
 });

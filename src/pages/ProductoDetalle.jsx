@@ -103,9 +103,27 @@ function ProductoDetalle() {
               {producto.nombre}
             </h1>
 
+            {producto.fraseComercial ? (
+              <p className="font-body-lg text-body-lg mb-4 text-on-surface-variant">{producto.fraseComercial}</p>
+            ) : null}
+
             <p className="font-body-lg text-body-lg mb-8 leading-relaxed text-on-surface-variant">
               {producto.descripcion}
             </p>
+
+            {producto.porQueLoVasAQuerer ? (
+              <div className="mb-10 rounded-2xl bg-surface-container-low p-6 md:p-8">
+                <h3 className="font-headline-md text-headline-md mb-3 text-primary">¿Por qué lo vas a querer?</h3>
+                <p className="font-body-md text-body-md text-on-surface-variant">{producto.porQueLoVasAQuerer}</p>
+              </div>
+            ) : null}
+
+            {producto.tePasaEsto ? (
+              <div className="mb-10 border-t border-outline-variant pt-6">
+                <h3 className="font-headline-md text-headline-md mb-3 text-primary">¿Te pasa esto?</h3>
+                <p className="font-body-md text-body-md text-on-surface-variant">{producto.tePasaEsto}</p>
+              </div>
+            ) : null}
 
             {producto.caracteristicas?.length > 0 ? (
               <div className="mb-10 border-t border-outline-variant pt-6">
@@ -121,6 +139,80 @@ function ProductoDetalle() {
                   ))}
                 </ul>
               </div>
+            ) : null}
+
+            {producto.usos?.length > 0 ? (
+              <div className="mb-10 border-t border-outline-variant pt-6">
+                <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
+                  ¿Cómo podés usarlo?
+                </h3>
+                <ul className="font-body-md text-body-md flex flex-wrap gap-2 text-on-surface-variant">
+                  {producto.usos.map((uso) => (
+                    <li key={uso.id} className="rounded-full bg-surface-container px-4 py-2">
+                      {uso.texto}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {producto.idealPara?.length > 0 ? (
+              <div className="mb-10 border-t border-outline-variant pt-6">
+                <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
+                  Ideal para...
+                </h3>
+                <ul className="font-body-md text-body-md space-y-2 text-on-surface-variant">
+                  {producto.idealPara.map((item) => (
+                    <li key={item.id} className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[18px]">arrow_right</span>
+                      {item.texto}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {producto.especificaciones?.length > 0 ? (
+              <div className="mb-10 border-t border-outline-variant pt-6">
+                <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
+                  Especificaciones
+                </h3>
+                <dl className="flex flex-col gap-2">
+                  {producto.especificaciones.map((spec) => (
+                    <div key={spec.id} className="flex justify-between gap-4 border-b border-outline-variant pb-2">
+                      <dt className="font-body-md text-body-md text-on-surface-variant">{spec.nombre}</dt>
+                      <dd className="font-body-md text-body-md text-on-surface">{spec.valor}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ) : null}
+
+            {producto.incluye?.length > 0 ? (
+              <div className="mb-10 border-t border-outline-variant pt-6">
+                <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
+                  ¿Qué incluye?
+                </h3>
+                <ul className="font-body-md text-body-md space-y-2 text-on-surface-variant">
+                  {producto.incluye.map((item) => (
+                    <li key={item.id} className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[18px]">check</span>
+                      {item.texto}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {producto.beneficios?.length > 0 ? (
+              <ul className="font-body-md text-body-md mb-6 flex flex-col gap-2 text-on-surface-variant">
+                {producto.beneficios.slice(0, 3).map((beneficio) => (
+                  <li key={beneficio.id} className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-secondary">check_circle</span>
+                    {beneficio.texto}
+                  </li>
+                ))}
+              </ul>
             ) : null}
 
             <div className="mt-auto flex items-center justify-between rounded-2xl bg-tertiary-container p-6 shadow-lg md:p-8">
