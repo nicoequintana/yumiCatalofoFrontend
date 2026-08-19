@@ -78,154 +78,173 @@ function ProductoDetalle() {
         <div className="mb-6 hidden md:block">
           <BotonVolver />
         </div>
-        <div className="flex flex-col gap-gutter">
-          <div>
-            <PhotoGallery fotos={producto.fotos} nombre={producto.nombre} />
-          </div>
-
-          <div className="flex flex-col pt-8">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge etiqueta={producto.etiqueta} />
-                {producto.stock > 0 && producto.stock <= 3 ? (
-                  <span className="font-label-sm text-label-sm rounded bg-error px-2 py-1 uppercase tracking-wide text-on-primary">
-                    Últimos {producto.stock}
-                  </span>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-3">
-                <BotonFavorito productoId={producto.id} />
-                <BotonCompartir producto={producto} />
-              </div>
+        <div className="lg:flex lg:items-start lg:gap-16">
+          <div className="flex flex-col gap-gutter lg:min-w-0 lg:flex-1">
+            <div>
+              <PhotoGallery fotos={producto.fotos} nombre={producto.nombre} />
             </div>
 
-            <h1 className="font-display-lg text-headline-lg-mobile mb-4 mt-4 text-on-background md:text-display-lg">
-              {producto.nombre}
-            </h1>
-
-            {producto.fraseComercial ? (
-              <p className="font-body-lg text-body-lg mb-4 text-on-surface-variant">{producto.fraseComercial}</p>
-            ) : null}
-
-            <p className="font-body-lg text-body-lg mb-8 leading-relaxed text-on-surface-variant">
-              {producto.descripcion}
-            </p>
-
-            {producto.porQueLoVasAQuerer ? (
-              <div className="mb-10">
-                <h3 className="font-headline-md text-headline-md mb-3 text-primary">¿Por qué lo vas a querer?</h3>
-                <p className="font-body-md text-body-md text-on-surface-variant">{producto.porQueLoVasAQuerer}</p>
+            <div className="flex flex-col pt-8">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge etiqueta={producto.etiqueta} />
+                  {producto.stock > 0 && producto.stock <= 3 ? (
+                    <span className="font-label-sm text-label-sm rounded bg-error px-2 py-1 uppercase tracking-wide text-on-primary">
+                      Últimos {producto.stock}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-3">
+                  <BotonFavorito productoId={producto.id} />
+                  <BotonCompartir producto={producto} />
+                </div>
               </div>
-            ) : null}
 
-            {producto.tePasaEsto ? (
-              <div className="mb-10 border-t border-outline-variant pt-6">
-                <h3 className="font-headline-md text-headline-md mb-3 text-primary">¿Te pasa esto?</h3>
-                <p className="font-body-md text-body-md text-on-surface-variant">{producto.tePasaEsto}</p>
-              </div>
-            ) : null}
+              <h1 className="font-display-lg text-headline-lg-mobile mb-4 mt-4 text-on-background md:text-display-lg">
+                {producto.nombre}
+              </h1>
 
-            {producto.caracteristicas?.length > 0 ? (
-              <div className="mb-10 border-t border-outline-variant pt-6">
-                <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
-                  Características
-                </h3>
-                <ul className="font-body-md text-body-md space-y-3 text-on-surface-variant">
-                  {producto.caracteristicas.map((caracteristica) => (
-                    <li key={caracteristica.id} className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                      {caracteristica.texto}
+              {producto.fraseComercial ? (
+                <p className="font-body-lg text-body-lg mb-4 text-on-surface-variant">{producto.fraseComercial}</p>
+              ) : null}
+
+              <p className="font-body-lg text-body-lg mb-8 leading-relaxed text-on-surface-variant">
+                {producto.descripcion}
+              </p>
+
+              {producto.porQueLoVasAQuerer ? (
+                <div className="mb-10">
+                  <h3 className="font-headline-md text-headline-md mb-3 text-primary">¿Por qué lo vas a querer?</h3>
+                  <p className="font-body-md text-body-md text-on-surface-variant">{producto.porQueLoVasAQuerer}</p>
+                </div>
+              ) : null}
+
+              {producto.tePasaEsto ? (
+                <div className="mb-10 border-t border-outline-variant pt-6">
+                  <h3 className="font-headline-md text-headline-md mb-3 text-primary">¿Te pasa esto?</h3>
+                  <p className="font-body-md text-body-md text-on-surface-variant">{producto.tePasaEsto}</p>
+                </div>
+              ) : null}
+
+              {producto.caracteristicas?.length > 0 ? (
+                <div className="mb-10 border-t border-outline-variant pt-6">
+                  <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
+                    Características
+                  </h3>
+                  <ul className="font-body-md text-body-md space-y-3 text-on-surface-variant">
+                    {producto.caracteristicas.map((caracteristica) => (
+                      <li key={caracteristica.id} className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                        {caracteristica.texto}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {producto.usos?.length > 0 ? (
+                <div className="mb-10 border-t border-outline-variant pt-6">
+                  <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
+                    ¿Cómo podés usarlo?
+                  </h3>
+                  <ul className="font-body-md text-body-md space-y-3 text-on-surface-variant">
+                    {producto.usos.map((uso) => (
+                      <li key={uso.id} className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                        {uso.texto}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {producto.idealPara?.length > 0 ? (
+                <div className="mb-10 border-t border-outline-variant pt-6">
+                  <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
+                    Ideal para...
+                  </h3>
+                  <ul className="font-body-md text-body-md space-y-2 text-on-surface-variant">
+                    {producto.idealPara.map((item) => (
+                      <li key={item.id} className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[18px]">arrow_right</span>
+                        {item.texto}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {producto.especificaciones?.length > 0 ? (
+                <div className="mb-10 border-t border-outline-variant pt-6">
+                  <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
+                    Especificaciones
+                  </h3>
+                  <dl className="flex flex-col gap-2">
+                    {producto.especificaciones.map((spec) => (
+                      <div key={spec.id} className="flex justify-between gap-4 border-b border-outline-variant pb-2">
+                        <dt className="font-body-md text-body-md text-on-surface-variant">{spec.nombre}</dt>
+                        <dd className="font-body-md text-body-md text-on-surface">{spec.valor}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              ) : null}
+
+              {producto.incluye?.length > 0 ? (
+                <div className="mb-10 border-t border-outline-variant pt-6">
+                  <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
+                    ¿Qué incluye?
+                  </h3>
+                  <ul className="font-body-md text-body-md space-y-2 text-on-surface-variant">
+                    {producto.incluye.map((item) => (
+                      <li key={item.id} className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[18px]">check</span>
+                        {item.texto}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {producto.beneficios?.length > 0 ? (
+                <ul className="font-body-md text-body-md mb-6 flex flex-col gap-2 text-on-surface-variant">
+                  {producto.beneficios.slice(0, 3).map((beneficio) => (
+                    <li key={beneficio.id} className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px] text-secondary">check_circle</span>
+                      {beneficio.texto}
                     </li>
                   ))}
                 </ul>
+              ) : null}
+
+              {/* En mobile/tablet este panel queda acá, al final del contenido —
+                  la persistencia la cubre la barra sticky inferior de más abajo.
+                  En desktop (lg+) este mismo bloque se posiciona sticky más
+                  arriba, en el <aside> que sigue, así el usuario nunca pierde
+                  de vista precio + Agregar al carrito mientras lee. */}
+              <div className="mt-auto border-t border-outline-variant pt-6 lg:hidden">
+                <span className="font-label-sm text-label-sm mb-1 block uppercase tracking-[0.15em] text-on-surface-variant">
+                  Precio
+                </span>
+                <span className="font-display-lg text-headline-lg mb-6 block text-primary md:text-display-lg">
+                  {formatPrecio(producto.precio)}
+                </span>
+                <BotonAgregarCarrito producto={producto} alineacion="start" />
               </div>
-            ) : null}
+            </div>
+          </div>
 
-            {producto.usos?.length > 0 ? (
-              <div className="mb-10 border-t border-outline-variant pt-6">
-                <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
-                  ¿Cómo podés usarlo?
-                </h3>
-                <ul className="font-body-md text-body-md space-y-3 text-on-surface-variant">
-                  {producto.usos.map((uso) => (
-                    <li key={uso.id} className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                      {uso.texto}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {producto.idealPara?.length > 0 ? (
-              <div className="mb-10 border-t border-outline-variant pt-6">
-                <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
-                  Ideal para...
-                </h3>
-                <ul className="font-body-md text-body-md space-y-2 text-on-surface-variant">
-                  {producto.idealPara.map((item) => (
-                    <li key={item.id} className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-[18px]">arrow_right</span>
-                      {item.texto}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {producto.especificaciones?.length > 0 ? (
-              <div className="mb-10 border-t border-outline-variant pt-6">
-                <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
-                  Especificaciones
-                </h3>
-                <dl className="flex flex-col gap-2">
-                  {producto.especificaciones.map((spec) => (
-                    <div key={spec.id} className="flex justify-between gap-4 border-b border-outline-variant pb-2">
-                      <dt className="font-body-md text-body-md text-on-surface-variant">{spec.nombre}</dt>
-                      <dd className="font-body-md text-body-md text-on-surface">{spec.valor}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            ) : null}
-
-            {producto.incluye?.length > 0 ? (
-              <div className="mb-10 border-t border-outline-variant pt-6">
-                <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
-                  ¿Qué incluye?
-                </h3>
-                <ul className="font-body-md text-body-md space-y-2 text-on-surface-variant">
-                  {producto.incluye.map((item) => (
-                    <li key={item.id} className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-[18px]">check</span>
-                      {item.texto}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {producto.beneficios?.length > 0 ? (
-              <ul className="font-body-md text-body-md mb-6 flex flex-col gap-2 text-on-surface-variant">
-                {producto.beneficios.slice(0, 3).map((beneficio) => (
-                  <li key={beneficio.id} className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px] text-secondary">check_circle</span>
-                    {beneficio.texto}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
-            <div className="mt-auto border-t border-outline-variant pt-6">
+          <aside className="hidden lg:sticky lg:top-28 lg:block lg:w-[300px] lg:shrink-0">
+            <div className="rounded-2xl border border-outline-variant p-6">
               <span className="font-label-sm text-label-sm mb-1 block uppercase tracking-[0.15em] text-on-surface-variant">
                 Precio
               </span>
-              <span className="font-display-lg text-headline-lg mb-6 block text-primary md:text-display-lg">
+              <span className="font-display-lg text-headline-lg mb-6 block text-primary">
                 {formatPrecio(producto.precio)}
               </span>
               <BotonAgregarCarrito producto={producto} alineacion="start" />
             </div>
-          </div>
+          </aside>
         </div>
 
         {producto.video ? (
