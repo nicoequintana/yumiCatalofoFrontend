@@ -220,6 +220,29 @@ function Catalogo() {
         </div>
       </section>
 
+      {/* Manifiesto de marca — cierre editorial antes del footer.
+          Sin botón CTA: no existe una página "Sobre nosotros" en el
+          proyecto (ver design doc 2026-08-19), un link ahí sería un enlace
+          roto o alcance nuevo fuera de esta spec. */}
+      <section className="relative w-full overflow-hidden bg-cream-base px-margin-mobile py-32 md:px-margin-desktop">
+        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-8 text-center">
+          <span className="material-symbols-outlined text-4xl text-moss-green opacity-50">
+            auto_awesome
+          </span>
+          <h2 className="font-headline-lg text-headline-lg italic text-on-surface">
+            El Manifiesto YIMA
+          </h2>
+          <p className="font-body-lg text-body-lg leading-relaxed text-on-surface-variant">
+            No vendemos productos: elegimos piezas que valen la pena tener cerca.
+            Cada cosa que entra al catálogo pasó antes por la misma pregunta que
+            te hacemos a vos — ¿esto suma o solo ocupa lugar? Encontrá lo que
+            buscabas, y de paso, algo que no sabías que te hacía falta.
+          </p>
+        </div>
+        <div className="absolute -z-0 left-10 top-10 h-64 w-64 rounded-full bg-terracotta-warm/5 blur-3xl" />
+        <div className="absolute -z-0 bottom-10 right-10 h-96 w-96 rounded-full bg-golden-sand/10 blur-3xl" />
+      </section>
+
       <BotonWhatsapp contexto={{ tipo: "home" }} />
     </>
   );

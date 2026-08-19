@@ -186,6 +186,12 @@ describe("Catalogo - filtros", () => {
     expect(document.getElementById("coleccion")).toBeInTheDocument();
   });
 
+  it("muestra el bloque de manifiesto de marca", async () => {
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+    expect(screen.getByText("El Manifiesto YIMA")).toBeInTheDocument();
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });
