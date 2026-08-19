@@ -1,11 +1,15 @@
 import { StrictMode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import Catalogo from "./Catalogo.jsx";
+import Coleccion from "./Coleccion.jsx";
 import * as productsApi from "../api/products.js";
+import * as categoriasApi from "../api/categorias.js";
 
 vi.mock("../api/products.js");
+vi.mock("../api/categorias.js");
 
 const PRODUCTO = {
   id: 1,
@@ -46,6 +50,35 @@ describe("Catalogo - home editorial", () => {
 
     const link = screen.getByRole("link", { name: "Explorar Colección" });
     expect(link).toHaveAttribute("href", "/coleccion");
+  });
+
+  // Complementa al test de `href` de arriba: ese sólo mira el atributo, así
+  // que no detectaría que el link dejara de navegar de verdad (ej. si el
+  // `Link` volviera a ser un `<a>` común con recarga completa, o si la ruta
+  // no estuviera registrada). Antes de la separación esto era un scroll
+  // dentro de la misma página; ahora es navegación entre rutas, que tiene
+  // más formas de romperse.
+  it("clickear el botón del hero renderiza la página de colección", async () => {
+    const user = userEvent.setup();
+    categoriasApi.getCategorias.mockResolvedValue([]);
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={["/"]}>
+          <Routes>
+            <Route path="/" element={<Catalogo />} />
+            <Route path="/coleccion" element={<Coleccion />} />
+          </Routes>
+        </MemoryRouter>
+      </StrictMode>,
+    );
+
+    await user.click(screen.getByRole("link", { name: "Explorar Colección" }));
+
+    // Contenido propio de /coleccion, que la home ya no renderiza.
+    expect(await screen.findByLabelText("Buscar")).toBeInTheDocument();
+    expect(screen.getByText("Nuestra Colección")).toBeInTheDocument();
+    expect(screen.queryByText("El Manifiesto YIMA")).not.toBeInTheDocument();
   });
 
   it("muestra el bloque de manifiesto de marca", () => {
