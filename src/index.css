@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-background: #F2EEEB;
+  --color-on-background: #252608;
+  --color-surface: #F2EEEB;
+  --color-surface-dim: #BFBAA3;
+  --color-surface-bright: #FFFFFF;
+  --color-surface-container-lowest: #FFFFFF;
+  --color-surface-container-low: #F2EEEB;
+  --color-surface-container: #F2EEEB;
+  --color-surface-container-high: #e2ddce;
+  --color-surface-container-highest: #BFBAA3;
+  --color-surface-variant: #BFBAA3;
+  --color-surface-tint: #734C29;
+  --color-on-surface: #252608;
+  --color-on-surface-variant: #5c5a48;
+  --color-outline: #8a8570;
+  --color-outline-variant: #BFBAA3;
+  --color-primary: #734C29;
+  --color-on-primary: #F2EEEB;
+  --color-primary-container: #734C29;
+  --color-on-primary-container: #F2EEEB;
+  --color-primary-fixed: #734C29;
+  --color-primary-fixed-dim: #5c3d20;
+  --color-on-primary-fixed: #F2EEEB;
+  --color-on-primary-fixed-variant: #F2EEEB;
+  --color-secondary: #252608;
+  --color-on-secondary: #F2EEEB;
+  --color-secondary-container: #252608;
+  --color-on-secondary-container: #F2EEEB;
+  --color-secondary-fixed: #252608;
+  --color-secondary-fixed-dim: #1a1a05;
+  --color-on-secondary-fixed: #F2EEEB;
+  --color-on-secondary-fixed-variant: #F2EEEB;
+  --color-tertiary: #6E735D;
+  --color-on-tertiary: #F2EEEB;
+  --color-tertiary-container: #6E735D;
+  --color-on-tertiary-container: #F2EEEB;
+  --color-tertiary-fixed: #6E735D;
+  --color-tertiary-fixed-dim: #565a48;
+  --color-on-tertiary-fixed: #F2EEEB;
+  --color-on-tertiary-fixed-variant: #F2EEEB;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  --color-inverse-surface: #252608;
+  --color-inverse-on-surface: #F2EEEB;
+  --color-inverse-primary: #BFBAA3;
+}
+
+body {
+  font-family: "Montserrat", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.playfair {
+  font-family: "Playfair Display", serif;
+}
+
+
+.shadow{
+  box-shadow: 0px 5px 10px rgba(128, 128, 128, 0.199);
+}
+
+.object-fit{
+  object-fit: cover;
+}
