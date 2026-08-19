@@ -140,48 +140,54 @@ function Catalogo() {
         onChangeMaxPrecio={(valor) => actualizarFiltro("maxPrecio", valor)}
       />
 
-      {/* Collection Grid — section header from home.html L132-136, card grid idiom from catalogo.html */}
-      <section className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-12">
-        <div className="mb-8 flex flex-col items-center">
-          <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
-            Nuestra Colección
-          </span>
-          <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">
-            Productos
-          </h2>
-        </div>
-
-        {cargando ? (
-          <EstadoVacio icono="hourglass_empty" mensaje="Cargando productos…" />
-        ) : productos.length === 0 ? (
-          <EstadoVacio
-            icono={hayFiltrosActivos ? "search_off" : "inventory_2"}
-            titulo={hayFiltrosActivos ? "Sin resultados" : "Todavía no hay productos"}
-            mensaje={
-              hayFiltrosActivos
-                ? "Ningún producto coincide con los filtros aplicados."
-                : "Pronto vamos a sumar piezas a la colección."
-            }
-          />
-        ) : (
-          <div className="grid grid-cols-1 gap-gutter md:grid-cols-12">
-            {productos.map((producto, index) => {
-              // Every 4th card renders wide (horizontal variant), matching
-              // catalogo.html's mix of `lg:col-span-4` stacked cards and
-              // `lg:col-span-6` wide cards (L179-209) — asymmetry comes from
-              // this span mix, not from a separate bento section (D1).
-              const esAncha = index % 4 === 3;
-              return (
-                <div
-                  key={producto.id}
-                  className={esAncha ? "col-span-1 md:col-span-12 lg:col-span-6" : "col-span-1 md:col-span-6 lg:col-span-4"}
-                >
-                  <ProductCard producto={producto} variant={esAncha ? "horizontal" : "vertical"} />
-                </div>
-              );
-            })}
+      {/* Collection Grid — section header from home.html L132-136, card grid idiom from catalogo.html.
+          Fondo en surface-container-low (más oscuro que el hero, en background)
+          para que la franja de filtros + esta sección se lean como una capa
+          propia, y las ProductCard (en surface-container-lowest) resalten con
+          más contraste sobre ella. */}
+      <section className="w-full bg-surface-container-low">
+        <div className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-12">
+          <div className="mb-8 flex flex-col items-center">
+            <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
+              Nuestra Colección
+            </span>
+            <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">
+              Productos
+            </h2>
           </div>
-        )}
+
+          {cargando ? (
+            <EstadoVacio icono="hourglass_empty" mensaje="Cargando productos…" />
+          ) : productos.length === 0 ? (
+            <EstadoVacio
+              icono={hayFiltrosActivos ? "search_off" : "inventory_2"}
+              titulo={hayFiltrosActivos ? "Sin resultados" : "Todavía no hay productos"}
+              mensaje={
+                hayFiltrosActivos
+                  ? "Ningún producto coincide con los filtros aplicados."
+                  : "Pronto vamos a sumar piezas a la colección."
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-gutter md:grid-cols-12">
+              {productos.map((producto, index) => {
+                // Every 4th card renders wide (horizontal variant), matching
+                // catalogo.html's mix of `lg:col-span-4` stacked cards and
+                // `lg:col-span-6` wide cards (L179-209) — asymmetry comes from
+                // this span mix, not from a separate bento section (D1).
+                const esAncha = index % 4 === 3;
+                return (
+                  <div
+                    key={producto.id}
+                    className={esAncha ? "col-span-1 md:col-span-12 lg:col-span-6" : "col-span-1 md:col-span-6 lg:col-span-4"}
+                  >
+                    <ProductCard producto={producto} variant={esAncha ? "horizontal" : "vertical"} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </section>
 
       <BotonWhatsapp contexto={{ tipo: "home" }} />

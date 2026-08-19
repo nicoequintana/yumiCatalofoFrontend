@@ -94,7 +94,7 @@ function FiltrosCatalogo({
   const cantidadFiltrosActivos = [categoria, minPrecio, maxPrecio].filter(Boolean).length;
 
   return (
-    <div className="sticky top-navbar-height z-40 w-full border-b border-outline-variant bg-background/95 px-margin-mobile py-4 backdrop-blur md:px-margin-desktop">
+    <div className="sticky top-navbar-height z-40 w-full border-b border-outline-variant bg-surface-container-low/95 px-margin-mobile py-4 backdrop-blur md:px-margin-desktop">
       <div className="mx-auto flex w-full max-w-container-max items-center gap-4">
         <div className="flex-1">
           <label htmlFor="filtro-search" className="sr-only">
