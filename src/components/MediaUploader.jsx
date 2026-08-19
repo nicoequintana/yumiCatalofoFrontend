@@ -99,6 +99,14 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
     setError(null);
   }
 
+  function moverFoto(index, direccion) {
+    const destino = index + direccion;
+    if (destino < 0 || destino >= fotos.length) return;
+    const siguientes = [...fotos];
+    [siguientes[index], siguientes[destino]] = [siguientes[destino], siguientes[index]];
+    onChangeFotos?.(siguientes);
+  }
+
   function eliminarVideo() {
     if (video?.url) revocarPreviewUrl(video.url);
     onChangeVideo?.(null);
@@ -118,6 +126,11 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
               className="relative aspect-square overflow-hidden rounded-lg bg-surface-container"
             >
               <img src={foto.url} alt={`Foto ${index + 1}`} className="h-full w-full object-cover" />
+              {index === 0 ? (
+                <span className="font-label-sm text-label-sm absolute bottom-1 left-1 rounded bg-secondary px-1.5 py-0.5 uppercase tracking-wide text-on-primary">
+                  Principal
+                </span>
+              ) : null}
               <button
                 type="button"
                 onClick={() => eliminarFoto(index)}
@@ -126,6 +139,28 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
               >
                 <span className="material-symbols-outlined text-[16px]">close</span>
               </button>
+              <div className="absolute bottom-1 right-1 flex gap-1">
+                {index > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => moverFoto(index, -1)}
+                    aria-label={`Mover foto ${index + 1} hacia atrás`}
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+                  </button>
+                ) : null}
+                {index < fotos.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => moverFoto(index, 1)}
+                    aria-label={`Mover foto ${index + 1} hacia adelante`}
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                  </button>
+                ) : null}
+              </div>
             </div>
           ))}
         </div>
