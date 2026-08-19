@@ -30,9 +30,12 @@ function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full bg-background shadow">
       <div className="relative mx-auto flex w-full max-w-container-max items-center justify-center px-margin-mobile py-6 md:px-margin-desktop">
-        <span className="font-headline-lg text-headline-lg tracking-tighter text-primary">
+        <Link
+          to="/"
+          className="font-headline-lg text-headline-lg tracking-tighter text-primary"
+        >
           YIMA
-        </span>
+        </Link>
         {esAdmin ? null : (
           <div className="absolute right-margin-mobile flex items-center gap-4 md:right-margin-desktop">
             <Link

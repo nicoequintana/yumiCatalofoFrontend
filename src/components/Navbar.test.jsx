@@ -66,3 +66,17 @@ describe("Navbar - badge de carrito", () => {
     expect(screen.queryByRole("link", { name: /ver favoritos/i })).not.toBeInTheDocument();
   });
 });
+
+describe("Navbar - logo", () => {
+  it("el logo YIMA es un link a la home", () => {
+    renderNavbar();
+
+    expect(screen.getByRole("link", { name: "YIMA" })).toHaveAttribute("href", "/");
+  });
+
+  it("el logo sigue siendo link en rutas de admin", () => {
+    renderNavbar("/catalogo/admin");
+
+    expect(screen.getByRole("link", { name: "YIMA" })).toHaveAttribute("href", "/");
+  });
+});
