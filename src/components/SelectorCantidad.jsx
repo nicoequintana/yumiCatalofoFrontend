@@ -18,22 +18,24 @@ function SelectorCantidad({ value, onChange, min = 1 }) {
   }
 
   return (
-    <div className="inline-flex items-center gap-3">
+    <div className="inline-flex items-stretch overflow-hidden rounded-lg border border-outline-variant">
       <button
         type="button"
         onClick={disminuir}
         aria-label="Disminuir cantidad"
         disabled={value <= min}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-outline-variant text-on-surface-variant disabled:opacity-40"
+        className="flex h-10 w-10 items-center justify-center text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-30 disabled:hover:bg-transparent"
       >
         <span className="material-symbols-outlined text-[18px]">remove</span>
       </button>
-      <span className="min-w-[1.5rem] text-center font-body-md text-body-md">{value}</span>
+      <span className="flex min-w-[2.5rem] items-center justify-center border-x border-outline-variant font-body-md text-body-md text-on-surface">
+        {value}
+      </span>
       <button
         type="button"
         onClick={aumentar}
         aria-label="Aumentar cantidad"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-outline-variant text-on-surface-variant"
+        className="flex h-10 w-10 items-center justify-center text-on-surface-variant transition-colors hover:bg-surface-container"
       >
         <span className="material-symbols-outlined text-[18px]">add</span>
       </button>
