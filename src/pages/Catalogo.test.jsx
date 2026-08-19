@@ -172,6 +172,20 @@ describe("Catalogo - filtros", () => {
     expect(scrollSpy).toHaveBeenCalledWith({ behavior: "smooth" });
   });
 
+  it("no muestra el bento de destacados si hay menos de 4 productos destacados", async () => {
+    productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO, destacado: true }]);
+    renderPagina();
+
+    await screen.findByText("Reloj Clásico");
+    expect(screen.queryByText("Hallazgos del día")).not.toBeInTheDocument();
+  });
+
+  it("la sección de colección tiene el id usado por el scroll del hero", async () => {
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+    expect(document.getElementById("coleccion")).toBeInTheDocument();
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });

@@ -4,6 +4,7 @@ import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import FiltrosCatalogo from "../components/FiltrosCatalogo.jsx";
+import BentoDestacados from "../components/BentoDestacados.jsx";
 import { getProducts } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
 import heroImg from "../assets/hero.jpg";
@@ -155,6 +156,8 @@ function Catalogo() {
         </div>
       </section>
 
+      <BentoDestacados productos={productos} />
+
       <FiltrosCatalogo
         categorias={categorias}
         categoria={categoria}
@@ -172,7 +175,7 @@ function Catalogo() {
           para que la franja de filtros + esta sección se lean como una capa
           propia, y las ProductCard (en surface-container-lowest) resalten con
           más contraste sobre ella. */}
-      <section className="w-full bg-surface-container-low">
+      <section id="coleccion" className="w-full bg-surface-container-low">
         <div className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-12">
           <div className="mb-8 flex flex-col items-center">
             <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
