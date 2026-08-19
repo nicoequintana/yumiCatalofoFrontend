@@ -41,7 +41,7 @@ function CeldaBento({ producto, spanClass, mostrarPrecio = false }) {
         ) : null}
         <h3 className="font-headline-md text-headline-md text-surface">{producto.nombre}</h3>
         {mostrarPrecio ? (
-          <span className="font-body-lg text-body-lg text-surface-variant">
+          <span className="font-body-lg text-body-lg text-surface">
             {formatPrecio(producto.precio)}
           </span>
         ) : null}
