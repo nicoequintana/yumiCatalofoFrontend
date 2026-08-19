@@ -174,44 +174,44 @@ function AdminProductos() {
           mensaje="Agregá el primer producto para verlo acá y en el catálogo público."
         />
       ) : (
-        <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-ambient">
-          <table className="w-full min-w-[900px] text-left">
+        <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
+          <table className="w-full min-w-[820px] text-left text-[13px] xl:text-sm">
             <thead>
               <tr className="border-b border-outline-variant">
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Foto
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Nombre
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   SKU
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Etiqueta
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Categoría
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Precio
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Stock
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Fotos
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Catálogo
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Destacado
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Orden
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Acciones
                 </th>
               </tr>
@@ -224,40 +224,42 @@ function AdminProductos() {
                     producto.stock === 0 ? "bg-error-container/40" : ""
                   }`}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-2 xl:px-3 xl:py-3">
                     {producto.fotos?.[0]?.url ? (
                       <img
                         src={producto.fotos[0].url}
                         alt={producto.nombre}
-                        className="h-12 w-12 rounded-lg object-cover"
+                        className="h-9 w-9 rounded-lg object-cover xl:h-12 xl:w-12"
                       />
                     ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant">
-                        <span className="material-symbols-outlined text-[20px]">image</span>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant xl:h-12 xl:w-12">
+                        <span className="material-symbols-outlined text-[16px] xl:text-[20px]">image</span>
                       </div>
                     )}
                   </td>
-                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface">{producto.nombre}</td>
-                  <td className="font-body-md text-body-md whitespace-nowrap px-4 py-3 text-on-surface-variant">
+                  <td className="max-w-[160px] truncate px-2 py-2 font-body-md text-on-surface xl:max-w-[220px] xl:px-3 xl:py-3" title={producto.nombre}>
+                    {producto.nombre}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
                     {producto.sku}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-2 xl:px-3 xl:py-3">
                     <Badge etiqueta={producto.etiqueta} />
                   </td>
-                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
+                  <td className="max-w-[120px] truncate px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3" title={producto.categoria?.nombre ?? undefined}>
                     {producto.categoria?.nombre ?? "—"}
                   </td>
-                  <td className="font-body-md text-body-md whitespace-nowrap px-4 py-3 text-on-surface">
+                  <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface xl:px-3 xl:py-3">
                     {formatPrecio(producto.precio)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-2 xl:px-3 xl:py-3">
                     {producto.stock === 0 ? (
-                      <span className="font-label-sm text-label-sm inline-block rounded bg-error-container px-2 py-1 uppercase tracking-wide text-on-error-container">
+                      <span className="inline-block whitespace-nowrap rounded bg-error-container px-1.5 py-0.5 font-label-sm text-[11px] uppercase tracking-wide text-on-error-container xl:px-2 xl:py-1 xl:text-label-sm">
                         Sin stock
                       </span>
                     ) : (
                       <span
-                        className={`font-body-md text-body-md ${
+                        className={`font-body-md ${
                           producto.stock <= 3 ? "font-semibold text-secondary" : "text-on-surface-variant"
                         }`}
                       >
@@ -265,10 +267,10 @@ function AdminProductos() {
                       </span>
                     )}
                   </td>
-                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
+                  <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
                     {producto.fotos?.length ?? 0}/10
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-2 xl:px-3 xl:py-3">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -277,13 +279,13 @@ function AdminProductos() {
                         aria-label={`Mostrar ${producto.nombre} en el catálogo`}
                         onClick={() => handleToggleVisibilidad(producto)}
                         disabled={actualizandoVisibilidadId === producto.id}
-                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
+                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 xl:h-6 xl:w-11 ${
                           producto.visibleEnCatalogo ? "bg-secondary" : "bg-outline-variant"
                         }`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-surface-container-lowest shadow transition-transform ${
-                            producto.visibleEnCatalogo ? "translate-x-6" : "translate-x-1"
+                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface-container-lowest shadow transition-transform xl:h-4 xl:w-4 ${
+                            producto.visibleEnCatalogo ? "translate-x-5 xl:translate-x-6" : "translate-x-0.5 xl:translate-x-1"
                           }`}
                         />
                       </button>
@@ -292,7 +294,7 @@ function AdminProductos() {
                       ) : null}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-2 xl:px-3 xl:py-3">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -301,13 +303,13 @@ function AdminProductos() {
                         aria-label={`Destacar ${producto.nombre}`}
                         onClick={() => handleToggleDestacado(producto)}
                         disabled={actualizandoDestacadoId === producto.id}
-                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
+                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 xl:h-6 xl:w-11 ${
                           producto.destacado ? "bg-secondary" : "bg-outline-variant"
                         }`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-surface-container-lowest shadow transition-transform ${
-                            producto.destacado ? "translate-x-6" : "translate-x-1"
+                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface-container-lowest shadow transition-transform xl:h-4 xl:w-4 ${
+                            producto.destacado ? "translate-x-5 xl:translate-x-6" : "translate-x-0.5 xl:translate-x-1"
                           }`}
                         />
                       </button>
@@ -316,25 +318,25 @@ function AdminProductos() {
                       ) : null}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-2 xl:px-3 xl:py-3">
                     <input
                       type="number"
                       aria-label={`Orden de ${producto.nombre}`}
                       value={ordenEditando[producto.id] ?? producto.orden}
                       onChange={(e) => handleCambiarOrdenLocal(producto, e.target.value)}
                       onBlur={() => handleGuardarOrden(producto)}
-                      className="font-body-md text-body-md w-20 rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
+                      className="w-14 rounded-lg border border-outline-variant bg-surface px-2 py-1.5 font-body-md text-on-surface focus:border-primary focus:outline-none xl:w-20 xl:px-3 xl:py-2"
                     />
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-4">
+                  <td className="px-2 py-2 xl:px-3 xl:py-3">
+                    <div className="flex items-center gap-2 xl:gap-4">
                       <Link
                         to={`/catalogo/admin/productos/${producto.id}/editar`}
                         aria-label={`Editar ${producto.nombre}`}
                         title="Editar"
-                        className="flex h-9 w-9 items-center justify-center rounded-full text-secondary hover:bg-surface-container-high"
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-secondary hover:bg-surface-container-high xl:h-9 xl:w-9"
                       >
-                        <span className="material-symbols-outlined text-[20px]">edit</span>
+                        <span className="material-symbols-outlined text-[16px] xl:text-[20px]">edit</span>
                       </Link>
 
                       <button
@@ -342,9 +344,9 @@ function AdminProductos() {
                         onClick={() => setProductoAEliminar(producto)}
                         aria-label={`Eliminar ${producto.nombre}`}
                         title="Eliminar"
-                        className="flex h-9 w-9 items-center justify-center rounded-full text-error hover:bg-error-container"
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-error hover:bg-error-container xl:h-9 xl:w-9"
                       >
-                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                        <span className="material-symbols-outlined text-[16px] xl:text-[20px]">delete</span>
                       </button>
                     </div>
                   </td>
