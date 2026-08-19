@@ -269,6 +269,7 @@ function AdminProductoForm() {
           <textarea
             id="descripcion"
             rows={4}
+            required
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
             className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
