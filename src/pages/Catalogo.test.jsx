@@ -1,33 +1,11 @@
+import { StrictMode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import Catalogo from "./Catalogo.jsx";
 import * as productsApi from "../api/products.js";
-import * as categoriasApi from "../api/categorias.js";
 
 vi.mock("../api/products.js");
-vi.mock("../api/categorias.js");
-
-// Spy that records every setSearchParams(next, options) call made through
-// react-router-dom's real useSearchParams, so we can assert Catalogo.jsx
-// passes { replace: true } on every filter change — without this, v7's
-// default push behavior stacks one browser-history entry per filter tweak.
-const llamadasSetSearchParams = [];
-vi.mock("react-router-dom", async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    useSearchParams: (...args) => {
-      const [params, setParams] = actual.useSearchParams(...args);
-      const wrapped = (next, options) => {
-        llamadasSetSearchParams.push(options);
-        return setParams(next, options);
-      };
-      return [params, wrapped];
-    },
-  };
-});
 
 const PRODUCTO = {
   id: 1,
@@ -38,161 +16,85 @@ const PRODUCTO = {
   fotos: [],
 };
 
-const CATEGORIAS = [
-  { id: 1, nombre: "Relojes", cantidadProductos: 2 },
-  { id: 2, nombre: "Anillos", cantidadProductos: 1 },
-];
-
-function renderPagina(ruta = "/") {
+function renderPagina() {
   return render(
-    <MemoryRouter initialEntries={[ruta]}>
-      <Catalogo />
-    </MemoryRouter>,
+    <StrictMode>
+      <MemoryRouter initialEntries={["/"]}>
+        <Catalogo />
+      </MemoryRouter>
+    </StrictMode>,
   );
 }
 
-describe("Catalogo - filtros", () => {
+describe("Catalogo - home editorial", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    llamadasSetSearchParams.length = 0;
     productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO }]);
-    categoriasApi.getCategorias.mockResolvedValue(CATEGORIAS);
   });
 
-  it("renderiza la barra de filtros con las categorías cargadas", async () => {
+  it("muestra el hero con el copy de marca", () => {
     renderPagina();
 
-    expect(await screen.findByLabelText("Categoría")).toBeInTheDocument();
-    expect(screen.getByLabelText("Buscar")).toBeInTheDocument();
-    expect(screen.getByLabelText("Precio min.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Precio máx.")).toBeInTheDocument();
+    expect(screen.getByText("La Pregunta del Día")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "¿Qué vas a descubrir hoy?", level: 1 }),
+    ).toBeInTheDocument();
+  });
+
+  it("el botón del hero es un link que navega a /coleccion", () => {
+    renderPagina();
+
+    const link = screen.getByRole("link", { name: "Explorar Colección" });
+    expect(link).toHaveAttribute("href", "/coleccion");
+  });
+
+  it("muestra el bloque de manifiesto de marca", () => {
+    renderPagina();
+
+    expect(screen.getByText("El Manifiesto YIMA")).toBeInTheDocument();
+  });
+
+  it("no renderiza la barra de filtros ni el grid de productos", async () => {
+    renderPagina();
 
     await waitFor(() => {
-      expect(screen.getByRole("option", { name: "Relojes" })).toBeInTheDocument();
+      expect(productsApi.getProducts).toHaveBeenCalled();
     });
+
+    expect(screen.queryByLabelText("Categoría")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Buscar")).not.toBeInTheDocument();
+    expect(screen.queryByText("Nuestra Colección")).not.toBeInTheDocument();
   });
 
-  it("hace fetch inicial sin filtros", async () => {
+  it("el bento pide los destacados con un fetch sin filtros", async () => {
     renderPagina();
 
     await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith({
-        categoria: "",
-        search: "",
-        minPrecio: "",
-        maxPrecio: "",
-      });
+      expect(productsApi.getProducts).toHaveBeenCalledWith({});
     });
-  });
-
-  it("cambiar la categoría actualiza la URL y refetch con el filtro", async () => {
-    const user = userEvent.setup();
-    renderPagina();
-
-    await screen.findByText("Reloj Clásico");
-    productsApi.getProducts.mockClear();
-
-    const select = screen.getByLabelText("Categoría");
-    await user.selectOptions(select, "1");
-
-    await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith(
-        expect.objectContaining({ categoria: "1" }),
-      );
-    });
-  });
-
-  it("cambiar un filtro usa { replace: true } para no apilar historial", async () => {
-    const user = userEvent.setup();
-    renderPagina();
-
-    await screen.findByText("Reloj Clásico");
-    llamadasSetSearchParams.length = 0;
-
-    const select = screen.getByLabelText("Categoría");
-    await user.selectOptions(select, "1");
-
-    await waitFor(() => {
-      expect(llamadasSetSearchParams.length).toBeGreaterThan(0);
-    });
-    expect(llamadasSetSearchParams.every((opts) => opts?.replace === true)).toBe(true);
-  });
-
-  it("muestra el estado vacío 'Sin resultados' cuando no hay coincidencias con filtros", async () => {
-    const user = userEvent.setup();
-    productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO }]);
-    renderPagina();
-
-    await screen.findByText("Reloj Clásico");
-
-    productsApi.getProducts.mockResolvedValue([]);
-    const select = screen.getByLabelText("Categoría");
-    await user.selectOptions(select, "1");
-
-    expect(await screen.findByText("Sin resultados")).toBeInTheDocument();
-  });
-
-  it("debounce: el input de búsqueda no dispara fetch inmediatamente, solo tras la pausa", async () => {
-    const user = userEvent.setup();
-    renderPagina();
-
-    await screen.findByText("Reloj Clásico");
-    productsApi.getProducts.mockClear();
-
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-
-    const input = screen.getByLabelText("Buscar");
-    await user.type(input, "reloj");
-
-    // Not yet — debounce hasn't elapsed.
-    expect(productsApi.getProducts).not.toHaveBeenCalled();
-
-    vi.advanceTimersByTime(400);
-    vi.useRealTimers();
-
-    await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith(
-        expect.objectContaining({ search: "reloj" }),
-      );
-    });
-  });
-
-  it("el botón del hero hace scroll a la sección de colección", async () => {
-    renderPagina();
-
-    await screen.findByText("Reloj Clásico");
-
-    const boton = screen.getByRole("button", { name: "Explorar Colección" });
-    const seccionColeccion = document.getElementById("coleccion");
-    const scrollSpy = vi.fn();
-    seccionColeccion.scrollIntoView = scrollSpy;
-
-    await userEvent.setup().click(boton);
-
-    expect(scrollSpy).toHaveBeenCalledWith({ behavior: "smooth" });
   });
 
   it("no muestra el bento de destacados si hay menos de 4 productos destacados", async () => {
     productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO, destacado: true }]);
     renderPagina();
 
-    await screen.findByText("Reloj Clásico");
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalled();
+    });
     expect(screen.queryByText("Hallazgos del día")).not.toBeInTheDocument();
   });
 
-  it("la sección de colección tiene el id usado por el scroll del hero", async () => {
-    renderPagina();
-    await screen.findByText("Reloj Clásico");
-    expect(document.getElementById("coleccion")).toBeInTheDocument();
-  });
+  it("muestra el bento cuando hay al menos 4 destacados", async () => {
+    const destacados = [1, 2, 3, 4].map((id) => ({
+      ...PRODUCTO,
+      id,
+      nombre: `Destacado ${id}`,
+      destacado: true,
+    }));
+    productsApi.getProducts.mockResolvedValue(destacados);
 
-  it("muestra el bloque de manifiesto de marca", async () => {
     renderPagina();
-    await screen.findByText("Reloj Clásico");
-    expect(screen.getByText("El Manifiesto YIMA")).toBeInTheDocument();
-  });
 
-  afterEach(() => {
-    vi.useRealTimers();
+    expect(await screen.findByText("Hallazgos del día")).toBeInTheDocument();
   });
 });
