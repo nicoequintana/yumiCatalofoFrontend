@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { StrictMode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import Coleccion from "./Coleccion.jsx";
@@ -38,16 +39,27 @@ const PRODUCTO = {
   fotos: [],
 };
 
+// Margen por encima del debounce de búsqueda (350ms) de `Coleccion.jsx`,
+// para dejar que cualquier commit tardío a la URL se dispare antes de
+// afirmar sobre el estado final.
+const DEBOUNCE_MS_MARGEN = 500;
+
 const CATEGORIAS = [
   { id: 1, nombre: "Relojes", cantidadProductos: 2 },
   { id: 2, nombre: "Anillos", cantidadProductos: 1 },
 ];
 
+// Se envuelve en <StrictMode> a propósito, igual que `main.jsx`: la doble
+// invocación del cuerpo del componente en el mount rompe cualquier lógica de
+// "primer render" basada en refs mutables, y el reseteo de filtros heredados
+// depende exactamente de eso. Sin este wrapper los tests dan falsa confianza.
 function renderPagina(ruta = "/coleccion") {
   return render(
-    <MemoryRouter initialEntries={[ruta]}>
-      <Coleccion />
-    </MemoryRouter>,
+    <StrictMode>
+      <MemoryRouter initialEntries={[ruta]}>
+        <Coleccion />
+      </MemoryRouter>
+    </StrictMode>,
   );
 }
 
@@ -160,14 +172,61 @@ describe("Coleccion - filtros y grid", () => {
   it("los filtros se resetean al entrar aunque la URL traiga querystring", async () => {
     renderPagina("/coleccion?categoria=2");
 
+    // Se apunta específicamente a las llamadas del GRID (las que llevan los
+    // cuatro filtros), no a las del bento (que van con `{}`): si el reseteo
+    // fallara, el `{}` del bento podría hacer pasar una aserción más laxa.
+    const llamadasDelGrid = () =>
+      productsApi.getProducts.mock.calls
+        .map(([params]) => params)
+        .filter((params) => Object.keys(params).length === 4);
+
     await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith({
-        categoria: "",
-        search: "",
-        minPrecio: "",
-        maxPrecio: "",
-      });
+      expect(llamadasDelGrid().length).toBeGreaterThan(0);
     });
+
+    // La PRIMERA llamada del grid —la que decide qué ve el usuario al
+    // entrar— ya tiene que salir sin el filtro heredado de la URL.
+    expect(llamadasDelGrid()[0]).toEqual({
+      categoria: "",
+      search: "",
+      minPrecio: "",
+      maxPrecio: "",
+    });
+
+    // Y el estado final tiene que quedar limpio: nada puede resucitar el
+    // `?categoria=2` después del reseteo (el commit de debounce del mount lo
+    // hacía, partiendo de un `prev` desactualizado).
+    await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_MS_MARGEN));
+    const ultimaDelGrid = llamadasDelGrid().at(-1);
+    expect(ultimaDelGrid).toEqual({
+      categoria: "",
+      search: "",
+      minPrecio: "",
+      maxPrecio: "",
+    });
+    expect(screen.getByLabelText("Categoría").value).toBe("");
+  });
+
+  it("tras entrar con querystring, los filtros del usuario ya no se blanquean", async () => {
+    // Regresión: si el flag de "venía con filtros heredados" quedara
+    // latcheado, cada filtro que el usuario aplicara después volvería a
+    // leerse como heredado y se blanquearía — dejando la pantalla sin poder
+    // filtrar justamente para quien entró por un link compartido.
+    const user = userEvent.setup();
+    renderPagina("/coleccion?categoria=2");
+
+    await screen.findByText("Reloj Clásico");
+    productsApi.getProducts.mockClear();
+
+    const select = screen.getByLabelText("Categoría");
+    await user.selectOptions(select, "1");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ categoria: "1" }),
+      );
+    });
+    expect(select.value).toBe("1");
   });
 
   it("no muestra el bento de destacados si hay menos de 4 productos destacados", async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
@@ -31,28 +31,43 @@ const DEBOUNCE_SEARCH_MS = 350;
 function Coleccion() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Los filtros se reinician a cero en cada carga/entrada a la pantalla —
-  // no deben persistir entre visitas (decisión de producto), sin importar
-  // con qué querystring haya llegado la navegación (ej. un link compartido
-  // con `?categoria=...`). Se limpia de forma síncrona durante el primer
-  // render — el `ref` asegura que esto corra una única vez y no vuelva a
-  // pisar los filtros que el usuario aplique después.
+  // La URL puede llegar con filtros heredados (ej. link compartido con
+  // `?categoria=...`), pero los filtros NO deben persistir entre visitas
+  // (decisión de producto). Se captura una única vez si la navegación traía
+  // params y se los ignora hasta que el reseteo efectivamente se aplique,
+  // para que el primer fetch del grid ya salga sin filtros.
   //
-  // El `setSearchParams` de ese primer render NO se refleja todavía en el
-  // `searchParams` de este mismo render (React encola la navegación), así
-  // que los filtros se derivan como vacíos de forma explícita en la pasada
-  // inicial. Sin esto, el primer `getProducts` del grid saldría con el
-  // filtro heredado de la URL antes de que el reseteo llegue a aplicarse.
-  const reseteoInicialHecho = useRef(false);
-  const esPrimerRender = !reseteoInicialHecho.current;
-  if (esPrimerRender) {
-    reseteoInicialHecho.current = true;
-    if (searchParams.toString() !== "") {
-      setSearchParams(new URLSearchParams(), { replace: true });
-    }
-  }
+  // No alcanza con un `useRef` + flag de "primer render": bajo StrictMode el
+  // cuerpo del componente se ejecuta dos veces en el mount y el ref sobrevive
+  // entre pasadas, así que la segunda (la que commitea) vería el flag ya
+  // consumido y leería el filtro heredado igual. El `useState` con
+  // inicializador lazy no tiene ese problema: React descarta el resultado de
+  // la segunda invocación en vez de realimentar un flag mutable, y el flag
+  // baja recién en el efecto, cuando el reseteo realmente se disparó.
+  const [teniaFiltrosHeredados, setTeniaFiltrosHeredados] = useState(
+    () => searchParams.toString() !== "",
+  );
 
-  const filtrosUrl = esPrimerRender ? new URLSearchParams() : searchParams;
+  // El reseteo va en un efecto, no en el cuerpo del render: React advierte
+  // explícitamente contra navegar durante el render.
+  //
+  // El flag se baja apenas se dispara el reseteo. Es clave que NO quede
+  // latcheado: si siguiera en `true`, cualquier filtro que el usuario
+  // aplicara después (que vuelve a poner params en la URL) se leería otra vez
+  // como "heredado" y se blanquearía, dejando la pantalla sin poder filtrar
+  // para quien entró por un link compartido.
+  useEffect(() => {
+    if (teniaFiltrosHeredados) {
+      setSearchParams(new URLSearchParams(), { replace: true });
+      setTeniaFiltrosHeredados(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Mientras el reseteo no haya llegado a la URL, los filtros se derivan
+  // como vacíos. Una vez limpia, `searchParams` vuelve a ser la única fuente
+  // de verdad y los filtros que aplique el usuario funcionan normalmente.
+  const filtrosUrl = teniaFiltrosHeredados ? new URLSearchParams() : searchParams;
   const categoria = filtrosUrl.get("categoria") ?? "";
   const minPrecio = filtrosUrl.get("minPrecio") ?? "";
   const maxPrecio = filtrosUrl.get("maxPrecio") ?? "";
@@ -87,20 +102,36 @@ function Coleccion() {
 
   // Debounce: commit the free-text search into the URL (and therefore into
   // the fetch effect's deps) only after the user stops typing.
+  //
+  // No se commitea una búsqueda vacía que además ya está ausente de la URL:
+  // no habría nada que cambiar, y ese commit "de más" del mount era
+  // activamente dañino cuando la navegación traía filtros heredados — su
+  // update funcional partía de un `prev` que todavía tenía el
+  // `?categoria=...` y lo volvía a escribir, resucitando el filtro que el
+  // reseteo acababa de limpiar. La condición mira los valores (no un
+  // contador de renders) justamente para ser inmune al doble mount de
+  // StrictMode.
   useEffect(() => {
+    if (searchInput === "" && searchUrl === "") return;
+
     const timeoutId = setTimeout(() => {
       actualizarFiltro("search", searchInput);
     }, DEBOUNCE_SEARCH_MS);
 
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInput]);
+  }, [searchInput, searchUrl]);
 
   useEffect(() => {
     let activo = true;
-    getCategorias().then((data) => {
-      if (activo) setCategorias(data);
-    });
+    getCategorias()
+      .then((data) => {
+        if (activo) setCategorias(data);
+      })
+      .catch(() => {
+        // Falla blanda: el dropdown queda sin categorías, pero el resto de
+        // los filtros y el grid siguen funcionando.
+      });
     return () => {
       activo = false;
     };
@@ -110,11 +141,18 @@ function Coleccion() {
     let activo = true;
     setCargando(true);
 
-    getProducts({ categoria, search: searchUrl, minPrecio, maxPrecio }).then((data) => {
-      if (!activo) return;
-      setProductos(data);
-      setCargando(false);
-    });
+    getProducts({ categoria, search: searchUrl, minPrecio, maxPrecio })
+      .then((data) => {
+        if (activo) setProductos(data);
+      })
+      .catch(() => {
+        // El grid degrada a lista vacía ante un fallo de red/backend en vez
+        // de quedar colgado en "Cargando productos…" para siempre.
+        if (activo) setProductos([]);
+      })
+      .finally(() => {
+        if (activo) setCargando(false);
+      });
 
     return () => {
       activo = false;
