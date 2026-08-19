@@ -7,7 +7,7 @@
  * separate, deliberate behavior reachable from other code paths (e.g. a
  * "remove" action), not from this widget's own decrement button.
  */
-function SelectorCantidad({ value, onChange, min = 1 }) {
+function SelectorCantidad({ value, onChange, min = 1, compacto = false }) {
   function disminuir() {
     if (value <= min) return;
     onChange(value - 1);
@@ -17,6 +17,8 @@ function SelectorCantidad({ value, onChange, min = 1 }) {
     onChange(value + 1);
   }
 
+  const tamanoBoton = compacto ? "h-9 w-9" : "h-10 w-10";
+
   return (
     <div className="inline-flex items-stretch overflow-hidden rounded-lg border border-outline-variant">
       <button
@@ -24,7 +26,7 @@ function SelectorCantidad({ value, onChange, min = 1 }) {
         onClick={disminuir}
         aria-label="Disminuir cantidad"
         disabled={value <= min}
-        className="flex h-10 w-10 items-center justify-center text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-30 disabled:hover:bg-transparent"
+        className={`flex items-center justify-center text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-30 disabled:hover:bg-transparent ${tamanoBoton}`}
       >
         <span className="material-symbols-outlined text-[18px]">remove</span>
       </button>
@@ -35,7 +37,7 @@ function SelectorCantidad({ value, onChange, min = 1 }) {
         type="button"
         onClick={aumentar}
         aria-label="Aumentar cantidad"
-        className="flex h-10 w-10 items-center justify-center text-on-surface-variant transition-colors hover:bg-surface-container"
+        className={`flex items-center justify-center text-on-surface-variant transition-colors hover:bg-surface-container ${tamanoBoton}`}
       >
         <span className="material-symbols-outlined text-[18px]">add</span>
       </button>

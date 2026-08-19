@@ -52,6 +52,14 @@ export default {
         primary: "var(--color-primary)",
         secondary: "var(--color-secondary)",
         "outline-variant": "var(--color-outline-variant)",
+        // Mockup-literal aliases ("Vibrant Editorial Discovery" style guide)
+        // for classes referenced by that exact name in markup — same values
+        // as their semantic counterparts above (primary/secondary/tertiary/
+        // background), not a second independent palette.
+        "terracotta-warm": "var(--color-terracotta-warm)",
+        "moss-green": "var(--color-moss-green)",
+        "golden-sand": "var(--color-golden-sand)",
+        "cream-base": "var(--color-cream-base)",
       },
       borderRadius: {
         DEFAULT: "0.25rem",
@@ -68,14 +76,14 @@ export default {
         "navbar-height": "88px",
       },
       fontFamily: {
-        "headline-md": ["Playfair Display"],
-        "headline-lg-mobile": ["Playfair Display"],
-        "label-sm": ["Montserrat"],
-        "headline-lg": ["Playfair Display"],
-        "label-md": ["Montserrat"],
-        "display-lg": ["Playfair Display"],
-        "body-lg": ["Montserrat"],
-        "body-md": ["Montserrat"],
+        "headline-md": ["Libre Caslon Text", "serif"],
+        "headline-lg-mobile": ["Libre Caslon Text", "serif"],
+        "label-sm": ["Plus Jakarta Sans", "sans-serif"],
+        "headline-lg": ["Libre Caslon Text", "serif"],
+        "label-md": ["Plus Jakarta Sans", "sans-serif"],
+        "display-lg": ["Libre Caslon Text", "serif"],
+        "body-lg": ["Plus Jakarta Sans", "sans-serif"],
+        "body-md": ["Plus Jakarta Sans", "sans-serif"],
       },
       fontSize: {
         "headline-md": ["24px", { lineHeight: "1.3", fontWeight: "600" }],

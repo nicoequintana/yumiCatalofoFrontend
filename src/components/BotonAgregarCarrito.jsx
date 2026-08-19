@@ -8,7 +8,7 @@ import { registrarEvento } from "../api/products.js";
  * CTA that panel has ever had (see ProductoDetalle.jsx's doc comment on the
  * prior "no CTA" decision, now superseded by the cart feature).
  */
-function BotonAgregarCarrito({ producto, alineacion = "end" }) {
+function BotonAgregarCarrito({ producto, alineacion = "end", compacto = false }) {
   const { agregar } = useCarrito();
   const [cantidad, setCantidad] = useState(1);
   const [agregado, setAgregado] = useState(false);
@@ -37,18 +37,22 @@ function BotonAgregarCarrito({ producto, alineacion = "end" }) {
   }
 
   return (
-    <div className={`flex flex-col gap-3 ${alineacion === "start" ? "items-start" : "items-end"}`}>
-      <SelectorCantidad value={cantidad} onChange={setCantidad} />
+    <div
+      className={`flex flex-wrap items-center gap-3 ${alineacion === "start" ? "justify-start" : "justify-end"}`}
+    >
+      <SelectorCantidad value={cantidad} onChange={setCantidad} compacto={compacto} />
       <button
         type="button"
         onClick={handleClick}
         disabled={agregado}
-        className="font-label-md text-label-md inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 uppercase tracking-wide text-on-primary hover:opacity-90 disabled:opacity-70"
+        className={`font-label-md text-label-md inline-flex items-center gap-2 rounded-full bg-primary uppercase tracking-wide text-on-primary hover:opacity-90 disabled:opacity-70 ${
+          compacto ? "h-9 px-4" : "h-10 px-6"
+        }`}
       >
         <span className="material-symbols-outlined text-[18px]">
           {agregado ? "check" : "shopping_cart"}
         </span>
-        {agregado ? "Agregado ✓" : "Agregar al carrito"}
+        {agregado ? "Agregado ✓" : compacto ? "Agregar" : "Agregar al carrito"}
       </button>
     </div>
   );

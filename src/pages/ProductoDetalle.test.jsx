@@ -144,13 +144,13 @@ describe("ProductoDetalle — contenido comercial", () => {
     expect(screen.queryByText("¿Por qué lo vas a querer?")).not.toBeInTheDocument();
   });
 
-  it("muestra ¿Te pasa esto? solo cuando hay contenido", async () => {
+  it("muestra ¿Qué problema resuelve? solo cuando hay contenido", async () => {
     productsApi.getProductById.mockResolvedValue({
       ...PRODUCTO_BASE,
       tePasaEsto: "¿Te pasó no tener enchufe cerca?",
     });
     renderPagina();
-    expect(await screen.findByText("¿Te pasa esto?")).toBeInTheDocument();
+    expect(await screen.findByText("¿Qué problema resuelve?")).toBeInTheDocument();
   });
 
   it("muestra hasta 3 beneficios rápidos en el hero", async () => {
@@ -177,13 +177,13 @@ describe("ProductoDetalle — contenido comercial", () => {
     expect(screen.queryByText("Recargable por USB")).not.toBeInTheDocument();
   });
 
-  it("muestra ¿Cómo podés usarlo? con sus items cuando hay usos cargados", async () => {
+  it("muestra los items de usos dentro de ¿Qué problema resuelve? cuando hay usos cargados", async () => {
     productsApi.getProductById.mockResolvedValue({
       ...PRODUCTO_BASE,
       usos: [{ id: 1, texto: "Para estudiar" }, { id: 2, texto: "Para viajar" }],
     });
     renderPagina();
-    expect(await screen.findByText("¿Cómo podés usarlo?")).toBeInTheDocument();
+    expect(await screen.findByText("¿Qué problema resuelve?")).toBeInTheDocument();
     expect(screen.getByText("Para estudiar")).toBeInTheDocument();
     expect(screen.getByText("Para viajar")).toBeInTheDocument();
   });
@@ -194,28 +194,29 @@ describe("ProductoDetalle — contenido comercial", () => {
       idealPara: [{ id: 1, texto: "Estudiantes" }],
     });
     renderPagina();
-    expect(await screen.findByText("Ideal para...")).toBeInTheDocument();
+    expect(await screen.findByText("Ideal para")).toBeInTheDocument();
     expect(screen.getByText("Estudiantes")).toBeInTheDocument();
   });
 
-  it("muestra Especificaciones como tabla nombre/valor cuando existen", async () => {
+  it("muestra Especificaciones técnicas como tabla nombre/valor dentro de Ficha técnica cuando existen", async () => {
     productsApi.getProductById.mockResolvedValue({
       ...PRODUCTO_BASE,
       especificaciones: [{ id: 1, nombre: "Material", valor: "ABS" }],
     });
     renderPagina();
-    expect(await screen.findByText("Especificaciones")).toBeInTheDocument();
+    expect(await screen.findByText("Ficha técnica")).toBeInTheDocument();
+    expect(screen.getByText("Especificaciones técnicas")).toBeInTheDocument();
     expect(screen.getByText("Material")).toBeInTheDocument();
     expect(screen.getByText("ABS")).toBeInTheDocument();
   });
 
-  it("muestra ¿Qué incluye? solo cuando hay contenido", async () => {
+  it("muestra Incluye solo cuando hay contenido", async () => {
     productsApi.getProductById.mockResolvedValue({
       ...PRODUCTO_BASE,
       incluye: [{ id: 1, texto: "1 × Cable USB" }],
     });
     renderPagina();
-    expect(await screen.findByText("¿Qué incluye?")).toBeInTheDocument();
+    expect(await screen.findByText("Incluye")).toBeInTheDocument();
     expect(screen.getByText("1 × Cable USB")).toBeInTheDocument();
   });
 
@@ -225,33 +226,39 @@ describe("ProductoDetalle — contenido comercial", () => {
     await screen.findAllByText(PRODUCTO_BASE.nombre);
 
     expect(screen.queryByText("¿Por qué lo vas a querer?")).not.toBeInTheDocument();
-    expect(screen.queryByText("¿Te pasa esto?")).not.toBeInTheDocument();
-    expect(screen.queryByText("¿Cómo podés usarlo?")).not.toBeInTheDocument();
-    expect(screen.queryByText("Ideal para...")).not.toBeInTheDocument();
-    expect(screen.queryByText("Especificaciones")).not.toBeInTheDocument();
-    expect(screen.queryByText("¿Qué incluye?")).not.toBeInTheDocument();
+    expect(screen.queryByText("¿Qué problema resuelve?")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ideal para")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ficha técnica")).not.toBeInTheDocument();
+    expect(screen.queryByText("Incluye")).not.toBeInTheDocument();
   });
 });
 
-describe("ProductoDetalle — Miralo en acción", () => {
+describe("ProductoDetalle — video en la galería", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("muestra la sección Miralo en acción cuando el producto tiene video", async () => {
+  it("muestra un thumbnail de video en la galería cuando el producto tiene video", async () => {
     productsApi.getProductById.mockResolvedValue({
       ...PRODUCTO_BASE,
+      fotos: [{ id: 1, url: "/foto1.jpg", orden: 0 }],
       video: { id: 1, url: "/api/products/1/video" },
     });
     renderPagina();
-    expect(await screen.findByText("Miralo en acción")).toBeInTheDocument();
+    await screen.findAllByText(PRODUCTO_BASE.nombre);
+    expect(screen.getByRole("button", { name: "Ver video" })).toBeInTheDocument();
   });
 
-  it("no muestra Miralo en acción cuando el producto no tiene video", async () => {
-    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_BASE, video: null });
+  it("no muestra la fila de thumbnails cuando el producto tiene una sola foto y no tiene video", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      fotos: [{ id: 1, url: "/foto1.jpg", orden: 0 }],
+      video: null,
+    });
     renderPagina();
     await screen.findAllByText(PRODUCTO_BASE.nombre);
-    expect(screen.queryByText("Miralo en acción")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ver video" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ver foto 1" })).not.toBeInTheDocument();
   });
 });
 
@@ -275,7 +282,7 @@ describe("ProductoDetalle — CTA sticky mobile", () => {
     await screen.findAllByText(PRODUCTO_BASE.nombre);
 
     const barraSticky = screen.getByTestId("cta-sticky-mobile");
-    const boton = within(barraSticky).getByRole("button", { name: /Agregar al carrito/i });
+    const boton = within(barraSticky).getByRole("button", { name: /Agregar/i });
     fireEvent.click(boton);
 
     expect(await within(barraSticky).findByText(/Agregado/i)).toBeInTheDocument();

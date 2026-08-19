@@ -2,13 +2,17 @@ import { useState } from "react";
 import Lightbox from "./Lightbox.jsx";
 
 /**
- * Product detail image panel, ported from detalle-producto.html L149-167.
+ * Product detail gallery — redesigned for the "Vibrant Editorial Discovery"
+ * hero layout: one large photo/video on top (aspect-square, rounded-xl,
+ * soft-shadow) with a horizontal-scroll row of square thumbnails below
+ * (remaining photos + the video, if any, with a play icon overlay). Clicking
+ * a photo thumbnail swaps the large slide; clicking the video thumbnail
+ * swaps to the video (native controls, same as before — no autoplay).
+ * Clicking the large slide when it's a photo opens the existing Lightbox.
  *
- * Dot count == slide count (fotos + optional video, up to 10 fotos per
- * design item 2). Prev/next arrows are always visible (design item 5, not
- * hover-only, so mobile gets them without needing hover support). Clicking
- * a photo slide opens the Lightbox; clicking the video slide does nothing
- * extra since <video> already has native controls.
+ * The thumbnail row is hidden entirely when there's nothing to switch to
+ * (a single photo and no video) — a row of one thumbnail duplicating the
+ * hero image would be visual noise.
  */
 function PhotoGallery({ fotos = [], video = null, nombre = "" }) {
   const [activo, setActivo] = useState(0);
@@ -20,81 +24,54 @@ function PhotoGallery({ fotos = [], video = null, nombre = "" }) {
   ];
 
   const slideActivo = slides[activo];
+  const mostrarThumbnails = slides.length > 1;
 
   function irA(index) {
     setActivo(index);
   }
 
-  function siguiente() {
-    setActivo((prev) => (prev + 1) % slides.length);
-  }
-
-  function anterior() {
-    setActivo((prev) => (prev - 1 + slides.length) % slides.length);
-  }
-
   return (
-    <div
-      className="relative flex h-[500px] w-full items-center justify-center overflow-hidden rounded-2xl bg-surface-container-lowest md:h-[700px]"
-      style={{ boxShadow: "0px 10px 30px rgba(26, 26, 26, 0.03)" }}
-    >
-      <div className="absolute inset-0 z-0">
-        <svg
-          className="h-full w-full text-tertiary-container opacity-5"
-          preserveAspectRatio="none"
-          viewBox="0 0 100 100"
-        >
-          <path d="M0,0 L100,0 L100,100 C70,90 80,40 40,50 C10,55 0,100 0,100 Z" fill="currentColor" />
-        </svg>
+    <div className="flex flex-col gap-3">
+      <div
+        className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl bg-surface-container-lowest shadow-ambient md:aspect-[4/5]"
+      >
+        {slideActivo?.tipo === "video" ? (
+          <video className="h-full w-full object-cover" src={slideActivo.url} controls />
+        ) : slideActivo ? (
+          <img
+            key={slideActivo.id ?? activo}
+            alt={nombre}
+            onClick={() => setLightboxAbierto(true)}
+            className="h-full w-full cursor-zoom-in object-cover animate-fadeIn"
+            src={slideActivo.url}
+          />
+        ) : null}
       </div>
 
-      {slideActivo?.tipo === "video" ? (
-        <video
-          className="relative z-10 h-full w-full object-cover"
-          src={slideActivo.url}
-          controls
-        />
-      ) : slideActivo ? (
-        <img
-          key={slideActivo.id ?? activo}
-          alt={nombre}
-          onClick={() => setLightboxAbierto(true)}
-          className="relative z-10 h-full w-full cursor-zoom-in object-cover animate-fadeIn"
-          src={slideActivo.url}
-        />
-      ) : null}
-
-      {slides.length > 1 ? (
-        <>
-          <button
-            type="button"
-            onClick={anterior}
-            aria-label="Anterior"
-            className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
-          >
-            <span className="material-symbols-outlined">chevron_left</span>
-          </button>
-          <button
-            type="button"
-            onClick={siguiente}
-            aria-label="Siguiente"
-            className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
-          >
-            <span className="material-symbols-outlined">chevron_right</span>
-          </button>
-        </>
-      ) : null}
-
-      {slides.length >= 1 ? (
-        <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 transform gap-2">
+      {mostrarThumbnails ? (
+        <div className="flex w-full gap-3 overflow-x-auto pb-1">
           {slides.map((slide, index) => (
             <button
               key={`${slide.tipo}-${slide.id ?? index}`}
               type="button"
-              aria-label={slide.tipo === "video" ? "Ver video" : `Ver foto ${index + 1}`}
               onClick={() => irA(index)}
-              className={`h-2 w-2 rounded-full ${index === activo ? "bg-primary" : "bg-outline-variant"}`}
-            />
+              aria-label={slide.tipo === "video" ? "Ver video" : `Ver foto ${index + 1}`}
+              aria-current={index === activo}
+              className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-colors md:h-20 md:w-20 ${
+                index === activo ? "border-primary" : "border-transparent"
+              }`}
+            >
+              {slide.tipo === "video" ? (
+                <>
+                  <video className="h-full w-full object-cover" src={slide.url} muted />
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <span className="material-symbols-outlined text-[22px] text-white">play_arrow</span>
+                  </span>
+                </>
+              ) : (
+                <img className="h-full w-full object-cover" src={slide.url} alt="" aria-hidden="true" />
+              )}
+            </button>
           ))}
         </div>
       ) : null}
