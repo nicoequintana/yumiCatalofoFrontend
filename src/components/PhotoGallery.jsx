@@ -35,7 +35,7 @@ function PhotoGallery({ fotos = [], video = null, nombre = "" }) {
 
   return (
     <div
-      className="relative col-span-1 flex h-[500px] w-full items-center justify-center overflow-hidden rounded-2xl bg-surface-container-lowest md:col-span-7 md:h-[700px]"
+      className="relative flex h-[500px] w-full items-center justify-center overflow-hidden rounded-2xl bg-surface-container-lowest md:h-[700px]"
       style={{ boxShadow: "0px 10px 30px rgba(26, 26, 26, 0.03)" }}
     >
       <div className="absolute inset-0 z-0">

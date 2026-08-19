@@ -78,12 +78,12 @@ function ProductoDetalle() {
         <div className="mb-6 hidden md:block">
           <BotonVolver />
         </div>
-        <div className="grid grid-cols-1 items-center gap-gutter md:grid-cols-12">
-          <div className="col-span-1 md:col-span-7">
+        <div className="flex flex-col gap-gutter">
+          <div>
             <PhotoGallery fotos={producto.fotos} nombre={producto.nombre} />
           </div>
 
-          <div className="col-span-1 flex flex-col pt-8 md:col-span-5 md:pt-0 md:pl-8">
+          <div className="flex flex-col pt-8">
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Badge etiqueta={producto.etiqueta} />
