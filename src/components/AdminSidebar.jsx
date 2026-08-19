@@ -85,7 +85,7 @@ function AdminSidebar({ colapsada, onCerrar }) {
       >
         <div>
           <span className="font-headline-md text-headline-md mb-8 block px-2 text-primary">
-            Aura Admin
+            YIMA ADMIN
           </span>
           <nav className="flex flex-col gap-1">
             {ITEMS_NAV.map((item) => (
@@ -132,7 +132,7 @@ function AdminSidebar({ colapsada, onCerrar }) {
 
       {/* Desktop: bottom nav horizontal fijo, siempre visible */}
       <nav className="fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-6 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:flex">
-        <span className="font-headline-md text-headline-md shrink-0 text-primary">Aura</span>
+        <span className="font-headline-md text-headline-md shrink-0 text-primary">YIMA</span>
 
         <div className="flex items-center gap-2">
           {ITEMS_NAV.map((item) => (
