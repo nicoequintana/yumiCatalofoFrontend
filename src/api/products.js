@@ -91,6 +91,13 @@ export function construirFormData(data) {
     fd.append("fotosExistentes", JSON.stringify(data.fotosExistentes));
   }
 
+  // Secuencia final completa (existentes + nuevas intercaladas). Sin esto el
+  // backend deja las fotos nuevas al final y no puede persistir un reordenado,
+  // así que no habría forma de subir una foto nueva como portada.
+  if (data.ordenFotos !== undefined) {
+    fd.append("ordenFotos", JSON.stringify(data.ordenFotos));
+  }
+
   for (const file of data.fotosNuevas ?? []) {
     fd.append("fotos", file);
   }

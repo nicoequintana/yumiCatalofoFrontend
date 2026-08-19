@@ -101,6 +101,34 @@ describe("registrarFavorito", () => {
   });
 });
 
+describe("construirFormData — orden de fotos", () => {
+  it("manda la secuencia final mezclando existentes y nuevas", () => {
+    // La posición 0 es la portada y la 1 es la imagen de "¿Qué problema
+    // resuelve?": el backend necesita la secuencia completa, porque
+    // `fotosExistentes` sola no dice dónde va cada foto nueva.
+    const fd = construirFormData({
+      fotosExistentes: [10],
+      fotosNuevas: [new File(["a"], "portada.jpg"), new File(["b"], "extra.jpg")],
+      ordenFotos: [
+        { tipo: "nueva", index: 0 },
+        { tipo: "existente", id: 10 },
+        { tipo: "nueva", index: 1 },
+      ],
+    });
+
+    expect(JSON.parse(fd.get("ordenFotos"))).toEqual([
+      { tipo: "nueva", index: 0 },
+      { tipo: "existente", id: 10 },
+      { tipo: "nueva", index: 1 },
+    ]);
+  });
+
+  it("no manda ordenFotos si no se lo pasa", () => {
+    const fd = construirFormData({ fotosExistentes: [1] });
+    expect(fd.get("ordenFotos")).toBeNull();
+  });
+});
+
 describe("construirFormData — campos comerciales de texto", () => {
   it("manda el valor cuando el campo tiene contenido", () => {
     const fd = construirFormData({ fraseComercial: "Iluminá donde quieras." });
