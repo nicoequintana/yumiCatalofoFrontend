@@ -112,7 +112,7 @@ function ProductoDetalle() {
             </p>
 
             {producto.porQueLoVasAQuerer ? (
-              <div className="mb-10 rounded-2xl bg-surface-container-low p-6 md:p-8">
+              <div className="mb-10">
                 <h3 className="font-headline-md text-headline-md mb-3 text-primary">¿Por qué lo vas a querer?</h3>
                 <p className="font-body-md text-body-md text-on-surface-variant">{producto.porQueLoVasAQuerer}</p>
               </div>
@@ -146,9 +146,10 @@ function ProductoDetalle() {
                 <h3 className="font-label-md text-label-md mb-4 uppercase tracking-widest text-on-surface">
                   ¿Cómo podés usarlo?
                 </h3>
-                <ul className="font-body-md text-body-md flex flex-wrap gap-2 text-on-surface-variant">
+                <ul className="font-body-md text-body-md space-y-3 text-on-surface-variant">
                   {producto.usos.map((uso) => (
-                    <li key={uso.id} className="rounded-full bg-surface-container px-4 py-2">
+                    <li key={uso.id} className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[18px]">check_circle</span>
                       {uso.texto}
                     </li>
                   ))}
@@ -215,16 +216,18 @@ function ProductoDetalle() {
               </ul>
             ) : null}
 
-            <div className="mt-auto flex items-center justify-between rounded-2xl bg-tertiary-container p-6 shadow-lg md:p-8">
+            <div className="mt-auto flex flex-col gap-6 rounded-2xl bg-tertiary-container p-6 shadow-lg sm:flex-row sm:items-center sm:justify-between md:p-8">
               <div>
-                {/* <span className="font-label-sm text-label-sm mb-1 block uppercase tracking-widest text-on-tertiary-container">
-                  Inversión
-                </span> */}
+                <span className="font-label-sm text-label-sm mb-1 block uppercase tracking-[0.15em] text-on-tertiary-container/70">
+                  Precio
+                </span>
                 <span className="font-headline-lg text-headline-lg text-on-tertiary-container">
                   {formatPrecio(producto.precio)}
                 </span>
               </div>
-              <BotonAgregarCarrito producto={producto} />
+              <div className="flex flex-col items-start border-t border-on-tertiary-container/15 pt-6 sm:items-end sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
+                <BotonAgregarCarrito producto={producto} />
+              </div>
             </div>
           </div>
         </div>
