@@ -174,7 +174,7 @@ function AdminProductos() {
           mensaje="Agregá el primer producto para verlo acá y en el catálogo público."
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
+        <div className="rounded-xl bg-surface-container-lowest shadow-ambient">
           <table className="w-full min-w-[820px] text-left text-[13px] xl:text-sm">
             <thead>
               <tr className="border-b border-outline-variant">

@@ -39,13 +39,13 @@ function AdminSidebar({ colapsada, onCerrar }) {
     <>
       {!colapsada && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          className="fixed inset-0 z-40 bg-black/40"
           onClick={onCerrar}
           aria-hidden="true"
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col justify-between border-r border-outline-variant bg-surface-container-lowest px-4 py-6 transition-transform md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col justify-between border-r border-outline-variant bg-surface-container-lowest px-4 py-6 shadow-ambient transition-transform ${
           colapsada ? "-translate-x-full" : "translate-x-0"
         }`}
       >
