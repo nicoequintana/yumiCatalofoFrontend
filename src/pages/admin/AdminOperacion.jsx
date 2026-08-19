@@ -5,6 +5,7 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { getResumenOperacion } from "../../api/adminOperacion.js";
 import { formatPrecio } from "../../utils/formato.js";
+import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 
 const PERIODOS = [
   { dias: 7, label: "7 días" },
@@ -150,7 +151,9 @@ function AdminOperacion() {
           <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
             Panel de administración
           </span>
-          <h1 className="font-headline-lg text-headline-lg text-primary">Operación</h1>
+          <h1 className="font-headline-lg text-headline-lg text-primary">
+            Operación
+          </h1>
         </div>
 
         <div role="group" aria-label="Período" className="flex flex-wrap gap-2">
@@ -177,14 +180,17 @@ function AdminOperacion() {
       {cargando ? (
         <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
-          <p className="font-body-md text-body-md text-on-surface-variant">Cargando operación…</p>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            Cargando operación…
+          </p>
         </div>
       ) : resumen === null ? null : (
         <>
-          <section aria-label="Órdenes por estado" className="mb-8">
-            <h2 className="font-headline-md text-headline-md mb-4 text-primary">
-              Órdenes por estado
-            </h2>
+          <SeccionAdmin
+            titulo="Órdenes por estado"
+            etiqueta="Órdenes por estado"
+            descripcion="Órdenes creadas en el período seleccionado."
+          >
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
               {ESTADOS_EN_ORDEN.map((estado) => (
                 <TarjetaEstado
@@ -196,28 +202,25 @@ function AdminOperacion() {
                 />
               ))}
             </div>
-            <p className="font-body-md text-body-md mt-3 text-on-surface-variant">
-              Órdenes creadas en el período seleccionado.
-            </p>
-          </section>
+          </SeccionAdmin>
 
           {/*
             Sección principal de la pantalla: lo que hay para destrabar. Va
             antes que cualquier otra tabla porque es la única accionable.
           */}
-          <section aria-label="Órdenes estancadas" className="mb-8">
-            <h2 className="font-headline-md text-headline-md mb-2 text-primary">
-              Órdenes estancadas
-            </h2>
-            <p className="font-body-md text-body-md mb-4 text-on-surface-variant">
-              Órdenes sin entregar ni cancelar que no registran cambios desde hace más de{" "}
-              {textoDias(resumen.umbralEstancamientoDias ?? 3)}.{" "}
-              <span className="text-on-surface-variant">
-                El sistema guarda solo la fecha del último cambio, así que esto mide el tiempo
-                transcurrido sin cambios, no el tiempo que la orden lleva en su estado actual.
-              </span>
-            </p>
-
+          <SeccionAdmin
+            titulo="Órdenes estancadas"
+            etiqueta="Órdenes estancadas"
+            descripcion={
+              <>
+                Órdenes sin entregar ni cancelar que no registran cambios desde
+                hace más de {textoDias(resumen.umbralEstancamientoDias ?? 3)}.
+                El sistema guarda solo la fecha del último cambio, así que esto
+                mide el tiempo transcurrido sin cambios, no el tiempo que la
+                orden lleva en su estado actual.
+              </>
+            }
+          >
             {resumen.ordenesEstancadas?.lista?.length ? (
               <>
                 <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
@@ -245,14 +248,22 @@ function AdminOperacion() {
                               #{orden.id}
                             </Link>
                           </td>
-                          <td className={`${claseCelda} text-on-surface`}>{orden.clienteNombre}</td>
-                          <td className={`${claseCelda} text-on-surface-variant`}>
+                          <td className={`${claseCelda} text-on-surface`}>
+                            {orden.clienteNombre}
+                          </td>
+                          <td
+                            className={`${claseCelda} text-on-surface-variant`}
+                          >
                             {ETIQUETA_ESTADO[orden.estado] ?? orden.estado}
                           </td>
-                          <td className={`${claseCelda} whitespace-nowrap text-on-surface`}>
+                          <td
+                            className={`${claseCelda} whitespace-nowrap text-on-surface`}
+                          >
                             {textoDias(orden.diasSinCambios)}
                           </td>
-                          <td className={`${claseCelda} whitespace-nowrap text-on-surface`}>
+                          <td
+                            className={`${claseCelda} whitespace-nowrap text-on-surface`}
+                          >
                             {formatPrecio(orden.total)}
                           </td>
                         </tr>
@@ -260,7 +271,8 @@ function AdminOperacion() {
                     </tbody>
                   </table>
                 </div>
-                {resumen.ordenesEstancadas.total > resumen.ordenesEstancadas.lista.length ? (
+                {resumen.ordenesEstancadas.total >
+                resumen.ordenesEstancadas.lista.length ? (
                   <p className="font-body-md text-body-md mt-3 text-on-surface-variant">
                     Se muestran {resumen.ordenesEstancadas.lista.length} de{" "}
                     {resumen.ordenesEstancadas.total} órdenes estancadas.
@@ -269,21 +281,18 @@ function AdminOperacion() {
               </>
             ) : (
               <p className="font-body-md text-body-md rounded-xl bg-surface-container-lowest p-5 text-on-surface-variant shadow-ambient">
-                Ninguna orden lleva más de {textoDias(resumen.umbralEstancamientoDias ?? 3)} sin
+                Ninguna orden lleva más de{" "}
+                {textoDias(resumen.umbralEstancamientoDias ?? 3)} sin
                 movimiento.
               </p>
             )}
-          </section>
+          </SeccionAdmin>
 
-          <section aria-label="Antigüedad sin cambios" className="mb-8">
-            <h2 className="font-headline-md text-headline-md mb-2 text-primary">
-              Antigüedad promedio sin cambios
-            </h2>
-            <p className="font-body-md text-body-md mb-4 text-on-surface-variant">
-              Promedio de días desde el último cambio registrado en cada orden abierta. No es el
-              tiempo que llevan en su estado actual: las órdenes no guardan el historial de cuándo
-              pasaron de un estado a otro.
-            </p>
+          <SeccionAdmin
+            titulo="Antigüedad promedio sin cambios"
+            etiqueta="Antigüedad sin cambios"
+            descripcion="Promedio de días desde el último cambio registrado en cada orden abierta. No es el tiempo que llevan en su estado actual: las órdenes no guardan el historial de cuándo pasaron de un estado a otro."
+          >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               {ESTADOS_NO_TERMINALES.map((estado) => (
                 <div
@@ -299,17 +308,13 @@ function AdminOperacion() {
                 </div>
               ))}
             </div>
-          </section>
+          </SeccionAdmin>
 
-          <section aria-label="Quiebres de stock con demanda" className="mb-8">
-            <h2 className="font-headline-md text-headline-md mb-2 text-primary">
-              Quiebres de stock con demanda
-            </h2>
-            <p className="font-body-md text-body-md mb-4 text-on-surface-variant">
-              Productos sin stock que igual recibieron visitas en el período: demanda que no se
-              pudo aprovechar.
-            </p>
-
+          <SeccionAdmin
+            titulo="Quiebres de stock con demanda"
+            etiqueta="Quiebres de stock con demanda"
+            descripcion="Productos sin stock que igual recibieron visitas en el período: demanda que no se pudo aprovechar."
+          >
             {resumen.quiebresConDemanda?.length ? (
               <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
                 <table className="w-full min-w-[520px] text-left">
@@ -327,8 +332,12 @@ function AdminOperacion() {
                         key={producto.productId}
                         className="border-b border-outline-variant last:border-b-0"
                       >
-                        <td className={`${claseCelda} text-on-surface`}>{producto.nombre}</td>
-                        <td className={`${claseCelda} text-on-surface`}>{producto.vistas}</td>
+                        <td className={`${claseCelda} text-on-surface`}>
+                          {producto.nombre}
+                        </td>
+                        <td className={`${claseCelda} text-on-surface`}>
+                          {producto.vistas}
+                        </td>
                         <td className={`${claseCelda} text-on-surface-variant`}>
                           {producto.stock}
                         </td>
@@ -350,15 +359,13 @@ function AdminOperacion() {
                 Ningún producto agotado recibió visitas en el período.
               </p>
             )}
-          </section>
+          </SeccionAdmin>
 
-          <section aria-label="Stock bajo" className="mb-8">
-            <h2 className="font-headline-md text-headline-md mb-2 text-primary">Stock bajo</h2>
-            <p className="font-body-md text-body-md mb-4 text-on-surface-variant">
-              Productos con {resumen.stockBajoMaximo ?? 3} unidades o menos — los mismos que el
-              catálogo muestra con el aviso de últimas unidades.
-            </p>
-
+          <SeccionAdmin
+            titulo="Stock bajo"
+            etiqueta="Stock bajo"
+            descripcion={`Productos con ${resumen.stockBajoMaximo ?? 3} unidades o menos — los mismos que el catálogo muestra con el aviso de últimas unidades.`}
+          >
             {resumen.stockBajo?.length ? (
               <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
                 <table className="w-full min-w-[420px] text-left">
@@ -375,8 +382,12 @@ function AdminOperacion() {
                         key={producto.productId}
                         className="border-b border-outline-variant last:border-b-0"
                       >
-                        <td className={`${claseCelda} text-on-surface`}>{producto.nombre}</td>
-                        <td className={`${claseCelda} text-on-surface`}>{producto.stock}</td>
+                        <td className={`${claseCelda} text-on-surface`}>
+                          {producto.nombre}
+                        </td>
+                        <td className={`${claseCelda} text-on-surface`}>
+                          {producto.stock}
+                        </td>
                         <td className={claseCelda}>
                           <Link
                             to={`/catalogo/admin/productos/${producto.productId}/editar`}
@@ -395,7 +406,7 @@ function AdminOperacion() {
                 Ningún producto está por agotarse.
               </p>
             )}
-          </section>
+          </SeccionAdmin>
 
           {/*
             Estado "todo al día": no reemplaza al conteo por estado (que sigue

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { clearToken } from "../api/authClient.js";
+import ToggleTemaAdmin from "./ToggleTemaAdmin.jsx";
 
 const linkBase =
   "flex items-center gap-3 rounded-lg px-4 py-3 font-label-md text-label-md uppercase tracking-widest transition-colors";
@@ -125,14 +126,17 @@ function AdminSidebar({ colapsada, onCerrar }) {
           </nav>
         </div>
 
-        <button
-          type="button"
-          onClick={handleCerrarSesion}
-          className={`${linkBase} ${linkInactivo} border-t border-outline-variant pt-4`}
-        >
-          <span className="material-symbols-outlined text-[18px]">logout</span>
-          Cerrar sesión
-        </button>
+        <div className="flex flex-col gap-1 border-t border-outline-variant pt-4">
+          <ToggleTemaAdmin />
+          <button
+            type="button"
+            onClick={handleCerrarSesion}
+            className={`${linkBase} ${linkInactivo}`}
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+            Cerrar sesión
+          </button>
+        </div>
       </aside>
 
       {/* Desktop: bottom nav horizontal fijo, siempre visible */}
@@ -179,14 +183,17 @@ function AdminSidebar({ colapsada, onCerrar }) {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleCerrarSesion}
-          className={`${linkBase} ${linkInactivo} shrink-0`}
-        >
-          <span className="material-symbols-outlined text-[18px]">logout</span>
-          Cerrar sesión
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <ToggleTemaAdmin compacto />
+          <button
+            type="button"
+            onClick={handleCerrarSesion}
+            className={`${linkBase} ${linkInactivo}`}
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+            Cerrar sesión
+          </button>
+        </div>
       </nav>
     </>
   );

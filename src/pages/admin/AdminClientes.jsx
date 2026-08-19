@@ -4,6 +4,7 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { getResumenClientes } from "../../api/adminClientes.js";
 import { formatPrecio } from "../../utils/formato.js";
+import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 
 const PERIODOS = [
   { dias: 7, label: "7 días" },
@@ -35,11 +36,17 @@ function TarjetaMetrica({ icono, etiqueta, valor, detalle, testId }) {
     >
       <div className="flex items-center gap-2 text-on-surface-variant">
         <span className="material-symbols-outlined text-[20px]">{icono}</span>
-        <span className="font-label-sm text-label-sm uppercase tracking-widest">{etiqueta}</span>
+        <span className="font-label-sm text-label-sm uppercase tracking-widest">
+          {etiqueta}
+        </span>
       </div>
-      <span className="font-headline-md text-headline-md break-words text-on-surface">{valor}</span>
+      <span className="font-headline-md text-headline-md break-words text-on-surface">
+        {valor}
+      </span>
       {detalle ? (
-        <span className="font-body-md text-body-md text-on-surface-variant">{detalle}</span>
+        <span className="font-body-md text-body-md text-on-surface-variant">
+          {detalle}
+        </span>
       ) : null}
     </div>
   );
@@ -67,18 +74,31 @@ function BarraComposicion({ nuevos, recurrentes }) {
         aria-label={`${nuevos} clientes nuevos y ${recurrentes} recurrentes`}
       >
         <div className="bg-primary" style={{ width: `${porcentajeNuevos}%` }} />
-        <div className="bg-secondary" style={{ width: `${porcentajeRecurrentes}%` }} />
+        <div
+          className="bg-secondary"
+          style={{ width: `${porcentajeRecurrentes}%` }}
+        />
       </div>
 
       <div className="flex flex-wrap gap-x-6 gap-y-2">
         <span className="font-body-md text-body-md flex items-center gap-2 text-on-surface">
-          <span className="h-3 w-3 shrink-0 rounded-full bg-primary" aria-hidden="true" />
-          <strong className="font-headline-md text-headline-md">{nuevos}</strong>
+          <span
+            className="h-3 w-3 shrink-0 rounded-full bg-primary"
+            aria-hidden="true"
+          />
+          <strong className="font-headline-md text-headline-md">
+            {nuevos}
+          </strong>
           nuevos
         </span>
         <span className="font-body-md text-body-md flex items-center gap-2 text-on-surface">
-          <span className="h-3 w-3 shrink-0 rounded-full bg-secondary" aria-hidden="true" />
-          <strong className="font-headline-md text-headline-md">{recurrentes}</strong>
+          <span
+            className="h-3 w-3 shrink-0 rounded-full bg-secondary"
+            aria-hidden="true"
+          />
+          <strong className="font-headline-md text-headline-md">
+            {recurrentes}
+          </strong>
           recurrentes
         </span>
       </div>
@@ -164,7 +184,9 @@ function AdminClientes() {
           <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
             Panel de administración
           </span>
-          <h1 className="font-headline-lg text-headline-lg text-primary">Clientes</h1>
+          <h1 className="font-headline-lg text-headline-lg text-primary">
+            Clientes
+          </h1>
         </div>
 
         <div role="group" aria-label="Período" className="flex flex-wrap gap-2">
@@ -191,7 +213,9 @@ function AdminClientes() {
       {cargando ? (
         <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
-          <p className="font-body-md text-body-md text-on-surface-variant">Cargando clientes…</p>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            Cargando clientes…
+          </p>
         </div>
       ) : resumen === null ? null : sinDatos ? (
         <EstadoVacio
@@ -201,7 +225,10 @@ function AdminClientes() {
         />
       ) : (
         <>
-          <section aria-label="Resumen de clientes" className="mb-8">
+          <SeccionAdmin
+            titulo="Resumen de clientes"
+            etiqueta="Resumen de clientes"
+          >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <TarjetaMetrica
                 icono="group"
@@ -246,28 +273,29 @@ function AdminClientes() {
                 }
               />
             </div>
-          </section>
+          </SeccionAdmin>
 
-          <section aria-label="Composición de clientes" className="mb-8">
-            <h2 className="font-headline-md text-headline-md mb-4 text-primary">
-              Nuevos y recurrentes
-            </h2>
+          <SeccionAdmin
+            titulo="Nuevos y recurrentes"
+            etiqueta="Composición de clientes"
+          >
             <div className="flex flex-col gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-ambient">
               <BarraComposicion
                 nuevos={resumen.clientesNuevos}
                 recurrentes={resumen.clientesRecurrentes}
               />
               <p className="font-body-md text-body-md text-on-surface-variant">
-                Un cliente es recurrente cuando tiene más de una compra confirmada, contando toda su
-                historia y no solo el período elegido.
+                Un cliente es recurrente cuando tiene más de una compra
+                confirmada, contando toda su historia y no solo el período
+                elegido.
               </p>
             </div>
-          </section>
+          </SeccionAdmin>
 
-          <section aria-label="Ranking de clientes">
-            <h2 className="font-headline-md text-headline-md mb-4 text-primary">
-              Mejores clientes
-            </h2>
+          <SeccionAdmin
+            titulo="Mejores clientes"
+            etiqueta="Ranking de clientes"
+          >
             {resumen.rankingClientes.length === 0 ? (
               <p className="font-body-md text-body-md rounded-xl bg-surface-container-lowest p-5 text-on-surface-variant shadow-ambient">
                 Todavía no hay clientes con compras confirmadas.
@@ -290,15 +318,23 @@ function AdminClientes() {
                         key={cliente.dni}
                         className="border-b border-outline-variant last:border-b-0"
                       >
-                        <td className={`${claseCelda} text-on-surface-variant`}>{indice + 1}</td>
-                        <td className={`${claseCelda} text-on-surface`}>{cliente.nombre}</td>
-                        <td className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}>
+                        <td className={`${claseCelda} text-on-surface-variant`}>
+                          {indice + 1}
+                        </td>
+                        <td className={`${claseCelda} text-on-surface`}>
+                          {cliente.nombre}
+                        </td>
+                        <td
+                          className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}
+                        >
                           {cliente.dni}
                         </td>
                         <td className={`${claseCelda} text-on-surface-variant`}>
                           {cliente.cantidadOrdenes}
                         </td>
-                        <td className={`${claseCelda} whitespace-nowrap text-on-surface`}>
+                        <td
+                          className={`${claseCelda} whitespace-nowrap text-on-surface`}
+                        >
                           {formatPrecio(cliente.facturacion)}
                         </td>
                       </tr>
@@ -307,7 +343,7 @@ function AdminClientes() {
                 </table>
               </div>
             )}
-          </section>
+          </SeccionAdmin>
         </>
       )}
     </main>

@@ -4,6 +4,7 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { getResumenVentas } from "../../api/adminVentas.js";
 import { formatPrecio } from "../../utils/formato.js";
+import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 
 const PERIODOS = [
   { dias: 7, label: "7 días" },
@@ -38,11 +39,17 @@ function TarjetaMetrica({ icono, etiqueta, valor, detalle }) {
     <div className="flex flex-col gap-2 rounded-xl bg-surface-container-lowest p-5 shadow-ambient">
       <div className="flex items-center gap-2 text-on-surface-variant">
         <span className="material-symbols-outlined text-[20px]">{icono}</span>
-        <span className="font-label-sm text-label-sm uppercase tracking-widest">{etiqueta}</span>
+        <span className="font-label-sm text-label-sm uppercase tracking-widest">
+          {etiqueta}
+        </span>
       </div>
-      <span className="font-headline-md text-headline-md break-words text-on-surface">{valor}</span>
+      <span className="font-headline-md text-headline-md break-words text-on-surface">
+        {valor}
+      </span>
       {detalle ? (
-        <span className="font-body-md text-body-md text-on-surface-variant">{detalle}</span>
+        <span className="font-body-md text-body-md text-on-surface-variant">
+          {detalle}
+        </span>
       ) : null}
     </div>
   );
@@ -61,7 +68,11 @@ function TarjetaMetrica({ icono, etiqueta, valor, detalle }) {
  */
 function GraficoIngresos({ serie }) {
   const maximo = useMemo(
-    () => serie.reduce((mayor, punto) => Math.max(mayor, parseFloat(punto.ingresos) || 0), 0),
+    () =>
+      serie.reduce(
+        (mayor, punto) => Math.max(mayor, parseFloat(punto.ingresos) || 0),
+        0,
+      ),
     [serie],
   );
 
@@ -195,7 +206,9 @@ function AdminVentas() {
           <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
             Panel de administración
           </span>
-          <h1 className="font-headline-lg text-headline-lg text-primary">Ventas</h1>
+          <h1 className="font-headline-lg text-headline-lg text-primary">
+            Ventas
+          </h1>
         </div>
 
         <div role="group" aria-label="Período" className="flex flex-wrap gap-2">
@@ -222,7 +235,9 @@ function AdminVentas() {
       {cargando ? (
         <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
-          <p className="font-body-md text-body-md text-on-surface-variant">Cargando ventas…</p>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            Cargando ventas…
+          </p>
         </div>
       ) : resumen === null ? null : sinDatos ? (
         <EstadoVacio
@@ -232,7 +247,10 @@ function AdminVentas() {
         />
       ) : (
         <>
-          <section aria-label="Resumen de facturación" className="mb-8">
+          <SeccionAdmin
+            titulo="Resumen de facturación"
+            etiqueta="Resumen de facturación"
+          >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <TarjetaMetrica
                 icono="payments"
@@ -257,66 +275,75 @@ function AdminVentas() {
                 valor={String(resumen.unidadesVendidas)}
               />
             </div>
-          </section>
+          </SeccionAdmin>
 
           {/*
             Pipeline y cancelaciones: bloque visualmente separado de las
             tarjetas de ingresos, con su propio fondo, para que el valor
             pendiente no se lea nunca como plata ya facturada.
           */}
-          <section
-            aria-label="Pipeline y cancelaciones"
-            className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2"
+          <SeccionAdmin
+            titulo="Pipeline y cancelaciones"
+            etiqueta="Pipeline y cancelaciones"
           >
-            <div
-              data-testid="pipeline"
-              className="flex flex-col gap-2 rounded-xl border border-dashed border-outline bg-surface-container p-5"
-            >
-              <div className="flex items-center gap-2 text-on-surface-variant">
-                <span className="material-symbols-outlined text-[20px]">hourglass_top</span>
-                <span className="font-label-sm text-label-sm uppercase tracking-widest">
-                  Pipeline · pendiente de confirmar
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div
+                data-testid="pipeline"
+                className="flex flex-col gap-2 rounded-xl border border-dashed border-outline bg-surface-container p-5"
+              >
+                <div className="flex items-center gap-2 text-on-surface-variant">
+                  <span className="material-symbols-outlined text-[20px]">
+                    hourglass_top
+                  </span>
+                  <span className="font-label-sm text-label-sm uppercase tracking-widest">
+                    Pipeline · pendiente de confirmar
+                  </span>
+                </div>
+                <span className="font-headline-md text-headline-md break-words text-on-surface-variant">
+                  {formatPrecio(resumen.pipeline.valorTotal)}
+                </span>
+                <span className="font-body-md text-body-md text-on-surface-variant">
+                  {resumen.pipeline.cantidadOrdenes}{" "}
+                  {resumen.pipeline.cantidadOrdenes === 1
+                    ? "orden pendiente"
+                    : "órdenes pendientes"}{" "}
+                  — todavía no cuenta como ingreso.
                 </span>
               </div>
-              <span className="font-headline-md text-headline-md break-words text-on-surface-variant">
-                {formatPrecio(resumen.pipeline.valorTotal)}
-              </span>
-              <span className="font-body-md text-body-md text-on-surface-variant">
-                {resumen.pipeline.cantidadOrdenes}{" "}
-                {resumen.pipeline.cantidadOrdenes === 1 ? "orden pendiente" : "órdenes pendientes"} —
-                todavía no cuenta como ingreso.
-              </span>
-            </div>
 
-            <div className="flex flex-col gap-2 rounded-xl bg-surface-container-lowest p-5 shadow-ambient">
-              <div className="flex items-center gap-2 text-on-surface-variant">
-                <span className="material-symbols-outlined text-[20px]">cancel</span>
-                <span className="font-label-sm text-label-sm uppercase tracking-widest">
-                  Tasa de cancelación
+              <div className="flex flex-col gap-2 rounded-xl bg-surface-container-lowest p-5 shadow-ambient">
+                <div className="flex items-center gap-2 text-on-surface-variant">
+                  <span className="material-symbols-outlined text-[20px]">
+                    cancel
+                  </span>
+                  <span className="font-label-sm text-label-sm uppercase tracking-widest">
+                    Tasa de cancelación
+                  </span>
+                </div>
+                <span className="font-headline-md text-headline-md text-on-surface">
+                  {`${(resumen.tasaCancelacion * 100).toFixed(1)}%`}
+                </span>
+                <span className="font-body-md text-body-md text-on-surface-variant">
+                  {resumen.ordenesCanceladas}{" "}
+                  {resumen.ordenesCanceladas === 1
+                    ? "orden cancelada"
+                    : "órdenes canceladas"}{" "}
+                  en el período.
                 </span>
               </div>
-              <span className="font-headline-md text-headline-md text-on-surface">
-                {`${(resumen.tasaCancelacion * 100).toFixed(1)}%`}
-              </span>
-              <span className="font-body-md text-body-md text-on-surface-variant">
-                {resumen.ordenesCanceladas}{" "}
-                {resumen.ordenesCanceladas === 1 ? "orden cancelada" : "órdenes canceladas"} en el
-                período.
-              </span>
             </div>
-          </section>
+          </SeccionAdmin>
 
-          <section aria-label="Ingresos por día" className="mb-8">
-            <h2 className="font-headline-md text-headline-md mb-4 text-primary">Ingresos por día</h2>
+          <SeccionAdmin titulo="Ingresos por día" etiqueta="Ingresos por día">
             <div className="rounded-xl bg-surface-container-lowest p-5 shadow-ambient">
               <GraficoIngresos serie={resumen.serieTemporal} />
             </div>
-          </section>
+          </SeccionAdmin>
 
-          <section aria-label="Ranking de productos">
-            <h2 className="font-headline-md text-headline-md mb-4 text-primary">
-              Productos por facturación
-            </h2>
+          <SeccionAdmin
+            titulo="Productos por facturación"
+            etiqueta="Ranking de productos"
+          >
             {resumen.rankingProductos.length === 0 ? (
               <p className="font-body-md text-body-md rounded-xl bg-surface-container-lowest p-5 text-on-surface-variant shadow-ambient">
                 Todavía no hay productos facturados en el período.
@@ -338,12 +365,18 @@ function AdminVentas() {
                         key={producto.productId}
                         className="border-b border-outline-variant last:border-b-0"
                       >
-                        <td className={`${claseCelda} text-on-surface-variant`}>{indice + 1}</td>
-                        <td className={`${claseCelda} text-on-surface`}>{producto.nombre}</td>
+                        <td className={`${claseCelda} text-on-surface-variant`}>
+                          {indice + 1}
+                        </td>
+                        <td className={`${claseCelda} text-on-surface`}>
+                          {producto.nombre}
+                        </td>
                         <td className={`${claseCelda} text-on-surface-variant`}>
                           {producto.unidades}
                         </td>
-                        <td className={`${claseCelda} whitespace-nowrap text-on-surface`}>
+                        <td
+                          className={`${claseCelda} whitespace-nowrap text-on-surface`}
+                        >
                           {formatPrecio(producto.facturacion)}
                         </td>
                       </tr>
@@ -352,7 +385,7 @@ function AdminVentas() {
                 </table>
               </div>
             )}
-          </section>
+          </SeccionAdmin>
         </>
       )}
     </main>

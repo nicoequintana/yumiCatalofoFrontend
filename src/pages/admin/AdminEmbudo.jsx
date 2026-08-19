@@ -3,6 +3,7 @@ import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { getEmbudoConversion } from "../../api/adminEmbudo.js";
+import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 
 const PERIODOS = [
   { dias: 7, label: "7 días" },
@@ -66,19 +67,26 @@ function formatTasa(tasa) {
  * barras desbordadas.
  */
 function GraficoEmbudo({ etapas }) {
-  const maximo = etapas.reduce((mayor, etapa) => Math.max(mayor, etapa.cantidad), 0);
+  const maximo = etapas.reduce(
+    (mayor, etapa) => Math.max(mayor, etapa.cantidad),
+    0,
+  );
 
   return (
     <div data-testid="grafico-embudo" className="flex flex-col gap-3">
       {etapas.map((etapa, indice) => {
         const ancho =
-          maximo > 0 ? Math.max((etapa.cantidad / maximo) * 100, ANCHO_MINIMO) : ANCHO_MINIMO;
+          maximo > 0
+            ? Math.max((etapa.cantidad / maximo) * 100, ANCHO_MINIMO)
+            : ANCHO_MINIMO;
 
         return (
           <div key={etapa.clave} className="flex flex-col gap-1">
             {indice > 0 ? (
               <div className="flex items-center gap-2 pl-1 text-on-surface-variant">
-                <span className="material-symbols-outlined text-[16px]">south</span>
+                <span className="material-symbols-outlined text-[16px]">
+                  south
+                </span>
                 <span className="font-label-sm text-label-sm uppercase tracking-widest">
                   {formatTasa(etapa.tasaDesdeAnterior)}
                 </span>
@@ -92,7 +100,9 @@ function GraficoEmbudo({ etapas }) {
 
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
               <div className="flex w-full items-center gap-3 sm:w-56 sm:shrink-0">
-                <span className="font-body-md text-body-md text-on-surface">{etapa.etiqueta}</span>
+                <span className="font-body-md text-body-md text-on-surface">
+                  {etapa.etiqueta}
+                </span>
                 {etapa.subregistrada ? (
                   <span
                     data-testid="etapa-subregistrada"
@@ -190,7 +200,8 @@ function AdminEmbudo() {
   const sinDatos =
     embudo !== null && embudo.etapas.every((etapa) => etapa.cantidad === 0);
 
-  const mostrarAdvertencia = embudo !== null && !sinDatos && embudo.periodoConfiable === false;
+  const mostrarAdvertencia =
+    embudo !== null && !sinDatos && embudo.periodoConfiable === false;
 
   return (
     <main className="w-full px-4 py-6 md:px-8 md:py-8">
@@ -203,7 +214,9 @@ function AdminEmbudo() {
           <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
             Panel de administración
           </span>
-          <h1 className="font-headline-lg text-headline-lg text-primary">Embudo</h1>
+          <h1 className="font-headline-lg text-headline-lg text-primary">
+            Embudo
+          </h1>
         </div>
 
         <div role="group" aria-label="Período" className="flex flex-wrap gap-2">
@@ -230,7 +243,9 @@ function AdminEmbudo() {
       {cargando ? (
         <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
-          <p className="font-body-md text-body-md text-on-surface-variant">Cargando embudo…</p>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            Cargando embudo…
+          </p>
         </div>
       ) : embudo === null ? null : sinDatos ? (
         <EstadoVacio
@@ -254,7 +269,9 @@ function AdminEmbudo() {
               className="mb-8 flex flex-col gap-3 rounded-xl border border-outline bg-tertiary-container p-5"
             >
               <div className="flex items-center gap-2 text-on-surface">
-                <span className="material-symbols-outlined text-[20px]">warning</span>
+                <span className="material-symbols-outlined text-[20px]">
+                  warning
+                </span>
                 <span className="font-label-sm text-label-sm uppercase tracking-widest">
                   Los datos de este período no son comparables
                 </span>
@@ -266,24 +283,30 @@ function AdminEmbudo() {
               </p>
               {embudo.confiableDesde ? (
                 <p className="font-body-md text-body-md text-on-surface-variant">
-                  Elegí un período que arranque desde el {formatFecha(embudo.confiableDesde)} para
-                  ver tasas confiables. Las etapas marcadas como “Parcial” son las que están
-                  subregistradas en el período elegido.
+                  Elegí un período que arranque desde el{" "}
+                  {formatFecha(embudo.confiableDesde)} para ver tasas
+                  confiables. Las etapas marcadas como “Parcial” son las que
+                  están subregistradas en el período elegido.
                 </p>
               ) : null}
             </div>
           ) : null}
 
-          <section aria-label="Embudo de conversión" className="mb-8">
+          <SeccionAdmin
+            titulo="Embudo de conversión"
+            etiqueta="Embudo de conversión"
+          >
             <div className="rounded-xl bg-surface-container-lowest p-5 shadow-ambient">
               <GraficoEmbudo etapas={embudo.etapas} />
             </div>
-          </section>
+          </SeccionAdmin>
 
-          <section aria-label="Conversión global" className="mb-8">
+          <SeccionAdmin titulo="Conversión global" etiqueta="Conversión global">
             <div className="flex flex-col gap-2 rounded-xl bg-surface-container-lowest p-5 shadow-ambient">
               <div className="flex items-center gap-2 text-on-surface-variant">
-                <span className="material-symbols-outlined text-[20px]">conversion_path</span>
+                <span className="material-symbols-outlined text-[20px]">
+                  conversion_path
+                </span>
                 <span className="font-label-sm text-label-sm uppercase tracking-widest">
                   Conversión global · vistas a órdenes confirmadas
                 </span>
@@ -300,12 +323,12 @@ function AdminEmbudo() {
                 </span>
               ) : null}
             </div>
-          </section>
+          </SeccionAdmin>
 
-          <section aria-label="Fuentes de tráfico">
-            <h2 className="font-headline-md text-headline-md mb-4 text-primary">
-              Fuentes de tráfico
-            </h2>
+          <SeccionAdmin
+            titulo="Fuentes de tráfico"
+            etiqueta="Fuentes de tráfico"
+          >
             {embudo.fuentesTrafico.length === 0 ? (
               <p className="font-body-md text-body-md rounded-xl bg-surface-container-lowest p-5 text-on-surface-variant shadow-ambient">
                 Todavía no hay tráfico registrado en el período.
@@ -325,10 +348,14 @@ function AdminEmbudo() {
                         key={fuente.fuente}
                         className="border-b border-outline-variant last:border-b-0"
                       >
-                        <td className={`${claseCelda} break-all text-on-surface`}>
+                        <td
+                          className={`${claseCelda} break-all text-on-surface`}
+                        >
                           {fuente.fuente}
                         </td>
-                        <td className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}>
+                        <td
+                          className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}
+                        >
                           {formatEntero(fuente.cantidad)}
                         </td>
                       </tr>
@@ -337,7 +364,7 @@ function AdminEmbudo() {
                 </table>
               </div>
             )}
-          </section>
+          </SeccionAdmin>
         </>
       )}
     </main>
