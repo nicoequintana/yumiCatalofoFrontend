@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { registrarFavorito } from "../api/products.js";
 
-const STORAGE_KEY = "aura-favoritos";
+const STORAGE_KEY = "yumi-favoritos";
 const listeners = new Set();
 
 function leerFavoritos() {
