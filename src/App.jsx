@@ -20,6 +20,8 @@ import AdminOrdenDetalle from "./pages/admin/AdminOrdenDetalle.jsx";
 import AdminLogs from "./pages/admin/AdminLogs.jsx";
 import AdminVentas from "./pages/admin/AdminVentas.jsx";
 import AdminEmbudo from "./pages/admin/AdminEmbudo.jsx";
+import AdminClientes from "./pages/admin/AdminClientes.jsx";
+import AdminOperacion from "./pages/admin/AdminOperacion.jsx";
 
 // Admin routes reestructuradas per
 // docs/superpowers/specs/2026-08-16-admin-sidebar-design.md: dejan de
@@ -49,6 +51,8 @@ function App() {
           <Route path="/catalogo/admin/ordenes/:id" element={<AdminOrdenDetalle />} />
           <Route path="/catalogo/admin/ventas" element={<AdminVentas />} />
           <Route path="/catalogo/admin/embudo" element={<AdminEmbudo />} />
+          <Route path="/catalogo/admin/clientes" element={<AdminClientes />} />
+          <Route path="/catalogo/admin/operacion" element={<AdminOperacion />} />
           <Route path="/catalogo/admin/metricas" element={<AdminMetricas />} />
           <Route path="/catalogo/admin/logs" element={<AdminLogs />} />
           <Route path="/catalogo/admin/configuracion/categorias" element={<AdminCategorias />} />

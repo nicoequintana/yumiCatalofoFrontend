@@ -28,6 +28,8 @@ const ITEMS_NAV = [
   { to: "/catalogo/admin/ordenes", icono: "receipt_long", label: "Órdenes" },
   { to: "/catalogo/admin/ventas", icono: "payments", label: "Ventas" },
   { to: "/catalogo/admin/embudo", icono: "filter_alt", label: "Embudo" },
+  { to: "/catalogo/admin/clientes", icono: "group", label: "Clientes" },
+  { to: "/catalogo/admin/operacion", icono: "pending_actions", label: "Operación" },
   { to: "/catalogo/admin/metricas", icono: "query_stats", label: "Métricas" },
   { to: "/catalogo/admin/logs", icono: "history", label: "Logs" },
 ];
