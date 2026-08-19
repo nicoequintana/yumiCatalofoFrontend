@@ -10,9 +10,11 @@ import AdminSidebar from "./AdminSidebar.jsx";
  * pantalla (ver AdminSidebar.jsx): mobile usa un sidebar lateral colapsable
  * (el botón hamburguesa de acá solo existe para abrirlo, por eso es
  * `md:hidden`); desktop usa una bottom nav horizontal siempre visible, sin
- * necesidad de ningún botón para desplegarla. El `<main>` lleva
- * `pb-20 md:pb-0` para que esa bottom nav fija nunca tape el contenido en
- * desktop (en mobile no hace falta, ahí no hay barra inferior).
+ * necesidad de ningún botón para desplegarla. El `<main>` lleva `md:pb-20`
+ * para que esa bottom nav fija (~73px de alto) nunca tape el final del
+ * contenido al scrollear hasta abajo. El padding va SOLO en `md+`: la barra
+ * inferior existe únicamente en desktop, en mobile la navegación es un
+ * sidebar lateral y no hay nada abajo que pueda tapar.
  */
 function AdminLayout() {
   const [sidebarColapsada, setSidebarColapsada] = useState(true);
