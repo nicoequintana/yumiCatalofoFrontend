@@ -1,4 +1,4 @@
-import { render, screen, within, fireEvent } from "@testing-library/react";
+import { render, screen, within, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -275,5 +275,31 @@ describe("ProductoDetalle — CTA sticky mobile", () => {
     fireEvent.click(boton);
 
     expect(await within(barraSticky).findByText(/Agregado/i)).toBeInTheDocument();
+  });
+
+  it("se oculta (translate-y-full) cuando el centinela de fin de página entra en pantalla", async () => {
+    const observeSpy = vi.fn();
+    const instancias = [];
+    vi.spyOn(global, "IntersectionObserver").mockImplementation(function (callback) {
+      this.callback = callback;
+      this.observe = observeSpy;
+      this.disconnect = vi.fn();
+      instancias.push(this);
+    });
+
+    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_BASE });
+    renderPagina();
+    await screen.findAllByText(PRODUCTO_BASE.nombre);
+
+    const barraSticky = screen.getByTestId("cta-sticky-mobile");
+    expect(barraSticky.className).toContain("translate-y-0");
+
+    instancias[0].callback([{ isIntersecting: true }]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cta-sticky-mobile").className).toContain("translate-y-full");
+    });
+
+    global.IntersectionObserver.mockRestore();
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import PhotoGallery from "../components/PhotoGallery.jsx";
 import Badge from "../components/Badge.jsx";
@@ -30,6 +30,8 @@ function ProductoDetalle() {
   const volver = useVolver();
   const [producto, setProducto] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const [cercaDelFinal, setCercaDelFinal] = useState(false);
+  const finalContenidoRef = useRef(null);
 
   useEffect(() => {
     let activo = true;
@@ -45,6 +47,20 @@ function ProductoDetalle() {
       activo = false;
     };
   }, [id]);
+
+  // Oculta el CTA sticky mobile una vez que el final de la página (justo
+  // antes del botón de WhatsApp) entra en pantalla — no tiene sentido tapar
+  // "Miralo en acción"/relacionados con una barra flotante cuando el usuario
+  // ya llegó al final del contenido.
+  useEffect(() => {
+    const nodo = finalContenidoRef.current;
+    if (!nodo || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(([entry]) => setCercaDelFinal(entry.isIntersecting));
+    observer.observe(nodo);
+
+    return () => observer.disconnect();
+  }, [producto]);
 
   if (cargando) {
     return <EstadoVacio icono="hourglass_empty" mensaje="Cargando producto…" />;
@@ -270,11 +286,15 @@ function ProductoDetalle() {
             </div>
           </section>
         ) : null}
+
+        <div ref={finalContenidoRef} aria-hidden="true" />
       </main>
 
       <div
         data-testid="cta-sticky-mobile"
-        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-4 border-t border-outline-variant bg-surface-container-lowest px-margin-mobile py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:hidden"
+        className={`fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-4 border-t border-outline-variant bg-surface-container-lowest px-margin-mobile py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] transition-transform duration-200 md:hidden ${
+          cercaDelFinal ? "translate-y-full" : "translate-y-0"
+        }`}
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
         <span className="font-headline-md text-headline-md text-primary">{formatPrecio(producto.precio)}</span>
