@@ -6,6 +6,7 @@ import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import FiltrosCatalogo from "../components/FiltrosCatalogo.jsx";
 import { getProducts } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
+import heroImg from "../assets/hero.jpg";
 
 const DEBOUNCE_SEARCH_MS = 350;
 
@@ -116,16 +117,42 @@ function Catalogo() {
 
   return (
     <>
-      {/* Hero Section — ported from home.html L121-130 */}
-      <section className="relative flex w-full flex-col items-center justify-center px-margin-mobile py-12 text-center md:px-margin-desktop md:py-20">
-        <h1 className="font-display-lg text-display-lg mx-auto mb-6 max-w-4xl tracking-tight text-primary md:text-[64px]">
-          ¿Qué vas a descubrir hoy?
-        </h1>
-        <p className="font-body-lg text-body-lg mx-auto mb-4 max-w-2xl text-on-surface-variant">
-          Entrá por una cosa. Quedate por muchas.
-          <br></br>
-          Encontrá eso que buscabas y algo que no sabías que querías.
-        </p>
+      {/* Hero Section — layout asimétrico per design doc
+          2026-08-19-catalogo-publico-editorial-design.md */}
+      <section className="w-full px-margin-mobile pb-16 pt-12 md:px-margin-desktop md:pb-24 md:pt-16">
+        <div className="mx-auto grid w-full max-w-container-max grid-cols-1 items-center gap-gutter md:grid-cols-12">
+          <div className="z-10 flex flex-col gap-6 md:col-span-5">
+            <span className="font-label-md text-label-md w-max rounded-full bg-tertiary-container px-3 py-1 uppercase tracking-wide text-on-tertiary-container">
+              La Pregunta del Día
+            </span>
+            <h1 className="font-display-lg text-display-lg tracking-tight text-on-surface">
+              ¿Qué vas a descubrir hoy?
+            </h1>
+            <p className="font-body-lg text-body-lg text-on-surface-variant">
+              Entrá por una cosa. Quedate por muchas.
+              <br />
+              Encontrá eso que buscabas y algo que no sabías que querías.
+            </p>
+            <button
+              type="button"
+              onClick={() =>
+                document.getElementById("coleccion")?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="mt-4 w-max rounded-lg bg-primary px-6 py-3 font-label-md text-label-md text-on-primary shadow-sm shadow-primary/20 transition-colors hover:bg-primary-container"
+            >
+              Explorar Colección
+            </button>
+          </div>
+
+          <div className="relative mt-8 md:col-span-7 md:mt-0">
+            <div className="absolute inset-0 -z-10 translate-x-4 translate-y-4 transform rounded-xl bg-surface-container-high" />
+            <img
+              className="h-[500px] w-full rounded-xl object-cover shadow-lg shadow-primary/5"
+              src={heroImg}
+              alt="Selección destacada del catálogo YIMA"
+            />
+          </div>
+        </div>
       </section>
 
       <FiltrosCatalogo

@@ -157,6 +157,21 @@ describe("Catalogo - filtros", () => {
     });
   });
 
+  it("el botón del hero hace scroll a la sección de colección", async () => {
+    renderPagina();
+
+    await screen.findByText("Reloj Clásico");
+
+    const boton = screen.getByRole("button", { name: "Explorar Colección" });
+    const seccionColeccion = document.getElementById("coleccion");
+    const scrollSpy = vi.fn();
+    seccionColeccion.scrollIntoView = scrollSpy;
+
+    await userEvent.setup().click(boton);
+
+    expect(scrollSpy).toHaveBeenCalledWith({ behavior: "smooth" });
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });
