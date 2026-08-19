@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import MediaUploader from "../../components/MediaUploader.jsx";
+import ListaDinamica from "../../components/ListaDinamica.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
@@ -49,6 +50,16 @@ function AdminProductoForm() {
   const [nuevaCaracteristica, setNuevaCaracteristica] = useState("");
   const [fotos, setFotos] = useState([]);
   const [video, setVideo] = useState(null);
+  const [fraseComercial, setFraseComercial] = useState("");
+  const [porQueLoVasAQuerer, setPorQueLoVasAQuerer] = useState("");
+  const [tePasaEsto, setTePasaEsto] = useState("");
+  const [beneficios, setBeneficios] = useState([]);
+  const [usos, setUsos] = useState([]);
+  const [idealPara, setIdealPara] = useState([]);
+  const [incluye, setIncluye] = useState([]);
+  const [especificaciones, setEspecificaciones] = useState([]);
+  const [nuevaSpecNombre, setNuevaSpecNombre] = useState("");
+  const [nuevaSpecValor, setNuevaSpecValor] = useState("");
 
   useEffect(() => {
     if (!esEdicion) return;
@@ -76,6 +87,14 @@ function AdminProductoForm() {
       setEtiqueta(producto.etiqueta ?? "");
       setCategoriaId(producto.categoria?.id ? String(producto.categoria.id) : "");
       setStock(String(producto.stock ?? 0));
+      setFraseComercial(producto.fraseComercial ?? "");
+      setPorQueLoVasAQuerer(producto.porQueLoVasAQuerer ?? "");
+      setTePasaEsto(producto.tePasaEsto ?? "");
+      setBeneficios(producto.beneficios ?? []);
+      setUsos(producto.usos ?? []);
+      setIdealPara(producto.idealPara ?? []);
+      setIncluye(producto.incluye ?? []);
+      setEspecificaciones(producto.especificaciones ?? []);
       setCaracteristicas(producto.caracteristicas ?? []);
       setFotos(producto.fotos ?? []);
       setVideo(producto.video ?? null);
@@ -106,6 +125,19 @@ function AdminProductoForm() {
 
   function eliminarCaracteristica(index) {
     setCaracteristicas((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function agregarEspecificacion() {
+    const nombre = nuevaSpecNombre.trim();
+    const valor = nuevaSpecValor.trim();
+    if (!nombre || !valor) return;
+    setEspecificaciones((prev) => [...prev, { id: `tmp-${Date.now()}`, nombre, valor }]);
+    setNuevaSpecNombre("");
+    setNuevaSpecValor("");
+  }
+
+  function eliminarEspecificacion(index) {
+    setEspecificaciones((prev) => prev.filter((_, i) => i !== index));
   }
 
   /**
@@ -147,6 +179,14 @@ function AdminProductoForm() {
       etiqueta: etiqueta.trim() === "" ? null : etiqueta.trim(),
       categoriaId: categoriaId === "" ? null : categoriaId,
       stock,
+      fraseComercial: fraseComercial.trim() === "" ? null : fraseComercial.trim(),
+      porQueLoVasAQuerer: porQueLoVasAQuerer.trim() === "" ? null : porQueLoVasAQuerer.trim(),
+      tePasaEsto: tePasaEsto.trim() === "" ? null : tePasaEsto.trim(),
+      beneficios: beneficios.map((b) => ({ texto: b.texto })),
+      usos: usos.map((u) => ({ texto: u.texto })),
+      idealPara: idealPara.map((i) => ({ texto: i.texto })),
+      incluye: incluye.map((i) => ({ texto: i.texto })),
+      especificaciones: especificaciones.map((e) => ({ nombre: e.nombre, valor: e.valor })),
       caracteristicas: caracteristicas.map((c) => ({ texto: c.texto })),
       // Persisted photos (numeric id, no local `file`) are referenced by id
       // so the backend keeps them as-is; freshly picked photos (`f.file`
@@ -313,56 +353,198 @@ function AdminProductoForm() {
           </div>
         </div>
 
-        <div>
-          <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
-            Características
-          </h3>
-          <div className="mb-3 flex flex-col gap-2">
-            {caracteristicas.map((caracteristica, index) => (
-              <div
-                key={caracteristica.id}
-                className="flex items-center justify-between rounded-lg bg-surface-container px-4 py-2"
-              >
-                <span className="font-body-md text-body-md text-on-surface">{caracteristica.texto}</span>
-                <button
-                  type="button"
-                  onClick={() => eliminarCaracteristica(index)}
-                  aria-label={`Eliminar característica ${caracteristica.texto}`}
-                  className="text-on-surface-variant hover:text-error"
-                >
-                  <span className="material-symbols-outlined text-[18px]">close</span>
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
+        <div className="flex flex-col gap-6 border-t border-outline-variant pt-8">
+          <h2 className="font-headline-md text-headline-md text-primary">Contenido comercial</h2>
+
+          <div>
+            <label
+              htmlFor="fraseComercial"
+              className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface"
+            >
+              Frase comercial (opcional)
+            </label>
             <input
+              id="fraseComercial"
               type="text"
-              value={nuevaCaracteristica}
-              onChange={(e) => setNuevaCaracteristica(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  agregarCaracteristica();
-                }
-              }}
-              placeholder="Ej: Cuero genuino"
+              value={fraseComercial}
+              onChange={(e) => setFraseComercial(e.target.value)}
+              placeholder="Ej: Iluminá donde quieras, sin depender de un enchufe."
               className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
             />
-            <button
-              type="button"
-              onClick={agregarCaracteristica}
-              className="font-label-md text-label-md shrink-0 rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+          </div>
+
+          <div>
+            <label
+              htmlFor="porQueLoVasAQuerer"
+              className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface"
             >
-              Agregar
-            </button>
+              ¿Por qué lo vas a querer? (opcional)
+            </label>
+            <textarea
+              id="porQueLoVasAQuerer"
+              rows={3}
+              value={porQueLoVasAQuerer}
+              onChange={(e) => setPorQueLoVasAQuerer(e.target.value)}
+              className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="tePasaEsto"
+              className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface"
+            >
+              ¿Te pasa esto? (opcional)
+            </label>
+            <textarea
+              id="tePasaEsto"
+              rows={3}
+              value={tePasaEsto}
+              onChange={(e) => setTePasaEsto(e.target.value)}
+              className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
+              Beneficios
+            </h3>
+            <ListaDinamica items={beneficios} onChange={setBeneficios} placeholder="Ej: Recargable por USB" />
           </div>
         </div>
 
-        <div>
-          <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
-            Medios
-          </h3>
+        <div className="flex flex-col gap-6 border-t border-outline-variant pt-8">
+          <h2 className="font-headline-md text-headline-md text-primary">Uso del producto</h2>
+
+          <div>
+            <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
+              ¿Cómo podés usarlo? (opcional)
+            </h3>
+            <ListaDinamica items={usos} onChange={setUsos} placeholder="Ej: Para estudiar" />
+          </div>
+
+          <div>
+            <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
+              Ideal para (opcional)
+            </h3>
+            <ListaDinamica items={idealPara} onChange={setIdealPara} placeholder="Ej: Estudiantes" />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-6 border-t border-outline-variant pt-8">
+          <h2 className="font-headline-md text-headline-md text-primary">Información del producto</h2>
+
+          <div>
+            <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
+              Características destacadas
+            </h3>
+            <div className="mb-3 flex flex-col gap-2">
+              {caracteristicas.map((caracteristica, index) => (
+                <div
+                  key={caracteristica.id}
+                  className="flex items-center justify-between rounded-lg bg-surface-container px-4 py-2"
+                >
+                  <span className="font-body-md text-body-md text-on-surface">{caracteristica.texto}</span>
+                  <button
+                    type="button"
+                    onClick={() => eliminarCaracteristica(index)}
+                    aria-label={`Eliminar característica ${caracteristica.texto}`}
+                    className="text-on-surface-variant hover:text-error"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">close</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={nuevaCaracteristica}
+                onChange={(e) => setNuevaCaracteristica(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    agregarCaracteristica();
+                  }
+                }}
+                placeholder="Ej: Cuero genuino"
+                className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={agregarCaracteristica}
+                className="font-label-md text-label-md shrink-0 rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+              >
+                Agregar
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
+              Especificaciones técnicas (opcional)
+            </h3>
+            <div className="mb-3 flex flex-col gap-2">
+              {especificaciones.map((spec, index) => (
+                <div
+                  key={spec.id}
+                  className="flex items-center justify-between gap-2 rounded-lg bg-surface-container px-4 py-2"
+                >
+                  <span className="font-body-md text-body-md text-on-surface">
+                    <strong>{spec.nombre}</strong> — {spec.valor}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => eliminarEspecificacion(index)}
+                    aria-label={`Eliminar especificación ${spec.nombre}`}
+                    className="text-on-surface-variant hover:text-error"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">close</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={nuevaSpecNombre}
+                onChange={(e) => setNuevaSpecNombre(e.target.value)}
+                placeholder="Nombre (ej: Material)"
+                className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
+              />
+              <input
+                type="text"
+                value={nuevaSpecValor}
+                onChange={(e) => setNuevaSpecValor(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    agregarEspecificacion();
+                  }
+                }}
+                placeholder="Valor (ej: ABS)"
+                className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={agregarEspecificacion}
+                className="font-label-md text-label-md shrink-0 rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+              >
+                + Agregar especificación
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
+              ¿Qué incluye? (opcional)
+            </h3>
+            <ListaDinamica items={incluye} onChange={setIncluye} placeholder="Ej: 1 × Cable USB" />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-6 border-t border-outline-variant pt-8">
+          <h2 className="font-headline-md text-headline-md text-primary">Multimedia</h2>
           <MediaUploader fotos={fotos} video={video} onChangeFotos={handleChangeFotos} onChangeVideo={setVideo} />
         </div>
 

@@ -62,6 +62,23 @@ function construirFormData(data) {
   }
   if (data.stock !== undefined) fd.append("stock", String(data.stock));
 
+  if (data.fraseComercial !== undefined && data.fraseComercial !== null) {
+    fd.append("fraseComercial", data.fraseComercial);
+  }
+  if (data.porQueLoVasAQuerer !== undefined && data.porQueLoVasAQuerer !== null) {
+    fd.append("porQueLoVasAQuerer", data.porQueLoVasAQuerer);
+  }
+  if (data.tePasaEsto !== undefined && data.tePasaEsto !== null) {
+    fd.append("tePasaEsto", data.tePasaEsto);
+  }
+  if (data.beneficios !== undefined) fd.append("beneficios", JSON.stringify(data.beneficios));
+  if (data.usos !== undefined) fd.append("usos", JSON.stringify(data.usos));
+  if (data.idealPara !== undefined) fd.append("idealPara", JSON.stringify(data.idealPara));
+  if (data.incluye !== undefined) fd.append("incluye", JSON.stringify(data.incluye));
+  if (data.especificaciones !== undefined) {
+    fd.append("especificaciones", JSON.stringify(data.especificaciones));
+  }
+
   if (data.caracteristicas !== undefined) {
     fd.append("caracteristicas", JSON.stringify(data.caracteristicas.map((c) => ({ texto: c.texto }))));
   }
