@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { getProducts, registrarFavorito } from "./products.js";
+import { construirFormData, getProducts, registrarFavorito } from "./products.js";
 
 const BASE = "http://localhost:4000/api";
 
@@ -98,5 +98,30 @@ describe("registrarFavorito", () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("network error"));
 
     await expect(registrarFavorito(7)).resolves.toBeUndefined();
+  });
+});
+
+describe("construirFormData — campos comerciales de texto", () => {
+  it("manda el valor cuando el campo tiene contenido", () => {
+    const fd = construirFormData({ fraseComercial: "Iluminá donde quieras." });
+    expect(fd.get("fraseComercial")).toBe("Iluminá donde quieras.");
+  });
+
+  it("manda string vacío (no omite el campo) cuando el valor es null, para poder vaciarlo en edición", () => {
+    const fd = construirFormData({
+      fraseComercial: null,
+      porQueLoVasAQuerer: null,
+      tePasaEsto: null,
+    });
+    expect(fd.get("fraseComercial")).toBe("");
+    expect(fd.get("porQueLoVasAQuerer")).toBe("");
+    expect(fd.get("tePasaEsto")).toBe("");
+  });
+
+  it("omite el campo del todo cuando es undefined (no se tocó ese campo)", () => {
+    const fd = construirFormData({});
+    expect(fd.has("fraseComercial")).toBe(false);
+    expect(fd.has("porQueLoVasAQuerer")).toBe(false);
+    expect(fd.has("tePasaEsto")).toBe(false);
   });
 });

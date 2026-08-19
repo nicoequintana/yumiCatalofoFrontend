@@ -50,7 +50,7 @@ async function pedirAutenticado(url, options) {
 }
 
 /** Builds the shared `FormData` payload for create/update from the form's `data` shape. */
-function construirFormData(data) {
+export function construirFormData(data) {
   const fd = new FormData();
 
   if (data.nombre !== undefined) fd.append("nombre", data.nombre);
@@ -62,14 +62,18 @@ function construirFormData(data) {
   }
   if (data.stock !== undefined) fd.append("stock", String(data.stock));
 
-  if (data.fraseComercial !== undefined && data.fraseComercial !== null) {
-    fd.append("fraseComercial", data.fraseComercial);
+  // Estos tres campos deben poder vaciarse explícitamente desde el form de
+  // edición — se manda "" en vez de omitir el campo cuando es null, y el
+  // backend ya trata "" como clear -> null (mismo `?.trim() || null` que
+  // usa al crear el producto).
+  if (data.fraseComercial !== undefined) {
+    fd.append("fraseComercial", data.fraseComercial ?? "");
   }
-  if (data.porQueLoVasAQuerer !== undefined && data.porQueLoVasAQuerer !== null) {
-    fd.append("porQueLoVasAQuerer", data.porQueLoVasAQuerer);
+  if (data.porQueLoVasAQuerer !== undefined) {
+    fd.append("porQueLoVasAQuerer", data.porQueLoVasAQuerer ?? "");
   }
-  if (data.tePasaEsto !== undefined && data.tePasaEsto !== null) {
-    fd.append("tePasaEsto", data.tePasaEsto);
+  if (data.tePasaEsto !== undefined) {
+    fd.append("tePasaEsto", data.tePasaEsto ?? "");
   }
   if (data.beneficios !== undefined) fd.append("beneficios", JSON.stringify(data.beneficios));
   if (data.usos !== undefined) fd.append("usos", JSON.stringify(data.usos));
