@@ -228,3 +228,25 @@ describe("ProductoDetalle — contenido comercial", () => {
     expect(screen.queryByText("¿Qué incluye?")).not.toBeInTheDocument();
   });
 });
+
+describe("ProductoDetalle — Miralo en acción", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("muestra la sección Miralo en acción cuando el producto tiene video", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      video: { id: 1, url: "/api/products/1/video" },
+    });
+    renderPagina();
+    expect(await screen.findByText("Miralo en acción")).toBeInTheDocument();
+  });
+
+  it("no muestra Miralo en acción cuando el producto no tiene video", async () => {
+    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_BASE, video: null });
+    renderPagina();
+    await screen.findAllByText(PRODUCTO_BASE.nombre);
+    expect(screen.queryByText("Miralo en acción")).not.toBeInTheDocument();
+  });
+});

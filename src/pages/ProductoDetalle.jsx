@@ -80,7 +80,7 @@ function ProductoDetalle() {
         </div>
         <div className="grid grid-cols-1 items-center gap-gutter md:grid-cols-12">
           <div className="col-span-1 md:col-span-7">
-            <PhotoGallery fotos={producto.fotos} video={producto.video} nombre={producto.nombre} />
+            <PhotoGallery fotos={producto.fotos} nombre={producto.nombre} />
           </div>
 
           <div className="col-span-1 flex flex-col pt-8 md:col-span-5 md:pt-0 md:pl-8">
@@ -228,6 +228,17 @@ function ProductoDetalle() {
             </div>
           </div>
         </div>
+
+        {producto.video ? (
+          <section className="mt-16 border-t border-outline-variant pt-12 md:mt-24 md:pt-16">
+            <h2 className="font-headline-md text-headline-md mb-8 text-primary">Miralo en acción</h2>
+            <video
+              src={producto.video.url}
+              controls
+              className="w-full max-w-3xl rounded-xl bg-surface-container-low"
+            />
+          </section>
+        ) : null}
 
         {producto.relacionados?.length > 0 ? (
           <section className="mt-16 border-t border-outline-variant pt-12 md:mt-24 md:pt-16">
