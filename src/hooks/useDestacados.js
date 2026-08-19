@@ -18,11 +18,19 @@ function useDestacados() {
   useEffect(() => {
     let activo = true;
 
-    getProducts({}).then((data) => {
-      if (!activo) return;
-      setProductos(data);
-      setCargando(false);
-    });
+    getProducts({})
+      .then((data) => {
+        if (activo) setProductos(data);
+      })
+      .catch(() => {
+        // Soft feature — el bento ya se oculta si no hay al menos 4
+        // destacados, así que ante un fetch fallido preferimos degradar a
+        // lista vacía (bento oculto) antes que romper la página o quedar
+        // colgados en estado de carga.
+      })
+      .finally(() => {
+        if (activo) setCargando(false);
+      });
 
     return () => {
       activo = false;
