@@ -91,7 +91,7 @@ test.describe("Cliente recurrente — dos órdenes, mismo dni, un solo Cliente",
     // así la aserción final puede distinguir "quedó el dato viejo" (bug: creó
     // un cliente nuevo o no actualizó) de "quedó el dato nuevo" (correcto:
     // pasó por la rama de update de upsertClienteConReintento).
-    await page.goto("/");
+    await page.goto("/coleccion");
     await page.getByPlaceholder(/buscar/i).fill("E2E-TEST-Producto Cliente Recurrente");
     await expect(page).toHaveURL(/search=E2E-TEST-Producto/);
 

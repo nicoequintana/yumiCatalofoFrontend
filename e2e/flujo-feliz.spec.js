@@ -67,17 +67,17 @@ test.describe("Flujo feliz — checkout de invitado", () => {
   test("catálogo -> detalle -> carrito -> checkout -> confirmación, con orden verificada en DB", async ({
     page,
   }) => {
-    // 1. Catálogo: buscar el producto de test por nombre (search es texto
-    // libre contra `nombre`, ver Catalogo.jsx/FiltrosCatalogo.jsx) y navegar
+    // 1. Colección: buscar el producto de test por nombre (search es texto
+    // libre contra `nombre`, ver Coleccion.jsx/FiltrosCatalogo.jsx) y navegar
     // a su detalle. Usar el buscador evita depender de en qué posición del
     // grid cae la card entre productos reales de dev.
-    await page.goto("/");
+    await page.goto("/coleccion");
     await page
       .getByPlaceholder(/buscar/i)
       .fill("E2E-TEST-Producto Flujo Feliz");
 
     // El input de búsqueda debouncea 350ms antes de escribir a la URL (ver
-    // Catalogo.jsx's DEBOUNCE_SEARCH_MS) y recién ahí dispara el refetch que
+    // Coleccion.jsx's DEBOUNCE_SEARCH_MS) y recién ahí dispara el refetch que
     // vuelve a renderizar el grid de resultados. Esperar a que la URL refleje
     // el filtro evita clickear el link justo en medio de ese re-render (el
     // nodo del link puede desmontarse/remontarse al llegar la respuesta).

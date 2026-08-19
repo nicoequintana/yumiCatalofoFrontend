@@ -67,7 +67,7 @@ function CamposFiltro({ categorias, categoria, onChangeCategoria, minPrecio, onC
 }
 
 /**
- * Sticky filter bar for the public catalog (`Catalogo.jsx`), pinned right
+ * Sticky filter bar for the public catalog (`Coleccion.jsx`), pinned right
  * below the (also sticky) `Navbar`. Purely controlled — all state (values +
  * change handlers) lives in the parent so it can stay in sync with the URL
  * querystring (`useSearchParams`) and drive the `getProducts()` refetch.

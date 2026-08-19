@@ -63,7 +63,7 @@ test.describe("Producto agotado — bloqueo en UI y defensa en el backend", () =
   });
 
   test("el catálogo tampoco muestra el badge Agotado en la card del producto", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/coleccion");
     await page.getByPlaceholder(/buscar/i).fill("E2E-TEST-Producto Agotado");
     await expect(page).toHaveURL(/search=E2E-TEST-Producto/);
 

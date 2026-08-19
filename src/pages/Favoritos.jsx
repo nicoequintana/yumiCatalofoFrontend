@@ -8,7 +8,7 @@ import { getProducts } from "../api/products.js";
 
 /**
  * `/favoritos` — every product currently saved as a favorite (design item:
- * Feature 4 of the 6-feature batch). Reuses Catalogo.jsx's fetch/grid
+ * Feature 4 of the 6-feature batch). Reuses Coleccion.jsx's fetch/grid
  * pattern, just pre-filtered against the ids in localStorage.
  *
  * If a favorited id no longer matches any real product (e.g. the admin
