@@ -12,6 +12,7 @@ import ProductoDetalle from "./pages/ProductoDetalle.jsx";
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
 import AdminProductos from "./pages/admin/AdminProductos.jsx";
 import AdminProductoForm from "./pages/admin/AdminProductoForm.jsx";
+import AdminImportarProductos from "./pages/admin/AdminImportarProductos.jsx";
 import AdminCategorias from "./pages/admin/AdminCategorias.jsx";
 import AdminMetricas from "./pages/admin/AdminMetricas.jsx";
 import AdminUsuarios from "./pages/admin/AdminUsuarios.jsx";
@@ -46,6 +47,7 @@ function App() {
           <Route path="/catalogo/admin" element={<Navigate to="/catalogo/admin/productos" replace />} />
           <Route path="/catalogo/admin/productos" element={<AdminProductos />} />
           <Route path="/catalogo/admin/productos/nuevo" element={<AdminProductoForm />} />
+          <Route path="/catalogo/admin/productos/importar" element={<AdminImportarProductos />} />
           <Route path="/catalogo/admin/productos/:id/editar" element={<AdminProductoForm />} />
           <Route path="/catalogo/admin/ordenes" element={<AdminOrdenes />} />
           <Route path="/catalogo/admin/ordenes/:id" element={<AdminOrdenDetalle />} />

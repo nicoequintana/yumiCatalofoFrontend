@@ -147,6 +147,13 @@ function AdminProductos() {
 
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
           <Link
+            to="/catalogo/admin/productos/importar"
+            className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+          >
+            <span className="material-symbols-outlined text-[18px]">upload_file</span>
+            Importar
+          </Link>
+          <Link
             to="/catalogo/admin/productos/nuevo"
             className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container"
           >
