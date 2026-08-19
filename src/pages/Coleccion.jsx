@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
+import BotonVolver from "../components/BotonVolver.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import FiltrosCatalogo from "../components/FiltrosCatalogo.jsx";
 import BentoDestacados from "../components/BentoDestacados.jsx";
@@ -163,6 +164,18 @@ function Coleccion() {
 
   return (
     <>
+      {/* Salida de la página, antes de cualquier contenido: `/coleccion` es un
+          destino propio al que se puede llegar por link compartido, y sin esto
+          el usuario queda sin forma de volver dentro de la app. A diferencia
+          de ProductoDetalle (que oculta su BotonVolver en mobile porque tiene
+          un header sticky con flecha propia), acá se muestra en todos los
+          breakpoints: esta página no tiene ese header, así que ocultarlo en
+          mobile dejaría sin salida justo donde el gesto de "atrás" del sistema
+          es menos evidente dentro de una SPA. */}
+      <div className="mx-auto w-full max-w-container-max px-margin-mobile pt-6 md:px-margin-desktop md:pt-8">
+        <BotonVolver />
+      </div>
+
       <BentoDestacados productos={destacados} />
 
       <FiltrosCatalogo

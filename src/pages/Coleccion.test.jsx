@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import Coleccion from "./Coleccion.jsx";
 import * as productsApi from "../api/products.js";
@@ -254,6 +254,39 @@ describe("Coleccion - filtros y grid", () => {
     await waitFor(() => {
       expect(productsApi.getProducts).toHaveBeenCalledWith({});
     });
+  });
+
+  it("muestra el botón de volver, visible también en mobile", async () => {
+    renderPagina();
+
+    const volver = await screen.findByRole("button", { name: /volver/i });
+    expect(volver).toBeInTheDocument();
+    // No debe estar oculto en mobile: la página es un destino de navegación
+    // propio y quedarse sin salida en celular es el caso más frecuente.
+    expect(volver.closest(".hidden")).toBeNull();
+  });
+
+  // Entrar directo a /coleccion (link compartido, sin historial previo) es el
+  // caso que deja al usuario sin salida: `useVolver` detecta `location.key
+  // === "default"` y cae al fallback en vez de sacarlo del sitio.
+  it("si se entró directo por link, el botón de volver lleva a la home", async () => {
+    const user = userEvent.setup();
+    categoriasApi.getCategorias.mockResolvedValue([]);
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={["/coleccion"]}>
+          <Routes>
+            <Route path="/" element={<h1>Home editorial</h1>} />
+            <Route path="/coleccion" element={<Coleccion />} />
+          </Routes>
+        </MemoryRouter>
+      </StrictMode>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /volver/i }));
+
+    expect(await screen.findByRole("heading", { name: "Home editorial" })).toBeInTheDocument();
   });
 
   it("no muestra el manifiesto de marca (es exclusivo de la home)", async () => {
