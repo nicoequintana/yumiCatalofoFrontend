@@ -26,11 +26,16 @@ function Favoritos() {
   const [productosGuardados, setProductosGuardados] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);
+  // Ids a pedir, congelados al montar: el inicializador de `useState` corre una
+  // sola vez, así que esto no cambia nunca y el efecto de abajo puede
+  // declararlo como dependencia sin re-dispararse. Solo congela lo que se
+  // PIDE — lo que se escribe de vuelta se resuelve con el valor vigente.
+  const [idsIniciales] = useState(favoritos);
 
   useEffect(() => {
     let activo = true;
 
-    getProductsByIds(favoritos)
+    getProductsByIds(idsIniciales)
       .then((data) => {
         if (!activo) return;
 
@@ -47,10 +52,18 @@ function Favoritos() {
         //
         // Un fallo de red no llega hasta acá (lo atrapa el `.catch` de abajo),
         // así que una caída del backend nunca puede vaciar los favoritos.
-        const favoritosLimpios = favoritos.filter((id) => idsExistentes.has(id));
-        if (favoritosLimpios.length !== favoritos.length) {
-          establecerFavoritos(favoritosLimpios);
-        }
+        // Se usa la forma FUNCIONAL a propósito: `actuales` es la lista
+        // vigente al llegar la respuesta, no la que este efecto capturó al
+        // montar. Entre que arranca el fetch y llega la respuesta el usuario
+        // puede haber tocado un corazón, y escribir el array viejo resucitaría
+        // el favorito que acaba de sacar.
+        //
+        // Devolver `actuales` tal cual cuando no sobra nada evita una escritura
+        // (y un re-render de todas las instancias del hook) que no cambia nada.
+        establecerFavoritos((actuales) => {
+          const limpios = actuales.filter((id) => idsExistentes.has(id));
+          return limpios.length === actuales.length ? actuales : limpios;
+        });
 
         setProductosGuardados(data);
         setCargando(false);
@@ -68,12 +81,18 @@ function Favoritos() {
     return () => {
       activo = false;
     };
-    // Corre una sola vez al montar — lee `favoritos` por closure en ese
-    // momento. NO debe re-ejecutarse ante cada cambio de `favoritos` (pasa en
-    // cada toggle, incluida la propia limpieza de arriba): sería un bucle de
-    // refetch. Por eso, a diferencia de `Carrito.jsx`, acá los ids se congelan
-    // al montar en vez de ser la clave del efecto.
-  }, []);
+    // Corre una sola vez al montar. NO debe re-ejecutarse ante cada cambio de
+    // `favoritos` (pasa en cada toggle, incluida la propia limpieza de arriba):
+    // sería un bucle de refetch. Por eso, a diferencia de `Carrito.jsx`,
+    // `favoritos` no es la clave del efecto; los ids a pedir se congelan en
+    // `idsIniciales`.
+    //
+    // Las dos dependencias declaradas son estables por construcción:
+    // `idsIniciales` porque el inicializador de `useState` corre una sola vez,
+    // y `establecerFavoritos` porque vive a nivel de módulo en
+    // `useFavoritos.js`. Ninguna de las dos cambia, así que el efecto sigue
+    // corriendo una única vez y el array de dependencias es honesto.
+  }, [idsIniciales, establecerFavoritos]);
 
   const productos = productosGuardados.filter((p) => favoritos.includes(p.id));
 

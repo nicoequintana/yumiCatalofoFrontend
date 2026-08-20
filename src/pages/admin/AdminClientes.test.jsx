@@ -7,8 +7,12 @@ import * as adminClientesApi from "../../api/adminClientes.js";
 
 vi.mock("../../api/adminClientes.js");
 
+/** Histórico completo: el backend analizó todas las órdenes, sin tocar el tope. */
+const HISTORICO_COMPLETO = { ordenesAnalizadas: 120, tope: 20000, recortado: false };
+
 const RESUMEN = {
   periodo: { desde: "2026-07-21", hasta: "2026-08-19", recortado: false },
+  historico: HISTORICO_COMPLETO,
   totalClientes: 4,
   clientesNuevos: 3,
   clientesRecurrentes: 1,
@@ -28,6 +32,7 @@ const RESUMEN = {
  */
 const RESUMEN_SIN_RECOMPRAS = {
   periodo: { desde: "2026-07-21", hasta: "2026-08-19", recortado: false },
+  historico: HISTORICO_COMPLETO,
   totalClientes: 3,
   clientesNuevos: 3,
   clientesRecurrentes: 0,
@@ -40,8 +45,18 @@ const RESUMEN_SIN_RECOMPRAS = {
   ],
 };
 
+/**
+ * El histórico tocó el tope de 20.000 órdenes: se perdieron las compras más
+ * viejas, así que recurrentes, ranking y tiempo entre compras son un piso.
+ */
+const RESUMEN_RECORTADO = {
+  ...RESUMEN,
+  historico: { ordenesAnalizadas: 20000, tope: 20000, recortado: true },
+};
+
 const RESUMEN_VACIO = {
   periodo: { desde: "2026-07-21", hasta: "2026-08-19", recortado: false },
+  historico: HISTORICO_COMPLETO,
   totalClientes: 0,
   clientesNuevos: 0,
   clientesRecurrentes: 0,
@@ -165,6 +180,55 @@ describe("AdminClientes", () => {
     renderPagina();
 
     expect(await screen.findByText("No hubo clientes en este período")).toBeInTheDocument();
+  });
+
+  it("no muestra la advertencia de histórico cuando no hubo recorte", async () => {
+    renderPagina();
+
+    await screen.findByText("$ 1.750,00");
+
+    expect(screen.queryByTestId("advertencia-historico")).not.toBeInTheDocument();
+  });
+
+  it("avisa que las métricas son un piso cuando el histórico se recortó", async () => {
+    adminClientesApi.getResumenClientes.mockResolvedValue(RESUMEN_RECORTADO);
+
+    renderPagina();
+
+    const aviso = await screen.findByTestId("advertencia-historico");
+
+    // El aviso tiene que decir que los números son un MÍNIMO, no un total, y
+    // mostrar cuántas órdenes se alcanzaron a analizar.
+    expect(
+      within(aviso).getByText("Estos números son un mínimo, no el total"),
+    ).toBeInTheDocument();
+    expect(within(aviso).getByText(/20\.000/)).toBeInTheDocument();
+    expect(within(aviso).getByText(/quedaron afuera/i)).toBeInTheDocument();
+  });
+
+  it("no muestra la advertencia de histórico sobre el estado vacío", async () => {
+    adminClientesApi.getResumenClientes.mockResolvedValue({
+      ...RESUMEN_VACIO,
+      historico: { ordenesAnalizadas: 20000, tope: 20000, recortado: true },
+    });
+
+    renderPagina();
+
+    await screen.findByText("No hubo clientes en este período");
+
+    expect(screen.queryByTestId("advertencia-historico")).not.toBeInTheDocument();
+  });
+
+  it("no rompe si la respuesta no trae `historico` (backend viejo)", async () => {
+    const { historico, ...sinHistorico } = RESUMEN_RECORTADO;
+    expect(historico).toBeDefined();
+    adminClientesApi.getResumenClientes.mockResolvedValue(sinHistorico);
+
+    renderPagina();
+
+    await screen.findByText("$ 1.750,00");
+
+    expect(screen.queryByTestId("advertencia-historico")).not.toBeInTheDocument();
   });
 
   it("muestra un mensaje de error si la carga falla", async () => {

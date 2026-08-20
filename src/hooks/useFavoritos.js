@@ -40,6 +40,38 @@ function escribirFavoritos(ids) {
 }
 
 /**
+ * Reemplaza la lista completa de favoritos.
+ *
+ * Acepta un array o un ACTUALIZADOR `(actuales) => siguientes`, igual que el
+ * `setState(prev => …)` de React. La forma funcional recibe
+ * `favoritosActuales`, o sea el valor vigente en el momento de la llamada, no
+ * el que capturó el último render de quien la invoca — que es exactamente lo
+ * que necesita cualquier consumidor que decida sobre los favoritos DESPUÉS de
+ * un await (ver `Favoritos.jsx`: entre que arranca el fetch y llega la
+ * respuesta, el usuario puede tocar un corazón, y escribir el array viejo
+ * resucitaría el favorito que acaba de sacar).
+ *
+ * Si el actualizador devuelve el mismo array que recibió, no se escribe ni se
+ * notifica a nadie — la convención de "devolvé `prev` para no hacer nada" de
+ * React, útil para reconciliaciones que la mayoría de las veces no cambian
+ * nada.
+ *
+ * Vive a nivel de módulo, no adentro del hook, así su identidad es ESTABLE
+ * entre renders: los consumidores pueden ponerla en el array de dependencias
+ * de un `useEffect` sin provocar re-ejecuciones. No envolverla en una función
+ * nueva al devolverla desde el hook.
+ */
+function establecerFavoritos(idsOActualizador) {
+  const actuales = favoritosActuales;
+  const siguientes =
+    typeof idsOActualizador === "function" ? idsOActualizador(actuales) : idsOActualizador;
+
+  if (siguientes === actuales) return;
+
+  escribirFavoritos(siguientes);
+}
+
+/**
  * Favorites are stored as a JSON array of product ids under one
  * localStorage key. Multiple components (Navbar's count badge, each
  * ProductCard's heart, the detail page's heart) can each hold their own
@@ -78,10 +110,6 @@ function useFavoritos() {
     if (agregando) {
       registrarFavorito(id);
     }
-  }
-
-  function establecerFavoritos(ids) {
-    escribirFavoritos(ids);
   }
 
   return { favoritos, esFavorito, toggleFavorito, establecerFavoritos };

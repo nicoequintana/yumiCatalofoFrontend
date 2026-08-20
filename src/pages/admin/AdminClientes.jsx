@@ -64,6 +64,9 @@ function BarraComposicion({ nuevos, recurrentes }) {
   );
 }
 
+/** Miles con separador local, para que "20000" se lea como "20.000". */
+const formatCantidad = new Intl.NumberFormat("es-AR").format;
+
 /**
  * `/catalogo/admin/clientes` — dashboard de clientes del panel admin.
  *
@@ -75,6 +78,14 @@ function BarraComposicion({ nuevos, recurrentes }) {
  * período visible: quien compró dos veces es recurrente aunque solo una de
  * esas compras caiga en la ventana elegida. Si dependiera del zoom del
  * selector, la tasa de recompra cambiaría sola al cambiar de período.
+ *
+ * **El histórico tiene tope** (`MAX_ORDENES_HISTORICO` en el backend). Cuando
+ * se alcanza, la respuesta llega con `historico.recortado: true` y las órdenes
+ * que quedaron afuera son las MÁS VIEJAS, así que clientes recurrentes,
+ * ranking y tiempo entre compras pasan a ser un piso: alguien cuya única
+ * compra anterior cayó fuera del corte se lee como "nuevo". Eso se avisa
+ * arriba de todo, antes de los números, con el mismo criterio que la
+ * advertencia de confiabilidad de `AdminEmbudo.jsx`.
  *
  * **`tiempoEntreCompras` puede ser `null`** y se muestra como "sin datos
  * suficientes", nunca como "0 días". Con los datos actuales (cada cliente con
@@ -119,6 +130,11 @@ function AdminClientes() {
 
   const sinDatos = resumen !== null && resumen.totalClientes === 0;
 
+  // Se lee con `?.`: un backend anterior al tope no manda `historico`, y ahí
+  // no hay nada que advertir.
+  const mostrarAdvertenciaHistorico =
+    resumen !== null && !sinDatos && resumen.historico?.recortado === true;
+
   return (
     <main className="w-full px-4 py-6 md:px-8 md:py-8">
       <div className="mb-6">
@@ -159,6 +175,41 @@ function AdminClientes() {
         />
       ) : (
         <>
+          {/*
+            La advertencia va ANTES de las métricas, igual que en
+            `AdminEmbudo.jsx`: si el histórico se recortó, los números de abajo
+            son un piso y eso hay que leerlo antes que los números, no después.
+          */}
+          {mostrarAdvertenciaHistorico ? (
+            <div
+              data-testid="advertencia-historico"
+              role="status"
+              className="mb-8 flex flex-col gap-3 rounded-xl border border-outline bg-tertiary-container p-5"
+            >
+              <div className="flex items-center gap-2 text-on-surface">
+                <span className="material-symbols-outlined text-[20px]">
+                  warning
+                </span>
+                <span className="font-label-sm text-label-sm uppercase tracking-widest">
+                  Estos números son un mínimo, no el total
+                </span>
+              </div>
+              <p className="font-body-md text-body-md text-on-surface">
+                Se analizaron las{" "}
+                {formatCantidad(resumen.historico.ordenesAnalizadas)} órdenes
+                confirmadas más recientes, que es el tope de{" "}
+                {formatCantidad(resumen.historico.tope)} que se trae del
+                histórico. Las compras anteriores a ese corte quedaron afuera.
+              </p>
+              <p className="font-body-md text-body-md text-on-surface-variant">
+                Por eso los clientes recurrentes, el ranking y el tiempo entre
+                compras son un mínimo: quien solo compró antes del corte figura
+                acá como cliente nuevo y su facturación de por vida queda
+                subestimada.
+              </p>
+            </div>
+          ) : null}
+
           <SeccionAdmin
             titulo="Resumen de clientes"
             etiqueta="Resumen de clientes"
