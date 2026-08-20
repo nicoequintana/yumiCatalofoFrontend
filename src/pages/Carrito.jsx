@@ -51,15 +51,26 @@ function Carrito() {
   const { carrito, actualizarCantidad, quitar } = useCarrito();
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(null);
 
   useEffect(() => {
     let activo = true;
 
-    getProducts().then((data) => {
-      if (!activo) return;
-      setProductos(data);
-      setCargando(false);
-    });
+    getProducts()
+      .then((data) => {
+        if (!activo) return;
+        setProductos(data);
+        setCargando(false);
+      })
+      // Sin este catch, un backend caído deja la promesa rechazada sin manejar
+      // y el spinner girando para siempre. Peor todavía acá: sin `productos`
+      // toda línea parece "no disponible", así que el carrito se leería como
+      // vacío cuando el problema es la conexión.
+      .catch(() => {
+        if (!activo) return;
+        setErrorCarga("Revisá tu conexión e intentá de nuevo.");
+        setCargando(false);
+      });
 
     return () => {
       activo = false;
@@ -102,6 +113,8 @@ function Carrito() {
 
       {cargando ? (
         <EstadoVacio icono="hourglass_empty" mensaje="Cargando carrito…" />
+      ) : errorCarga ? (
+        <EstadoVacio icono="cloud_off" titulo="No pudimos cargar tu carrito" mensaje={errorCarga} />
       ) : lineas.length === 0 ? (
         <EstadoVacio
           icono="shopping_cart"

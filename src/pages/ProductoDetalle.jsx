@@ -22,27 +22,39 @@ function ProductoDetalle() {
   const volver = useVolver();
   const [producto, setProducto] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(null);
 
   useEffect(() => {
     let activo = true;
     setCargando(true);
+    setErrorCarga(null);
 
-    getProductById(id).then((data) => {
-      if (!activo) return;
+    getProductById(id)
+      .then((data) => {
+        if (!activo) return;
 
-      // Producto inexistente, eliminado, oculto o sin stock (el backend ya
-      // excluye estos casos del catálogo público) — en vez de mostrar una
-      // página "no encontrado" en un link roto, mandamos al usuario de
-      // vuelta al catálogo con un aviso, así puede seguir navegando.
-      if (!data) {
-        navigate("/", { replace: true });
-        mostrarToast("Este producto ya no está disponible.", { tipo: "error" });
-        return;
-      }
+        // Producto inexistente, eliminado, oculto o sin stock (el backend ya
+        // excluye estos casos del catálogo público) — en vez de mostrar una
+        // página "no encontrado" en un link roto, mandamos al usuario de
+        // vuelta al catálogo con un aviso, así puede seguir navegando.
+        if (!data) {
+          navigate("/", { replace: true });
+          mostrarToast("Este producto ya no está disponible.", { tipo: "error" });
+          return;
+        }
 
-      setProducto(data);
-      setCargando(false);
-    });
+        setProducto(data);
+        setCargando(false);
+      })
+      // Sin este catch, un backend caído deja la promesa rechazada sin manejar
+      // y el spinner girando para siempre. No se redirige al catálogo: eso es
+      // la respuesta a "este producto ya no existe", y acá no sabemos nada del
+      // producto — lo que falló es la conexión.
+      .catch(() => {
+        if (!activo) return;
+        setErrorCarga("Revisá tu conexión e intentá de nuevo.");
+        setCargando(false);
+      });
 
     return () => {
       activo = false;
@@ -52,6 +64,12 @@ function ProductoDetalle() {
 
   if (cargando) {
     return <EstadoVacio icono="hourglass_empty" mensaje="Cargando producto…" />;
+  }
+
+  if (errorCarga) {
+    return (
+      <EstadoVacio icono="cloud_off" titulo="No pudimos cargar el producto" mensaje={errorCarga} />
+    );
   }
 
   if (!producto) {

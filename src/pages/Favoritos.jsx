@@ -26,25 +26,36 @@ function Favoritos() {
   // to that change.
   const [todosLosProductos, setTodosLosProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(null);
 
   useEffect(() => {
     let activo = true;
 
-    getProducts().then((data) => {
-      if (!activo) return;
+    getProducts()
+      .then((data) => {
+        if (!activo) return;
 
-      const idsExistentes = new Set(data.map((p) => p.id));
+        const idsExistentes = new Set(data.map((p) => p.id));
 
-      // Clean up stale ids (favorited products that no longer exist) —
-      // silent, no user-facing message, per the finalized design decision.
-      const favoritosLimpios = favoritos.filter((id) => idsExistentes.has(id));
-      if (favoritosLimpios.length !== favoritos.length) {
-        establecerFavoritos(favoritosLimpios);
-      }
+        // Clean up stale ids (favorited products that no longer exist) —
+        // silent, no user-facing message, per the finalized design decision.
+        const favoritosLimpios = favoritos.filter((id) => idsExistentes.has(id));
+        if (favoritosLimpios.length !== favoritos.length) {
+          establecerFavoritos(favoritosLimpios);
+        }
 
-      setTodosLosProductos(data);
-      setCargando(false);
-    });
+        setTodosLosProductos(data);
+        setCargando(false);
+      })
+      // Sin este catch, un backend caído deja la promesa rechazada sin manejar
+      // y el spinner girando para siempre. Además, sin productos la grilla
+      // quedaría vacía y se leería como "no guardaste nada", que es mentira:
+      // los favoritos siguen ahí, lo que falló es la conexión.
+      .catch(() => {
+        if (!activo) return;
+        setErrorCarga("Revisá tu conexión e intentá de nuevo.");
+        setCargando(false);
+      });
 
     return () => {
       activo = false;
@@ -72,6 +83,12 @@ function Favoritos() {
 
       {cargando ? (
         <EstadoVacio icono="hourglass_empty" mensaje="Cargando favoritos…" />
+      ) : errorCarga ? (
+        <EstadoVacio
+          icono="cloud_off"
+          titulo="No pudimos cargar tus favoritos"
+          mensaje={errorCarga}
+        />
       ) : productos.length === 0 ? (
         <EstadoVacio
           icono="favorite_border"

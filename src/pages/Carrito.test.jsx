@@ -245,3 +245,24 @@ describe("Carrito", () => {
     expect(await screen.findByRole("button", { name: /volver/i })).toBeInTheDocument();
   });
 });
+
+describe("Carrito — fallo de red", () => {
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    vi.clearAllMocks();
+  });
+
+  it("muestra un error y apaga el spinner si no se pueden cargar los productos", async () => {
+    productsApi.getProducts.mockRejectedValue(new Error("network down"));
+
+    renderCarrito();
+
+    expect(
+      await screen.findByText(/No pudimos cargar tu carrito/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Cargando carrito…")).not.toBeInTheDocument();
+  });
+});

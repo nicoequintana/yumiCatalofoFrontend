@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
 import AdminProductoForm from "./AdminProductoForm.jsx";
 import * as productsApi from "../../api/products.js";
 import * as categoriasApi from "../../api/categorias.js";
@@ -540,5 +540,107 @@ describe("AdminProductoForm — cambios sin guardar", () => {
     window.dispatchEvent(evento);
 
     expect(evento.defaultPrevented).toBe(false);
+  });
+});
+
+describe("AdminProductoForm — reemplazo de fotos ya guardadas", () => {
+  beforeAll(() => {
+    // jsdom no implementa la API de object URLs que usa MediaUploader para
+    // las previews de los archivos recién elegidos.
+    global.URL.createObjectURL = vi.fn(() => "blob:mock-url");
+    global.URL.revokeObjectURL = vi.fn();
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    categoriasApi.getCategorias.mockResolvedValue([]);
+  });
+
+  function productoConDosFotos() {
+    return {
+      id: 1,
+      nombre: "Lámpara",
+      descripcion: "Descripción",
+      precio: "1000",
+      etiqueta: null,
+      categoria: null,
+      stock: 5,
+      fraseComercial: null,
+      porQueLoVasAQuerer: null,
+      tePasaEsto: null,
+      beneficios: [],
+      usos: [],
+      idealPara: [],
+      incluye: [],
+      especificaciones: [],
+      caracteristicas: [],
+      fotos: [
+        { id: 11, url: "portada.jpg" },
+        { id: 12, url: "problema.jpg" },
+      ],
+      video: null,
+    };
+  }
+
+  it("reemplazar la portada no borra la foto anterior en el servidor", async () => {
+    productsApi.getProductById.mockResolvedValue(productoConDosFotos());
+    renderForm("/catalogo/admin/productos/1/editar");
+
+    fireEvent.change(await screen.findByLabelText(/Reemplazar foto de portada/i), {
+      target: { files: [new File(["x"], "nueva-portada.png", { type: "image/png" })] },
+    });
+
+    // Reemplazar no acorta el array: la foto vieja sale del listado porque en
+    // su lugar quedó la nueva, no porque el admin la haya dado de baja. Solo
+    // el PUT del submit decide qué se borra realmente.
+    await waitFor(() => {
+      expect(screen.getByAltText("Foto de portada")).toHaveAttribute("src", "blob:mock-url");
+    });
+    expect(productsApi.deletePhoto).not.toHaveBeenCalled();
+  });
+
+  it("la foto nueva de la portada llega al submit en la posición 0", async () => {
+    productsApi.getProductById.mockResolvedValue(productoConDosFotos());
+    productsApi.updateProduct.mockResolvedValue({ id: 1 });
+    renderForm("/catalogo/admin/productos/1/editar");
+
+    fireEvent.change(await screen.findByLabelText(/Reemplazar foto de portada/i), {
+      target: { files: [new File(["x"], "nueva-portada.png", { type: "image/png" })] },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() => {
+      expect(productsApi.updateProduct).toHaveBeenCalled();
+    });
+    const [, data] = productsApi.updateProduct.mock.calls[0];
+    expect(data.fotosNuevas.map((f) => f.name)).toEqual(["nueva-portada.png"]);
+    expect(data.fotosExistentes).toEqual([12]);
+    expect(data.ordenFotos).toEqual([
+      { tipo: "nueva", index: 0 },
+      { tipo: "existente", id: 12 },
+    ]);
+  });
+
+  it("quitar una foto ya guardada la borra y no deja el aviso de cambios sin guardar", async () => {
+    productsApi.getProductById.mockResolvedValue(productoConDosFotos());
+    productsApi.deletePhoto.mockResolvedValue({
+      ...productoConDosFotos(),
+      fotos: [{ id: 12, url: "problema.jpg" }],
+    });
+    const confirmar = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderForm("/catalogo/admin/productos/1/editar");
+
+    fireEvent.click(await screen.findByRole("button", { name: /Quitar foto de portada/i }));
+
+    await waitFor(() => {
+      expect(productsApi.deletePhoto).toHaveBeenCalledWith(1, 11);
+    });
+
+    // El borrado ya quedó persistido: no es un cambio pendiente, así que
+    // salir del editor no tiene por qué pedir confirmación.
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(confirmar).not.toHaveBeenCalled();
+    confirmar.mockRestore();
   });
 });

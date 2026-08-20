@@ -336,3 +336,22 @@ describe("ProductoDetalle — producto no disponible", () => {
     expect(await screen.findByText("Este producto ya no está disponible.")).toBeInTheDocument();
   });
 });
+
+describe("ProductoDetalle - fallo de red", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("muestra un error y apaga el spinner si no se puede cargar el producto", async () => {
+    productsApi.getProductById.mockRejectedValue(new Error("network down"));
+
+    renderPagina();
+
+    expect(
+      await screen.findByText(/No pudimos cargar el producto/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Cargando producto…")).not.toBeInTheDocument();
+    // Un fallo de conexión no es un producto inexistente: no se redirige.
+    expect(screen.queryByText("Catálogo (mock)")).not.toBeInTheDocument();
+  });
+});

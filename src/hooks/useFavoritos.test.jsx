@@ -69,6 +69,39 @@ describe("useFavoritos — toggleFavorito y registrarFavorito", () => {
     expect(result.current.esFavorito(9)).toBe(true);
   });
 
+  it("no pierde un favorito si dos instancias togglean antes de re-renderizar", () => {
+    // `/coleccion` monta una docena de corazones a la vez. Si cada mutador
+    // parte del `favoritos` que capturó su último render, dos toggles en el
+    // mismo tick calculan ambos desde la misma lista vieja y el segundo pisa
+    // al primero. Un solo `act()` reproduce exactamente ese tick.
+    const a = renderHook(() => useFavoritos());
+    const b = renderHook(() => useFavoritos());
+
+    act(() => {
+      a.result.current.toggleFavorito(1);
+      b.result.current.toggleFavorito(2);
+    });
+
+    expect(a.result.current.favoritos).toEqual([1, 2]);
+    expect(b.result.current.favoritos).toEqual([1, 2]);
+  });
+
+  it("tampoco pierde la baja si un toggle quita y otro agrega en el mismo tick", () => {
+    const a = renderHook(() => useFavoritos());
+    const b = renderHook(() => useFavoritos());
+
+    act(() => {
+      a.result.current.establecerFavoritos([5]);
+    });
+
+    act(() => {
+      a.result.current.toggleFavorito(5); // quita el 5
+      b.result.current.toggleFavorito(6); // agrega el 6
+    });
+
+    expect(a.result.current.favoritos).toEqual([6]);
+  });
+
   it("mantiene sincronizados varios mounts del hook (module-level listeners) sin duplicar llamadas", () => {
     const a = renderHook(() => useFavoritos());
     const b = renderHook(() => useFavoritos());

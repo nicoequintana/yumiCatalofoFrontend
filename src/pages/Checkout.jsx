@@ -26,6 +26,7 @@ function Checkout() {
   const { carrito } = useCarrito();
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(null);
 
   const [dni, setDni] = useState("");
   const [nombre, setNombre] = useState("");
@@ -40,11 +41,19 @@ function Checkout() {
   useEffect(() => {
     let activo = true;
 
-    getProducts().then((data) => {
-      if (!activo) return;
-      setProductos(data);
-      setCargando(false);
-    });
+    getProducts()
+      .then((data) => {
+        if (!activo) return;
+        setProductos(data);
+        setCargando(false);
+      })
+      // Sin este catch, un backend caído deja la promesa rechazada sin manejar
+      // y el spinner girando para siempre, con el usuario a un paso de pagar.
+      .catch(() => {
+        if (!activo) return;
+        setErrorCarga("Revisá tu conexión e intentá de nuevo.");
+        setCargando(false);
+      });
 
     return () => {
       activo = false;
@@ -68,13 +77,16 @@ function Checkout() {
   // espera a que termine el fetch (`cargando`) para no redirigir de más
   // mientras `productos` todavía está vacío por estar cargando (eso haría
   // que TODAS las líneas parezcan "no disponibles" un instante).
+  // Si el fetch falló no hay reconciliación posible: `productos` está vacío
+  // por la falla, no porque el carrito lo esté, así que redirigir sería
+  // mandar al usuario a otra pantalla que muestra el mismo error.
   useEffect(() => {
-    if (cargando) return;
+    if (cargando || errorCarga) return;
     if (lineasValidas.length === 0) {
       navigate("/carrito", { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cargando, lineasValidas.length, navigate]);
+  }, [cargando, errorCarga, lineasValidas.length, navigate]);
 
   function validarCampos() {
     const errores = {};
@@ -115,6 +127,12 @@ function Checkout() {
 
   if (cargando) {
     return <EstadoVacio icono="hourglass_empty" mensaje="Cargando checkout…" />;
+  }
+
+  if (errorCarga) {
+    return (
+      <EstadoVacio icono="cloud_off" titulo="No pudimos cargar tu pedido" mensaje={errorCarga} />
+    );
   }
 
   // Mientras el efecto de redirección todavía no corrió (mismo render en el

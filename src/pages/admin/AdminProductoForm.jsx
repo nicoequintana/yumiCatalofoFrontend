@@ -310,15 +310,24 @@ function AdminProductoForm() {
    * re-normalized server-side. Freshly added, not-yet-saved photos
    * (client-generated preview, no numeric id) are only dropped from local
    * state.
+   *
+   * Baja y reemplazo se distinguen por la longitud del array, no por el id
+   * que falta: reemplazar la portada también saca el id viejo del listado,
+   * pero deja otra foto en su lugar. Tratar eso como baja borraba la foto en
+   * el servidor y descartaba el archivo recién elegido, todo de una. Un
+   * reemplazo se persiste en el `PUT` del submit, que manda `ordenFotos` y ya
+   * borra ahí la foto que quedó fuera de la secuencia.
    */
   async function handleChangeFotos(siguientesFotos) {
-    setSucio(true);
     const idsRestantes = new Set(siguientesFotos.map((f) => f.id));
     const eliminada = fotos.find((f) => typeof f.id === "number" && !idsRestantes.has(f.id));
+    const esReemplazo = siguientesFotos.length === fotos.length;
 
-    if (esEdicion && productoId && eliminada) {
+    if (esEdicion && productoId && eliminada && !esReemplazo) {
       try {
         const actualizado = await deletePhoto(productoId, eliminada.id);
+        // Sin `setSucio(true)`: el borrado ya quedó guardado en el servidor,
+        // así que no hay nada pendiente que avisar al salir del editor.
         setFotos(actualizado.fotos);
         return;
       } catch (err) {
@@ -327,6 +336,7 @@ function AdminProductoForm() {
       }
     }
 
+    setSucio(true);
     setFotos(siguientesFotos);
   }
 

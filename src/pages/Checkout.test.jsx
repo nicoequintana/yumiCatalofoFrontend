@@ -258,3 +258,31 @@ describe("Checkout", () => {
     expect(carritoHook.current.carrito).toEqual([{ productId: 1, cantidad: 1 }]);
   });
 });
+
+describe("Checkout — fallo de red", () => {
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    vi.clearAllMocks();
+  });
+
+  it("muestra un error en vez de redirigir si no se pueden cargar los productos", async () => {
+    productsApi.getProducts.mockRejectedValue(new Error("network down"));
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCheckout();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+
+    expect(
+      await screen.findByText(/No pudimos cargar tu pedido/i),
+    ).toBeInTheDocument();
+    // Redirigir a /carrito acá mentiría: el carrito no está vacío, lo que
+    // falló es la conexión, y allá el usuario vería el mismo error.
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+});
