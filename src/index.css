@@ -9,15 +9,12 @@
   --color-background: #fff8f5;
   --color-on-background: #1d1b1a;
   --color-surface: #fff8f5;
-  --color-surface-dim: #ddc0b8;
-  --color-surface-bright: #ffffff;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #f9f2ef;
   --color-surface-container: #f9f2ef;
   --color-surface-container-high: #ede7e4;
   --color-surface-container-highest: #e8e1de;
   --color-surface-variant: #e8e1de;
-  --color-surface-tint: #9d3e1d;
   --color-on-surface: #1d1b1a;
   --color-on-surface-variant: #56423c;
   --color-outline: #8a726b;
@@ -26,33 +23,19 @@
   --color-on-primary: #ffffff;
   --color-primary-container: #ffb59e;
   --color-on-primary-container: #5c1c07;
-  --color-primary-fixed: #9d3e1d;
-  --color-primary-fixed-dim: #bd5533;
-  --color-on-primary-fixed: #ffffff;
-  --color-on-primary-fixed-variant: #ffe6de;
   --color-secondary: #586330;
   --color-on-secondary: #ffffff;
   --color-secondary-container: #dbe6ac;
   --color-on-secondary-container: #3c4519;
-  --color-secondary-fixed: #586330;
-  --color-secondary-fixed-dim: #444d24;
-  --color-on-secondary-fixed: #ffffff;
-  --color-on-secondary-fixed-variant: #eef4d9;
   --color-tertiary: #735802;
   --color-on-tertiary: #ffffff;
   --color-tertiary-container: #e9c46a;
   --color-on-tertiary-container: #473600;
-  --color-tertiary-fixed: #735802;
-  --color-tertiary-fixed-dim: #594401;
-  --color-on-tertiary-fixed: #ffffff;
-  --color-on-tertiary-fixed-variant: #fbeecb;
   --color-error: #ba1a1a;
   --color-on-error: #ffffff;
   --color-error-container: #ffdad6;
   --color-on-error-container: #93000a;
   --color-inverse-surface: #1d1b1a;
-  --color-inverse-on-surface: #fff8f5;
-  --color-inverse-primary: #ffb59e;
 
   /* Mockup-literal aliases (used as Tailwind classes directly in markup,
      e.g. `text-terracotta-warm`, `bg-cream-base`) — kept alongside the
@@ -84,15 +67,12 @@
   --color-background: #16130f;
   --color-on-background: #ece0da;
   --color-surface: #16130f;
-  --color-surface-dim: #16130f;
-  --color-surface-bright: #3d3630;
   --color-surface-container-lowest: #211d19;
   --color-surface-container-low: #262220;
   --color-surface-container: #2b2724;
   --color-surface-container-high: #35302c;
   --color-surface-container-highest: #403a35;
   --color-surface-variant: #52443e;
-  --color-surface-tint: #ffb59e;
   --color-on-surface: #ece0da;
   --color-on-surface-variant: #d7c2bb;
   --color-outline: #a08d86;
@@ -101,33 +81,19 @@
   --color-on-primary: #5c1c07;
   --color-primary-container: #7d2a0f;
   --color-on-primary-container: #ffdbd0;
-  --color-primary-fixed: #ffb59e;
-  --color-primary-fixed-dim: #ff9d7f;
-  --color-on-primary-fixed: #3a0f00;
-  --color-on-primary-fixed-variant: #7d2a0f;
   --color-secondary: #bfcb92;
   --color-on-secondary: #2a3209;
   --color-secondary-container: #404a1c;
   --color-on-secondary-container: #dbe6ac;
-  --color-secondary-fixed: #bfcb92;
-  --color-secondary-fixed-dim: #a9b57e;
-  --color-on-secondary-fixed: #1a2000;
-  --color-on-secondary-fixed-variant: #404a1c;
   --color-tertiary: #e9c46a;
   --color-on-tertiary: #3d2f00;
   --color-tertiary-container: #574300;
   --color-on-tertiary-container: #ffdf9a;
-  --color-tertiary-fixed: #e9c46a;
-  --color-tertiary-fixed-dim: #d4ae52;
-  --color-on-tertiary-fixed: #251b00;
-  --color-on-tertiary-fixed-variant: #574300;
   --color-error: #ffb4ab;
   --color-on-error: #690005;
   --color-error-container: #93000a;
   --color-on-error-container: #ffdad6;
   --color-inverse-surface: #ece0da;
-  --color-inverse-on-surface: #332f2b;
-  --color-inverse-primary: #9d3e1d;
 
   /* Mockup-literal aliases: lightened so they stay legible on dark
      surfaces, keeping the same hue family as their light counterparts. */
@@ -146,16 +112,11 @@ h2,
 h3,
 h4,
 h5,
-h6,
-.playfair {
+h6 {
   font-family: "Libre Caslon Text", serif;
 }
 
 
 .shadow{
   box-shadow: 0px 5px 10px rgba(128, 128, 128, 0.199);
-}
-
-.object-fit{
-  object-fit: cover;
 }

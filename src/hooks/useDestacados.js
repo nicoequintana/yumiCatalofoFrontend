@@ -13,7 +13,6 @@ import { getProducts } from "../api/products.js";
  */
 function useDestacados() {
   const [productos, setProductos] = useState([]);
-  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     let activo = true;
@@ -25,11 +24,12 @@ function useDestacados() {
       .catch(() => {
         // Soft feature — el bento ya se oculta si no hay al menos 4
         // destacados, así que ante un fetch fallido preferimos degradar a
-        // lista vacía (bento oculto) antes que romper la página o quedar
-        // colgados en estado de carga.
-      })
-      .finally(() => {
-        if (activo) setCargando(false);
+        // lista vacía (bento oculto) antes que romper la página.
+        //
+        // No hay estado de carga: ningún consumidor lo usaba (ambos
+        // desestructuran solo `productos`) porque el bento no muestra
+        // esqueleto — o hay 4 destacados o la sección no existe, así que un
+        // flag de carga no cambiaba nada de lo que se renderiza.
       });
 
     return () => {
@@ -37,7 +37,7 @@ function useDestacados() {
     };
   }, []);
 
-  return { productos, cargando };
+  return { productos };
 }
 
 export default useDestacados;

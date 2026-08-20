@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { crearOrden, getOrdenes, getOrdenById, actualizarEstadoOrden, getHistorialCliente } from "./ordenes.js";
+import { crearOrden, getOrdenes, getOrdenById, actualizarEstadoOrden } from "./ordenes.js";
 import { fetchAutenticado } from "./authClient.js";
 
 vi.mock("./authClient.js");
@@ -153,36 +153,5 @@ describe("actualizarEstadoOrden", () => {
     mockFetchAutenticadoOnce({ error: "estado debe ser uno de: ..." }, false);
 
     await expect(actualizarEstadoOrden(5, "INVALIDO")).rejects.toThrow("estado debe ser uno de: ...");
-  });
-});
-
-describe("getHistorialCliente", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("hace GET a /clientes/:dni/ordenes vía fetchAutenticado", async () => {
-    mockFetchAutenticadoOnce([{ id: 1 }, { id: 2 }]);
-
-    const resultado = await getHistorialCliente("12345678");
-
-    expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/clientes/12345678/ordenes`, undefined);
-    expect(resultado).toEqual([{ id: 1 }, { id: 2 }]);
-  });
-
-  it("devuelve array vacío si el cliente no tiene órdenes", async () => {
-    mockFetchAutenticadoOnce([]);
-
-    const resultado = await getHistorialCliente("00000000");
-
-    expect(resultado).toEqual([]);
-  });
-
-  it("lanza Error con el mensaje del backend ante un error", async () => {
-    mockFetchAutenticadoOnce({ error: "Ocurrió un error al comunicarse con el servidor." }, false);
-
-    await expect(getHistorialCliente("12345678")).rejects.toThrow(
-      "Ocurrió un error al comunicarse con el servidor.",
-    );
   });
 });

@@ -13,7 +13,7 @@ import { useVolver } from "../hooks/useVolver.js";
  * (el editor de producto): si devuelve `false`, la navegación se cancela.
  * Omitido, el botón se comporta como siempre.
  */
-function BotonVolver({ className = "", fallback = "/", puedeSalir }) {
+function BotonVolver({ fallback = "/", puedeSalir }) {
   const volver = useVolver(fallback);
 
   function handleClick() {
@@ -25,7 +25,7 @@ function BotonVolver({ className = "", fallback = "/", puedeSalir }) {
     <button
       type="button"
       onClick={handleClick}
-      className={`font-label-md text-label-md -mx-2 inline-flex min-h-11 items-center gap-2 px-2 text-on-surface-variant hover:text-on-surface ${className}`}
+      className="font-label-md text-label-md -mx-2 inline-flex min-h-11 items-center gap-2 px-2 text-on-surface-variant hover:text-on-surface"
     >
       <span className="material-symbols-outlined text-[18px]">arrow_back</span>
       Volver

@@ -1,5 +1,4 @@
 import { render, screen, within, fireEvent, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import ProductoDetalle from "./ProductoDetalle.jsx";
@@ -84,7 +83,8 @@ describe("ProductoDetalle - relacionados", () => {
   });
 
   it("no renderiza la sección cuando relacionados está ausente", async () => {
-    const { relacionados, ...sinRelacionados } = PRODUCTO_BASE;
+    const sinRelacionados = { ...PRODUCTO_BASE };
+    delete sinRelacionados.relacionados;
     productsApi.getProductById.mockResolvedValue(sinRelacionados);
 
     renderPagina();

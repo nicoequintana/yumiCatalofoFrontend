@@ -97,12 +97,3 @@ export async function actualizarEstadoOrden(id, estado) {
     body: JSON.stringify({ estado }),
   });
 }
-
-/**
- * Historial de órdenes de un cliente por DNI, para el panel admin.
- * @param {string} dni
- * @returns {Promise<Array>} array vacío si el cliente no tiene órdenes.
- */
-export async function getHistorialCliente(dni) {
-  return pedirAutenticado(`${BASE}/clientes/${dni}/ordenes`);
-}

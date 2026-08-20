@@ -9,7 +9,7 @@ import { registrarCompartido } from "../api/products.js";
  * URL is read from window.location.href at click time (not passed as a
  * prop) so it always reflects the actual current tab URL.
  */
-function BotonCompartir({ producto, className = "" }) {
+function BotonCompartir({ producto }) {
   const [copiado, setCopiado] = useState(false);
 
   async function handleClick() {
@@ -42,7 +42,7 @@ function BotonCompartir({ producto, className = "" }) {
     <button
       type="button"
       onClick={handleClick}
-      className={`font-label-md text-label-md inline-flex items-center gap-2 text-on-surface-variant hover:text-on-surface ${className}`}
+      className="font-label-md text-label-md inline-flex items-center gap-2 text-on-surface-variant hover:text-on-surface"
     >
       <span className="material-symbols-outlined text-[18px]">share</span>
       {copiado ? "Link copiado" : "Compartir"}
