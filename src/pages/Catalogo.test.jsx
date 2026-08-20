@@ -30,10 +30,18 @@ function renderPagina() {
   );
 }
 
+/**
+ * Sobre de página que devuelve `GET /products`. Los tests declaran las filas y
+ * el helper arma el `{ data, page, pageSize, total }` alrededor.
+ */
+function pagina(filas, extra = {}) {
+  return { data: filas, page: 1, pageSize: 12, total: filas.length, ...extra };
+}
+
 describe("Catalogo - home editorial", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO }]);
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
   });
 
   it("muestra el hero con el copy de marca", () => {
@@ -99,16 +107,16 @@ describe("Catalogo - home editorial", () => {
     expect(screen.queryByText("Nuestra Colección")).not.toBeInTheDocument();
   });
 
-  it("el bento pide los destacados con un fetch sin filtros", async () => {
+  it("el bento pide los destacados filtrados en el backend", async () => {
     renderPagina();
 
     await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith({});
+      expect(productsApi.getProducts).toHaveBeenCalledWith({ destacado: true, pageSize: 4 });
     });
   });
 
   it("no muestra el bento de destacados si hay menos de 4 productos destacados", async () => {
-    productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO, destacado: true }]);
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO, destacado: true }]));
     renderPagina();
 
     await waitFor(() => {
@@ -124,7 +132,7 @@ describe("Catalogo - home editorial", () => {
       nombre: `Destacado ${id}`,
       destacado: true,
     }));
-    productsApi.getProducts.mockResolvedValue(destacados);
+    productsApi.getProducts.mockResolvedValue(pagina(destacados));
 
     renderPagina();
 

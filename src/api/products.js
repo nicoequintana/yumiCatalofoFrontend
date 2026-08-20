@@ -112,16 +112,58 @@ export function construirFormData(data) {
 }
 
 /**
- * @returns {Promise<Array>} products from the backend. Pass admin:true to
- * include hidden products (used by admin screens). The remaining options
- * map 1:1 to the backend's public catalog filter query params (`categoria`,
- * `search`, `minPrecio`, `maxPrecio`) — omitted/empty values are left out of
- * the query string entirely.
+ * Tope de ids por request, en espejo con `MAX_IDS_LISTADO` de
+ * `backend/src/controllers/products.controller.js`. El backend responde 400 si
+ * se lo pasa (a propósito: truncar en silencio borraría líneas de un carrito),
+ * así que `getProductsByIds` parte la lista en tandas de este tamaño.
+ *
+ * Es una sincronización manual entre repos de frontend y backend, igual que la
+ * lista de bots de `botDetector.js` ↔ `nginx.conf`: si allá sube el tope, acá
+ * hay que subirlo también.
  */
-export async function getProducts({ admin = false, categoria, search, minPrecio, maxPrecio } = {}) {
+export const MAX_IDS_POR_CONSULTA = 100;
+
+/**
+ * @returns {Promise<{data: Array, page: number, pageSize: number, total: number}>}
+ * una PÁGINA de productos, no el catálogo entero. El sobre es el mismo que
+ * usa `GET /ordenes`; quien solo quiera las filas tiene que leer `.data`.
+ *
+ * Pass admin:true to include hidden products (used by admin screens). The
+ * remaining options map 1:1 to the backend's public catalog filter query
+ * params (`categoria`, `search`, `minPrecio`, `maxPrecio`) — omitted/empty
+ * values are left out of the query string entirely.
+ *
+ * `destacado: true` trae solo los productos destacados (el bento), y
+ * `orden: "vistas"` ordena por más visto (la pantalla de métricas).
+ *
+ * `ids` (array de números) restringe la respuesta a esos productos concretos
+ * y saltea la paginación: se compone con el resto de los filtros y con las
+ * guardas públicas de visibilidad/stock del backend, así que "no vino en la
+ * respuesta" sigue significando lo mismo que en el listado completo. Para
+ * listas largas usar `getProductsByIds`, que respeta el tope del backend.
+ */
+export async function getProducts({
+  admin = false,
+  categoria,
+  search,
+  minPrecio,
+  maxPrecio,
+  ids,
+  destacado,
+  orden,
+  page,
+  pageSize,
+} = {}) {
   const params = new URLSearchParams();
 
   if (admin) params.set("admin", "1");
+  if (Array.isArray(ids)) params.set("ids", ids.join(","));
+  if (destacado) params.set("destacado", "1");
+  if (orden !== undefined && orden !== null && orden !== "") params.set("orden", orden);
+  if (page !== undefined && page !== null && page !== "") params.set("page", String(page));
+  if (pageSize !== undefined && pageSize !== null && pageSize !== "") {
+    params.set("pageSize", String(pageSize));
+  }
   if (categoria !== undefined && categoria !== null && categoria !== "") {
     params.set("categoria", categoria);
   }
@@ -137,6 +179,33 @@ export async function getProducts({ admin = false, categoria, search, minPrecio,
 
   const query = params.toString();
   return pedir(`${BASE}/products${query ? `?${query}` : ""}`);
+}
+
+/**
+ * Trae exactamente los productos de `ids`, en tandas de `MAX_IDS_POR_CONSULTA`.
+ *
+ * Existe para carrito, checkout y favoritos: los tres tienen una lista de ids
+ * en `localStorage` y antes se bajaban el catálogo completo para cruzarlo del
+ * lado del cliente — en el checkout eso significaba descargar todo el catálogo
+ * para cotizar tres líneas.
+ *
+ * Con la lista vacía no hace ninguna request: no hay nada que pedir, y mandar
+ * `?ids=` igual sería un viaje perdido.
+ *
+ * @param {number[]} ids
+ * @returns {Promise<Array>} los productos encontrados (los ids inexistentes,
+ *   ocultos o agotados simplemente no aparecen, igual que en el listado)
+ */
+export async function getProductsByIds(ids, { admin = false } = {}) {
+  if (!Array.isArray(ids) || ids.length === 0) return [];
+
+  const tandas = [];
+  for (let inicio = 0; inicio < ids.length; inicio += MAX_IDS_POR_CONSULTA) {
+    tandas.push(ids.slice(inicio, inicio + MAX_IDS_POR_CONSULTA));
+  }
+
+  const respuestas = await Promise.all(tandas.map((tanda) => getProducts({ admin, ids: tanda })));
+  return respuestas.flatMap((respuesta) => respuesta.data);
 }
 
 /** @returns {Promise<Object|null>} a single product by id, or null if not found (404) */

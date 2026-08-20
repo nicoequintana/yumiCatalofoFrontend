@@ -53,7 +53,7 @@ describe("Carrito", () => {
   });
 
   it("muestra el estado vacío cuando el carrito no tiene líneas", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
 
     renderCarrito();
 
@@ -61,7 +61,7 @@ describe("Carrito", () => {
   });
 
   it("renderiza las líneas del carrito reconciliadas contra el fetch en vivo", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCarrito();
@@ -79,7 +79,7 @@ describe("Carrito", () => {
   });
 
   it("muestra un placeholder cuando el producto no tiene foto", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCarrito();
@@ -93,7 +93,7 @@ describe("Carrito", () => {
   });
 
   it("advierte sobre una línea cuyo producto ya no existe y permite quitarla", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCarrito();
@@ -113,7 +113,7 @@ describe("Carrito", () => {
   });
 
   it("permite quitar una línea con problema de reconciliación mediante el botón de aviso", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     const user = userEvent.setup();
@@ -132,7 +132,7 @@ describe("Carrito", () => {
   });
 
   it("deshabilita el CTA de continuar cuando hay una línea con problema de reconciliación", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCarrito();
@@ -154,7 +154,7 @@ describe("Carrito", () => {
   });
 
   it("habilita el CTA cuando todas las líneas son válidas", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCarrito();
@@ -172,7 +172,7 @@ describe("Carrito", () => {
   });
 
   it("actualiza la cantidad de una línea vía el selector, y el subtotal reacciona", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     const user = userEvent.setup();
@@ -191,7 +191,7 @@ describe("Carrito", () => {
   });
 
   it("quita una línea válida mediante el botón de eliminar", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     const user = userEvent.setup();
@@ -221,7 +221,7 @@ describe("Carrito", () => {
     const PROD_B = { id: 11, nombre: "B", precio: "2.675", fotos: [] };
     const PROD_C = { id: 12, nombre: "C", precio: "2.675", fotos: [] };
 
-    productsApi.getProducts.mockResolvedValue([PROD_A, PROD_B, PROD_C]);
+    productsApi.getProductsByIds.mockResolvedValue([PROD_A, PROD_B, PROD_C]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCarrito();
@@ -238,7 +238,7 @@ describe("Carrito", () => {
   });
 
   it("usa BotonVolver para la navegación hacia atrás", async () => {
-    productsApi.getProducts.mockResolvedValue([]);
+    productsApi.getProductsByIds.mockResolvedValue([]);
 
     renderCarrito();
 
@@ -256,7 +256,7 @@ describe("Carrito — fallo de red", () => {
   });
 
   it("muestra un error y apaga el spinner si no se pueden cargar los productos", async () => {
-    productsApi.getProducts.mockRejectedValue(new Error("network down"));
+    productsApi.getProductsByIds.mockRejectedValue(new Error("network down"));
 
     renderCarrito();
 
@@ -264,5 +264,50 @@ describe("Carrito — fallo de red", () => {
       await screen.findByText(/No pudimos cargar tu carrito/i),
     ).toBeInTheDocument();
     expect(screen.queryByText("Cargando carrito…")).not.toBeInTheDocument();
+  });
+});
+
+describe("Carrito — fetch acotado a los productos del carrito", () => {
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    vi.clearAllMocks();
+  });
+
+  it("pide solo los ids del carrito, no el catálogo entero", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 2);
+      carritoHook.current.agregar(2, 1);
+    });
+
+    await screen.findByText("Reloj Clásico");
+    expect(productsApi.getProductsByIds).toHaveBeenLastCalledWith([1, 2]);
+    expect(productsApi.getProducts).not.toHaveBeenCalled();
+  });
+
+  it("no vuelve a pedir productos al cambiar solo la cantidad de una línea", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+    await screen.findByText("Reloj Clásico");
+
+    const llamadasPrevias = productsApi.getProductsByIds.mock.calls.length;
+    act(() => {
+      carritoHook.current.actualizarCantidad(1, 5);
+    });
+
+    expect(productsApi.getProductsByIds.mock.calls.length).toBe(llamadasPrevias);
   });
 });

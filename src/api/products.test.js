@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { construirFormData, getProducts, registrarFavorito } from "./products.js";
+import {
+  MAX_IDS_POR_CONSULTA,
+  construirFormData,
+  getProducts,
+  getProductsByIds,
+  registrarFavorito,
+} from "./products.js";
 
 const BASE = "http://localhost:4000/api";
 
@@ -151,5 +157,59 @@ describe("construirFormData — campos comerciales de texto", () => {
     expect(fd.has("fraseComercial")).toBe(false);
     expect(fd.has("porQueLoVasAQuerer")).toBe(false);
     expect(fd.has("tePasaEsto")).toBe(false);
+  });
+});
+
+describe("getProductsByIds", () => {
+  function mockFetchPorLlamada(cuerpos) {
+    let llamada = 0;
+    global.fetch = vi.fn().mockImplementation(async () => {
+      const body = cuerpos[llamada++] ?? { data: [], page: 1, pageSize: 100, total: 0 };
+      return { ok: true, text: async () => JSON.stringify(body) };
+    });
+  }
+
+  it("pide solo los ids indicados", async () => {
+    mockFetchPorLlamada([{ data: [{ id: 1 }, { id: 7 }], page: 1, pageSize: 100, total: 2 }]);
+
+    const productos = await getProductsByIds([1, 7]);
+
+    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?ids=1%2C7`, undefined);
+    expect(productos).toEqual([{ id: 1 }, { id: 7 }]);
+  });
+
+  it("no hace ninguna request cuando la lista está vacía", async () => {
+    global.fetch = vi.fn();
+
+    const productos = await getProductsByIds([]);
+
+    expect(productos).toEqual([]);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("parte la lista en tandas del tope del backend y concatena el resultado", async () => {
+    const ids = Array.from({ length: MAX_IDS_POR_CONSULTA + 3 }, (_, i) => i + 1);
+    const sobre = (filas) => ({ data: filas, page: 1, pageSize: 100, total: filas.length });
+    mockFetchPorLlamada([
+      sobre(ids.slice(0, MAX_IDS_POR_CONSULTA).map((id) => ({ id }))),
+      sobre(ids.slice(MAX_IDS_POR_CONSULTA).map((id) => ({ id }))),
+    ]);
+
+    const productos = await getProductsByIds(ids);
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(productos).toHaveLength(ids.length);
+    expect(productos.at(-1)).toEqual({ id: ids.at(-1) });
+  });
+
+  it("propaga la opción admin", async () => {
+    mockFetchPorLlamada([{ data: [], page: 1, pageSize: 100, total: 0 }]);
+
+    await getProductsByIds([4], { admin: true });
+
+    const url = global.fetch.mock.calls[0][0];
+    const params = new URLSearchParams(url.split("?")[1]);
+    expect(params.get("admin")).toBe("1");
+    expect(params.get("ids")).toBe("4");
   });
 });

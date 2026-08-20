@@ -4,7 +4,7 @@ import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
 import SelectorCantidad from "../components/SelectorCantidad.jsx";
 import useCarrito from "../hooks/useCarrito.js";
-import { getProducts } from "../api/products.js";
+import { getProductsByIds } from "../api/products.js";
 import { formatPrecio, precioACentavos } from "../utils/formato.js";
 
 /**
@@ -17,10 +17,10 @@ import { formatPrecio, precioACentavos } from "../utils/formato.js";
  * línea cuyo producto ya no existe (borrado u oculto) — hay plata de por
  * medio (esto alimenta un checkout en Sprint 6), así que se muestra un
  * aviso inline en esa línea puntual y se deja que el usuario la quite a
- * mano vía `quitar(productId)`. `getProducts()` sin `admin: true` ya excluye
- * productos ocultos (`visibleEnCatalogo: false`) de sus resultados, así que
- * "no encontrado en el fetch en vivo" cubre tanto el caso borrado como el
- * caso oculto sin necesidad de chequear ese campo aparte.
+ * mano vía `quitar(productId)`. `getProductsByIds()` sin `admin: true` aplica
+ * las mismas guardas públicas que el listado (excluye ocultos y agotados), así
+ * que "no encontrado en el fetch en vivo" cubre los tres casos —borrado,
+ * oculto y agotado— sin necesidad de chequear esos campos aparte.
  *
  * Nota sobre el estado vacío: se muestra `EstadoVacio` solo cuando el
  * carrito no tiene NINGUNA línea (ni siquiera con problemas). Si hay líneas
@@ -37,10 +37,17 @@ function Carrito() {
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);
 
+  // Clave de los productos que hay que traer: los ids del carrito, ordenados y
+  // serializados. Es lo que dispara el refetch, y por eso NO incluye las
+  // cantidades — subir o bajar el contador de una línea no cambia qué
+  // productos hay que cotizar, así que no debe costar una request.
+  const claveIds = [...new Set(carrito.map((l) => l.productId))].sort((a, b) => a - b).join(",");
+
   useEffect(() => {
     let activo = true;
+    const ids = claveIds === "" ? [] : claveIds.split(",").map(Number);
 
-    getProducts()
+    getProductsByIds(ids)
       .then((data) => {
         if (!activo) return;
         setProductos(data);
@@ -59,9 +66,7 @@ function Carrito() {
     return () => {
       activo = false;
     };
-    // Corre solo al montar — igual que Favoritos.jsx, no debe re-ejecutarse
-    // en cada cambio de `carrito` (eso pasa en cada agregar/quitar/actualizar).
-  }, []);
+  }, [claveIds]);
 
   const productosPorId = new Map(productos.map((p) => [p.id, p]));
 

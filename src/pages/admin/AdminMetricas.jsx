@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import Paginador from "../../components/Paginador.jsx";
 import { getProducts } from "../../api/products.js";
 
 /**
@@ -11,19 +13,38 @@ import { getProducts } from "../../api/products.js";
  * restructuring this screen.
  */
 function AdminMetricas() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const paginaUrl = Number(searchParams.get("page"));
+  const pagina = Number.isInteger(paginaUrl) && paginaUrl > 0 ? paginaUrl : 1;
+
   const [productos, setProductos] = useState([]);
+  const [totalPaginas, setTotalPaginas] = useState(1);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+
+  function irAPagina(numero) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (numero <= 1) {
+        next.delete("page");
+      } else {
+        next.set("page", String(numero));
+      }
+      return next;
+    });
+  }
 
   useEffect(() => {
     let activo = true;
 
-    getProducts({ admin: true })
-      .then((data) => {
+    // El "más visto primero" lo resuelve el backend (`orden=vistas`), no un
+    // sort local: con el listado paginado, ordenar del lado del cliente solo
+    // reordenaría la página que tocó y el ranking sería directamente falso.
+    getProducts({ admin: true, orden: "vistas", page: pagina })
+      .then(({ data, total, pageSize }) => {
         if (!activo) return;
-        // Most-viewed first — the most immediately useful ordering for an
-        // admin checking "what's popular" at a glance.
-        setProductos([...data].sort((a, b) => b.vistas - a.vistas));
+        setProductos(data);
+        setTotalPaginas(Math.max(1, Math.ceil(total / pageSize)));
         setCargando(false);
       })
       // Sin este catch, un backend caído deja la promesa rechazada sin manejar
@@ -37,7 +58,7 @@ function AdminMetricas() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [pagina]);
 
   return (
     <main className="w-full px-4 py-6 md:px-8 md:py-8">
@@ -103,6 +124,15 @@ function AdminMetricas() {
           </table>
         </div>
       )}
+
+      {!cargando && !error && productos.length > 0 ? (
+        <Paginador
+          pagina={pagina}
+          totalPaginas={totalPaginas}
+          onCambiar={irAPagina}
+          etiqueta="Paginación de métricas"
+        />
+      ) : null}
     </main>
   );
 }

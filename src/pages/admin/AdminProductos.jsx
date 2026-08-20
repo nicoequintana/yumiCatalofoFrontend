@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Badge from "../../components/Badge.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
+import Paginador from "../../components/Paginador.jsx";
 import { deleteProduct, getProducts, updateMerchandising, updateVisibilidad } from "../../api/products.js";
 import { formatPrecio } from "../../utils/formato.js";
 import useDialogo from "../../hooks/useDialogo.js";
@@ -19,7 +20,14 @@ import useDialogo from "../../hooks/useDialogo.js";
  * unlinked from public nav per the finalized decision.
  */
 function AdminProductos() {
+  // La página vive en la URL, igual que en `/coleccion`: así volver del
+  // formulario de edición devuelve a la página desde la que se entró.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const paginaUrl = Number(searchParams.get("page"));
+  const pagina = Number.isInteger(paginaUrl) && paginaUrl > 0 ? paginaUrl : 1;
+
   const [productos, setProductos] = useState([]);
+  const [totalPaginas, setTotalPaginas] = useState(1);
   const [cargando, setCargando] = useState(true);
   const [productoAEliminar, setProductoAEliminar] = useState(null);
   const [eliminandoId, setEliminandoId] = useState(null);
@@ -41,11 +49,30 @@ function AdminProductos() {
     },
   });
 
+  function irAPagina(numero, { reemplazar = false } = {}) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (numero <= 1) {
+          next.delete("page");
+        } else {
+          next.set("page", String(numero));
+        }
+        return next;
+      },
+      { replace: reemplazar },
+    );
+  }
+
+  function aplicarPagina({ data, total, pageSize }) {
+    setProductos(data);
+    setTotalPaginas(Math.max(1, Math.ceil(total / pageSize)));
+  }
+
   async function cargarProductos() {
     setCargando(true);
     try {
-      const data = await getProducts({ admin: true });
-      setProductos(data);
+      aplicarPagina(await getProducts({ admin: true, page: pagina }));
     } catch {
       setError("No se pudieron cargar los productos. Revisá tu conexión e intentá de nuevo.");
     } finally {
@@ -58,10 +85,10 @@ function AdminProductos() {
   useEffect(() => {
     let activo = true;
 
-    getProducts({ admin: true })
-      .then((data) => {
+    getProducts({ admin: true, page: pagina })
+      .then((respuesta) => {
         if (!activo) return;
-        setProductos(data);
+        aplicarPagina(respuesta);
         setCargando(false);
       })
       // Sin este catch, un backend caído deja la promesa rechazada sin manejar
@@ -75,7 +102,17 @@ function AdminProductos() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [pagina]);
+
+  // Borrar el último producto de la última página la deja sin filas. En vez de
+  // mostrar la tabla vacía como si no hubiera productos, se retrocede una
+  // página (el efecto de arriba vuelve a cargar).
+  useEffect(() => {
+    if (cargando) return;
+    // `reemplazar`: la página que quedó vacía no debe volver por "atrás".
+    if (pagina > totalPaginas) irAPagina(totalPaginas, { reemplazar: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargando, pagina, totalPaginas]);
 
   async function handleEliminar(id) {
     setError(null);
@@ -306,7 +343,10 @@ function AdminProductos() {
                     )}
                   </td>
                   <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
-                    {producto.fotos?.length ?? 0}/10
+                    {/* `cantidadFotos` y no `fotos.length`: el listado
+                        liviano trae solo la portada, así que contar el array
+                        mostraría "1/10" para cualquier producto con fotos. */}
+                    {producto.cantidadFotos ?? 0}/10
                   </td>
                   <td className="px-2 py-2 xl:px-3 xl:py-3">
                     <div className="flex items-center gap-2">
@@ -394,6 +434,15 @@ function AdminProductos() {
           </table>
         </div>
       )}
+
+      {!cargando && productos.length > 0 ? (
+        <Paginador
+          pagina={pagina}
+          totalPaginas={totalPaginas}
+          onCambiar={irAPagina}
+          etiqueta="Paginación de productos"
+        />
+      ) : null}
 
       {productoAEliminar ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-margin-mobile">

@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import BotonVolver from "../components/BotonVolver.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import useCarrito from "../hooks/useCarrito.js";
-import { getProducts } from "../api/products.js";
+import { getProductsByIds } from "../api/products.js";
 import { crearOrden } from "../api/ordenes.js";
 
 /**
  * `/checkout` — formulario de checkout de invitado (Sprint 6, Task 1).
  *
- * Reconciliación: igual criterio que `Carrito.jsx` (re-fetch de
- * `getProducts()` cruzado contra `useCarrito()`'s `carrito`), pero repetida
+ * Reconciliación: igual criterio que `Carrito.jsx` (re-fetch acotado a los
+ * ids del carrito con `getProductsByIds()`), pero repetida
  * acá porque el usuario pudo haber estado en `/carrito` un rato antes de
  * llegar a `/checkout` — un producto puede haberse agotado o eliminado en el
  * medio. Si el carrito está vacío o TODAS las líneas quedaron inválidas, no
@@ -71,10 +71,16 @@ function Checkout() {
   const [errorEnvio, setErrorEnvio] = useState(null);
   const [enviando, setEnviando] = useState(false);
 
+  // Misma clave de refetch que `Carrito.jsx`: los ids del carrito, sin las
+  // cantidades. Antes esta pantalla se bajaba el catálogo completo para
+  // cotizar las pocas líneas del pedido.
+  const claveIds = [...new Set(carrito.map((l) => l.productId))].sort((a, b) => a - b).join(",");
+
   useEffect(() => {
     let activo = true;
+    const ids = claveIds === "" ? [] : claveIds.split(",").map(Number);
 
-    getProducts()
+    getProductsByIds(ids)
       .then((data) => {
         if (!activo) return;
         setProductos(data);
@@ -91,8 +97,7 @@ function Checkout() {
     return () => {
       activo = false;
     };
-    // Corre solo al montar, igual que Carrito.jsx.
-  }, []);
+  }, [claveIds]);
 
   const productosPorId = new Map(productos.map((p) => [p.id, p]));
 

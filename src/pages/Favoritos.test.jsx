@@ -23,7 +23,7 @@ describe("Favoritos — fallo de red", () => {
   });
 
   it("muestra un error y apaga el spinner si no se pueden cargar los productos", async () => {
-    productsApi.getProducts.mockRejectedValue(new Error("network down"));
+    productsApi.getProductsByIds.mockRejectedValue(new Error("network down"));
 
     renderFavoritos();
 

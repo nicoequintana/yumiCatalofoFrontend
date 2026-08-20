@@ -49,6 +49,14 @@ const CATEGORIAS = [
   { id: 2, nombre: "Anillos", cantidadProductos: 1 },
 ];
 
+/**
+ * Sobre de página que devuelve `GET /products`. Los tests declaran las filas y
+ * el helper arma el `{ data, page, pageSize, total }` alrededor.
+ */
+function pagina(filas, extra = {}) {
+  return { data: filas, page: 1, pageSize: 12, total: filas.length, ...extra };
+}
+
 // Se envuelve en <StrictMode> a propósito, igual que `main.jsx`: la doble
 // invocación del cuerpo del componente en el mount rompe cualquier lógica de
 // "primer render" basada en refs mutables, y el reseteo de filtros heredados
@@ -67,7 +75,7 @@ describe("Coleccion - filtros y grid", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     llamadasSetSearchParams.length = 0;
-    productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO }]);
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
     categoriasApi.getCategorias.mockResolvedValue(CATEGORIAS);
   });
 
@@ -93,6 +101,7 @@ describe("Coleccion - filtros y grid", () => {
         search: "",
         minPrecio: "",
         maxPrecio: "",
+        page: 1,
       });
     });
   });
@@ -132,12 +141,12 @@ describe("Coleccion - filtros y grid", () => {
 
   it("muestra el estado vacío 'Sin resultados' cuando no hay coincidencias con filtros", async () => {
     const user = userEvent.setup();
-    productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO }]);
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
     renderPagina();
 
     await screen.findByText("Reloj Clásico");
 
-    productsApi.getProducts.mockResolvedValue([]);
+    productsApi.getProducts.mockResolvedValue(pagina([]));
     const select = screen.getByLabelText("Categoría");
     await user.selectOptions(select, "1");
 
@@ -173,12 +182,13 @@ describe("Coleccion - filtros y grid", () => {
     renderPagina("/coleccion?categoria=2");
 
     // Se apunta específicamente a las llamadas del GRID (las que llevan los
-    // cuatro filtros), no a las del bento (que van con `{}`): si el reseteo
-    // fallara, el `{}` del bento podría hacer pasar una aserción más laxa.
+    // cuatro filtros más la página), no a las del bento (que va con
+    // `destacado`): si el reseteo fallara, la llamada del bento podría hacer
+    // pasar una aserción más laxa.
     const llamadasDelGrid = () =>
       productsApi.getProducts.mock.calls
         .map(([params]) => params)
-        .filter((params) => Object.keys(params).length === 4);
+        .filter((params) => params.categoria !== undefined);
 
     await waitFor(() => {
       expect(llamadasDelGrid().length).toBeGreaterThan(0);
@@ -191,6 +201,7 @@ describe("Coleccion - filtros y grid", () => {
       search: "",
       minPrecio: "",
       maxPrecio: "",
+      page: 1,
     });
 
     // Y el estado final tiene que quedar limpio: nada puede resucitar el
@@ -203,6 +214,7 @@ describe("Coleccion - filtros y grid", () => {
       search: "",
       minPrecio: "",
       maxPrecio: "",
+      page: 1,
     });
     expect(screen.getByLabelText("Categoría").value).toBe("");
   });
@@ -230,7 +242,7 @@ describe("Coleccion - filtros y grid", () => {
   });
 
   it("no muestra el bento de destacados si hay menos de 4 productos destacados", async () => {
-    productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO, destacado: true }]);
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO, destacado: true }]));
     renderPagina();
 
     await screen.findByText("Reloj Clásico");
@@ -244,15 +256,15 @@ describe("Coleccion - filtros y grid", () => {
       nombre: `Destacado ${id}`,
       destacado: true,
     }));
-    productsApi.getProducts.mockResolvedValue(destacados);
+    productsApi.getProducts.mockResolvedValue(pagina(destacados));
 
     renderPagina();
 
     expect(await screen.findByText("Hallazgos del día")).toBeInTheDocument();
-    // El bento pide productos sin filtros (objeto vacío), separado del
-    // fetch del grid que sí lleva los cuatro filtros.
+    // El bento pide los destacados al backend, acotado a sus cuatro slots, y
+    // separado del fetch del grid que sí lleva los filtros y la página.
     await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith({});
+      expect(productsApi.getProducts).toHaveBeenCalledWith({ destacado: true, pageSize: 4 });
     });
   });
 
@@ -298,5 +310,95 @@ describe("Coleccion - filtros y grid", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+});
+
+describe("Coleccion - paginador", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    llamadasSetSearchParams.length = 0;
+    categoriasApi.getCategorias.mockResolvedValue(CATEGORIAS);
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }], { total: 40, pageSize: 12 }));
+  });
+
+  it("no muestra el paginador cuando entra todo en una p\u00e1gina", async () => {
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+
+    renderPagina();
+
+    await screen.findByText("Reloj Cl\u00e1sico");
+    expect(screen.queryByRole("navigation", { name: /paginaci\u00f3n/i })).not.toBeInTheDocument();
+  });
+
+  it("muestra el paginador con el total de p\u00e1ginas derivado de total/pageSize", async () => {
+    renderPagina();
+
+    expect(
+      await screen.findByRole("navigation", { name: "Paginaci\u00f3n de la colecci\u00f3n" }),
+    ).toBeInTheDocument();
+    // 40 productos / 12 por p\u00e1gina = 4 p\u00e1ginas.
+    expect(screen.getByText("P\u00e1gina 1 de 4")).toBeInTheDocument();
+  });
+
+  it("respeta la p\u00e1gina que viene en la URL (un link a la p\u00e1gina 3 abre la p\u00e1gina 3)", async () => {
+    renderPagina("/coleccion?page=3");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 3 }));
+    });
+    expect(await screen.findByText("P\u00e1gina 3 de 4")).toBeInTheDocument();
+  });
+
+  it("la p\u00e1gina heredada NO se blanquea junto con los filtros", async () => {
+    // Los filtros s\u00ed se resetean al entrar (decisi\u00f3n de producto), pero la
+    // p\u00e1gina tiene que sobrevivir o un link compartido a la p\u00e1gina 3 abrir\u00eda
+    // siempre la 1.
+    renderPagina("/coleccion?categoria=2&page=3");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ categoria: "", page: 3 }),
+      );
+    });
+  });
+
+  it("cambiar de p\u00e1gina escribe ?page en la URL y refetch", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+
+    await screen.findByText("P\u00e1gina 1 de 4");
+    productsApi.getProducts.mockClear();
+
+    await user.click(screen.getByRole("button", { name: "P\u00e1gina 2" }));
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 2 }));
+    });
+  });
+
+  it("cambiar un filtro vuelve a la p\u00e1gina 1", async () => {
+    const user = userEvent.setup();
+    renderPagina("/coleccion?page=3");
+
+    await screen.findByText("P\u00e1gina 3 de 4");
+    productsApi.getProducts.mockClear();
+
+    await user.selectOptions(screen.getByLabelText("Categor\u00eda"), "1");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ categoria: "1", page: 1 }),
+      );
+    });
+  });
+
+  it("corrige una p\u00e1gina fuera de rango a la \u00faltima que existe", async () => {
+    productsApi.getProducts.mockResolvedValue(pagina([], { total: 40, pageSize: 12 }));
+
+    renderPagina("/coleccion?page=99");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 4 }));
+    });
   });
 });

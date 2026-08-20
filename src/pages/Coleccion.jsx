@@ -5,12 +5,21 @@ import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import FiltrosCatalogo from "../components/FiltrosCatalogo.jsx";
+import Paginador from "../components/Paginador.jsx";
 import BentoDestacados from "../components/BentoDestacados.jsx";
 import useDestacados from "../hooks/useDestacados.js";
 import { getProducts } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
 
 const DEBOUNCE_SEARCH_MS = 350;
+
+/**
+ * Claves de la URL que son FILTROS. `page` queda deliberadamente afuera: los
+ * filtros no persisten entre visitas (se blanquean al entrar, ver abajo), pero
+ * la página sí tiene que sobrevivir — un link a la página 3 debe abrir la
+ * página 3, y volver desde una ficha debe devolver a donde se estaba.
+ */
+const CLAVES_FILTRO = ["categoria", "search", "minPrecio", "maxPrecio"];
 
 /**
  * `/coleccion` — catálogo completo con filtros, separado de la home
@@ -45,8 +54,8 @@ function Coleccion() {
   // inicializador lazy no tiene ese problema: React descarta el resultado de
   // la segunda invocación en vez de realimentar un flag mutable, y el flag
   // baja recién en el efecto, cuando el reseteo realmente se disparó.
-  const [teniaFiltrosHeredados, setTeniaFiltrosHeredados] = useState(
-    () => searchParams.toString() !== "",
+  const [teniaFiltrosHeredados, setTeniaFiltrosHeredados] = useState(() =>
+    CLAVES_FILTRO.some((clave) => searchParams.has(clave)),
   );
 
   // El reseteo va en un efecto, no en el cuerpo del render: React advierte
@@ -59,7 +68,16 @@ function Coleccion() {
   // para quien entró por un link compartido.
   useEffect(() => {
     if (teniaFiltrosHeredados) {
-      setSearchParams(new URLSearchParams(), { replace: true });
+      // Se borran SOLO los filtros, no la querystring entera: `page` tiene que
+      // sobrevivir para que un link a la página 3 siga abriendo la página 3.
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          for (const clave of CLAVES_FILTRO) next.delete(clave);
+          return next;
+        },
+        { replace: true },
+      );
       setTeniaFiltrosHeredados(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,11 +92,17 @@ function Coleccion() {
   const maxPrecio = filtrosUrl.get("maxPrecio") ?? "";
   const searchUrl = filtrosUrl.get("search") ?? "";
 
+  // `page` se lee de `searchParams` (no de `filtrosUrl`): no es un filtro y no
+  // se blanquea al entrar. Un valor basura cae a 1 en vez de romper la vista.
+  const paginaUrl = Number(searchParams.get("page"));
+  const pagina = Number.isInteger(paginaUrl) && paginaUrl > 0 ? paginaUrl : 1;
+
   const { productos: destacados } = useDestacados();
   const [searchInput, setSearchInput] = useState("");
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [totalPaginas, setTotalPaginas] = useState(1);
 
   // { replace: true }: react-router-dom v7's useSearchParams pushes a new
   // history entry by default. A filter change is a refinement of the same
@@ -95,10 +119,33 @@ function Coleccion() {
         } else {
           next.delete(clave);
         }
+        // Cambiar un filtro vuelve a la página 1: la página 4 del resultado
+        // anterior no tiene por qué existir en el resultado nuevo, y quedarse
+        // ahí mostraría una grilla vacía como si el filtro no encontrara nada.
+        next.delete("page");
         return next;
       },
       { replace: true },
     );
+  }
+
+  // La navegación entre páginas SÍ empuja una entrada de historial (a
+  // diferencia de los filtros, que van con `replace`): pasar de página es ir a
+  // otro lugar del catálogo, y "atrás" tiene que devolver a la página anterior.
+  function irAPagina(numero, { reemplazar = false } = {}) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (numero <= 1) {
+          next.delete("page");
+        } else {
+          next.set("page", String(numero));
+        }
+        return next;
+      },
+      { replace: reemplazar },
+    );
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // Debounce: commit the free-text search into the URL (and therefore into
@@ -142,14 +189,18 @@ function Coleccion() {
     let activo = true;
     setCargando(true);
 
-    getProducts({ categoria, search: searchUrl, minPrecio, maxPrecio })
-      .then((data) => {
-        if (activo) setProductos(data);
+    getProducts({ categoria, search: searchUrl, minPrecio, maxPrecio, page: pagina })
+      .then(({ data, total, pageSize }) => {
+        if (!activo) return;
+        setProductos(data);
+        setTotalPaginas(Math.max(1, Math.ceil(total / pageSize)));
       })
       .catch(() => {
         // El grid degrada a lista vacía ante un fallo de red/backend en vez
         // de quedar colgado en "Cargando productos…" para siempre.
-        if (activo) setProductos([]);
+        if (!activo) return;
+        setProductos([]);
+        setTotalPaginas(1);
       })
       .finally(() => {
         if (activo) setCargando(false);
@@ -158,7 +209,18 @@ function Coleccion() {
     return () => {
       activo = false;
     };
-  }, [categoria, searchUrl, minPrecio, maxPrecio]);
+  }, [categoria, searchUrl, minPrecio, maxPrecio, pagina]);
+
+  // Un link viejo o un catálogo que se achicó pueden dejar la URL apuntando a
+  // una página que ya no existe. En vez de mostrar "Sin resultados" —que
+  // mentiría: los productos están, la página no— se corrige a la última real.
+  useEffect(() => {
+    if (cargando) return;
+    // `reemplazar`: la página inválida no debe quedar en el historial, o
+    // "atrás" volvería a ella y la corrección se repetiría para siempre.
+    if (pagina > totalPaginas) irAPagina(totalPaginas, { reemplazar: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargando, pagina, totalPaginas]);
 
   const hayFiltrosActivos = Boolean(categoria || searchUrl || minPrecio || maxPrecio);
 
@@ -237,6 +299,15 @@ function Coleccion() {
               })}
             </div>
           )}
+
+          {!cargando ? (
+            <Paginador
+              pagina={pagina}
+              totalPaginas={totalPaginas}
+              onCambiar={irAPagina}
+              etiqueta="Paginación de la colección"
+            />
+          ) : null}
         </div>
       </section>
 

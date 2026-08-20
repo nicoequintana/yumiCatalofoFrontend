@@ -50,7 +50,7 @@ describe("Checkout", () => {
   });
 
   it("redirige a /carrito cuando el carrito está vacío", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     renderCheckout();
 
@@ -60,7 +60,7 @@ describe("Checkout", () => {
   });
 
   it("redirige a /carrito cuando todas las líneas quedaron con producto borrado/oculto", async () => {
-    productsApi.getProducts.mockResolvedValue([]); // producto 1 ya no existe
+    productsApi.getProductsByIds.mockResolvedValue([]); // producto 1 ya no existe
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCheckout();
@@ -75,7 +75,7 @@ describe("Checkout", () => {
   });
 
   it("muestra el formulario cuando hay al menos una línea válida", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCheckout();
@@ -90,7 +90,7 @@ describe("Checkout", () => {
   });
 
   it("valida que dni, nombre y teléfono sean obligatorios antes de enviar", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     const user = userEvent.setup();
@@ -119,7 +119,7 @@ describe("Checkout", () => {
   });
 
   it("lleva el foco al primer campo inválido cuando el submit falla", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     const user = userEvent.setup();
@@ -139,7 +139,7 @@ describe("Checkout", () => {
   });
 
   it("enfoca el primer campo inválido según el orden del formulario, no el del objeto de errores", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     const user = userEvent.setup();
@@ -158,7 +158,7 @@ describe("Checkout", () => {
   });
 
   it("envía la orden con las líneas válidas y navega a la confirmación con el state", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
     const ordenCreada = { id: 42, items: [{ productId: 1, nombreProducto: "Reloj Clásico" }] };
     ordenesApi.crearOrden.mockResolvedValue(ordenCreada);
 
@@ -200,7 +200,7 @@ describe("Checkout", () => {
   });
 
   it("deshabilita el botón de submit mientras la request está en curso", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
     let resolverCrear;
     ordenesApi.crearOrden.mockReturnValue(
       new Promise((resolve) => {
@@ -238,7 +238,7 @@ describe("Checkout", () => {
     // vuelta para volver como un error genérico de envío. El backend sigue
     // siendo la autoridad (backend/src/lib/dni.js); esto es solo un aviso
     // inmediato, y por eso marca el campo, no el banner de envío.
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     const user = userEvent.setup();
@@ -270,7 +270,7 @@ describe("Checkout", () => {
   });
 
   it("acepta un DNI escrito con separadores y lo manda tal cual (el backend normaliza)", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
     ordenesApi.crearOrden.mockResolvedValue({ id: 7, items: [] });
 
     const { result: carritoHook } = renderHook(() => useCarrito());
@@ -302,7 +302,7 @@ describe("Checkout", () => {
     // sobre todo desde el teléfono: sin `inputMode` el DNI abre un teclado
     // QWERTY completo, y sin `autoComplete` el navegador no ofrece los datos
     // que el usuario ya tiene guardados.
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCheckout();
@@ -337,7 +337,7 @@ describe("Checkout", () => {
   });
 
   it("muestra el error del backend y no navega ni limpia el formulario si la request falla", async () => {
-    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
     ordenesApi.crearOrden.mockRejectedValue(new Error("El producto Reloj Clásico está agotado."));
 
     const { result: carritoHook } = renderHook(() => useCarrito());
@@ -377,7 +377,7 @@ describe("Checkout — fallo de red", () => {
   });
 
   it("muestra un error en vez de redirigir si no se pueden cargar los productos", async () => {
-    productsApi.getProducts.mockRejectedValue(new Error("network down"));
+    productsApi.getProductsByIds.mockRejectedValue(new Error("network down"));
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCheckout();

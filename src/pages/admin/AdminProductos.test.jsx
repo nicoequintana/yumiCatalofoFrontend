@@ -26,6 +26,14 @@ describe("AdminProductos — fallos de red", () => {
   });
 });
 
+/**
+ * Sobre de página que devuelve `GET /products`. Los tests declaran las filas y
+ * el helper arma el `{ data, page, pageSize, total }` alrededor.
+ */
+function pagina(filas, extra = {}) {
+  return { data: filas, page: 1, pageSize: 12, total: filas.length, ...extra };
+}
+
 const PRODUCTO = {
   id: 1,
   nombre: "Reloj Clásico",
@@ -50,7 +58,7 @@ function renderPagina() {
 describe("AdminProductos - destacado y orden", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO }]);
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
   });
 
   it("muestra el switch de destacado y lo togglea via updateMerchandising", async () => {
@@ -183,7 +191,7 @@ describe("AdminProductos - destacado y orden", () => {
 describe("AdminProductos — diálogo de confirmación de borrado", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO }]);
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
   });
 
   async function abrirDialogo() {
@@ -247,5 +255,38 @@ describe("AdminProductos — diálogo de confirmación de borrado", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     resolverBorrado({});
+  });
+});
+
+describe("AdminProductos - cantidad de fotos", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("muestra el total real de fotos aunque el listado traiga solo la portada", async () => {
+    // El listado liviano devuelve `fotos` recortado a la portada y el total
+    // aparte en `cantidadFotos`: contar `fotos.length` mostraría "1/10" para
+    // un producto con cuatro fotos cargadas.
+    productsApi.getProducts.mockResolvedValue(
+      pagina([
+        {
+          ...PRODUCTO,
+          fotos: [{ id: 9, url: "https://cdn/portada.jpg", orden: 0 }],
+          cantidadFotos: 4,
+        },
+      ]),
+    );
+
+    renderPagina();
+
+    expect(await screen.findByText("4/10")).toBeInTheDocument();
+  });
+
+  it("muestra 0/10 cuando el producto no tiene fotos", async () => {
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO, fotos: [], cantidadFotos: 0 }]));
+
+    renderPagina();
+
+    expect(await screen.findByText("0/10")).toBeInTheDocument();
   });
 });

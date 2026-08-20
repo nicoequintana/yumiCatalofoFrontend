@@ -18,6 +18,13 @@ class IntersectionObserverStub {
 
 global.IntersectionObserver = IntersectionObserverStub;
 
+// JSDOM tampoco implementa window.scrollTo: existe, pero cada llamada escupe
+// "Not implemented: Window's scrollTo() method" por la consola virtual. Lo usa
+// el paginador de `/coleccion` para volver arriba al cambiar de página, así
+// que sin este stub cada test que pagina ensucia la salida con un error que no
+// es un error. Tests que necesiten afirmar sobre el scroll pueden espiarlo.
+window.scrollTo = () => {};
+
 // This project's vitest.config.js does not set `test.globals: true`, so
 // Testing Library's usual automatic afterEach(cleanup) registration (which
 // relies on detecting a global test framework) never kicks in. Without this,

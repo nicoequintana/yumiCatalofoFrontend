@@ -4,7 +4,7 @@ import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import useFavoritos from "../hooks/useFavoritos.js";
-import { getProducts } from "../api/products.js";
+import { getProductsByIds } from "../api/products.js";
 
 /**
  * `/favoritos` — every product currently saved as a favorite (design item:
@@ -18,33 +18,41 @@ import { getProducts } from "../api/products.js";
  */
 function Favoritos() {
   const { favoritos, establecerFavoritos } = useFavoritos();
-  // Holds ALL fetched products (unfiltered) — the displayed grid is derived
-  // from this + the live `favoritos` state on every render (see below), not
-  // stored as a pre-filtered snapshot. Storing a snapshot would leave a card
-  // visible after unfavoriting it from this very page: `favoritos` updates
-  // live via the shared hook, but a state snapshot set once wouldn't react
-  // to that change.
-  const [todosLosProductos, setTodosLosProductos] = useState([]);
+  // Productos traídos al montar, para los ids que estaban en favoritos en ese
+  // momento. La grilla que se muestra se deriva de esto + el estado `favoritos`
+  // en vivo en cada render (ver abajo), no de un snapshot ya filtrado: guardar
+  // el filtrado dejaría una card visible después de sacarla de favoritos desde
+  // esta misma página.
+  const [productosGuardados, setProductosGuardados] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);
 
   useEffect(() => {
     let activo = true;
 
-    getProducts()
+    getProductsByIds(favoritos)
       .then((data) => {
         if (!activo) return;
 
         const idsExistentes = new Set(data.map((p) => p.id));
 
-        // Clean up stale ids (favorited products that no longer exist) —
-        // silent, no user-facing message, per the finalized design decision.
+        // Limpieza silenciosa de ids obsoletos (decisión de diseño cerrada).
+        //
+        // Pedir por `ids` NO cambia el significado de esta reconciliación: el
+        // backend compone `ids` con las mismas guardas públicas que ya aplicaba
+        // al listado completo, así que "vino en la respuesta" sigue queriendo
+        // decir exactamente lo mismo que antes. Se pide un subconjunto de lo
+        // que antes se pedía entero, y de ese subconjunto solo se conserva lo
+        // que el backend confirmó.
+        //
+        // Un fallo de red no llega hasta acá (lo atrapa el `.catch` de abajo),
+        // así que una caída del backend nunca puede vaciar los favoritos.
         const favoritosLimpios = favoritos.filter((id) => idsExistentes.has(id));
         if (favoritosLimpios.length !== favoritos.length) {
           establecerFavoritos(favoritosLimpios);
         }
 
-        setTodosLosProductos(data);
+        setProductosGuardados(data);
         setCargando(false);
       })
       // Sin este catch, un backend caído deja la promesa rechazada sin manejar
@@ -60,13 +68,14 @@ function Favoritos() {
     return () => {
       activo = false;
     };
-    // Runs once on mount only — reads `favoritos` via closure at that
-    // moment. Must NOT re-run on every `favoritos` change (which happens on
-    // every toggle, including this same effect's own cleanup calls above),
-    // or it would create a re-fetch loop.
+    // Corre una sola vez al montar — lee `favoritos` por closure en ese
+    // momento. NO debe re-ejecutarse ante cada cambio de `favoritos` (pasa en
+    // cada toggle, incluida la propia limpieza de arriba): sería un bucle de
+    // refetch. Por eso, a diferencia de `Carrito.jsx`, acá los ids se congelan
+    // al montar en vez de ser la clave del efecto.
   }, []);
 
-  const productos = todosLosProductos.filter((p) => favoritos.includes(p.id));
+  const productos = productosGuardados.filter((p) => favoritos.includes(p.id));
 
   return (
     <section className="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop md:py-24">

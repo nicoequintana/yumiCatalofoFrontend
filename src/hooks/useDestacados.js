@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { getProducts } from "../api/products.js";
 
+/** Slots fijos del bento (`BentoDestacados` se oculta si no llega a cuatro). */
+const SLOTS_BENTO = 4;
+
 /**
- * Trae la lista completa de productos sin filtros, para alimentar el bento
- * de destacados (`BentoDestacados` filtra client-side por `destacado: true`).
+ * Trae los productos destacados que alimentan el bento.
+ *
+ * Los pide filtrados en el backend (`destacado=1`) y acotados a los cuatro
+ * slots del bento. Antes se bajaba el catálogo completo y filtraba del lado
+ * del cliente: con el listado paginado eso ya no puede funcionar, porque un
+ * destacado puede caer en cualquier página y el bento se vaciaría solo.
  *
  * Vive separado del fetch reactivo a filtros de `Coleccion.jsx` a propósito:
  * el bento es una vidriera fija que muestra siempre los destacados globales,
@@ -17,8 +24,8 @@ function useDestacados() {
   useEffect(() => {
     let activo = true;
 
-    getProducts({})
-      .then((data) => {
+    getProducts({ destacado: true, pageSize: SLOTS_BENTO })
+      .then(({ data }) => {
         if (activo) setProductos(data);
       })
       .catch(() => {
