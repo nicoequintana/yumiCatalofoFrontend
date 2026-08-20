@@ -3,44 +3,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import { getOrdenes } from "../../api/ordenes.js";
-
-const ESTADOS = ["PENDIENTE", "CONFIRMADA", "EN_PREPARACION", "ENTREGADA", "CANCELADA"];
-
-/**
- * Estilos de badge por estado — combinaciones del paletón del proyecto,
- * cada una claramente distinguible de las demás.
- */
-const ESTILOS_ESTADO = {
-  PENDIENTE: "bg-surface-container-high text-on-surface-variant",
-  CONFIRMADA: "bg-secondary-container text-on-secondary-container",
-  EN_PREPARACION: "bg-tertiary-container text-on-tertiary-container",
-  ENTREGADA: "bg-secondary text-on-primary",
-  CANCELADA: "bg-error-container text-on-error-container",
-};
-
-const ETIQUETA_ESTADO = {
-  PENDIENTE: "Pendiente",
-  CONFIRMADA: "Confirmada",
-  EN_PREPARACION: "En preparación",
-  ENTREGADA: "Entregada",
-  CANCELADA: "Cancelada",
-};
-
-function BadgeEstado({ estado }) {
-  return (
-    <span
-      className={`font-label-sm text-label-sm inline-block rounded px-2 py-1 uppercase tracking-wide ${
-        ESTILOS_ESTADO[estado] ?? "bg-surface-container-high text-on-surface-variant"
-      }`}
-    >
-      {ETIQUETA_ESTADO[estado] ?? estado}
-    </span>
-  );
-}
-
-function formatFecha(fecha) {
-  return new Date(fecha).toLocaleDateString("es-AR");
-}
+import { formatFecha } from "../../utils/formato.js";
+import BadgeEstado from "../../components/admin/BadgeEstado.jsx";
+import { claseEncabezado } from "../../components/admin/clasesTabla.js";
+import { ESTADOS_ORDEN, ETIQUETA_ESTADO } from "../../constants/ordenes.js";
 
 /**
  * `/catalogo/admin/ordenes` — listado paginado de órdenes (Sprint 6, Task 2).
@@ -137,7 +103,7 @@ function AdminOrdenes() {
             className="font-body-md text-body-md rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
           >
             <option value="">Todos</option>
-            {ESTADOS.map((e) => (
+            {ESTADOS_ORDEN.map((e) => (
               <option key={e} value={e}>
                 {ETIQUETA_ESTADO[e]}
               </option>
@@ -169,25 +135,25 @@ function AdminOrdenes() {
             <table className="w-full min-w-[720px] text-left">
               <thead>
                 <tr className="border-b border-outline-variant">
-                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                  <th className={claseEncabezado}>
                     Orden
                   </th>
-                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                  <th className={claseEncabezado}>
                     Cliente
                   </th>
-                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                  <th className={claseEncabezado}>
                     DNI
                   </th>
-                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                  <th className={claseEncabezado}>
                     Items
                   </th>
-                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                  <th className={claseEncabezado}>
                     Estado
                   </th>
-                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                  <th className={claseEncabezado}>
                     Fecha
                   </th>
-                  <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                  <th className={claseEncabezado}>
                     Acciones
                   </th>
                 </tr>

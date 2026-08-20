@@ -3,38 +3,14 @@ import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { getEmbudoConversion } from "../../api/adminEmbudo.js";
+import { formatFecha } from "../../utils/formato.js";
+import { calcularRango } from "../../utils/periodo.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
-
-const PERIODOS = [
-  { dias: 7, label: "7 días" },
-  { dias: 30, label: "30 días" },
-  { dias: 90, label: "90 días" },
-];
-
-const MS_POR_DIA = 24 * 60 * 60 * 1000;
+import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
+import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
 
 /** Ancho mínimo de barra, para que una etapa en cero siga siendo visible. */
 const ANCHO_MINIMO = 6;
-
-/** `Date` -> "YYYY-MM-DD", el formato que espera el backend. */
-function aClaveDia(fecha) {
-  return fecha.toISOString().slice(0, 10);
-}
-
-/** Rango [hoy - (dias-1), hoy], ambos inclusive. */
-function calcularRango(dias) {
-  const hoy = new Date();
-  const hasta = new Date(`${aClaveDia(hoy)}T00:00:00.000Z`);
-  const desde = new Date(hasta.getTime() - (dias - 1) * MS_POR_DIA);
-  return { desde: aClaveDia(desde), hasta: aClaveDia(hasta) };
-}
-
-/** "2026-08-19" -> "19/08/2026", el formato de fecha que usa la app. */
-function formatFecha(fecha) {
-  if (typeof fecha !== "string" || fecha.length < 10) return "";
-  const [anio, mes, dia] = fecha.split("-");
-  return `${dia}/${mes}/${anio}`;
-}
 
 /** 1000 -> "1.000", separador de miles argentino. */
 function formatEntero(cantidad) {
@@ -136,10 +112,6 @@ function GraficoEmbudo({ etapas }) {
   );
 }
 
-const claseCelda = "font-body-md text-body-md px-4 py-3 align-top";
-const claseEncabezado =
-  "font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant";
-
 /**
  * `/catalogo/admin/embudo` — embudo de conversión GLOBAL del sitio
  * (Vistas → Carrito → Órdenes creadas → Órdenes confirmadas).
@@ -188,14 +160,6 @@ function AdminEmbudo() {
     };
   }, [dias]);
 
-  function claseBotonPeriodo(activo) {
-    return `font-label-md text-label-md min-h-11 rounded-lg px-4 py-2 uppercase tracking-widest transition-colors ${
-      activo
-        ? "bg-primary text-on-primary"
-        : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
-    }`;
-  }
-
   // "Sin actividad" es no tener ningún evento en ninguna etapa del período.
   const sinDatos =
     embudo !== null && embudo.etapas.every((etapa) => etapa.cantidad === 0);
@@ -219,19 +183,7 @@ function AdminEmbudo() {
           </h1>
         </div>
 
-        <div role="group" aria-label="Período" className="flex flex-wrap gap-2">
-          {PERIODOS.map((periodo) => (
-            <button
-              key={periodo.dias}
-              type="button"
-              onClick={() => setDias(periodo.dias)}
-              aria-pressed={dias === periodo.dias}
-              className={claseBotonPeriodo(dias === periodo.dias)}
-            >
-              {periodo.label}
-            </button>
-          ))}
-        </div>
+        <SelectorPeriodo dias={dias} onCambiar={setDias} />
       </div>
 
       {error ? (

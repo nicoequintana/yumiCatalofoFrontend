@@ -4,55 +4,16 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { getResumenVentas } from "../../api/adminVentas.js";
 import { formatPrecio } from "../../utils/formato.js";
+import { calcularRango } from "../../utils/periodo.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
-
-const PERIODOS = [
-  { dias: 7, label: "7 días" },
-  { dias: 30, label: "30 días" },
-  { dias: 90, label: "90 días" },
-];
-
-const MS_POR_DIA = 24 * 60 * 60 * 1000;
-
-/** `Date` -> "YYYY-MM-DD", el formato que espera el backend. */
-function aClaveDia(fecha) {
-  return fecha.toISOString().slice(0, 10);
-}
-
-/** Rango [hoy - (dias-1), hoy], ambos inclusive. */
-function calcularRango(dias) {
-  const hoy = new Date();
-  const hasta = new Date(`${aClaveDia(hoy)}T00:00:00.000Z`);
-  const desde = new Date(hasta.getTime() - (dias - 1) * MS_POR_DIA);
-  return { desde: aClaveDia(desde), hasta: aClaveDia(hasta) };
-}
+import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
+import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
+import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
 
 /** "2026-08-10" -> "10/08", etiqueta corta para el eje del gráfico. */
 function etiquetaDia(fecha) {
   const [, mes, dia] = fecha.split("-");
   return `${dia}/${mes}`;
-}
-
-/** Tarjeta de métrica principal. */
-function TarjetaMetrica({ icono, etiqueta, valor, detalle }) {
-  return (
-    <div className="flex flex-col gap-2 rounded-xl bg-surface-container-lowest p-5 shadow-ambient">
-      <div className="flex items-center gap-2 text-on-surface-variant">
-        <span className="material-symbols-outlined text-[20px]">{icono}</span>
-        <span className="font-label-sm text-label-sm uppercase tracking-widest">
-          {etiqueta}
-        </span>
-      </div>
-      <span className="font-headline-md text-headline-md break-words text-on-surface">
-        {valor}
-      </span>
-      {detalle ? (
-        <span className="font-body-md text-body-md text-on-surface-variant">
-          {detalle}
-        </span>
-      ) : null}
-    </div>
-  );
 }
 
 /**
@@ -130,10 +91,6 @@ function GraficoIngresos({ serie }) {
   );
 }
 
-const claseCelda = "font-body-md text-body-md px-4 py-3 align-top";
-const claseEncabezado =
-  "font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant";
-
 /**
  * `/catalogo/admin/ventas` — dashboard de facturación del panel admin.
  *
@@ -180,14 +137,6 @@ function AdminVentas() {
     };
   }, [dias]);
 
-  function claseBotonPeriodo(activo) {
-    return `font-label-md text-label-md min-h-11 rounded-lg px-4 py-2 uppercase tracking-widest transition-colors ${
-      activo
-        ? "bg-primary text-on-primary"
-        : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
-    }`;
-  }
-
   // "Sin ventas" es no haber facturado NI tener pipeline: si hay órdenes
   // pendientes, hay algo que mostrar aunque los ingresos sean cero.
   const sinDatos =
@@ -211,19 +160,7 @@ function AdminVentas() {
           </h1>
         </div>
 
-        <div role="group" aria-label="Período" className="flex flex-wrap gap-2">
-          {PERIODOS.map((periodo) => (
-            <button
-              key={periodo.dias}
-              type="button"
-              onClick={() => setDias(periodo.dias)}
-              aria-pressed={dias === periodo.dias}
-              className={claseBotonPeriodo(dias === periodo.dias)}
-            >
-              {periodo.label}
-            </button>
-          ))}
-        </div>
+        <SelectorPeriodo dias={dias} onCambiar={setDias} />
       </div>
 
       {error ? (

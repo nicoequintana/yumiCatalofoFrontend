@@ -4,36 +4,9 @@ import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import { getOrdenById, actualizarEstadoOrden } from "../../api/ordenes.js";
-import { formatPrecio } from "../../utils/formato.js";
-
-const ESTADOS = ["PENDIENTE", "CONFIRMADA", "EN_PREPARACION", "ENTREGADA", "CANCELADA"];
-
-const ETIQUETA_ESTADO = {
-  PENDIENTE: "Pendiente",
-  CONFIRMADA: "Confirmada",
-  EN_PREPARACION: "En preparación",
-  ENTREGADA: "Entregada",
-  CANCELADA: "Cancelada",
-};
-
-/**
- * Convierte un `precioUnitario` (string/number, snapshot de ItemOrden) a
- * centavos enteros, redondeando al entero más cercano. Suma en centavos para
- * evitar drift de punto flotante al acumular varias líneas — misma técnica
- * que `Carrito.jsx`'s `precioACentavos` (duplicada acá a propósito, patrón
- * ya establecido de utilidades chicas duplicadas por archivo en este repo).
- * @param {string|number} precio
- * @returns {number} centavos, 0 si el precio no es un número válido
- */
-function precioACentavos(precio) {
-  const numero = typeof precio === "number" ? precio : parseFloat(precio);
-  if (Number.isNaN(numero)) return 0;
-  return Math.round(numero * 100);
-}
-
-function formatFecha(fecha) {
-  return new Date(fecha).toLocaleDateString("es-AR");
-}
+import { formatFecha, formatPrecio, precioACentavos } from "../../utils/formato.js";
+import { ESTADOS_ORDEN, ETIQUETA_ESTADO } from "../../constants/ordenes.js";
+import { claseEncabezado } from "../../components/admin/clasesTabla.js";
 
 /**
  * `/catalogo/admin/ordenes/:id` — detalle de una orden (Sprint 6, Task 2).
@@ -148,7 +121,7 @@ function AdminOrdenDetalle() {
             aria-label="Cambiar estado de la orden"
             className="font-body-md text-body-md rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none disabled:opacity-60"
           >
-            {ESTADOS.map((e) => (
+            {ESTADOS_ORDEN.map((e) => (
               <option key={e} value={e}>
                 {ETIQUETA_ESTADO[e]}
               </option>
@@ -212,16 +185,16 @@ function AdminOrdenDetalle() {
         <table className="w-full min-w-[560px] text-left">
           <thead>
             <tr className="border-b border-outline-variant">
-              <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+              <th className={claseEncabezado}>
                 Producto
               </th>
-              <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+              <th className={claseEncabezado}>
                 Precio unitario
               </th>
-              <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+              <th className={claseEncabezado}>
                 Cantidad
               </th>
-              <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+              <th className={claseEncabezado}>
                 Subtotal
               </th>
             </tr>

@@ -5,23 +5,7 @@ import BotonVolver from "../components/BotonVolver.jsx";
 import SelectorCantidad from "../components/SelectorCantidad.jsx";
 import useCarrito from "../hooks/useCarrito.js";
 import { getProducts } from "../api/products.js";
-import { formatPrecio } from "../utils/formato.js";
-
-/**
- * Convierte un `precio` (string/number, mirror de Prisma `Decimal` — ver
- * `formato.js`) a centavos enteros, redondeando al entero más cercano.
- * Sumar en centavos (enteros) en vez de floats decimales evita drift de
- * punto flotante al acumular varias líneas (ej. 0.10 + 0.20 + 0.30 !== 0.60
- * en floats). El resultado se vuelve a convertir a pesos solo una vez, al
- * formatear el total final para mostrarlo.
- * @param {string|number} precio
- * @returns {number} centavos, 0 si el precio no es un número válido
- */
-function precioACentavos(precio) {
-  const numero = typeof precio === "number" ? precio : parseFloat(precio);
-  if (Number.isNaN(numero)) return 0;
-  return Math.round(numero * 100);
-}
+import { formatPrecio, precioACentavos } from "../utils/formato.js";
 
 /**
  * `/carrito` — líneas del carrito (Sprint 5, Task 3, tarea final). Reutiliza
