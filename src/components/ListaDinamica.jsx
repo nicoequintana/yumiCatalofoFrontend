@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import { nuevoIdTemporal } from "../utils/idTemporal.js";
+
 /**
  * Generic add/remove/reorder text-list editor, shared by every "simple list"
  * commercial field (Beneficios, ¿Cómo podés usarlo?, Ideal para, ¿Qué
@@ -8,7 +10,7 @@ import { useState } from "react";
  *
  * Controlled by the parent, same pattern as `MediaUploader`: `items` is
  * `{ id, texto }[]`, `onChange(nextItems)` reports the new array. `id` may be
- * a persisted numeric id or a client-generated `tmp-<timestamp>` string for
+ * a persisted numeric id or a client-generated `tmp-<uuid>` string for
  * not-yet-saved items — this component never inspects `id`'s type, it only
  * uses it as the React key and for reorder/remove lookups.
  */
@@ -18,7 +20,7 @@ function ListaDinamica({ items, onChange, placeholder }) {
   function agregar() {
     const texto = nuevoTexto.trim();
     if (!texto) return;
-    onChange([...items, { id: `tmp-${Date.now()}`, texto }]);
+    onChange([...items, { id: nuevoIdTemporal(), texto }]);
     setNuevoTexto("");
   }
 

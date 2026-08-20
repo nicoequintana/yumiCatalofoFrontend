@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { createProduct, deletePhoto, getProductById, updateProduct } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
 import { formatearPrecioInput, formatearPrecioParaEdicion } from "../utils/formato.js";
+import { nuevoIdTemporal } from "../utils/idTemporal.js";
 import useGuardaSalida from "./useGuardaSalida.js";
 
 /**
@@ -308,7 +309,7 @@ export default function useProductoForm() {
     despachar({
       tipo: "agregarItem",
       campo: "caracteristicas",
-      item: { id: `tmp-${Date.now()}`, texto },
+      item: { id: nuevoIdTemporal(), texto },
     });
     setNuevaCaracteristica("");
   }
@@ -326,7 +327,7 @@ export default function useProductoForm() {
     despachar({
       tipo: "agregarItem",
       campo: "especificaciones",
-      item: { id: `tmp-${Date.now()}`, nombre: nombreSpec, valor: valorSpec },
+      item: { id: nuevoIdTemporal(), nombre: nombreSpec, valor: valorSpec },
     });
     setNuevaSpecNombre("");
     setNuevaSpecValor("");
