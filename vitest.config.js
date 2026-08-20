@@ -6,6 +6,10 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.js"],
+    // Un `test.only` commiteado angosta la suite en silencio y no hay CI que
+    // lo atrape: acá la corrida falla fuerte si queda uno. Para enfocar un
+    // test durante el desarrollo, usar `npx vitest run <archivo>` o `-t`.
+    forbidOnly: true,
     // Los tests E2E de Playwright viven en /e2e y corren con `playwright
     // test`, no con Vitest — sin este exclude, Vitest los recogería también
     // (mismo patrón *.spec.js) e intentaría correrlos en jsdom, donde
