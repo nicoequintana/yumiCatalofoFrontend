@@ -8,6 +8,7 @@ import { formatPrecio } from "../../utils/formato.js";
 import { calcularRango } from "../../utils/periodo.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
+import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
 import BadgeEstado from "../../components/admin/BadgeEstado.jsx";
 import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
 import {
@@ -119,6 +120,12 @@ function AdminOperacion() {
           {error}
         </p>
       ) : null}
+
+      {/*
+        Antes de los números, siempre: el aviso dice sobre qué ventana están
+        calculados. Mientras carga, `resumen` es null y no renderiza nada.
+      */}
+      <AvisoPeriodoRecortado periodo={resumen?.periodo} />
 
       {cargando ? (
         <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">

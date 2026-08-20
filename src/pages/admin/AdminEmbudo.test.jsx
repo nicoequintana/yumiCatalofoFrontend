@@ -260,6 +260,39 @@ describe("AdminEmbudo", () => {
     expect(await screen.findByText("No hubo actividad en este período")).toBeInTheDocument();
   });
 
+  it("no muestra el aviso de período recortado cuando no hubo recorte", async () => {
+    renderPagina();
+
+    await screen.findByTestId("grafico-embudo");
+
+    expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
+  });
+
+  it("avisa cuando el backend recortó el período pedido", async () => {
+    adminEmbudoApi.getEmbudoConversion.mockResolvedValue({
+      ...EMBUDO_CONFIABLE,
+      periodo: { desde: "2025-07-17", hasta: "2026-08-19", recortado: true },
+    });
+
+    renderPagina();
+
+    const aviso = await screen.findByTestId("advertencia-periodo-recortado");
+    expect(within(aviso).getByText(/supera el máximo/i)).toBeInTheDocument();
+    expect(within(aviso).getByText(/17\/07\/2025/)).toBeInTheDocument();
+  });
+
+  it("no rompe si la respuesta no trae `periodo` (backend viejo)", async () => {
+    const { periodo, ...sinPeriodo } = EMBUDO_CONFIABLE;
+    expect(periodo).toBeDefined();
+    adminEmbudoApi.getEmbudoConversion.mockResolvedValue(sinPeriodo);
+
+    renderPagina();
+
+    await screen.findByTestId("grafico-embudo");
+
+    expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
+  });
+
   it("muestra un mensaje de error si la carga falla", async () => {
     adminEmbudoApi.getEmbudoConversion.mockRejectedValue(new Error("No autorizado."));
 

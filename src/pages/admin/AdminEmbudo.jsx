@@ -7,6 +7,8 @@ import { formatFecha } from "../../utils/formato.js";
 import { calcularRango } from "../../utils/periodo.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
+import Advertencia from "../../components/admin/Advertencia.jsx";
+import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
 import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
 
 /** Ancho mínimo de barra, para que una etapa en cero siga siendo visible. */
@@ -192,6 +194,14 @@ function AdminEmbudo() {
         </p>
       ) : null}
 
+      {/*
+        Aviso de recorte del período. Va afuera del ternario de carga —y por
+        lo tanto también arriba del estado vacío— porque un "no hubo
+        actividad" sobre una ventana que no es la pedida responde otra
+        pregunta. Mientras carga, `embudo` es null y no renderiza nada.
+      */}
+      <AvisoPeriodoRecortado periodo={embudo?.periodo} />
+
       {cargando ? (
         <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
@@ -215,19 +225,10 @@ function AdminEmbudo() {
             después.
           */}
           {mostrarAdvertencia ? (
-            <div
-              data-testid="advertencia-confiabilidad"
-              role="status"
-              className="mb-8 flex flex-col gap-3 rounded-xl border border-outline bg-tertiary-container p-5"
+            <Advertencia
+              testId="advertencia-confiabilidad"
+              titulo="Los datos de este período no son comparables"
             >
-              <div className="flex items-center gap-2 text-on-surface">
-                <span className="material-symbols-outlined text-[20px]">
-                  warning
-                </span>
-                <span className="font-label-sm text-label-sm uppercase tracking-widest">
-                  Los datos de este período no son comparables
-                </span>
-              </div>
               <p className="font-body-md text-body-md text-on-surface">
                 {embudo.confiableDesde
                   ? `Cada etapa del embudo empezó a registrarse en un momento distinto, así que en este período hay etapas con menos datos que otras y las tasas de conversión no significan nada. Los datos recién son comparables desde el ${formatFecha(embudo.confiableDesde)}.`
@@ -241,7 +242,7 @@ function AdminEmbudo() {
                   están subregistradas en el período elegido.
                 </p>
               ) : null}
-            </div>
+            </Advertencia>
           ) : null}
 
           <SeccionAdmin

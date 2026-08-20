@@ -7,6 +7,7 @@ import { formatPrecio } from "../../utils/formato.js";
 import { calcularRango } from "../../utils/periodo.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
+import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
 import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
 
@@ -168,6 +169,15 @@ function AdminVentas() {
           {error}
         </p>
       ) : null}
+
+      {/*
+        Va afuera del ternario de carga, y por lo tanto también arriba del
+        estado vacío: un "no hubo ventas en este período" sobre una ventana
+        que no es la pedida está respondiendo otra pregunta, y ahí callar el
+        recorte confunde más que en la pantalla con datos. Mientras carga,
+        `resumen` es null y el aviso no renderiza nada.
+      */}
+      <AvisoPeriodoRecortado periodo={resumen?.periodo} />
 
       {cargando ? (
         <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">

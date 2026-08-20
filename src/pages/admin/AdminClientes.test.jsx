@@ -231,6 +231,39 @@ describe("AdminClientes", () => {
     expect(screen.queryByTestId("advertencia-historico")).not.toBeInTheDocument();
   });
 
+  it("no muestra el aviso de período recortado cuando no hubo recorte", async () => {
+    renderPagina();
+
+    await screen.findByText("$ 1.750,00");
+
+    expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
+  });
+
+  it("avisa cuando el backend recortó el período pedido", async () => {
+    adminClientesApi.getResumenClientes.mockResolvedValue({
+      ...RESUMEN,
+      periodo: { desde: "2025-07-17", hasta: "2026-08-19", recortado: true },
+    });
+
+    renderPagina();
+
+    const aviso = await screen.findByTestId("advertencia-periodo-recortado");
+    expect(within(aviso).getByText(/supera el máximo/i)).toBeInTheDocument();
+    expect(within(aviso).getByText(/17\/07\/2025/)).toBeInTheDocument();
+  });
+
+  it("no rompe si la respuesta no trae `periodo` (backend viejo)", async () => {
+    const { periodo, ...sinPeriodo } = RESUMEN;
+    expect(periodo).toBeDefined();
+    adminClientesApi.getResumenClientes.mockResolvedValue(sinPeriodo);
+
+    renderPagina();
+
+    await screen.findByText("$ 1.750,00");
+
+    expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
+  });
+
   it("muestra un mensaje de error si la carga falla", async () => {
     adminClientesApi.getResumenClientes.mockRejectedValue(new Error("No autorizado."));
 

@@ -8,6 +8,8 @@ import { calcularRango } from "../../utils/periodo.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
+import Advertencia from "../../components/admin/Advertencia.jsx";
+import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
 import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
 
 /**
@@ -160,6 +162,16 @@ function AdminClientes() {
         </p>
       ) : null}
 
+      {/*
+        El aviso de recorte del período va afuera del ternario de carga, así
+        aparece también sobre el estado vacío: un "no hubo clientes" sobre una
+        ventana que no es la pedida responde otra pregunta. Es distinto del
+        aviso de histórico de más abajo, que sí se calla en el estado vacío
+        porque califica métricas que ahí no se muestran. Mientras carga,
+        `resumen` es null y no renderiza nada.
+      */}
+      <AvisoPeriodoRecortado periodo={resumen?.periodo} />
+
       {cargando ? (
         <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
@@ -181,19 +193,10 @@ function AdminClientes() {
             son un piso y eso hay que leerlo antes que los números, no después.
           */}
           {mostrarAdvertenciaHistorico ? (
-            <div
-              data-testid="advertencia-historico"
-              role="status"
-              className="mb-8 flex flex-col gap-3 rounded-xl border border-outline bg-tertiary-container p-5"
+            <Advertencia
+              testId="advertencia-historico"
+              titulo="Estos números son un mínimo, no el total"
             >
-              <div className="flex items-center gap-2 text-on-surface">
-                <span className="material-symbols-outlined text-[20px]">
-                  warning
-                </span>
-                <span className="font-label-sm text-label-sm uppercase tracking-widest">
-                  Estos números son un mínimo, no el total
-                </span>
-              </div>
               <p className="font-body-md text-body-md text-on-surface">
                 Se analizaron las{" "}
                 {formatCantidad(resumen.historico.ordenesAnalizadas)} órdenes
@@ -207,7 +210,7 @@ function AdminClientes() {
                 acá como cliente nuevo y su facturación de por vida queda
                 subestimada.
               </p>
-            </div>
+            </Advertencia>
           ) : null}
 
           <SeccionAdmin

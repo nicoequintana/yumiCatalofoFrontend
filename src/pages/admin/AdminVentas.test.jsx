@@ -142,6 +142,54 @@ describe("AdminVentas", () => {
     expect(await screen.findByText("No hubo ventas en este período")).toBeInTheDocument();
   });
 
+  it("no muestra el aviso de período recortado cuando no hubo recorte", async () => {
+    renderPagina();
+
+    await screen.findByText("$ 3.500,50");
+
+    expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
+  });
+
+  it("avisa cuando el backend recortó el período pedido", async () => {
+    adminVentasApi.getResumenVentas.mockResolvedValue({
+      ...RESUMEN,
+      periodo: { desde: "2025-07-17", hasta: "2026-08-19", recortado: true },
+    });
+
+    renderPagina();
+
+    const aviso = await screen.findByTestId("advertencia-periodo-recortado");
+    expect(within(aviso).getByText(/supera el máximo/i)).toBeInTheDocument();
+    expect(within(aviso).getByText(/17\/07\/2025/)).toBeInTheDocument();
+  });
+
+  it("avisa del recorte también sobre el estado vacío", async () => {
+    // Un período vacío sobre una ventana que no es la pedida es justo el caso
+    // donde callar el recorte más confunde: "no hubo ventas" respondería a
+    // otra pregunta.
+    adminVentasApi.getResumenVentas.mockResolvedValue({
+      ...RESUMEN_VACIO,
+      periodo: { desde: "2025-07-17", hasta: "2026-08-19", recortado: true },
+    });
+
+    renderPagina();
+
+    expect(await screen.findByText("No hubo ventas en este período")).toBeInTheDocument();
+    expect(screen.getByTestId("advertencia-periodo-recortado")).toBeInTheDocument();
+  });
+
+  it("no rompe si la respuesta no trae `periodo` (backend viejo)", async () => {
+    const { periodo, ...sinPeriodo } = RESUMEN;
+    expect(periodo).toBeDefined();
+    adminVentasApi.getResumenVentas.mockResolvedValue(sinPeriodo);
+
+    renderPagina();
+
+    await screen.findByText("$ 3.500,50");
+
+    expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
+  });
+
   it("muestra un mensaje de error si la carga falla", async () => {
     adminVentasApi.getResumenVentas.mockRejectedValue(new Error("No autorizado."));
 
