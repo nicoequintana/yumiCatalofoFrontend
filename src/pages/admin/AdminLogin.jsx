@@ -31,8 +31,13 @@ function AdminLogin() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1">
           <span className="text-label-md text-on-surface-variant">Email</span>
+          {/* `autoComplete` explícito para que los gestores de contraseñas
+              reconozcan el par usuario/clave y ofrezcan la credencial
+              guardada. Sin estos tokens muchos ni siquiera detectan el
+              formulario como un login. */}
           <input
             type="email"
+            autoComplete="username"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -43,6 +48,7 @@ function AdminLogin() {
           <span className="text-label-md text-on-surface-variant">Contraseña</span>
           <input
             type="password"
+            autoComplete="current-password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}

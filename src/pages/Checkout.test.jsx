@@ -232,11 +232,13 @@ describe("Checkout", () => {
     resolverCrear({ id: 1, items: [] });
   });
 
-  it("muestra el error del backend cuando rechaza el DNI por formato, y permite reintentar", async () => {
-    // Costura donde la validación cliente es más débil que la del backend:
-    // el cliente solo chequea "no vacío", el backend valida 7-8 dígitos.
+  it("frena un DNI con formato inválido antes de salir a la red", async () => {
+    // Antes esta costura llegaba hasta el backend: el cliente solo chequeaba
+    // "no vacío", así que un DNI obviamente corto pagaba un viaje de ida y
+    // vuelta para volver como un error genérico de envío. El backend sigue
+    // siendo la autoridad (backend/src/lib/dni.js); esto es solo un aviso
+    // inmediato, y por eso marca el campo, no el banner de envío.
     productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
-    ordenesApi.crearOrden.mockRejectedValue(new Error("El DNI debe tener 7 u 8 dígitos."));
 
     const { result: carritoHook } = renderHook(() => useCarrito());
     const user = userEvent.setup();
@@ -255,16 +257,83 @@ describe("Checkout", () => {
     await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
 
     const mensajeError = await screen.findByText("El DNI debe tener 7 u 8 dígitos.");
-    expect(mensajeError).toBeInTheDocument();
-    // El banner de error de envío se anuncia a lectores de pantalla.
-    expect(mensajeError).toHaveAttribute("role", "alert");
+    expect(mensajeError).toHaveAttribute("id", "dni-error");
+    expect(ordenesApi.crearOrden).not.toHaveBeenCalled();
 
-    const boton = screen.getByRole("button", { name: /confirmar pedido/i });
-    expect(boton).not.toBeDisabled();
+    const dniInput = screen.getByLabelText(/dni/i);
+    expect(dniInput).toHaveAttribute("aria-invalid", "true");
+    expect(dniInput).toHaveAttribute("aria-describedby", "dni-error");
 
-    // El carrito y el formulario quedan intactos para poder reintentar.
+    // El carrito y el formulario quedan intactos para poder corregir.
     expect(carritoHook.current.carrito).toEqual([{ productId: 1, cantidad: 1 }]);
-    expect(screen.getByLabelText(/dni/i)).toHaveValue("123");
+    expect(dniInput).toHaveValue("123");
+  });
+
+  it("acepta un DNI escrito con separadores y lo manda tal cual (el backend normaliza)", async () => {
+    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+    ordenesApi.crearOrden.mockResolvedValue({ id: 7, items: [] });
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    const user = userEvent.setup();
+    renderCheckout();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+
+    await screen.findByLabelText(/dni/i);
+
+    await user.type(screen.getByLabelText(/dni/i), "12.345.678");
+    await user.type(screen.getByLabelText(/nombre/i), "Juana Pérez");
+    await user.type(screen.getByLabelText(/teléfono/i), "1122334455");
+
+    await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
+
+    await waitFor(() => {
+      expect(ordenesApi.crearOrden).toHaveBeenCalledWith(
+        expect.objectContaining({ dni: "12.345.678" }),
+      );
+    });
+    expect(screen.queryByText("El DNI debe tener 7 u 8 dígitos.")).not.toBeInTheDocument();
+  });
+
+  it("expone teclado y autocompletado adecuados en cada campo", async () => {
+    // El checkout es el formulario de mayor valor de la app y se completa
+    // sobre todo desde el teléfono: sin `inputMode` el DNI abre un teclado
+    // QWERTY completo, y sin `autoComplete` el navegador no ofrece los datos
+    // que el usuario ya tiene guardados.
+    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCheckout();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+
+    const dni = await screen.findByLabelText(/dni/i);
+    expect(dni).toHaveAttribute("inputmode", "numeric");
+    expect(dni).toHaveAttribute("maxlength", "10");
+
+    const nombre = screen.getByLabelText(/^nombre$/i);
+    expect(nombre).toHaveAttribute("autocomplete", "name");
+
+    const telefono = screen.getByLabelText(/teléfono/i);
+    expect(telefono).toHaveAttribute("type", "tel");
+    expect(telefono).toHaveAttribute("inputmode", "tel");
+    expect(telefono).toHaveAttribute("autocomplete", "tel");
+
+    const email = screen.getByLabelText(/email/i);
+    expect(email).toHaveAttribute("type", "email");
+    expect(email).toHaveAttribute("inputmode", "email");
+    expect(email).toHaveAttribute("autocomplete", "email");
+
+    // El `noValidate` del form es deliberado: la validación en JS es la única
+    // dueña del error, y `required` levantaría una segunda UI en conflicto.
+    expect(dni.closest("form")).toHaveAttribute("novalidate");
+    for (const campo of [dni, nombre, telefono, email]) {
+      expect(campo).not.toHaveAttribute("required");
+    }
   });
 
   it("muestra el error del backend y no navega ni limpia el formulario si la request falla", async () => {

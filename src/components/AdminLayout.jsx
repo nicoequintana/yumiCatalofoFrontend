@@ -1,6 +1,7 @@
 import { Suspense, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar.jsx";
+import LimiteDeError from "./LimiteDeError.jsx";
 import Spinner from "./Spinner.jsx";
 
 /**
@@ -21,9 +22,17 @@ import Spinner from "./Spinner.jsx";
  * `React.lazy` de App.jsx: las pantallas del admin llegan en chunks aparte, y
  * este es el único punto donde el estado de carga puede mostrarse sin tapar la
  * navegación — la sidebar queda montada y usable mientras baja el chunk.
+ *
+ * El `<LimiteDeError>` está adentro del `<main>` por el mismo motivo que el
+ * `<Suspense>`: si una pantalla del admin rompe durante el render, el error se
+ * contiene en el área de contenido y la sidebar sigue montada, así el admin
+ * puede irse a otra pantalla en vez de quedar varado en una página en blanco.
+ * Va por dentro del `<Suspense>` para que también atrape una falla de carga
+ * del chunk (`React.lazy`), que se propaga como un error de render.
  */
 function AdminLayout() {
   const [sidebarColapsada, setSidebarColapsada] = useState(true);
+  const { pathname } = useLocation();
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,9 +55,44 @@ function AdminLayout() {
             </div>
           }
         >
-          <Outlet />
+          <LimiteDeError claveDeReinicio={pathname} fallback={<ErrorDePantallaAdmin />}>
+            <Outlet />
+          </LimiteDeError>
         </Suspense>
       </main>
+    </div>
+  );
+}
+
+/**
+ * Fallback del área de contenido del admin. A diferencia del público, no
+ * ocupa la pantalla entera: la sidebar tiene que seguir a la vista, porque
+ * navegar a otra pantalla es la salida más rápida (y `claveDeReinicio` hace
+ * que esa navegación limpie el error sin recargar).
+ */
+function ErrorDePantallaAdmin() {
+  return (
+    <div
+      role="alert"
+      className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center gap-4 px-margin-mobile text-center"
+    >
+      <span className="material-symbols-outlined text-[40px] text-error" aria-hidden="true">
+        report
+      </span>
+      <h2 className="font-headline-md text-headline-md text-on-surface">
+        Esta pantalla no se pudo mostrar
+      </h2>
+      <p className="font-body-md text-body-md text-on-surface-variant">
+        Ocurrió un error inesperado al dibujarla. Podés elegir otra sección en el menú, o recargar
+        para reintentar. El detalle técnico quedó en la consola del navegador.
+      </p>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        className="font-label-md text-label-md rounded-lg bg-primary px-4 py-2 uppercase tracking-widest text-on-primary"
+      >
+        Recargar
+      </button>
     </div>
   );
 }

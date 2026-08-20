@@ -29,6 +29,31 @@ import { crearOrden } from "../api/ordenes.js";
  */
 const CAMPOS_REQUERIDOS = ["dni", "nombre", "telefono"];
 
+/**
+ * Chequeo de formato del DNI, solo para dar feedback inmediato y evitar un
+ * viaje de ida y vuelta obviamente perdido. NO es la validación real: la
+ * autoridad sigue siendo `backend/src/lib/dni.js` (normaliza y exige 7-8
+ * dígitos), y su mensaje se muestra igual si alguna vez difieren.
+ *
+ * Se ignoran los separadores porque el backend también los ignora: quien
+ * escribe "12.345.678" no está cometiendo un error, y rechazárselo acá sería
+ * más estricto que el servidor.
+ */
+const DNI_DIGITOS_MIN = 7;
+const DNI_DIGITOS_MAX = 8;
+
+/**
+ * Tope de caracteres del input de DNI: los 8 dígitos máximos más los dos
+ * puntos de "12.345.678". Cortar en 8 truncaría en silencio a quien escribe
+ * con separadores.
+ */
+const DNI_LARGO_MAX = 10;
+
+function dniTieneFormatoPlausible(valor) {
+  const digitos = valor.replace(/\D/g, "");
+  return digitos.length >= DNI_DIGITOS_MIN && digitos.length <= DNI_DIGITOS_MAX;
+}
+
 function Checkout() {
   const navigate = useNavigate();
   const { carrito } = useCarrito();
@@ -98,7 +123,11 @@ function Checkout() {
 
   function validarCampos() {
     const errores = {};
-    if (!dni.trim()) errores.dni = "El DNI es obligatorio.";
+    if (!dni.trim()) {
+      errores.dni = "El DNI es obligatorio.";
+    } else if (!dniTieneFormatoPlausible(dni)) {
+      errores.dni = "El DNI debe tener 7 u 8 dígitos.";
+    }
     if (!nombre.trim()) errores.nombre = "El nombre es obligatorio.";
     if (!telefono.trim()) errores.telefono = "El teléfono es obligatorio.";
     setErroresCampos(errores);
@@ -203,9 +232,16 @@ function Checkout() {
             <label htmlFor="dni" className="font-label-md text-label-md text-on-surface">
               DNI
             </label>
+            {/* `inputMode="numeric"` abre el teclado numérico en el celular:
+                un DNI son dígitos, y el QWERTY completo es fricción pura en
+                el formulario que más importa de la app. Sigue siendo
+                `type="text"` porque `type="number"` agrega flechas de spinner
+                y descarta los separadores que el backend sí acepta. */}
             <input
               id="dni"
               type="text"
+              inputMode="numeric"
+              maxLength={DNI_LARGO_MAX}
               value={dni}
               onChange={(e) => setDni(e.target.value)}
               aria-invalid={Boolean(erroresCampos.dni)}
@@ -226,6 +262,7 @@ function Checkout() {
             <input
               id="nombre"
               type="text"
+              autoComplete="name"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               aria-invalid={Boolean(erroresCampos.nombre)}
@@ -245,7 +282,9 @@ function Checkout() {
             </label>
             <input
               id="telefono"
-              type="text"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
               aria-invalid={Boolean(erroresCampos.telefono)}
@@ -266,6 +305,8 @@ function Checkout() {
             <input
               id="email"
               type="email"
+              inputMode="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"

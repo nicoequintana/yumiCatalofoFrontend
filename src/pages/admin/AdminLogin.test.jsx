@@ -51,6 +51,19 @@ describe("AdminLogin", () => {
     expect(alerta).toHaveTextContent("Credenciales inválidas");
   });
 
+  it("marca los campos con los tokens de autocompletado de un login", () => {
+    // Sin `username` / `current-password` muchos gestores de contraseñas ni
+    // siquiera reconocen el formulario como un login y no ofrecen guardar ni
+    // completar la credencial.
+    renderLogin();
+
+    expect(screen.getByLabelText("Email")).toHaveAttribute("autocomplete", "username");
+    expect(screen.getByLabelText("Contraseña")).toHaveAttribute(
+      "autocomplete",
+      "current-password",
+    );
+  });
+
   it("guarda el token y navega al listado cuando el login funciona", async () => {
     const user = userEvent.setup();
     authApi.login.mockResolvedValue({ token: "un-token" });

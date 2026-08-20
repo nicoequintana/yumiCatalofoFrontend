@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App.jsx";
+import LimiteDeError from "./components/LimiteDeError.jsx";
 import { aplicarTemaGuardado } from "./hooks/useTemaAdmin.js";
 import { ToastProvider } from "./context/ToastContext.jsx";
 
@@ -18,7 +19,11 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <ToastProvider>
-        <App />
+        {/* Última línea de defensa: sin esto, cualquier excepción durante el
+            render deja al visitante frente a una página en blanco. */}
+        <LimiteDeError>
+          <App />
+        </LimiteDeError>
       </ToastProvider>
     </BrowserRouter>
   </StrictMode>,
