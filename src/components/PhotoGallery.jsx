@@ -50,12 +50,17 @@ function PhotoGallery({ fotos = [], video = null, nombre = "", compacto = false 
         {slideActivo?.tipo === "video" ? (
           <video className="h-full w-full object-cover" src={slideActivo.url} controls />
         ) : slideActivo ? (
+          // Slide principal: es la imagen más grande y visible de la ficha,
+          // así que va `eager` a propósito — diferirla retrasaría el LCP en vez
+          // de ahorrar ancho de banda. Las miniaturas de abajo sí van `lazy`.
           <img
             key={slideActivo.id ?? indiceActivo}
             alt={nombre}
             onClick={() => setLightboxAbierto(true)}
             className="h-full w-full cursor-zoom-in object-cover animate-fadeIn"
             src={slideActivo.url}
+            loading="eager"
+            decoding="async"
           />
         ) : null}
       </div>
@@ -81,7 +86,14 @@ function PhotoGallery({ fotos = [], video = null, nombre = "", compacto = false 
                   </span>
                 </>
               ) : (
-                <img className="h-full w-full object-cover" src={slide.url} alt="" aria-hidden="true" />
+                <img
+                  className="h-full w-full object-cover"
+                  src={slide.url}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  decoding="async"
+                />
               )}
             </button>
           ))}

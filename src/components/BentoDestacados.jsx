@@ -12,8 +12,12 @@ import { formatPrecio } from "../utils/formato.js";
  * grande, 2 chicas, 1 mediana ancha — todas comparten la misma estructura
  * visual (imagen full-bleed + gradiente + badge de etiqueta + nombre +
  * BotonFavorito), solo cambia el span y si se muestra el precio.
+ *
+ * `prioritaria` marca la única celda que puede estar sobre el pliegue (la
+ * grande, primera del grid): su imagen se carga `eager` porque diferirla
+ * empeoraría el LCP. Las otras tres van `lazy`.
  */
-function CeldaBento({ producto, spanClass, mostrarPrecio = false }) {
+function CeldaBento({ producto, spanClass, mostrarPrecio = false, prioritaria = false }) {
   const foto = producto.fotos?.[0];
 
   return (
@@ -26,6 +30,8 @@ function CeldaBento({ producto, spanClass, mostrarPrecio = false }) {
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           src={foto.url}
           alt={producto.nombre}
+          loading={prioritaria ? "eager" : "lazy"}
+          decoding="async"
         />
       ) : null}
       <div className="absolute inset-0 bg-gradient-to-t from-inverse-surface/80 via-transparent to-transparent" />
@@ -68,7 +74,7 @@ function BentoDestacados({ productos }) {
         </div>
 
         <div className="grid grid-cols-1 gap-gutter md:grid-cols-3 md:auto-rows-[300px]">
-          <CeldaBento producto={grande} spanClass="md:col-span-2" />
+          <CeldaBento producto={grande} spanClass="md:col-span-2" prioritaria />
           <CeldaBento producto={chico1} spanClass="col-span-1" />
           <CeldaBento producto={chico2} spanClass="col-span-1" />
           <CeldaBento producto={mediana} spanClass="md:col-span-2" mostrarPrecio />

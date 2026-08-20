@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Outlet } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar.jsx";
+import Spinner from "./Spinner.jsx";
 
 /**
  * Shell propio del panel admin — navegación + contenido, sin Navbar/Footer
@@ -15,6 +16,11 @@ import AdminSidebar from "./AdminSidebar.jsx";
  * contenido al scrollear hasta abajo. El padding va SOLO en `md+`: la barra
  * inferior existe únicamente en desktop, en mobile la navegación es un
  * sidebar lateral y no hay nada abajo que pueda tapar.
+ *
+ * El `<Suspense>` alrededor del `<Outlet>` es la contraparte de los
+ * `React.lazy` de App.jsx: las pantallas del admin llegan en chunks aparte, y
+ * este es el único punto donde el estado de carga puede mostrarse sin tapar la
+ * navegación — la sidebar queda montada y usable mientras baja el chunk.
  */
 function AdminLayout() {
   const [sidebarColapsada, setSidebarColapsada] = useState(true);
@@ -33,7 +39,15 @@ function AdminLayout() {
       <AdminSidebar colapsada={sidebarColapsada} onCerrar={() => setSidebarColapsada(true)} />
 
       <main className="w-full overflow-x-auto md:pb-20">
-        <Outlet />
+        <Suspense
+          fallback={
+            <div className="flex min-h-[60vh] items-center justify-center text-on-surface-variant">
+              <Spinner className="h-8 w-8" />
+            </div>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

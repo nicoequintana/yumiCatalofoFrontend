@@ -295,6 +295,8 @@ function FichaProducto({
                   src={imagenProblema.url}
                   alt={producto.nombre}
                   className="aspect-square w-full rounded-xl object-cover shadow-ambient"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
             ) : null}

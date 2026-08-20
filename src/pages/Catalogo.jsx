@@ -46,10 +46,27 @@ function Catalogo() {
 
           <div className="relative mt-8 md:col-span-7 md:mt-0">
             <div className="absolute inset-0 -z-10 translate-x-4 translate-y-4 transform rounded-xl bg-surface-container-high" />
+            {/* Único <img> de la app sin wrapper con aspect-ratio: el alto lo
+                fija la clase `h-[500px]`, no el contenedor. Por eso lleva
+                `width`/`height` explícitos — reservan el espacio antes de que
+                el CSS aplique y evitan el salto de layout (CLS).
+
+                Las medidas describen la caja renderizada, no el archivo: 500px
+                de alto por clase, y ~736px de ancho (columna md:col-span-7 de
+                una grilla de 12 con max-w 1280px y gutter de 24px). Con
+                `object-cover` la foto real se recorta a esa caja, así que el
+                par sigue siendo correcto cuando se reemplace el asset.
+
+                Es el elemento LCP de la home: va `eager` (default explícito),
+                nunca `lazy`. */}
             <img
               className="h-[500px] w-full rounded-xl object-cover shadow-lg shadow-primary/5"
               src={heroImg}
               alt="Selección destacada del catálogo YIMA"
+              width={736}
+              height={500}
+              loading="eager"
+              decoding="async"
             />
           </div>
         </div>

@@ -53,7 +53,13 @@ function ProductCard({ producto, variant = "vertical" }) {
         <div className="relative aspect-square w-full shrink-0 bg-surface-container-low sm:h-full sm:w-1/2">
           <BotonFavorito productoId={producto.id} className="absolute top-2 right-2 z-10 rounded-full bg-surface-container-lowest/90 shadow-sm" />
           {foto ? (
-            <img className="h-full w-full object-cover" src={foto.url} alt={producto.nombre} />
+            <img
+              className="h-full w-full object-cover"
+              src={foto.url}
+              alt={producto.nombre}
+              loading="lazy"
+              decoding="async"
+            />
           ) : null}
           {destacadoChip}
           {etiquetaChip}
@@ -75,7 +81,13 @@ function ProductCard({ producto, variant = "vertical" }) {
       <div className="relative aspect-square w-full bg-surface-container-low">
         <BotonFavorito productoId={producto.id} className="absolute top-2 right-2 z-10 rounded-full bg-surface-container-lowest/90 shadow-sm" />
         {foto ? (
-          <img className="h-full w-full object-cover" src={foto.url} alt={producto.nombre} />
+          <img
+            className="h-full w-full object-cover"
+            src={foto.url}
+            alt={producto.nombre}
+            loading="lazy"
+            decoding="async"
+          />
         ) : null}
         {destacadoChip}
         {etiquetaChip}

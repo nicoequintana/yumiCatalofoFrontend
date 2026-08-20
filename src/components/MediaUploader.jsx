@@ -211,6 +211,8 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
                   src={foto.url}
                   alt={`Foto ${index + 3} de la galería`}
                   className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <button
                   type="button"
@@ -338,7 +340,13 @@ function RanuraFoto({
 
       {foto ? (
         <div className="relative aspect-square w-full max-w-[220px] self-start overflow-hidden rounded-lg bg-surface-container">
-          <img src={foto.url} alt={alt} className="h-full w-full object-cover" />
+          <img
+            src={foto.url}
+            alt={alt}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
           <button
             type="button"
             onClick={onQuitar}

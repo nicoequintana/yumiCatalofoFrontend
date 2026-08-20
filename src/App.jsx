@@ -1,7 +1,9 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 import AdminLayout from "./components/AdminLayout.jsx";
 import RequireAuth from "./components/RequireAuth.jsx";
+import Spinner from "./components/Spinner.jsx";
 import Catalogo from "./pages/Catalogo.jsx";
 import Coleccion from "./pages/Coleccion.jsx";
 import Favoritos from "./pages/Favoritos.jsx";
@@ -9,20 +11,29 @@ import Carrito from "./pages/Carrito.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import OrdenConfirmada from "./pages/OrdenConfirmada.jsx";
 import ProductoDetalle from "./pages/ProductoDetalle.jsx";
-import AdminLogin from "./pages/admin/AdminLogin.jsx";
-import AdminProductos from "./pages/admin/AdminProductos.jsx";
-import AdminProductoForm from "./pages/admin/AdminProductoForm.jsx";
-import AdminImportarProductos from "./pages/admin/AdminImportarProductos.jsx";
-import AdminCategorias from "./pages/admin/AdminCategorias.jsx";
-import AdminMetricas from "./pages/admin/AdminMetricas.jsx";
-import AdminUsuarios from "./pages/admin/AdminUsuarios.jsx";
-import AdminOrdenes from "./pages/admin/AdminOrdenes.jsx";
-import AdminOrdenDetalle from "./pages/admin/AdminOrdenDetalle.jsx";
-import AdminLogs from "./pages/admin/AdminLogs.jsx";
-import AdminVentas from "./pages/admin/AdminVentas.jsx";
-import AdminEmbudo from "./pages/admin/AdminEmbudo.jsx";
-import AdminClientes from "./pages/admin/AdminClientes.jsx";
-import AdminOperacion from "./pages/admin/AdminOperacion.jsx";
+
+// Las pantallas del admin se cargan bajo demanda (`React.lazy`): son casi la
+// mitad del código fuente del frontend y ningún visitante público las
+// necesita, así que mantenerlas en el bundle inicial hacía que cada comprador
+// se descargara el panel entero antes de ver la home. Cada `lazy()` genera un
+// chunk propio que solo se pide al entrar a esa ruta.
+//
+// Las páginas públicas siguen con import estático a propósito: son el camino
+// crítico, dividirlas solo agregaría un round-trip antes del primer render.
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin.jsx"));
+const AdminProductos = lazy(() => import("./pages/admin/AdminProductos.jsx"));
+const AdminProductoForm = lazy(() => import("./pages/admin/AdminProductoForm.jsx"));
+const AdminImportarProductos = lazy(() => import("./pages/admin/AdminImportarProductos.jsx"));
+const AdminCategorias = lazy(() => import("./pages/admin/AdminCategorias.jsx"));
+const AdminMetricas = lazy(() => import("./pages/admin/AdminMetricas.jsx"));
+const AdminUsuarios = lazy(() => import("./pages/admin/AdminUsuarios.jsx"));
+const AdminOrdenes = lazy(() => import("./pages/admin/AdminOrdenes.jsx"));
+const AdminOrdenDetalle = lazy(() => import("./pages/admin/AdminOrdenDetalle.jsx"));
+const AdminLogs = lazy(() => import("./pages/admin/AdminLogs.jsx"));
+const AdminVentas = lazy(() => import("./pages/admin/AdminVentas.jsx"));
+const AdminEmbudo = lazy(() => import("./pages/admin/AdminEmbudo.jsx"));
+const AdminClientes = lazy(() => import("./pages/admin/AdminClientes.jsx"));
+const AdminOperacion = lazy(() => import("./pages/admin/AdminOperacion.jsx"));
 
 // Admin routes reestructuradas per
 // docs/superpowers/specs/2026-08-16-admin-sidebar-design.md: dejan de
@@ -40,7 +51,24 @@ function App() {
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/checkout/confirmacion" element={<OrdenConfirmada />} />
         <Route path="/producto/:id" element={<ProductoDetalle />} />
-        <Route path="/catalogo/admin/login" element={<AdminLogin />} />
+        {/* El login vive en el `Layout` público (con Navbar/Footer) porque
+            todavía no hay sesión, pero es una pantalla del admin y también se
+            carga bajo demanda. Como el resto de ese branch es síncrono, lleva
+            su propio `Suspense` en vez de apoyarse en el de `AdminLayout`. */}
+        <Route
+          path="/catalogo/admin/login"
+          element={
+            <Suspense
+              fallback={
+                <div className="flex min-h-[50vh] items-center justify-center text-on-surface-variant">
+                  <Spinner className="h-8 w-8" />
+                </div>
+              }
+            >
+              <AdminLogin />
+            </Suspense>
+          }
+        />
       </Route>
       <Route element={<RequireAuth />}>
         <Route element={<AdminLayout />}>

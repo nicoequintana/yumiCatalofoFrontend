@@ -252,6 +252,8 @@ function AdminProductos() {
                         src={producto.fotos[0].url}
                         alt={producto.nombre}
                         className="h-9 w-9 rounded-lg object-cover xl:h-12 xl:w-12"
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant xl:h-12 xl:w-12">
