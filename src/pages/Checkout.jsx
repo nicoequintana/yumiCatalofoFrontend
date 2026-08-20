@@ -21,6 +21,14 @@ import { crearOrden } from "../api/ordenes.js";
  * la autoridad final igual, pero de esta forma no le mandamos items que ya
  * sabemos que van a ser rechazados.
  */
+/**
+ * Campos obligatorios, en el orden en que aparecen en el formulario. El orden
+ * importa: es el que define a cuál se le devuelve el foco cuando el submit
+ * falla, y tiene que ser el primero de la pantalla, no el primero del objeto.
+ * Cada clave es además el `id` del input, que es como se lo encuentra.
+ */
+const CAMPOS_REQUERIDOS = ["dni", "nombre", "telefono"];
+
 function Checkout() {
   const navigate = useNavigate();
   const { carrito } = useCarrito();
@@ -96,6 +104,22 @@ function Checkout() {
     setErroresCampos(errores);
     return Object.keys(errores).length === 0;
   }
+
+  // Mueve el foco al primer campo inválido cuando el submit falla. Sin esto el
+  // foco se queda en el botón: los mensajes de error aparecen abajo de cada
+  // campo, fuera de la vista y sin anunciarse, y el usuario solo percibe que el
+  // botón "no hizo nada".
+  //
+  // Va en un efecto y no dentro de `validarCampos` a propósito: enfocar en el
+  // mismo tick dejaría al input todavía sin `aria-invalid` ni el
+  // `aria-describedby` que apunta al mensaje, que es justamente lo que el lector
+  // de pantalla lee al recibir el foco. `erroresCampos` es un objeto nuevo en
+  // cada validación, así que un segundo submit fallido vuelve a enfocar.
+  useEffect(() => {
+    const primerInvalido = CAMPOS_REQUERIDOS.find((campo) => erroresCampos[campo]);
+    if (primerInvalido === undefined) return;
+    document.getElementById(primerInvalido)?.focus();
+  }, [erroresCampos]);
 
   async function handleSubmit(e) {
     e.preventDefault();

@@ -84,7 +84,16 @@ function AdminSidebar({ colapsada, onCerrar }) {
           aria-hidden="true"
         />
       )}
+      {/*
+        La sidebar mobile no se desmonta al cerrarse: se corre fuera de pantalla
+        con `-translate-x-full` para que la transición se pueda animar. Pero
+        "fuera de la pantalla" no es "fuera de la página": sin `inert`, sus diez
+        enlaces siguen en el orden de tabulado y quien navega por teclado tabula
+        por un menú que no puede ver. `inert` los saca del foco y del árbol de
+        accesibilidad sin tocar la animación.
+      */}
       <aside
+        inert={colapsada}
         className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col justify-between border-r border-outline-variant bg-surface-container-lowest px-4 py-6 shadow-ambient transition-transform md:hidden ${
           colapsada ? "-translate-x-full" : "translate-x-0"
         }`}

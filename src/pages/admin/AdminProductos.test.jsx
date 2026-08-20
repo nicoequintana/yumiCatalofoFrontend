@@ -179,3 +179,73 @@ describe("AdminProductos - destacado y orden", () => {
     expect(inputOrden).toHaveValue(9);
   });
 });
+
+describe("AdminProductos — diálogo de confirmación de borrado", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    productsApi.getProducts.mockResolvedValue([{ ...PRODUCTO }]);
+  });
+
+  async function abrirDialogo() {
+    const user = userEvent.setup();
+    renderPagina();
+    const disparador = await screen.findByRole("button", { name: "Eliminar Reloj Clásico" });
+    await user.click(disparador);
+    return { user, disparador };
+  }
+
+  it("se anuncia como diálogo modal, con el título como nombre accesible", async () => {
+    await abrirDialogo();
+
+    const dialogo = screen.getByRole("dialog");
+    expect(dialogo).toHaveAttribute("aria-modal", "true");
+    expect(dialogo).toHaveAccessibleName("Eliminar producto");
+  });
+
+  it("mueve el foco adentro al abrirse", async () => {
+    await abrirDialogo();
+
+    expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true);
+  });
+
+  it("atrapa el tabulado adentro del diálogo", async () => {
+    const { user } = await abrirDialogo();
+    const dialogo = screen.getByRole("dialog");
+
+    for (let indice = 0; indice < 5; indice += 1) {
+      await user.tab();
+      expect(dialogo.contains(document.activeElement)).toBe(true);
+    }
+  });
+
+  it("cierra con Escape sin borrar nada, y devuelve el foco al botón que lo abrió", async () => {
+    const { user, disparador } = await abrirDialogo();
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(productsApi.deleteProduct).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(disparador);
+  });
+
+  it("no se deja cerrar con Escape mientras el borrado está en vuelo", async () => {
+    let resolverBorrado;
+    productsApi.deleteProduct.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolverBorrado = resolve;
+      }),
+    );
+
+    const { user } = await abrirDialogo();
+    await user.click(screen.getByRole("button", { name: "Eliminar", exact: true }));
+    await waitFor(() => expect(productsApi.deleteProduct).toHaveBeenCalledWith(1));
+
+    await user.keyboard("{Escape}");
+
+    // El pedido ya salió: cerrar acá dejaría al admin sin saber si el producto
+    // se borró o no.
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    resolverBorrado({});
+  });
+});

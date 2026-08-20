@@ -5,6 +5,7 @@ import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import { deleteProduct, getProducts, updateMerchandising, updateVisibilidad } from "../../api/products.js";
 import { formatPrecio } from "../../utils/formato.js";
+import useDialogo from "../../hooks/useDialogo.js";
 
 /**
  * `/catalogo/admin` — admin product list.
@@ -26,6 +27,19 @@ function AdminProductos() {
   const [actualizandoVisibilidadId, setActualizandoVisibilidadId] = useState(null);
   const [actualizandoDestacadoId, setActualizandoDestacadoId] = useState(null);
   const [ordenEditando, setOrdenEditando] = useState({});
+
+  // El borrado es destructivo e irreversible: el diálogo tiene que atrapar el
+  // foco y cerrarse con Escape como cualquier modal, y no dejarse cerrar por
+  // teclado mientras el borrado ya salió al backend.
+  const eliminandoEnCurso =
+    productoAEliminar !== null && eliminandoId === productoAEliminar.id;
+  const dialogoRef = useDialogo({
+    abierto: productoAEliminar !== null,
+    onCerrar: () => {
+      if (eliminandoEnCurso) return;
+      setProductoAEliminar(null);
+    },
+  });
 
   async function cargarProductos() {
     setCargando(true);
@@ -383,8 +397,20 @@ function AdminProductos() {
 
       {productoAEliminar ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-margin-mobile">
-          <div className="w-full max-w-sm rounded-xl bg-surface-container-lowest p-6 shadow-ambient">
-            <h2 className="font-headline-md text-headline-md mb-2 text-on-background">Eliminar producto</h2>
+          <div
+            ref={dialogoRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-eliminar-producto"
+            tabIndex={-1}
+            className="w-full max-w-sm rounded-xl bg-surface-container-lowest p-6 shadow-ambient outline-none"
+          >
+            <h2
+              id="titulo-eliminar-producto"
+              className="font-headline-md text-headline-md mb-2 text-on-background"
+            >
+              Eliminar producto
+            </h2>
             <p className="font-body-md text-body-md mb-6 text-on-surface-variant">
               ¿Seguro que querés eliminar <strong className="text-on-surface">{productoAEliminar.nombre}</strong>?
               Esta acción no se puede deshacer.

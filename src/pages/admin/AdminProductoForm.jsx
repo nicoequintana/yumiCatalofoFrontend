@@ -519,12 +519,21 @@ function AdminProductoForm() {
         </div>
       </header>
 
-      {/* Tabs: only below `lg`, where the two panes can't sit side by side. */}
-      <div className="sticky top-0 z-10 flex border-b border-outline-variant bg-surface px-4 lg:hidden" role="tablist">
+      {/*
+        Alternancia Editar / Vista previa, solo debajo de `lg`, donde los dos
+        paneles no entran uno al lado del otro.
+
+        Son botones de alternancia y no un `tablist` de ARIA: el patrón de
+        pestañas exige `role="tabpanel"`, `aria-controls` y flechas con
+        `tabindex` móvil, y declarar solo los roles hacía que un lector de
+        pantalla anunciara "pestaña, 1 de 2" y después no encontrara ningún
+        panel. `aria-pressed` describe exactamente lo que estos dos botones
+        hacen.
+      */}
+      <div className="sticky top-0 z-10 flex border-b border-outline-variant bg-surface px-4 lg:hidden" role="group" aria-label="Panel visible">
         <button
           type="button"
-          role="tab"
-          aria-selected={panelActivo === "form"}
+          aria-pressed={panelActivo === "form"}
           onClick={() => setPanelActivo("form")}
           className={`font-label-md text-label-md flex flex-1 items-center justify-center gap-2 border-b-2 px-3 py-3 uppercase tracking-widest ${
             panelActivo === "form"
@@ -537,8 +546,7 @@ function AdminProductoForm() {
         </button>
         <button
           type="button"
-          role="tab"
-          aria-selected={panelActivo === "preview"}
+          aria-pressed={panelActivo === "preview"}
           onClick={() => setPanelActivo("preview")}
           className={`font-label-md text-label-md flex flex-1 items-center justify-center gap-2 border-b-2 px-3 py-3 uppercase tracking-widest ${
             panelActivo === "preview"

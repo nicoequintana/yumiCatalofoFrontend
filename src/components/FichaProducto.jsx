@@ -54,7 +54,18 @@ function BloqueVacio({ children, className = "" }) {
       data-testid="bloque-vacio"
       className={`flex items-center justify-center rounded-lg border border-dashed border-outline-variant px-4 py-3 text-center ${className}`}
     >
-      <span className="font-body-md text-[13px] italic leading-snug text-outline">{children}</span>
+      {/*
+        `text-on-surface-variant` y no `text-outline`: sobre
+        `surface-container-low`, `--color-outline` (#8a726b) da 4.04:1, por
+        debajo del 4.5:1 que WCAG AA pide para texto de 13px.
+        `--color-on-surface-variant` da 8.47:1 en tema claro y 9.25:1 en oscuro.
+        Se corrige acá y no en el token porque `border-outline` se usa en toda
+        la app y un borde solo necesita 3:1 — cambiar el token para arreglar un
+        texto repintaría bordes que ya estaban bien.
+      */}
+      <span className="font-body-md text-[13px] italic leading-snug text-on-surface-variant">
+        {children}
+      </span>
     </div>
   );
 }

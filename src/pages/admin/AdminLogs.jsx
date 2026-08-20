@@ -3,6 +3,8 @@ import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { getAuditLogs, getErrorLogs } from "../../api/adminLogs.js";
+import { formatFechaHora } from "../../utils/formato.js";
+import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
 
 const PESTANA_AUDITORIA = "auditoria";
 const PESTANA_ERRORES = "errores";
@@ -42,10 +44,6 @@ function BadgeAccion({ accion }) {
       {ETIQUETA_ACCION[accion] ?? accion}
     </span>
   );
-}
-
-function formatFecha(fecha) {
-  return new Date(fecha).toLocaleString("es-AR");
 }
 
 /**
@@ -111,10 +109,6 @@ function StackColapsable({ stack }) {
     </div>
   );
 }
-
-const claseCelda = "font-body-md text-body-md px-4 py-3 align-top";
-const claseEncabezado =
-  "font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant";
 
 /**
  * `/catalogo/admin/logs` — módulo de logs del panel admin, con dos pestañas:
@@ -229,11 +223,18 @@ function AdminLogs() {
         ) : null}
       </div>
 
-      <div role="tablist" aria-label="Tipo de log" className="mb-8 flex gap-2">
+      {/*
+        Botones de alternancia, no un `tablist` de ARIA. El patrón de pestañas
+        exige `role="tabpanel"`, `aria-controls` y navegación con flechas con
+        `tabindex` móvil; declarar solo los roles hacía que un lector de
+        pantalla anunciara "pestaña, 1 de 2" y después no encontrara ningún
+        panel, y que las flechas no hicieran nada. Un grupo de toggles con
+        `aria-pressed` describe exactamente lo que estos dos botones hacen.
+      */}
+      <div role="group" aria-label="Tipo de log" className="mb-8 flex gap-2">
         <button
           type="button"
-          role="tab"
-          aria-selected={esAuditoria}
+          aria-pressed={esAuditoria}
           onClick={() => handleCambiarPestana(PESTANA_AUDITORIA)}
           className={claseTab(esAuditoria)}
         >
@@ -241,8 +242,7 @@ function AdminLogs() {
         </button>
         <button
           type="button"
-          role="tab"
-          aria-selected={!esAuditoria}
+          aria-pressed={!esAuditoria}
           onClick={() => handleCambiarPestana(PESTANA_ERRORES)}
           className={claseTab(!esAuditoria)}
         >
@@ -303,7 +303,7 @@ function AdminLogs() {
                         <DetalleAuditoria detalle={registro.detalle} />
                       </td>
                       <td className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}>
-                        {formatFecha(registro.createdAt)}
+                        {formatFechaHora(registro.createdAt)}
                       </td>
                     </tr>
                   ))}
@@ -332,7 +332,7 @@ function AdminLogs() {
                         <StackColapsable stack={registro.stack} />
                       </td>
                       <td className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}>
-                        {formatFecha(registro.createdAt)}
+                        {formatFechaHora(registro.createdAt)}
                       </td>
                     </tr>
                   ))}

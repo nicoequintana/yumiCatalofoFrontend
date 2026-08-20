@@ -50,18 +50,32 @@ function PhotoGallery({ fotos = [], video = null, nombre = "", compacto = false 
         {slideActivo?.tipo === "video" ? (
           <video className="h-full w-full object-cover" src={slideActivo.url} controls />
         ) : slideActivo ? (
-          // Slide principal: es la imagen más grande y visible de la ficha,
-          // así que va `eager` a propósito — diferirla retrasaría el LCP en vez
-          // de ahorrar ancho de banda. Las miniaturas de abajo sí van `lazy`.
-          <img
-            key={slideActivo.id ?? indiceActivo}
-            alt={nombre}
+          // El disparador del lightbox es un <button> real y no un `onClick`
+          // sobre la <img>: una imagen no es enfocable ni tiene rol, así que
+          // con el handler puesto ahí la ampliación era inalcanzable por
+          // teclado — y las miniaturas de abajo sí son botones, con lo cual el
+          // recorrido quedaba incoherente además de incompleto.
+          <button
+            type="button"
             onClick={() => setLightboxAbierto(true)}
-            className="h-full w-full cursor-zoom-in object-cover animate-fadeIn"
-            src={slideActivo.url}
-            loading="eager"
-            decoding="async"
-          />
+            aria-label={nombre ? `Ampliar foto de ${nombre}` : "Ampliar foto"}
+            className="h-full w-full cursor-zoom-in"
+          >
+            {/*
+              Slide principal: es la imagen más grande y visible de la ficha,
+              así que va `eager` a propósito — diferirla retrasaría el LCP en
+              vez de ahorrar ancho de banda. Las miniaturas de abajo sí van
+              `lazy`.
+            */}
+            <img
+              key={slideActivo.id ?? indiceActivo}
+              alt={nombre}
+              className="h-full w-full object-cover animate-fadeIn"
+              src={slideActivo.url}
+              loading="eager"
+              decoding="async"
+            />
+          </button>
         ) : null}
       </div>
 

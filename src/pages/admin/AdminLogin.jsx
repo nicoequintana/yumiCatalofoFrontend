@@ -49,7 +49,16 @@ function AdminLogin() {
             className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-md text-on-surface"
           />
         </label>
-        {error && <p className="text-body-md text-error">{error}</p>}
+        {/*
+          `role="alert"` para que el fallo de login se anuncie solo: el foco se
+          queda en el botón "Ingresar" después del submit, así que sin esto el
+          único aviso de que las credenciales están mal es visual.
+        */}
+        {error && (
+          <p role="alert" className="text-body-md text-error">
+            {error}
+          </p>
+        )}
         <button
           type="submit"
           disabled={cargando}

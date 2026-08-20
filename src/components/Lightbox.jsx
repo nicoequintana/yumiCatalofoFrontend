@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import useDialogo from "../hooks/useDialogo.js";
 
 /**
  * Full-screen overlay for viewing a photo enlarged (design item 5).
@@ -7,12 +8,17 @@ import { useEffect } from "react";
  *
  * `slides` / `activo` / `onNavegar` are shared with PhotoGallery so both
  * stay in sync on the same current index.
+ *
+ * El foco, la trampa de tabulado y el cierre con Escape los maneja
+ * `useDialogo`; acá quedan solo las flechas, que son propias de una galería y
+ * no de un diálogo cualquiera.
  */
 function Lightbox({ slides, activo, onNavegar, onCerrar, nombre }) {
+  const dialogoRef = useDialogo({ onCerrar });
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
     function handleKeyDown(event) {
-      if (event.key === "Escape") onCerrar();
       if (event.key === "ArrowRight") onNavegar((activo + 1) % slides.length);
       if (event.key === "ArrowLeft") onNavegar((activo - 1 + slides.length) % slides.length);
     }
@@ -21,14 +27,19 @@ function Lightbox({ slides, activo, onNavegar, onCerrar, nombre }) {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [activo, slides.length, onNavegar, onCerrar]);
+  }, [activo, slides.length, onNavegar]);
 
   const slideActivo = slides[activo];
   if (!slideActivo) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 px-4"
+      ref={dialogoRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={nombre ? `Foto ampliada de ${nombre}` : "Foto ampliada"}
+      tabIndex={-1}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 px-4 outline-none"
       onClick={onCerrar}
     >
       <button

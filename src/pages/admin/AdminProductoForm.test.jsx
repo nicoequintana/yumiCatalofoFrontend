@@ -263,11 +263,11 @@ describe("AdminProductoForm — vista previa en vivo", () => {
   it("permite alternar entre las pestañas Editar y Vista previa en mobile", () => {
     renderForm();
 
-    const tabPreview = screen.getByRole("tab", { name: /Vista previa/i });
+    const tabPreview = screen.getByRole("button", { name: /Vista previa/i });
     fireEvent.click(tabPreview);
 
-    expect(tabPreview).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: /Editar/i })).toHaveAttribute("aria-selected", "false");
+    expect(tabPreview).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Editar/i })).toHaveAttribute("aria-pressed", "false");
   });
 });
 
@@ -423,12 +423,12 @@ describe("AdminProductoForm — guardar desde la pestaña de vista previa", () =
     // usuario apretaba Guardar y no pasaba absolutamente nada.
     renderForm();
 
-    fireEvent.click(screen.getByRole("tab", { name: /Vista previa/i }));
-    expect(screen.getByRole("tab", { name: /Vista previa/i })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("button", { name: /Vista previa/i }));
+    expect(screen.getByRole("button", { name: /Vista previa/i })).toHaveAttribute("aria-pressed", "true");
 
     fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
 
-    expect(screen.getByRole("tab", { name: /Editar/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("button", { name: /Editar/i })).toHaveAttribute("aria-pressed", "true");
   });
 });
 

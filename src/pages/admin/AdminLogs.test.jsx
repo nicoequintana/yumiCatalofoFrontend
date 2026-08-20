@@ -76,7 +76,7 @@ describe("AdminLogs", () => {
 
     await screen.findByText("admin@yima.test");
 
-    await user.click(screen.getByRole("tab", { name: "Errores" }));
+    await user.click(screen.getByRole("button", { name: "Errores" }));
 
     expect(await screen.findByText("Error interno del servidor.")).toBeInTheDocument();
     expect(screen.getByText("500")).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe("AdminLogs", () => {
     renderPagina();
 
     await screen.findByText("admin@yima.test");
-    await user.click(screen.getByRole("tab", { name: "Errores" }));
+    await user.click(screen.getByRole("button", { name: "Errores" }));
     await screen.findByText("Error interno del servidor.");
 
     expect(screen.queryByText(/algo explotó/)).not.toBeInTheDocument();

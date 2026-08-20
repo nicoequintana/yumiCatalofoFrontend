@@ -118,6 +118,45 @@ describe("Checkout", () => {
     expect(screen.getByText("El DNI es obligatorio.")).toHaveAttribute("id", "dni-error");
   });
 
+  it("lleva el foco al primer campo inválido cuando el submit falla", async () => {
+    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    const user = userEvent.setup();
+    renderCheckout();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+
+    await screen.findByLabelText(/dni/i);
+
+    await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
+
+    // Sin esto el foco se queda en el botón y los errores aparecen abajo, fuera
+    // de la vista: el submit se siente como si no hubiera hecho nada.
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText(/dni/i)));
+  });
+
+  it("enfoca el primer campo inválido según el orden del formulario, no el del objeto de errores", async () => {
+    productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    const user = userEvent.setup();
+    renderCheckout();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+
+    const dniInput = await screen.findByLabelText(/dni/i);
+    await user.type(dniInput, "30111222");
+
+    await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
+
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText(/^nombre$/i)));
+  });
+
   it("envía la orden con las líneas válidas y navega a la confirmación con el state", async () => {
     productsApi.getProducts.mockResolvedValue([PRODUCTO_1]);
     const ordenCreada = { id: 42, items: [{ productId: 1, nombreProducto: "Reloj Clásico" }] };
