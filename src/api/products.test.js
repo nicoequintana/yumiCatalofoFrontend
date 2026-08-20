@@ -2,12 +2,21 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   MAX_IDS_POR_CONSULTA,
   construirFormData,
+  getProductById,
   getProducts,
   getProductsByIds,
   registrarFavorito,
 } from "./products.js";
+import { getToken } from "./authClient.js";
+
+// Mismo patrón que `adminLogs.test.js`: el módulo de auth se mockea entero.
+// Además evita el `localStorage` roto de este entorno de test (ver el comentario
+// de `useTemaAdmin.test.jsx`), que haría explotar cualquier lectura real.
+vi.mock("./authClient.js");
 
 const BASE = "http://localhost:4000/api";
+
+const TOKEN = "jwt-de-prueba";
 
 function mockFetchOnce(body = []) {
   global.fetch = vi.fn().mockResolvedValue({
@@ -18,6 +27,7 @@ function mockFetchOnce(body = []) {
 
 describe("getProducts", () => {
   beforeEach(() => {
+    vi.mocked(getToken).mockReturnValue(TOKEN);
     mockFetchOnce();
   });
 
@@ -28,7 +38,8 @@ describe("getProducts", () => {
 
   it("admin:true agrega ?admin=1 (regresión)", async () => {
     await getProducts({ admin: true });
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?admin=1`, undefined);
+    const [url] = global.fetch.mock.calls[0];
+    expect(url).toBe(`${BASE}/products?admin=1`);
   });
 
   it("admin:false (default) no agrega admin a la querystring", async () => {
@@ -88,6 +99,83 @@ describe("getProducts", () => {
 
     expect(params.get("admin")).toBe("1");
     expect(params.get("categoria")).toBe("3");
+  });
+});
+
+/**
+ * El backend habilita la vista admin (ocultos + agotados) desde el JWT
+ * verificado, no desde `?admin=1`. Sin estos headers, las pantallas del admin
+ * verían exactamente lo mismo que un visitante anónimo.
+ */
+describe("getProducts / getProductById — el token viaja en modo admin", () => {
+  beforeEach(() => {
+    vi.mocked(getToken).mockReset().mockReturnValue(TOKEN);
+    mockFetchOnce();
+  });
+
+  it("admin:true manda el JWT en el header Authorization", async () => {
+    await getProducts({ admin: true });
+
+    const [, opciones] = global.fetch.mock.calls[0];
+    expect(opciones.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it("sin admin NO manda el token (la llamada pública sigue siendo anónima)", async () => {
+    await getProducts();
+
+    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products`, undefined);
+    expect(getToken).not.toHaveBeenCalled();
+  });
+
+  it("admin:true sin token guardado no manda un header vacío", async () => {
+    vi.mocked(getToken).mockReturnValue(null);
+
+    await getProducts({ admin: true });
+
+    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?admin=1`, undefined);
+  });
+
+  it("no explota si leer el token lanza (localStorage bloqueado)", async () => {
+    vi.mocked(getToken).mockImplementation(() => {
+      throw new Error("acceso a localStorage denegado");
+    });
+
+    await expect(getProducts({ admin: true })).resolves.toBeDefined();
+    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?admin=1`, undefined);
+  });
+
+  it("getProductById con admin:true manda el JWT", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ id: 4 }),
+    });
+
+    await getProductById(4, { admin: true });
+
+    const [url, opciones] = global.fetch.mock.calls[0];
+    expect(url).toBe(`${BASE}/products/4?admin=1`);
+    expect(opciones.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it("getProductById público no manda token y sigue devolviendo null ante un 404", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => JSON.stringify({ error: "Producto no encontrado." }),
+    });
+
+    await expect(getProductById(4)).resolves.toBeNull();
+    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products/4`, undefined);
+  });
+
+  it("getProductsByIds propaga el token a cada tanda", async () => {
+    mockFetchOnce({ data: [], page: 1, pageSize: 100, total: 0 });
+
+    await getProductsByIds([4], { admin: true });
+
+    const [, opciones] = global.fetch.mock.calls[0];
+    expect(opciones.headers.Authorization).toBe(`Bearer ${TOKEN}`);
   });
 });
 

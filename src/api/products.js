@@ -12,7 +12,7 @@
  * a destructive reseed action to any UI visitor.
  */
 
-import { fetchAutenticado } from "./authClient.js";
+import { fetchAutenticado, getToken } from "./authClient.js";
 
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api`;
 
@@ -47,6 +47,43 @@ async function pedirAutenticado(url, options) {
   }
 
   return body;
+}
+
+/**
+ * Opciones de fetch para las dos lecturas de producto (`getProducts` /
+ * `getProductById`) cuando la pantalla pide modo admin: adjunta el JWT para que
+ * el backend habilite la vista privilegiada (productos ocultos y agotados).
+ *
+ * El backend deriva ese modo del token verificado y NO de `?admin=1` — antes
+ * alcanzaba con el parámetro, que viaja en este mismo bundle público, así que
+ * cualquiera podía leer los productos que el admin había ocultado.
+ *
+ * A propósito NO usa `fetchAutenticado`: ese wrapper limpia el token y redirige
+ * a `/catalogo/admin/login` ante un 401, y estos dos endpoints son PÚBLICOS —
+ * los llaman también `Coleccion.jsx`, `ProductoDetalle.jsx` y el bento de la
+ * home. Un 401 nunca llega desde acá (el backend degrada a anónimo en vez de
+ * cortar), pero atar una lectura pública a un redirect al login del admin sería
+ * un bug de navegación esperando a pasar.
+ *
+ * Devuelve `undefined` —no un objeto vacío— cuando no hay nada que mandar, para
+ * que la llamada pública quede idéntica a la de antes.
+ *
+ * La lectura del token va en try/catch porque `localStorage` puede lanzar
+ * (navegación privada, almacenamiento bloqueado por política del sitio): un
+ * catálogo que no puede leer el storage tiene que seguir cargando como anónimo,
+ * no romperse.
+ */
+function opcionesDeAdmin(admin) {
+  if (!admin) return undefined;
+
+  let token = null;
+  try {
+    token = getToken();
+  } catch {
+    token = null;
+  }
+
+  return token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
 }
 
 /** Builds the shared `FormData` payload for create/update from the form's `data` shape. */
@@ -128,9 +165,11 @@ export const MAX_IDS_POR_CONSULTA = 100;
  * una PÁGINA de productos, no el catálogo entero. El sobre es el mismo que
  * usa `GET /ordenes`; quien solo quiera las filas tiene que leer `.data`.
  *
- * Pass admin:true to include hidden products (used by admin screens). The
- * remaining options map 1:1 to the backend's public catalog filter query
- * params (`categoria`, `search`, `minPrecio`, `maxPrecio`) — omitted/empty
+ * `admin: true` pide la vista del panel (incluye ocultos y agotados) y adjunta
+ * el JWT del admin. Sin sesión válida el backend responde 200 igual, pero con
+ * el listado público: la vista privilegiada la otorga el token, no el
+ * parámetro `?admin=1`. The remaining options map 1:1 to the backend's public
+ * catalog filter query params (`categoria`, `search`, `minPrecio`, `maxPrecio`) — omitted/empty
  * values are left out of the query string entirely.
  *
  * `destacado: true` trae solo los productos destacados (el bento), y
@@ -178,7 +217,7 @@ export async function getProducts({
   }
 
   const query = params.toString();
-  return pedir(`${BASE}/products${query ? `?${query}` : ""}`);
+  return pedir(`${BASE}/products${query ? `?${query}` : ""}`, opcionesDeAdmin(admin));
 }
 
 /**
@@ -208,10 +247,16 @@ export async function getProductsByIds(ids, { admin = false } = {}) {
   return respuestas.flatMap((respuesta) => respuesta.data);
 }
 
-/** @returns {Promise<Object|null>} a single product by id, or null if not found (404) */
+/**
+ * @returns {Promise<Object|null>} a single product by id, or null if not found (404)
+ *
+ * `admin: true` adjunta el JWT y es lo único que permite abrir la ficha de un
+ * producto oculto (`visibleEnCatalogo: false`): sin sesión válida el backend
+ * responde 404, igual que a cualquier visitante.
+ */
 export async function getProductById(id, { admin = false } = {}) {
   const query = admin ? "?admin=1" : "";
-  const res = await fetch(`${BASE}/products/${id}${query}`);
+  const res = await fetch(`${BASE}/products/${id}${query}`, opcionesDeAdmin(admin));
   if (res.status === 404) return null;
 
   const texto = await res.text();
