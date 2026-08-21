@@ -290,3 +290,145 @@ describe("AdminProductos - cantidad de fotos", () => {
     expect(await screen.findByText("0/10")).toBeInTheDocument();
   });
 });
+
+describe("AdminProductos — buscador", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    productsApi.getProducts.mockResolvedValue(pagina([PRODUCTO]));
+  });
+
+  it("carga sin término de búsqueda al entrar", async () => {
+    renderPagina();
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith({
+        admin: true,
+        page: 1,
+        search: "",
+      });
+    });
+  });
+
+  it("manda lo tipeado al backend después del debounce, una sola vez", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    const input = screen.getByRole("searchbox", { name: /buscar productos/i });
+    await user.type(input, "reloj");
+
+    // El debounce es lo que evita un request por tecla: cinco letras tienen
+    // que producir UNA búsqueda, no cinco.
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith({
+        admin: true,
+        page: 1,
+        search: "reloj",
+      });
+    });
+
+    const busquedas = productsApi.getProducts.mock.calls.filter(
+      ([args]) => args.search === "reloj",
+    );
+    expect(busquedas).toHaveLength(1);
+  });
+
+  it("busca también por SKU", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    await user.type(
+      screen.getByRole("searchbox", { name: /buscar productos/i }),
+      "YIMA-RELOJC-1",
+    );
+
+    // El campo es uno solo: el término viaja igual sea nombre, SKU o
+    // categoría, y el backend decide con cuál coincide.
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith({
+        admin: true,
+        page: 1,
+        search: "YIMA-RELOJC-1",
+      });
+    });
+  });
+
+  it("dice que la búsqueda no encontró nada, no que no haya productos", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    productsApi.getProducts.mockResolvedValue(pagina([]));
+    await user.type(
+      screen.getByRole("searchbox", { name: /buscar productos/i }),
+      "inexistente",
+    );
+
+    // "Todavía no hay productos" sería falso acá: los productos están, la
+    // búsqueda no los alcanza. El mensaje equivocado manda al admin a cargar
+    // algo que ya tiene cargado.
+    expect(await screen.findByText("Sin resultados")).toBeInTheDocument();
+    expect(screen.queryByText("Todavía no hay productos")).not.toBeInTheDocument();
+  });
+
+  it("mantiene el mensaje de catálogo vacío cuando no hay búsqueda activa", async () => {
+    productsApi.getProducts.mockResolvedValue(pagina([]));
+    renderPagina();
+
+    expect(await screen.findByText("Todavía no hay productos")).toBeInTheDocument();
+    expect(screen.queryByText("Sin resultados")).not.toBeInTheDocument();
+  });
+});
+
+describe("AdminProductos — la búsqueda vive en la URL", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    productsApi.getProducts.mockResolvedValue(pagina([PRODUCTO]));
+  });
+
+  it("aplica el término que ya viene en la URL y lo muestra en el input", async () => {
+    render(
+      <MemoryRouter initialEntries={["/catalogo/admin?search=reloj"]}>
+        <AdminProductos />
+      </MemoryRouter>,
+    );
+
+    // Sin esto, recargar un listado filtrado mostraría una caja de búsqueda
+    // vacía sobre una tabla filtrada, que se lee como un bug.
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith({
+        admin: true,
+        page: 1,
+        search: "reloj",
+      });
+    });
+    expect(screen.getByRole("searchbox", { name: /buscar productos/i })).toHaveValue("reloj");
+  });
+
+  it("una búsqueda nueva vuelve a la página 1", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/catalogo/admin?page=3"]}>
+        <AdminProductos />
+      </MemoryRouter>,
+    );
+    await screen.findByText("Reloj Clásico");
+
+    await user.type(
+      screen.getByRole("searchbox", { name: /buscar productos/i }),
+      "reloj",
+    );
+
+    // La página 3 del listado completo puede no existir en el resultado
+    // filtrado; quedarse ahí mostraría una tabla vacía como si la búsqueda
+    // no encontrara nada.
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith({
+        admin: true,
+        page: 1,
+        search: "reloj",
+      });
+    });
+  });
+});

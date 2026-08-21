@@ -8,6 +8,9 @@ import { deleteProduct, getProducts, updateMerchandising, updateVisibilidad } fr
 import { formatPrecio } from "../../utils/formato.js";
 import useDialogo from "../../hooks/useDialogo.js";
 
+/** Pausa antes de mandar lo tipeado a la URL (y por lo tanto al backend). */
+const DEBOUNCE_BUSQUEDA_MS = 350;
+
 /**
  * `/catalogo/admin` — admin product list.
  *
@@ -18,13 +21,29 @@ import useDialogo from "../../hooks/useDialogo.js";
  * Reuses the shared `Layout`/`Navbar` — no distinct admin chrome (nothing
  * in CLAUDE.md or design.md calls for one), and `/catalogo/admin*` stays
  * unlinked from public nav per the finalized decision.
+ *
+ * Buscador: un solo campo contra nombre, SKU y categoría (el backend une los
+ * tres con OR). El término vive en la URL — un listado filtrado se puede
+ * compartir, recargar, y volver de editar un producto devuelve a la búsqueda
+ * que lo encontró.
  */
 function AdminProductos() {
   // La página vive en la URL, igual que en `/coleccion`: así volver del
   // formulario de edición devuelve a la página desde la que se entró.
+  //
+  // La búsqueda también: un listado filtrado se puede compartir o recargar, y
+  // volver de editar un producto devuelve a la búsqueda que lo encontró en
+  // vez de a la tabla completa.
   const [searchParams, setSearchParams] = useSearchParams();
   const paginaUrl = Number(searchParams.get("page"));
   const pagina = Number.isInteger(paginaUrl) && paginaUrl > 0 ? paginaUrl : 1;
+  const busqueda = searchParams.get("search") ?? "";
+
+  // Estado local para que cada tecla no escriba en la URL (y no dispare un
+  // request). Se inicializa desde la URL para que recargar con `?search=`
+  // muestre el término en el input en vez de una caja vacía sobre una tabla
+  // filtrada, que se leería como un bug.
+  const [busquedaInput, setBusquedaInput] = useState(busqueda);
 
   const [productos, setProductos] = useState([]);
   const [totalPaginas, setTotalPaginas] = useState(1);
@@ -64,6 +83,49 @@ function AdminProductos() {
     );
   }
 
+  /**
+   * Commitea el término de búsqueda a la URL.
+   *
+   * `replace`: refinar una búsqueda es seguir en el mismo lugar, no navegar a
+   * otro — sin esto cada tecla comiteada apila una entrada de historial y
+   * "atrás" necesitaría un click por letra para salir de la pantalla. Es el
+   * mismo criterio que usan los filtros de `/coleccion`.
+   *
+   * Se borra `page` porque la página 4 del resultado anterior puede no existir
+   * en el nuevo, y quedarse ahí mostraría una tabla vacía como si la búsqueda
+   * no encontrara nada.
+   */
+  function commitBusqueda(valor) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (valor) {
+          next.set("search", valor);
+        } else {
+          next.delete("search");
+        }
+        next.delete("page");
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  // Debounce: el término llega a la URL (y al efecto de fetch) recién cuando
+  // el admin deja de tipear. La guarda de "ambos vacíos" evita el commit de
+  // más del montaje, que reescribiría la querystring sin que nada cambie.
+  useEffect(() => {
+    if (busquedaInput === "" && busqueda === "") return;
+    if (busquedaInput === busqueda) return;
+
+    const timeoutId = setTimeout(() => {
+      commitBusqueda(busquedaInput);
+    }, DEBOUNCE_BUSQUEDA_MS);
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busquedaInput, busqueda]);
+
   function aplicarPagina({ data, total, pageSize }) {
     setProductos(data);
     setTotalPaginas(Math.max(1, Math.ceil(total / pageSize)));
@@ -72,7 +134,7 @@ function AdminProductos() {
   async function cargarProductos() {
     setCargando(true);
     try {
-      aplicarPagina(await getProducts({ admin: true, page: pagina }));
+      aplicarPagina(await getProducts({ admin: true, page: pagina, search: busqueda }));
     } catch {
       setError("No se pudieron cargar los productos. Revisá tu conexión e intentá de nuevo.");
     } finally {
@@ -85,7 +147,9 @@ function AdminProductos() {
   useEffect(() => {
     let activo = true;
 
-    getProducts({ admin: true, page: pagina })
+    setCargando(true);
+
+    getProducts({ admin: true, page: pagina, search: busqueda })
       .then((respuesta) => {
         if (!activo) return;
         aplicarPagina(respuesta);
@@ -102,7 +166,7 @@ function AdminProductos() {
     return () => {
       activo = false;
     };
-  }, [pagina]);
+  }, [pagina, busqueda]);
 
   // Borrar el último producto de la última página la deja sin filas. En vez de
   // mostrar la tabla vacía como si no hubiera productos, se retrocede una
@@ -229,6 +293,31 @@ function AdminProductos() {
         </div>
       </div>
 
+      {/* Un solo campo para nombre, SKU y categoría: el admin no tiene por qué
+          declarar en qué campo está tipeando — busca con lo que se acuerde del
+          producto. El backend une los tres con OR. */}
+      <div className="mb-6">
+        <label htmlFor="buscar-productos" className="sr-only">
+          Buscar productos por nombre, SKU o categoría
+        </label>
+        <div className="relative max-w-md">
+          <span
+            className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
+            aria-hidden="true"
+          >
+            search
+          </span>
+          <input
+            id="buscar-productos"
+            type="search"
+            value={busquedaInput}
+            onChange={(e) => setBusquedaInput(e.target.value)}
+            placeholder="Buscar por nombre, SKU o categoría…"
+            className="w-full rounded-lg border border-outline-variant bg-surface py-3 pl-11 pr-4 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:outline-none"
+          />
+        </div>
+      </div>
+
       {error ? (
         <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
           {error}
@@ -241,11 +330,22 @@ function AdminProductos() {
           <p className="font-body-md text-body-md text-on-surface-variant">Cargando productos…</p>
         </div>
       ) : productos.length === 0 ? (
-        <EstadoVacio
-          icono="inventory_2"
-          titulo="Todavía no hay productos"
-          mensaje="Agregá el primer producto para verlo acá y en el catálogo público."
-        />
+        // "Todavía no hay productos" sería falso con una búsqueda activa: los
+        // productos están, la búsqueda no los alcanza. Decir lo contrario
+        // manda al admin a cargar algo que ya tiene cargado.
+        busqueda ? (
+          <EstadoVacio
+            icono="search_off"
+            titulo="Sin resultados"
+            mensaje={`Ningún producto coincide con "${busqueda}". Probá con otro nombre, SKU o categoría.`}
+          />
+        ) : (
+          <EstadoVacio
+            icono="inventory_2"
+            titulo="Todavía no hay productos"
+            mensaje="Agregá el primer producto para verlo acá y en el catálogo público."
+          />
+        )
       ) : (
         <div className="rounded-xl bg-surface-container-lowest shadow-ambient">
           <table className="w-full min-w-[820px] text-left text-[13px] xl:text-sm">
