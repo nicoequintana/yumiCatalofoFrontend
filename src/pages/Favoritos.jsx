@@ -124,11 +124,11 @@ function Favoritos() {
           mensaje="Tocá el corazón en cualquier producto para guardarlo acá."
         />
       ) : (
-        <div className="grid grid-cols-1 gap-gutter md:grid-cols-12">
+        <div className="grid grid-cols-1 gap-gutter md:grid-cols-2 lg:grid-cols-4">
+          {/* Mismo grid que `/coleccion`: las dos pantallas del catálogo
+              público muestran la misma card en el mismo ancho. */}
           {productos.map((producto) => (
-            <div key={producto.id} className="col-span-1 md:col-span-6 lg:col-span-4">
-              <ProductCard producto={producto} variant="vertical" />
-            </div>
+            <ProductCard key={producto.id} producto={producto} />
           ))}
         </div>
       )}

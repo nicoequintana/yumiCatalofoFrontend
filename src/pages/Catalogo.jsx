@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
-import BentoDestacados from "../components/BentoDestacados.jsx";
+import CarruselDestacados from "../components/CarruselDestacados.jsx";
 import useDestacados from "../hooks/useDestacados.js";
 import heroImg from "../assets/hero.jpg";
 
@@ -8,7 +8,7 @@ import heroImg from "../assets/hero.jpg";
  * `/` — home editorial, per design doc
  * 2026-08-19-separacion-home-coleccion.md.
  *
- * Esta página es la vidriera de marca: Hero + bento de destacados +
+ * Esta página es la vidriera de marca: Hero + carrusel de destacados +
  * manifiesto. El catálogo completo con filtros vive ahora en `/coleccion`
  * (`Coleccion.jsx`) — antes ambas cosas compartían un solo scroll acá, lo
  * que mezclaba dos trabajos distintos (enganchar vs. buscar) e impedía
@@ -72,7 +72,7 @@ function Catalogo() {
         </div>
       </section>
 
-      <BentoDestacados productos={destacados} />
+      <CarruselDestacados productos={destacados} />
 
       {/* Manifiesto de marca — cierre editorial antes del footer.
           Sin botón CTA: no existe una página "Sobre nosotros" en el

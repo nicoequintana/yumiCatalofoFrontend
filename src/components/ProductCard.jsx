@@ -3,17 +3,21 @@ import BotonFavorito from "./BotonFavorito.jsx";
 import { formatPrecio } from "../utils/formato.js";
 
 /**
- * Single card component for the `/` product grid, per design D2.
+ * Single card component for the public product grids (`/coleccion`,
+ * `/favoritos`, and the related-products strip in `FichaProducto`).
  *
  * Marketplace-grid layout (Mercado Libre reference): square image tile,
  * floating favorite heart, an etiqueta chip anchored to the image's bottom
  * edge, then a compact text block (categoria eyebrow, 2-line clamped
- * nombre, large precio). `variant: "vertical" | "horizontal"` switches
- * between a stacked card and a wide `sm:flex-row` card for the grid's every
- * 4th slot; both share this same visual language. Grid spans
- * (`md:col-span-*`) stay in the parent page, not here.
+ * nombre, large precio).
+ *
+ * The card is stacked-only on purpose. A `variant: "horizontal"` used to
+ * render a wide card on every 4th grid slot, which mixed two card shapes in
+ * the same grid and read as broken rather than editorial. Every consumer now
+ * lays the card out on a uniform grid, so the card owns its own vertical
+ * shape and the parent page only owns the column count.
  */
-function ProductCard({ producto, variant = "vertical" }) {
+function ProductCard({ producto }) {
   const foto = producto.fotos?.[0];
   const href = `/producto/${producto.id}`;
 
@@ -46,35 +50,6 @@ function ProductCard({ producto, variant = "vertical" }) {
       {producto.categoria.nombre}
     </span>
   ) : null;
-
-  if (variant === "horizontal") {
-    return (
-      <Link to={href} className={`${shell} sm:flex-row`}>
-        <div className="relative aspect-square w-full shrink-0 bg-surface-container-low sm:h-full sm:w-1/2">
-          <BotonFavorito productoId={producto.id} className="absolute top-2 right-2 z-10 rounded-full bg-surface-container-lowest/90 shadow-sm" />
-          {foto ? (
-            <img
-              className="h-full w-full object-cover"
-              src={foto.url}
-              alt={producto.nombre}
-              loading="lazy"
-              decoding="async"
-            />
-          ) : null}
-          {destacadoChip}
-          {etiquetaChip}
-          {pocoStockChip}
-        </div>
-        <div className="flex w-full flex-col justify-center p-4 sm:w-1/2 sm:p-6">
-          {textoCategoria}
-          <h3 className="font-body-lg text-body-lg mb-2 line-clamp-2 text-on-surface">{producto.nombre}</h3>
-          <span className="font-headline-md text-headline-md mt-auto text-primary">
-            {formatPrecio(producto.precio)}
-          </span>
-        </div>
-      </Link>
-    );
-  }
 
   return (
     <Link to={href} className={shell}>

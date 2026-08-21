@@ -6,7 +6,7 @@ import BotonVolver from "../components/BotonVolver.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import FiltrosCatalogo from "../components/FiltrosCatalogo.jsx";
 import Paginador from "../components/Paginador.jsx";
-import BentoDestacados from "../components/BentoDestacados.jsx";
+import CarruselDestacados from "../components/CarruselDestacados.jsx";
 import useDestacados from "../hooks/useDestacados.js";
 import { getProducts } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
@@ -25,7 +25,7 @@ const CLAVES_FILTRO = ["categoria", "search", "minPrecio", "maxPrecio"];
  * `/coleccion` — catálogo completo con filtros, separado de la home
  * editorial (`/`) per design doc 2026-08-19-separacion-home-coleccion.
  *
- * El bento de destacados se muestra arriba con su propio fetch sin filtros
+ * El carrusel de destacados se muestra arriba con su propio fetch sin filtros
  * (`useDestacados`): es una vidriera fija de destacados globales y no debe
  * vaciarse ni cambiar cuando el usuario filtra el grid de abajo. Por eso
  * esta página hace dos llamadas a `getProducts` con params distintos.
@@ -238,7 +238,7 @@ function Coleccion() {
         <BotonVolver />
       </div>
 
-      <BentoDestacados productos={destacados} />
+      <CarruselDestacados productos={destacados} />
 
       <FiltrosCatalogo
         categorias={categorias}
@@ -281,22 +281,18 @@ function Coleccion() {
               }
             />
           ) : (
-            <div className="grid grid-cols-1 gap-gutter md:grid-cols-12">
-              {productos.map((producto, index) => {
-                // Every 4th card renders wide (horizontal variant), matching
-                // catalogo.html's mix of `lg:col-span-4` stacked cards and
-                // `lg:col-span-6` wide cards (L179-209) — asymmetry comes from
-                // this span mix, not from a separate bento section (D1).
-                const esAncha = index % 4 === 3;
-                return (
-                  <div
-                    key={producto.id}
-                    className={esAncha ? "col-span-1 md:col-span-12 lg:col-span-6" : "col-span-1 md:col-span-6 lg:col-span-4"}
-                  >
-                    <ProductCard producto={producto} variant={esAncha ? "horizontal" : "vertical"} />
-                  </div>
-                );
-              })}
+            // Grid uniforme: 1 columna en móvil, 2 en tablet, 4 en desktop.
+            // Antes cada 4ª card se renderizaba ancha y horizontal (mezcla de
+            // spans heredada del mockup), lo que rompía el ritmo de la grilla
+            // en vez de darle asimetría editorial.
+            //
+            // `grid-cols-N` directo en lugar del sistema de 12 + `col-span-*`:
+            // con columnas uniformes los spans no aportan nada y obligaban a
+            // un `<div>` envoltorio por card.
+            <div className="grid grid-cols-1 gap-gutter md:grid-cols-2 lg:grid-cols-4">
+              {productos.map((producto) => (
+                <ProductCard key={producto.id} producto={producto} />
+              ))}
             </div>
           )}
 

@@ -107,15 +107,18 @@ describe("Catalogo - home editorial", () => {
     expect(screen.queryByText("Nuestra Colección")).not.toBeInTheDocument();
   });
 
-  it("el bento pide los destacados filtrados en el backend", async () => {
+  it("el carrusel pide los destacados filtrados en el backend", async () => {
     renderPagina();
 
+    // `pageSize` es el techo del carrusel, no su medida exacta: cuantos más
+    // destacados haya, más largo es el recorrido antes de repetirse. Está
+    // separado del mínimo de 4 con que se muestra la sección.
     await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith({ destacado: true, pageSize: 4 });
+      expect(productsApi.getProducts).toHaveBeenCalledWith({ destacado: true, pageSize: 12 });
     });
   });
 
-  it("no muestra el bento de destacados si hay menos de 4 productos destacados", async () => {
+  it("no muestra los destacados si hay menos de 4 productos destacados", async () => {
     productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO, destacado: true }]));
     renderPagina();
 
@@ -125,7 +128,7 @@ describe("Catalogo - home editorial", () => {
     expect(screen.queryByText("Hallazgos del día")).not.toBeInTheDocument();
   });
 
-  it("muestra el bento cuando hay al menos 4 destacados", async () => {
+  it("muestra el carrusel cuando hay al menos 4 destacados", async () => {
     const destacados = [1, 2, 3, 4].map((id) => ({
       ...PRODUCTO,
       id,

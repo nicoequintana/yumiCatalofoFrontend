@@ -241,7 +241,7 @@ describe("Coleccion - filtros y grid", () => {
     expect(select.value).toBe("1");
   });
 
-  it("no muestra el bento de destacados si hay menos de 4 productos destacados", async () => {
+  it("no muestra los destacados si hay menos de 4 productos destacados", async () => {
     productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO, destacado: true }]));
     renderPagina();
 
@@ -249,7 +249,7 @@ describe("Coleccion - filtros y grid", () => {
     expect(screen.queryByText("Hallazgos del día")).not.toBeInTheDocument();
   });
 
-  it("muestra el bento con los destacados globales, con su propio fetch sin filtros", async () => {
+  it("muestra el carrusel con los destacados globales, con su propio fetch sin filtros", async () => {
     const destacados = [1, 2, 3, 4].map((id) => ({
       ...PRODUCTO,
       id,
@@ -261,10 +261,10 @@ describe("Coleccion - filtros y grid", () => {
     renderPagina();
 
     expect(await screen.findByText("Hallazgos del día")).toBeInTheDocument();
-    // El bento pide los destacados al backend, acotado a sus cuatro slots, y
+    // El carrusel pide los destacados al backend con su propio `pageSize`, y
     // separado del fetch del grid que sí lleva los filtros y la página.
     await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith({ destacado: true, pageSize: 4 });
+      expect(productsApi.getProducts).toHaveBeenCalledWith({ destacado: true, pageSize: 12 });
     });
   });
 

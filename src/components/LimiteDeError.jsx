@@ -6,8 +6,8 @@ import { Component } from "react";
  * Sin uno, cualquier excepción lanzada durante el render desmonta el árbol
  * entero de React y deja una pantalla en blanco: ni mensaje, ni forma de
  * recuperarse, ni pista de qué pasó. Hay disparadores reales — por ejemplo
- * `BentoDestacados` desestructura cuatro elementos, o una respuesta de la API
- * con una forma inesperada llegando a `FichaProducto`.
+ * una respuesta de la API con una forma inesperada llegando a
+ * `FichaProducto`, o un chunk de `React.lazy` que no baja.
  *
  * Tiene que ser un componente de clase: React no expone un equivalente en
  * hooks para `getDerivedStateFromError` / `componentDidCatch`. Es la única
