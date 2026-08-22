@@ -305,6 +305,13 @@ describe("ProductoDetalle — CTA sticky mobile", () => {
     const barraSticky = screen.getByTestId("cta-sticky-mobile");
     expect(barraSticky.className).toContain("translate-y-0");
 
+    // El observer lo instancia un efecto de FichaProducto DESPUÉS del primer
+    // render: bajo carga, asumir `instancias[0]` acá corría antes de ese
+    // efecto y explotaba con "Cannot read properties of undefined". Se espera
+    // a que la instancia exista en vez de asumirla — el test sigue
+    // verificando exactamente lo mismo.
+    await waitFor(() => expect(instancias.length).toBeGreaterThan(0));
+
     instancias[0].callback([{ isIntersecting: true }]);
 
     await waitFor(() => {
@@ -320,7 +327,7 @@ describe("ProductoDetalle — producto no disponible", () => {
     vi.clearAllMocks();
   });
 
-  it("redirige al catálogo cuando el producto no existe (404/oculto/sin stock)", async () => {
+  it("redirige al catálogo cuando el producto no existe (404: inexistente u oculto; sin stock devuelve 200 y no pasa por acá)", async () => {
     productsApi.getProductById.mockResolvedValue(null);
 
     renderPagina();

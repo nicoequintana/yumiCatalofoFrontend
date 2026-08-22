@@ -1,7 +1,6 @@
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Toast from "../components/Toast.jsx";
-
-const ToastContext = createContext(null);
+import { ToastContext } from "./useToast.js";
 
 const DURACION_MS = 4000;
 
@@ -40,11 +39,6 @@ export function ToastProvider({ children }) {
   );
 }
 
-/** @returns {{ mostrarToast: (mensaje: string, opciones?: { tipo?: "info"|"error"|"exito" }) => void }} */
-export function useToast() {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error("useToast debe usarse dentro de un ToastProvider.");
-  }
-  return context;
-}
+// El hook `useToast` vive en `./useToast.js` — ver el comment ahí sobre Fast
+// Refresh. Este archivo exporta SOLO el componente a propósito; un re-export
+// del hook acá reintroduce el warning que motivó la separación.

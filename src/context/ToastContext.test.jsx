@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ToastProvider, useToast } from "./ToastContext.jsx";
+import { ToastProvider } from "./ToastContext.jsx";
+import { useToast } from "./useToast.js";
 
 function ComponenteDePrueba({ mensaje, opciones }) {
   const { mostrarToast } = useToast();

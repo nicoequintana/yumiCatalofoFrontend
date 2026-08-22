@@ -5,7 +5,7 @@ import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
 import { useVolver } from "../hooks/useVolver.js";
 import { getProductById } from "../api/products.js";
-import { useToast } from "../context/ToastContext.jsx";
+import { useToast } from "../context/useToast.js";
 
 /**
  * `/producto/:id` — container for the public product detail view.
@@ -33,10 +33,14 @@ function ProductoDetalle() {
       .then((data) => {
         if (!activo) return;
 
-        // Producto inexistente, eliminado, oculto o sin stock (el backend ya
-        // excluye estos casos del catálogo público) — en vez de mostrar una
-        // página "no encontrado" en un link roto, mandamos al usuario de
-        // vuelta al catálogo con un aviso, así puede seguir navegando.
+        // Producto inexistente, eliminado u oculto (`visibleEnCatalogo:
+        // false`) — los únicos casos en que el backend responde 404 y `data`
+        // llega vacío. Un producto SIN STOCK no cae acá: el detalle devuelve
+        // 200 a propósito (un link compartido a un producto agotado no se
+        // rompe) y la ficha se muestra con el badge "Agotado" y el CTA
+        // deshabilitado. En vez de una página "no encontrado" en un link
+        // roto, mandamos al usuario de vuelta al catálogo con un aviso, así
+        // puede seguir navegando.
         if (!data) {
           navigate("/", { replace: true });
           mostrarToast("Este producto ya no está disponible.", { tipo: "error" });
