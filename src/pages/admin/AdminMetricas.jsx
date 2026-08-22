@@ -22,20 +22,30 @@ function AdminMetricas() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
-  function irAPagina(numero) {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (numero <= 1) {
-        next.delete("page");
-      } else {
-        next.set("page", String(numero));
-      }
-      return next;
-    });
+  // Contador de reintentos: el botón "Reintentar" lo incrementa y eso
+  // re-dispara el efecto de fetch sin tocar la página. Sin él, tras un fallo
+  // la única salida era recargar la pantalla entera.
+  const [reintento, setReintento] = useState(0);
+
+  function irAPagina(numero, { reemplazar = false } = {}) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (numero <= 1) {
+          next.delete("page");
+        } else {
+          next.set("page", String(numero));
+        }
+        return next;
+      },
+      { replace: reemplazar },
+    );
   }
 
   useEffect(() => {
     let activo = true;
+
+    setCargando(true);
 
     // El "más visto primero" lo resuelve el backend (`orden=vistas`), no un
     // sort local: con el listado paginado, ordenar del lado del cliente solo
@@ -45,6 +55,9 @@ function AdminMetricas() {
         if (!activo) return;
         setProductos(data);
         setTotalPaginas(Math.max(1, Math.ceil(total / pageSize)));
+        // Un fetch exitoso limpia cualquier error anterior: sin esto la
+        // pantalla quedaba clavada en el error aunque el backend ya volvió.
+        setError(null);
         setCargando(false);
       })
       // Sin este catch, un backend caído deja la promesa rechazada sin manejar
@@ -58,7 +71,18 @@ function AdminMetricas() {
     return () => {
       activo = false;
     };
-  }, [pagina]);
+  }, [pagina, reintento]);
+
+  // Un link viejo o un catálogo que se achicó pueden dejar la URL apuntando a
+  // una página que ya no existe. Mismo patrón que AdminProductos: se corrige
+  // a la última página real en vez de mostrar una tabla vacía que mentiría.
+  useEffect(() => {
+    if (cargando) return;
+    // `reemplazar`: la página inválida no debe quedar en el historial, o
+    // "atrás" volvería a ella y la corrección se repetiría para siempre.
+    if (pagina > totalPaginas) irAPagina(totalPaginas, { reemplazar: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargando, pagina, totalPaginas]);
 
   return (
     <main className="w-full px-4 py-6 md:px-8 md:py-8">
@@ -74,9 +98,16 @@ function AdminMetricas() {
       </div>
 
       {error ? (
-        <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
-          {error}
-        </p>
+        <div className="mb-6 flex flex-col items-start gap-3 rounded-lg bg-error-container px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-body-md text-body-md text-on-error-container">{error}</p>
+          <button
+            type="button"
+            onClick={() => setReintento((actual) => actual + 1)}
+            className="font-label-md text-label-md shrink-0 rounded-lg border border-on-error-container px-4 py-2 uppercase tracking-widest text-on-error-container hover:bg-error-container"
+          >
+            Reintentar
+          </button>
+        </div>
       ) : null}
 
       {cargando ? (

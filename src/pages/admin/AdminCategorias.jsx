@@ -24,9 +24,21 @@ function AdminCategorias() {
   const [confirmandoId, setConfirmandoId] = useState(null);
   const [eliminandoId, setEliminandoId] = useState(null);
 
+  /**
+   * Recarga la lista después de una mutación exitosa. Maneja su propio error
+   * a propósito: si esta recarga falla, la mutación YA se aplicó — dejar que
+   * el catch de la mutación lo agarre mostraba "No se pudo crear/renombrar/
+   * eliminar la categoría", y el admin reintentaba algo que ya pasó.
+   */
   async function cargarCategorias() {
-    const data = await getCategorias();
-    setCategorias(data);
+    try {
+      const data = await getCategorias();
+      setCategorias(data);
+    } catch {
+      setError(
+        "La operación se guardó, pero no se pudo actualizar la lista. Recargá la página para ver el estado actual.",
+      );
+    }
   }
 
   useEffect(() => {
