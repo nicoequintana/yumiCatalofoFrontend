@@ -6,7 +6,7 @@ vi.mock("../api/products.js", () => ({
 }));
 
 import { registrarFavorito } from "../api/products.js";
-import useFavoritos from "./useFavoritos.js";
+import useFavoritos, { STORAGE_KEY } from "./useFavoritos.js";
 
 describe("useFavoritos — toggleFavorito y registrarFavorito", () => {
   beforeEach(() => {
@@ -114,5 +114,129 @@ describe("useFavoritos — toggleFavorito y registrarFavorito", () => {
     expect(b.result.current.esFavorito(3)).toBe(true);
     expect(registrarFavorito).toHaveBeenCalledTimes(1);
     expect(registrarFavorito).toHaveBeenCalledWith(3);
+  });
+});
+
+describe("useFavoritos — sincronización entre pestañas (evento storage)", () => {
+  // Fake de Storage: el global real de este entorno es un objeto vacío sin
+  // métodos (ver el comentario del beforeEach de arriba), así que para
+  // simular lo que escribió otra pestaña se instala una implementación
+  // completa y se restaura al terminar — mismo patrón que useTemaAdmin.test.jsx.
+  const localStorageOriginal = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+
+  function instalarStorage(valorInicial = null) {
+    const estado = { valor: valorInicial };
+    const falso = {
+      getItem: vi.fn((clave) => (clave === STORAGE_KEY ? estado.valor : null)),
+      setItem: vi.fn((clave, valor) => {
+        if (clave === STORAGE_KEY) estado.valor = valor;
+      }),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    };
+    Object.defineProperty(globalThis, "localStorage", {
+      value: falso,
+      configurable: true,
+      writable: true,
+    });
+    return { estado, falso };
+  }
+
+  afterEach(() => {
+    if (localStorageOriginal) {
+      Object.defineProperty(globalThis, "localStorage", localStorageOriginal);
+    } else {
+      delete globalThis.localStorage;
+    }
+    const { result } = renderHook(() => useFavoritos());
+    act(() => {
+      result.current.establecerFavoritos([]);
+    });
+  });
+
+  it("refleja lo que escribió otra pestaña y notifica a las instancias montadas", () => {
+    const { estado } = instalarStorage(JSON.stringify([]));
+    const a = renderHook(() => useFavoritos());
+    const b = renderHook(() => useFavoritos());
+
+    act(() => {
+      estado.valor = JSON.stringify([7, 9]);
+      window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, newValue: estado.valor }));
+    });
+
+    expect(a.result.current.favoritos).toEqual([7, 9]);
+    expect(b.result.current.esFavorito(9)).toBe(true);
+  });
+
+  it("NO vuelve a escribir en storage al reaccionar al evento (sin loop)", () => {
+    const { estado, falso } = instalarStorage(JSON.stringify([]));
+    renderHook(() => useFavoritos());
+
+    falso.setItem.mockClear();
+    act(() => {
+      estado.valor = JSON.stringify([7]);
+      window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, newValue: estado.valor }));
+    });
+
+    expect(falso.setItem).not.toHaveBeenCalled();
+  });
+
+  it("un toggle posterior parte de la lista sincronizada, no de la vieja", () => {
+    const { estado } = instalarStorage(JSON.stringify([]));
+    const { result } = renderHook(() => useFavoritos());
+
+    act(() => {
+      estado.valor = JSON.stringify([7]);
+      window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, newValue: estado.valor }));
+    });
+    act(() => {
+      result.current.toggleFavorito(9);
+    });
+
+    expect(result.current.favoritos).toEqual([7, 9]);
+  });
+
+  it("re-montar tras quedar sin instancias refresca el estado de módulo (el primer toggle no pisa lo de otra pestaña)", () => {
+    // Mismo escenario que en useCarrito.test.jsx: sin instancias montadas no
+    // hay listener de `storage`, así que lo que otra pestaña escribe en ese
+    // lapso nunca actualiza la variable de módulo. Al re-montar, el
+    // initializer lee storage fresco (la UI se ve bien) pero el primer
+    // toggle partiría del valor viejo y pisaría lo de la otra pestaña.
+    const { estado } = instalarStorage(JSON.stringify([]));
+    const primera = renderHook(() => useFavoritos());
+    act(() => {
+      primera.result.current.establecerFavoritos([]);
+    });
+    primera.unmount();
+
+    // Otra pestaña agrega el 7 mientras acá no hay listener montado.
+    estado.valor = JSON.stringify([7]);
+
+    const segunda = renderHook(() => useFavoritos());
+    expect(segunda.result.current.favoritos).toEqual([7]);
+
+    act(() => {
+      segunda.result.current.toggleFavorito(9);
+    });
+
+    // Sin el refresh del estado de módulo, esto daría [9]: el favorito de la
+    // otra pestaña pisado en silencio.
+    expect(segunda.result.current.favoritos).toEqual([7, 9]);
+  });
+
+  it("ignora eventos de otras claves y un valor corrupto cae a lista vacía", () => {
+    const { estado } = instalarStorage(JSON.stringify([3]));
+    const { result } = renderHook(() => useFavoritos());
+
+    act(() => {
+      window.dispatchEvent(new StorageEvent("storage", { key: "otra-clave", newValue: "[9]" }));
+    });
+    expect(result.current.favoritos).toEqual([3]);
+
+    act(() => {
+      estado.valor = "{ roto";
+      window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, newValue: estado.valor }));
+    });
+    expect(result.current.favoritos).toEqual([]);
   });
 });

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { registrarFavorito } from "../api/products.js";
 
-const STORAGE_KEY = "yumi-favoritos";
+export const STORAGE_KEY = "yumi-favoritos";
 const listeners = new Set();
 
 function leerFavoritos() {
@@ -36,6 +36,21 @@ function escribirFavoritos(ids) {
     // a soft feature, so a failed write should still update in-memory state
     // for the current session instead of crashing the click handler.
   }
+  listeners.forEach((listener) => listener(ids));
+}
+
+// Sincronización entre pestañas: el evento `storage` se dispara en las DEMÁS
+// pestañas cuando una escribe (nunca en la que escribió, que ya se notificó
+// vía `escribirFavoritos`). Se relee el valor y se notifica a los listeners
+// locales SIN volver a escribir — escribir acá dispararía el evento en la
+// pestaña original y entraría en loop. Un valor corrupto o ausente cae a []
+// por el mismo camino que la lectura inicial (`leerFavoritos`). `key === null`
+// es un `storage.clear()`, que también afecta a esta clave. Mismo mecanismo
+// que useCarrito.js.
+function manejarStorageDeOtraPestana(evento) {
+  if (evento.key !== null && evento.key !== STORAGE_KEY) return;
+  const ids = leerFavoritos();
+  favoritosActuales = ids;
   listeners.forEach((listener) => listener(ids));
 }
 
@@ -84,9 +99,25 @@ function useFavoritos() {
   const [favoritos, setFavoritos] = useState(() => leerFavoritos());
 
   useEffect(() => {
+    // Un solo listener de `storage` por pestaña: se registra al montar la
+    // primera instancia y se quita al desmontar la última — mismo criterio
+    // de ciclo de vida que useCarrito/useTemaAdmin.
+    if (listeners.size === 0) {
+      // Mientras no hubo instancias montadas tampoco hubo listener de
+      // `storage`: lo que otra pestaña escribió en ese lapso nunca actualizó
+      // `favoritosActuales`. El initializer del estado ya leyó el valor
+      // fresco para ESTA instancia; acá se realinea el estado de módulo para
+      // que la primera mutación no parta del valor viejo y pise esa
+      // escritura. Mismo criterio que useCarrito.js.
+      favoritosActuales = leerFavoritos();
+      window.addEventListener("storage", manejarStorageDeOtraPestana);
+    }
     listeners.add(setFavoritos);
     return () => {
       listeners.delete(setFavoritos);
+      if (listeners.size === 0) {
+        window.removeEventListener("storage", manejarStorageDeOtraPestana);
+      }
     };
   }, []);
 

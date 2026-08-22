@@ -205,3 +205,71 @@ describe("aplicarTemaGuardado", () => {
     expect(temaEnDom()).toBeUndefined();
   });
 });
+
+describe("useTemaAdmin — sincronización entre pestañas (evento storage)", () => {
+  beforeEach(() => {
+    limpiarTema();
+  });
+
+  afterEach(() => {
+    limpiarTema();
+    restaurarStorage();
+    vi.restoreAllMocks();
+  });
+
+  it("refleja el tema que eligió otra pestaña y marca el DOM", () => {
+    instalarStorage();
+    const falso = globalThis.localStorage;
+    const { result } = renderHook(() => useTemaAdmin());
+    expect(result.current.tema).toBe("claro");
+
+    act(() => {
+      // Otra pestaña ya persistió "oscuro"; esta solo recibe el evento.
+      falso.getItem.mockImplementation((clave) => (clave === STORAGE_KEY ? "oscuro" : null));
+      window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, newValue: "oscuro" }));
+    });
+
+    expect(result.current.tema).toBe("oscuro");
+    expect(temaEnDom()).toBe("oscuro");
+  });
+
+  it("NO vuelve a escribir en storage al reaccionar al evento (sin loop)", () => {
+    instalarStorage();
+    const falso = globalThis.localStorage;
+    renderHook(() => useTemaAdmin());
+
+    falso.setItem.mockClear();
+    act(() => {
+      falso.getItem.mockImplementation((clave) => (clave === STORAGE_KEY ? "oscuro" : null));
+      window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, newValue: "oscuro" }));
+    });
+
+    expect(falso.setItem).not.toHaveBeenCalled();
+  });
+
+  it("un valor inválido llegado por evento cae a claro, igual que en la lectura inicial", () => {
+    instalarStorage({ valorGuardado: "oscuro" });
+    const falso = globalThis.localStorage;
+    const { result } = renderHook(() => useTemaAdmin());
+    expect(result.current.tema).toBe("oscuro");
+
+    act(() => {
+      falso.getItem.mockImplementation((clave) => (clave === STORAGE_KEY ? "fucsia" : null));
+      window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY, newValue: "fucsia" }));
+    });
+
+    expect(result.current.tema).toBe("claro");
+    expect(temaEnDom()).toBeUndefined();
+  });
+
+  it("ignora eventos de otras claves", () => {
+    instalarStorage();
+    const { result } = renderHook(() => useTemaAdmin());
+
+    act(() => {
+      window.dispatchEvent(new StorageEvent("storage", { key: "otra-clave", newValue: "oscuro" }));
+    });
+
+    expect(result.current.tema).toBe("claro");
+  });
+});

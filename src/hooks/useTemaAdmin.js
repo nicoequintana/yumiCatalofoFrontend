@@ -43,6 +43,20 @@ function escribirTema(tema) {
   listeners.forEach((listener) => listener(tema));
 }
 
+// Sincronización entre pestañas: el evento `storage` se dispara en las DEMÁS
+// pestañas cuando una escribe (nunca en la que escribió, que ya repintó vía
+// `escribirTema`). Se relee la preferencia, se marca el DOM y se notifica a
+// los listeners locales SIN volver a escribir — escribir acá dispararía el
+// evento en la pestaña original y entraría en loop. Un valor inválido cae a
+// claro por el mismo camino que la lectura inicial (`leerTema`). Mismo
+// mecanismo que useCarrito/useFavoritos.
+function manejarStorageDeOtraPestana(evento) {
+  if (evento.key !== null && evento.key !== STORAGE_KEY) return;
+  const tema = leerTema();
+  marcarDom(tema);
+  listeners.forEach((listener) => listener(tema));
+}
+
 /**
  * Applies the persisted theme to the DOM before React mounts, so the admin
  * panel never flashes light for a frame before the hook's first effect runs.
@@ -80,10 +94,17 @@ function useTemaAdmin() {
 
   useEffect(() => {
     marcarDom(tema);
+    // Un solo listener de `storage` por pestaña, con el mismo ciclo de vida
+    // que el atributo del DOM: entra con la primera instancia, sale con la
+    // última.
+    if (listeners.size === 0) {
+      window.addEventListener("storage", manejarStorageDeOtraPestana);
+    }
     listeners.add(setTema);
     return () => {
       listeners.delete(setTema);
       if (listeners.size === 0) {
+        window.removeEventListener("storage", manejarStorageDeOtraPestana);
         delete document.documentElement.dataset.temaAdmin;
       }
     };

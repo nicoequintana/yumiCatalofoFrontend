@@ -1,13 +1,28 @@
 import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "yumi-carrito";
+export const STORAGE_KEY = "yumi-carrito";
 const listeners = new Set();
+
+// Una línea corrupta en storage (cantidad null/"abc"/negativa, id inválido —
+// posible por una versión vieja del shape o una edición manual) produciría
+// `cantidadTotal: NaN` en el badge del Navbar. Se filtra al leer: solo
+// enteros positivos en ambos campos.
+function esLineaValida(linea) {
+  return (
+    linea !== null &&
+    typeof linea === "object" &&
+    Number.isInteger(linea.productId) &&
+    linea.productId > 0 &&
+    Number.isInteger(linea.cantidad) &&
+    linea.cantidad > 0
+  );
+}
 
 function leerCarrito() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.filter(esLineaValida) : [];
   } catch {
     return [];
   }
@@ -37,6 +52,20 @@ function escribirCarrito(lineas) {
   listeners.forEach((listener) => listener(lineas));
 }
 
+// Sincronización entre pestañas: el evento `storage` se dispara en las DEMÁS
+// pestañas cuando una escribe (nunca en la que escribió, que ya se notificó
+// vía `escribirCarrito`). Se relee el valor y se notifica a los listeners
+// locales SIN volver a escribir — escribir acá dispararía el evento en la
+// pestaña original y entraría en loop. Un valor corrupto o ausente cae a []
+// por el mismo camino que la lectura inicial (`leerCarrito`). `key === null`
+// es un `storage.clear()`, que también afecta a esta clave.
+function manejarStorageDeOtraPestana(evento) {
+  if (evento.key !== null && evento.key !== STORAGE_KEY) return;
+  const lineas = leerCarrito();
+  carritoActual = lineas;
+  listeners.forEach((listener) => listener(lineas));
+}
+
 /**
  * Cart lines are stored as a JSON array of `{ productId, cantidad }` objects
  * under one localStorage key. Multiple components (a future
@@ -51,17 +80,36 @@ function useCarrito() {
   const [carrito, setCarrito] = useState(() => leerCarrito());
 
   useEffect(() => {
+    // El listener de `storage` es uno solo por pestaña: se registra cuando
+    // monta la primera instancia y se quita cuando desmonta la última —
+    // mismo criterio de ciclo de vida que el atributo del DOM en
+    // `useTemaAdmin`. (`addEventListener` con la misma función deduplica,
+    // así que el guard es economía, no corrección.)
+    if (listeners.size === 0) {
+      // Mientras no hubo instancias montadas tampoco hubo listener de
+      // `storage`: lo que otra pestaña escribió en ese lapso nunca actualizó
+      // `carritoActual`. El initializer del estado ya leyó el valor fresco
+      // para ESTA instancia; acá se realinea el estado de módulo para que la
+      // primera mutación no parta del valor viejo y pise esa escritura.
+      carritoActual = leerCarrito();
+      window.addEventListener("storage", manejarStorageDeOtraPestana);
+    }
     listeners.add(setCarrito);
     return () => {
       listeners.delete(setCarrito);
+      if (listeners.size === 0) {
+        window.removeEventListener("storage", manejarStorageDeOtraPestana);
+      }
     };
   }, []);
 
   function agregar(productId, cantidad = 1) {
-    // Guard against non-positive quantities: `agregar(id, -5)` must not
-    // silently shrink or delete a line — only `actualizarCantidad`/`quitar`
-    // are allowed to do that, and only explicitly. Adding always adds.
-    const cantidadValida = Math.max(1, cantidad);
+    // Guard against non-positive OR non-integer quantities (NaN included:
+    // `Math.max(1, NaN)` is NaN, so the old floor didn't cover it).
+    // `agregar(id, -5)` must not silently shrink or delete a line — only
+    // `actualizarCantidad`/`quitar` are allowed to do that, and only
+    // explicitly. Adding always adds.
+    const cantidadValida = Number.isInteger(cantidad) && cantidad > 0 ? cantidad : 1;
     const actual = carritoActual;
     const existente = actual.find((linea) => linea.productId === productId);
     const siguiente = existente
@@ -89,6 +137,10 @@ function useCarrito() {
    * @param {number} cantidad - new quantity; `<= 0` removes the line.
    */
   function actualizarCantidad(productId, cantidad) {
+    // NaN o una cantidad no entera no tienen representación posible en una
+    // línea: se ignora en vez de escribir basura (NaN <= 0 es false, así que
+    // sin este guard una cantidad NaN pasaba de largo y quedaba persistida).
+    if (!Number.isInteger(cantidad)) return;
     if (cantidad <= 0) {
       quitar(productId);
       return;
