@@ -10,6 +10,13 @@ COPY . .
 # calling localhost:4000.
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+# Fail the build loudly if the arg is missing or empty: a bundle baked
+# without it points at localhost:4000 and ships as a silently broken deploy
+# that nobody notices until a user opens the page.
+RUN if [ -z "$VITE_API_BASE_URL" ]; then \
+      echo "ERROR: VITE_API_BASE_URL build arg is required (set it as a Build Arg in EasyPanel, not a runtime env var)." >&2; \
+      exit 1; \
+    fi
 RUN npm run build
 
 FROM nginx:1.27-alpine AS runtime
