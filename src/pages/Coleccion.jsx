@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
@@ -99,9 +99,25 @@ function Coleccion() {
 
   const { productos: destacados } = useDestacados();
   const [searchInput, setSearchInput] = useState("");
+
+  // Último valor que el input de búsqueda emitió o adoptó — mismo patrón que
+  // `CampoPrecio` en `FiltrosCatalogo.jsx`. Comparar contra él distingue "el
+  // usuario está tipeando" de "la URL cambió por navegación" (Atrás, un link
+  // a la ruta pelada). Sin esa distinción, quitar `?search=` navegando no
+  // desmonta el componente: el input conservaba el término y el debounce lo
+  // volvía a escribir en la URL 350 ms después, resucitando el filtro.
+  const ultimoCommit = useRef(searchUrl);
+
+  // La URL cambió por afuera del input: el input la adopta.
+  useEffect(() => {
+    if (searchUrl === ultimoCommit.current) return;
+    ultimoCommit.current = searchUrl;
+    setSearchInput(searchUrl);
+  }, [searchUrl]);
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(null);
   const [totalPaginas, setTotalPaginas] = useState(1);
 
   // { replace: true }: react-router-dom v7's useSearchParams pushes a new
@@ -151,24 +167,24 @@ function Coleccion() {
   // Debounce: commit the free-text search into the URL (and therefore into
   // the fetch effect's deps) only after the user stops typing.
   //
-  // No se commitea una búsqueda vacía que además ya está ausente de la URL:
-  // no habría nada que cambiar, y ese commit "de más" del mount era
-  // activamente dañino cuando la navegación traía filtros heredados — su
+  // La guarda contra `ultimoCommit` evita el commit "de más" del mount (que
+  // era activamente dañino cuando la navegación traía filtros heredados: su
   // update funcional partía de un `prev` que todavía tenía el
   // `?categoria=...` y lo volvía a escribir, resucitando el filtro que el
-  // reseteo acababa de limpiar. La condición mira los valores (no un
-  // contador de renders) justamente para ser inmune al doble mount de
-  // StrictMode.
+  // reseteo acababa de limpiar) y el rebote de un valor recién adoptado
+  // desde la URL. La condición mira valores (no un contador de renders)
+  // justamente para ser inmune al doble mount de StrictMode.
   useEffect(() => {
-    if (searchInput === "" && searchUrl === "") return;
+    if (searchInput === ultimoCommit.current) return;
 
     const timeoutId = setTimeout(() => {
+      ultimoCommit.current = searchInput;
       actualizarFiltro("search", searchInput);
     }, DEBOUNCE_SEARCH_MS);
 
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchInput, searchUrl]);
+  }, [searchInput]);
 
   useEffect(() => {
     let activo = true;
@@ -194,13 +210,18 @@ function Coleccion() {
         if (!activo) return;
         setProductos(data);
         setTotalPaginas(Math.max(1, Math.ceil(total / pageSize)));
+        // Un fetch exitoso limpia cualquier error anterior: el backend volvió.
+        setErrorCarga(null);
       })
       .catch(() => {
-        // El grid degrada a lista vacía ante un fallo de red/backend en vez
-        // de quedar colgado en "Cargando productos…" para siempre.
+        // Con el backend caído el grid NO degrada a lista vacía: eso se leía
+        // como "todavía no hay productos", que es mentira — los productos
+        // están, lo que falló es la conexión. Se marca el error para mostrar
+        // el mismo patrón que Carrito/Favoritos/ProductoDetalle.
         if (!activo) return;
         setProductos([]);
         setTotalPaginas(1);
+        setErrorCarga("Revisá tu conexión e intentá de nuevo.");
       })
       .finally(() => {
         if (activo) setCargando(false);
@@ -270,6 +291,12 @@ function Coleccion() {
 
           {cargando ? (
             <EstadoVacio icono="hourglass_empty" mensaje="Cargando productos…" />
+          ) : errorCarga ? (
+            <EstadoVacio
+              icono="cloud_off"
+              titulo="No pudimos cargar los productos"
+              mensaje={errorCarga}
+            />
           ) : productos.length === 0 ? (
             <EstadoVacio
               icono={hayFiltrosActivos ? "search_off" : "inventory_2"}

@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminProductos from "./AdminProductos.jsx";
 import * as productsApi from "../../api/products.js";
@@ -404,6 +404,58 @@ describe("AdminProductos — la búsqueda vive en la URL", () => {
       });
     });
     expect(screen.getByRole("searchbox", { name: /buscar productos/i })).toHaveValue("reloj");
+  });
+
+  it("navegar a la ruta sin ?search= limpia el input y NO resucita el término borrado", async () => {
+    // El link "Productos" del sidebar navega a la misma ruta sin `?search=`.
+    // El componente no se desmonta, así que el estado local del input
+    // conservaba el término y el debounce lo volvía a escribir en la URL
+    // 350 ms después: la tabla quedaba filtrada aunque el admin "salió".
+    const user = userEvent.setup();
+
+    // Réplica mínima del sidebar: un link a la ruta pelada + la URL visible
+    // para poder afirmar sobre ella.
+    function AppConNavegacion() {
+      const navigate = useNavigate();
+      const location = useLocation();
+      return (
+        <>
+          <button type="button" onClick={() => navigate("/catalogo/admin/productos")}>
+            Ir a Productos
+          </button>
+          <span data-testid="url-actual">{`${location.pathname}${location.search}`}</span>
+          <AdminProductos />
+        </>
+      );
+    }
+
+    render(
+      <MemoryRouter initialEntries={["/catalogo/admin/productos?search=reloj"]}>
+        <AppConNavegacion />
+      </MemoryRouter>,
+    );
+
+    const input = screen.getByRole("searchbox", { name: /buscar productos/i });
+    expect(input).toHaveValue("reloj");
+
+    await user.click(screen.getByRole("button", { name: "Ir a Productos" }));
+
+    // El input adopta el valor de la URL (vacío) en vez de conservar el suyo.
+    await waitFor(() => expect(input).toHaveValue(""));
+
+    // Y pasado el debounce, la URL sigue limpia: el término NO vuelve solo.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(screen.getByTestId("url-actual")).toHaveTextContent(/^\/catalogo\/admin\/productos$/);
+
+    // Tipear después de la navegación sigue funcionando con su debounce.
+    await user.type(input, "mesa");
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith({
+        admin: true,
+        page: 1,
+        search: "mesa",
+      });
+    });
   });
 
   it("una búsqueda nueva vuelve a la página 1", async () => {

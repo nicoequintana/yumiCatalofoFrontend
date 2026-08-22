@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Badge from "../../components/Badge.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
@@ -44,6 +44,21 @@ function AdminProductos() {
   // muestre el término en el input en vez de una caja vacía sobre una tabla
   // filtrada, que se leería como un bug.
   const [busquedaInput, setBusquedaInput] = useState(busqueda);
+
+  // Último valor que el input emitió o adoptó — mismo patrón que `CampoPrecio`
+  // en `FiltrosCatalogo.jsx`. Comparar contra él distingue "el admin está
+  // tipeando" de "la URL cambió por navegación" (el link Productos del
+  // sidebar, Atrás). Sin esa distinción, navegar a la ruta sin `?search=` no
+  // desmonta el componente: el input conservaba el término y el debounce lo
+  // volvía a escribir en la URL 350 ms después, resucitando el filtro.
+  const ultimoCommit = useRef(busqueda);
+
+  // La URL cambió por afuera del input: el input la adopta.
+  useEffect(() => {
+    if (busqueda === ultimoCommit.current) return;
+    ultimoCommit.current = busqueda;
+    setBusquedaInput(busqueda);
+  }, [busqueda]);
 
   const [productos, setProductos] = useState([]);
   const [totalPaginas, setTotalPaginas] = useState(1);
@@ -112,19 +127,19 @@ function AdminProductos() {
   }
 
   // Debounce: el término llega a la URL (y al efecto de fetch) recién cuando
-  // el admin deja de tipear. La guarda de "ambos vacíos" evita el commit de
-  // más del montaje, que reescribiría la querystring sin que nada cambie.
+  // el admin deja de tipear. La guarda contra `ultimoCommit` evita el commit
+  // de más del montaje y el rebote de un valor recién adoptado desde la URL.
   useEffect(() => {
-    if (busquedaInput === "" && busqueda === "") return;
-    if (busquedaInput === busqueda) return;
+    if (busquedaInput === ultimoCommit.current) return;
 
     const timeoutId = setTimeout(() => {
+      ultimoCommit.current = busquedaInput;
       commitBusqueda(busquedaInput);
     }, DEBOUNCE_BUSQUEDA_MS);
 
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busquedaInput, busqueda]);
+  }, [busquedaInput]);
 
   function aplicarPagina({ data, total, pageSize }) {
     setProductos(data);

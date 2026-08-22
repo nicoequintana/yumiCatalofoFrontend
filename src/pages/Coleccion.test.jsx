@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import Coleccion from "./Coleccion.jsx";
 import * as productsApi from "../api/products.js";
@@ -178,6 +178,54 @@ describe("Coleccion - filtros y grid", () => {
     });
   });
 
+  it("navegar a /coleccion sin ?search= limpia el input y NO resucita el término borrado", async () => {
+    // Mismo bug que el buscador del admin: al navegar (Atrás, o un link a la
+    // ruta pelada) el componente no se desmonta, `searchUrl` pasa a "" pero el
+    // input conservaba el término, y el debounce lo volvía a escribir en la
+    // URL 350 ms después.
+    const user = userEvent.setup();
+
+    function AppConNavegacion() {
+      const navigate = useNavigate();
+      const location = useLocation();
+      return (
+        <>
+          <button type="button" onClick={() => navigate("/coleccion")}>
+            Ir a Coleccion
+          </button>
+          <span data-testid="url-actual">{`${location.pathname}${location.search}`}</span>
+          <Coleccion />
+        </>
+      );
+    }
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={["/coleccion"]}>
+          <AppConNavegacion />
+        </MemoryRouter>
+      </StrictMode>,
+    );
+
+    await screen.findByText("Reloj Clásico");
+
+    const input = screen.getByLabelText("Buscar");
+    await user.type(input, "reloj");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("url-actual")).toHaveTextContent("search=reloj");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Ir a Coleccion" }));
+
+    // El input adopta el valor de la URL (vacío) en vez de conservar el suyo.
+    await waitFor(() => expect(input).toHaveValue(""));
+
+    // Pasado el debounce, la URL sigue limpia: el término no vuelve solo.
+    await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_MS_MARGEN));
+    expect(screen.getByTestId("url-actual")).toHaveTextContent(/^\/coleccion$/);
+  });
+
   it("los filtros se resetean al entrar aunque la URL traiga querystring", async () => {
     renderPagina("/coleccion?categoria=2");
 
@@ -306,6 +354,36 @@ describe("Coleccion - filtros y grid", () => {
 
     await screen.findByText("Reloj Clásico");
     expect(screen.queryByText("El Manifiesto YIMA")).not.toBeInTheDocument();
+  });
+
+  it("con el backend caído muestra el error de conexión, no el vacío 'Todavía no hay productos'", async () => {
+    // Regresión FE-A2: el catch degradaba a lista vacía sin estado de error,
+    // así que un backend caído se leía como "catálogo vacío" — mentira que
+    // además invita a irse en vez de reintentar.
+    productsApi.getProducts.mockRejectedValue(new Error("network down"));
+
+    renderPagina();
+
+    expect(await screen.findByText("No pudimos cargar los productos")).toBeInTheDocument();
+    expect(screen.getByText("Revisá tu conexión e intentá de nuevo.")).toBeInTheDocument();
+    expect(screen.queryByText("Todavía no hay productos")).not.toBeInTheDocument();
+  });
+
+  it("un fetch exitoso posterior limpia el estado de error", async () => {
+    const user = userEvent.setup();
+    productsApi.getProducts.mockRejectedValue(new Error("network down"));
+
+    renderPagina();
+
+    await screen.findByText("No pudimos cargar los productos");
+
+    // El backend vuelve: el próximo fetch (disparado por un cambio de filtro)
+    // tiene que reemplazar el error por el grid, no convivir con él.
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+    await user.selectOptions(screen.getByLabelText("Categoría"), "1");
+
+    expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
+    expect(screen.queryByText("No pudimos cargar los productos")).not.toBeInTheDocument();
   });
 
   afterEach(() => {
