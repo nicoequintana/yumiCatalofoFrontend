@@ -184,21 +184,6 @@ function CarruselDestacados({ productos }) {
   /** Si la sección se muestra. El early return va después de los hooks. */
   const hayCarrusel = destacados.length >= MIN_DESTACADOS;
 
-  /**
-   * Mantiene el scroll dentro de la primera copia de la lista.
-   *
-   * El track tiene la lista dos veces, así que `scrollWidth / 2` es el punto
-   * donde empieza el juego duplicado — y por construcción se ve idéntico al
-   * origen. Restar o sumar esa mitad reposiciona sin que se note, y hace que
-   * el recorrido sea infinito en las dos direcciones.
-   */
-  function normalizarScroll(pista) {
-    const mitad = pista.scrollWidth / 2;
-    if (mitad <= 0) return;
-    if (pista.scrollLeft >= mitad) pista.scrollLeft -= mitad;
-    else if (pista.scrollLeft < 0) pista.scrollLeft += mitad;
-  }
-
   // Motor del desplazamiento automático.
   //
   // `requestAnimationFrame` con delta de tiempo real, no un incremento fijo
