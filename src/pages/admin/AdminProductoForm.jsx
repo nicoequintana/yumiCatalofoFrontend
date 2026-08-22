@@ -147,6 +147,7 @@ function AdminProductoForm() {
           visible={panelActivo === "form"}
           formRef={formRef}
           onSubmit={handleSubmit}
+          guardando={guardando}
           valores={valores}
           editar={editar}
           editarPrecio={editarPrecio}

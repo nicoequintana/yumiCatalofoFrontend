@@ -3,6 +3,14 @@ import { useEffect, useRef, useState } from "react";
 const MAX_FOTOS = 10;
 const TIPOS_FOTO = ["image/jpeg", "image/png", "image/webp"];
 const TIPOS_VIDEO = ["video/mp4", "video/webm"];
+// Espejo de los topes del backend (sync manual entre repos): 15MB por foto es
+// `MAX_FOTO_BYTES` en `products.input.js` (rechaza con 413) y 100MB es el
+// `limits.fileSize` global de multer en `products.routes.js`, que en la
+// práctica es el techo del video. Sin este espejo, un archivo pesado recién se
+// rechazaba al terminar de subirse entero — con el submit clavado en
+// "Guardando…" todo ese tiempo.
+const MAX_FOTO_BYTES = 15 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 /**
  * Admin create/edit media picker.
@@ -59,10 +67,20 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
   const galeria = fotos.slice(2);
   const lleno = fotos.length >= MAX_FOTOS;
 
-  /** Valida el tipo y devuelve los archivos aceptados, o `null` si hay alguno inválido. */
-  function validarTipos(archivos) {
+  /**
+   * Valida tipo y tamaño y devuelve los archivos aceptados, o `null` si hay
+   * alguno inválido. Uno solo inválido rechaza la tanda entera, igual que el
+   * backend: aceptar "las que pasan" metería fotos en posiciones que el admin
+   * no eligió.
+   */
+  function validarFotos(archivos) {
     if (archivos.some((file) => !TIPOS_FOTO.includes(file.type))) {
       setError("Formato de foto no admitido. Use JPG, PNG o WEBP.");
+      return null;
+    }
+    // `>` estricto, igual que el backend: 15MB exactos pasa.
+    if (archivos.some((file) => file.size > MAX_FOTO_BYTES)) {
+      setError("Cada foto debe pesar como máximo 15MB.");
       return null;
     }
     setError(null);
@@ -75,7 +93,7 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
     event.target.value = "";
     if (archivos.length === 0) return;
 
-    const aceptados = validarTipos(archivos.slice(0, 1));
+    const aceptados = validarFotos(archivos.slice(0, 1));
     if (!aceptados) return;
 
     const anterior = fotos[indice];
@@ -92,7 +110,7 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
     event.target.value = "";
     if (archivos.length === 0) return;
 
-    const aceptadosTipo = validarTipos(archivos);
+    const aceptadosTipo = validarFotos(archivos);
     if (!aceptadosTipo) return;
 
     const espacioDisponible = MAX_FOTOS - fotos.length;
@@ -145,6 +163,11 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
 
     if (!TIPOS_VIDEO.includes(archivo.type)) {
       setError("Formato de video no admitido. Use MP4 o WEBM.");
+      return;
+    }
+
+    if (archivo.size > MAX_VIDEO_BYTES) {
+      setError("El video debe pesar como máximo 100MB.");
       return;
     }
 

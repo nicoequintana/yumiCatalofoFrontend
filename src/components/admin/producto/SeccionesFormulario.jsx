@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import MediaUploader from "../../MediaUploader.jsx";
 import ListaDinamica from "../../ListaDinamica.jsx";
@@ -25,6 +26,7 @@ function SeccionesFormulario({
   visible,
   formRef,
   onSubmit,
+  guardando,
   valores,
   editar,
   editarPrecio,
@@ -46,6 +48,12 @@ function SeccionesFormulario({
   eliminarEspecificacion,
   onChangeFotos,
 }) {
+  // Enter en el Nombre de una especificación pasa el foco acá, al Valor: el
+  // borrador todavía no tiene las dos mitades, así que agregar el ítem sería
+  // guardar una spec a medias — y dejar pasar el submit nativo guardaría el
+  // producto entero y descartaría el borrador.
+  const specValorRef = useRef(null);
+
   return (
     <div
       className={`px-4 py-6 md:px-8 ${
@@ -58,6 +66,12 @@ function SeccionesFormulario({
         onSubmit={onSubmit}
         className="flex max-w-2xl flex-col gap-8"
       >
+        {/* Deshabilita todos los controles mientras el guardado está en vuelo:
+            un cambio tipeado durante el POST se perdería en silencio, porque el
+            submit exitoso limpia `sucio` y navega al listado. `display:contents`
+            (la clase `contents`) deja el layout flex del <form> intacto — un
+            <fieldset> como contenedor flex tiene bugs de render conocidos. */}
+        <fieldset disabled={guardando} className="contents">
         <div>
           <label htmlFor="nombre" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">
             Nombre
@@ -284,11 +298,23 @@ function SeccionesFormulario({
                 type="text"
                 value={nuevaSpecNombre}
                 onChange={(e) => setNuevaSpecNombre(e.target.value)}
+                onKeyDown={(e) => {
+                  // Sin esto, Enter acá dispara el submit implícito del form:
+                  // guarda el producto entero a mitad de la carga de la spec y
+                  // descarta el borrador (los borradores no viajan en el
+                  // payload). No agrega el ítem porque falta la otra mitad:
+                  // pasa el foco al Valor, donde Enter sí agrega.
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    specValorRef.current?.focus();
+                  }
+                }}
                 placeholder="Nombre (ej: Material)"
                 className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
               />
               <input
                 type="text"
+                ref={specValorRef}
                 value={nuevaSpecValor}
                 onChange={(e) => setNuevaSpecValor(e.target.value)}
                 onKeyDown={(e) => {
@@ -451,6 +477,7 @@ function SeccionesFormulario({
             {error}
           </p>
         ) : null}
+        </fieldset>
       </form>
     </div>
   );

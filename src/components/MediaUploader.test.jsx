@@ -175,6 +175,76 @@ describe("MediaUploader — reordenar dentro de la galería", () => {
   });
 });
 
+/** Un File con `size` forzado, sin materializar los bytes. */
+function archivoPesado(nombre, tipo, bytes) {
+  const file = new File(["x"], nombre, { type: tipo });
+  Object.defineProperty(file, "size", { value: bytes });
+  return file;
+}
+
+const MB = 1024 * 1024;
+
+describe("MediaUploader — tope de tamaño por archivo", () => {
+  it("rechaza al instante una foto que supera los 15MB, sin avisar al padre", () => {
+    const onChangeFotos = render_([]);
+
+    fireEvent.change(screen.getByLabelText(/Subir foto de portada/i), {
+      target: { files: [archivoPesado("grande.png", "image/png", 15 * MB + 1)] },
+    });
+
+    expect(screen.getByText(/Cada foto debe pesar como máximo 15MB/i)).toBeInTheDocument();
+    expect(onChangeFotos).not.toHaveBeenCalled();
+  });
+
+  it("acepta una foto de exactamente 15MB (el tope es inclusivo, como en el backend)", () => {
+    const onChangeFotos = render_([]);
+
+    fireEvent.change(screen.getByLabelText(/Subir foto de portada/i), {
+      target: { files: [archivoPesado("justa.png", "image/png", 15 * MB)] },
+    });
+
+    expect(screen.queryByText(/15MB/i)).not.toBeInTheDocument();
+    expect(onChangeFotos).toHaveBeenCalledTimes(1);
+  });
+
+  it("una sola foto pesada en la tanda rechaza la tanda entera de la galería", () => {
+    const onChangeFotos = render_(CINCO.slice(0, 2));
+
+    fireEvent.change(screen.getByLabelText(/Agregar fotos a la galería/i), {
+      target: {
+        files: [archivo("ok.png"), archivoPesado("grande.png", "image/png", 20 * MB)],
+      },
+    });
+
+    expect(screen.getByText(/Cada foto debe pesar como máximo 15MB/i)).toBeInTheDocument();
+    expect(onChangeFotos).not.toHaveBeenCalled();
+  });
+
+  it("rechaza al instante un video que supera los 100MB, sin avisar al padre", () => {
+    const onChangeVideo = vi.fn();
+    render_([], { onChangeVideo });
+
+    fireEvent.change(screen.getByLabelText("Agregar video"), {
+      target: { files: [archivoPesado("clip.mp4", "video/mp4", 100 * MB + 1)] },
+    });
+
+    expect(screen.getByText(/El video debe pesar como máximo 100MB/i)).toBeInTheDocument();
+    expect(onChangeVideo).not.toHaveBeenCalled();
+  });
+
+  it("acepta un video dentro del tope", () => {
+    const onChangeVideo = vi.fn();
+    render_([], { onChangeVideo });
+
+    fireEvent.change(screen.getByLabelText("Agregar video"), {
+      target: { files: [archivoPesado("clip.mp4", "video/mp4", 50 * MB)] },
+    });
+
+    expect(screen.queryByText(/100MB/i)).not.toBeInTheDocument();
+    expect(onChangeVideo).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("MediaUploader — límites", () => {
   it("rechaza un formato de foto no admitido", () => {
     render_([]);

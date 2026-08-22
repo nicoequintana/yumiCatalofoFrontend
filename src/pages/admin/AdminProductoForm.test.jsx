@@ -543,6 +543,156 @@ describe("AdminProductoForm — cambios sin guardar", () => {
   });
 });
 
+describe("AdminProductoForm — doble submit", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    categoriasApi.getCategorias.mockResolvedValue([]);
+  });
+
+  function completarRequeridos() {
+    fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Lámpara" } });
+    fireEvent.change(screen.getByLabelText("Descripción"), { target: { value: "Descripción" } });
+    fireEvent.change(screen.getByLabelText("Precio"), { target: { value: "1000" } });
+  }
+
+  it("un segundo submit con el primero en vuelo no dispara otro POST", async () => {
+    let resolver;
+    productsApi.createProduct.mockImplementation(
+      () => new Promise((res) => {
+        resolver = res;
+      }),
+    );
+    renderForm();
+    completarRequeridos();
+
+    const form = document.getElementById("form-producto");
+    // Primer submit: arranca el guardado. Segundo: Enter en un input de texto
+    // mientras el POST sigue en vuelo.
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    expect(productsApi.createProduct).toHaveBeenCalledTimes(1);
+
+    resolver({ id: 1 });
+    await waitFor(() => {
+      expect(screen.getByText("Listado (mock)")).toBeInTheDocument();
+    });
+  });
+
+  it("deshabilita los campos mientras el guardado está en vuelo", async () => {
+    let resolver;
+    productsApi.createProduct.mockImplementation(
+      () => new Promise((res) => {
+        resolver = res;
+      }),
+    );
+    renderForm();
+    completarRequeridos();
+
+    fireEvent.submit(document.getElementById("form-producto"));
+
+    // Editar durante el vuelo se perdería en silencio: el submit exitoso hace
+    // setSucio(false) y navega, descartando lo tipeado después del POST.
+    expect(screen.getByLabelText("Nombre")).toBeDisabled();
+
+    resolver({ id: 1 });
+    await waitFor(() => {
+      expect(screen.getByText("Listado (mock)")).toBeInTheDocument();
+    });
+  });
+});
+
+describe("AdminProductoForm — Enter en el Nombre de una especificación", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    categoriasApi.getCategorias.mockResolvedValue([]);
+  });
+
+  it("no guarda el producto: previene el submit implícito y pasa el foco al Valor", () => {
+    renderForm();
+
+    const nombreSpec = screen.getByPlaceholderText("Nombre (ej: Material)");
+    fireEvent.change(nombreSpec, { target: { value: "Material" } });
+
+    // `fireEvent` devuelve false cuando el handler llamó a preventDefault —
+    // que es lo que frena la implicit submission del form en un navegador real
+    // (jsdom no la implementa, así que se fija el contrato, no el síntoma).
+    const noPrevenido = fireEvent.keyDown(nombreSpec, { key: "Enter" });
+
+    expect(noPrevenido).toBe(false);
+    expect(productsApi.createProduct).not.toHaveBeenCalled();
+    expect(screen.getByPlaceholderText("Valor (ej: ABS)")).toHaveFocus();
+    // El borrador no se descarta: sigue esperando el Valor.
+    expect(nombreSpec).toHaveValue("Material");
+  });
+
+  it("Enter en cualquier otra tecla del Nombre no hace nada raro", () => {
+    renderForm();
+
+    const nombreSpec = screen.getByPlaceholderText("Nombre (ej: Material)");
+    const noPrevenido = fireEvent.keyDown(nombreSpec, { key: "a" });
+
+    expect(noPrevenido).toBe(true);
+  });
+});
+
+describe("AdminProductoForm — botón Atrás del navegador (popstate)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    categoriasApi.getCategorias.mockResolvedValue([]);
+  });
+
+  it("con el formulario sucio, Atrás pide confirmación y cancelar re-empuja el centinela", () => {
+    const confirmar = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const push = vi.spyOn(window.history, "pushState");
+    renderForm();
+
+    fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Lámpara" } });
+
+    // Al ensuciarse, el hook empujó una entrada centinela.
+    expect(push).toHaveBeenCalledTimes(1);
+
+    fireEvent.popState(window);
+
+    expect(confirmar).toHaveBeenCalled();
+    // Canceló: se re-empuja el centinela para quedarse en el editor.
+    expect(push).toHaveBeenCalledTimes(2);
+    expect(screen.getByLabelText("Nombre")).toHaveValue("Lámpara");
+
+    push.mockRestore();
+    confirmar.mockRestore();
+  });
+
+  it("con el formulario sucio, confirmar la salida consume la entrada real con otro back", () => {
+    const confirmar = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const back = vi.spyOn(window.history, "back").mockImplementation(() => {});
+    renderForm();
+
+    fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Lámpara" } });
+    fireEvent.popState(window);
+
+    expect(confirmar).toHaveBeenCalled();
+    expect(back).toHaveBeenCalledTimes(1);
+
+    back.mockRestore();
+    confirmar.mockRestore();
+  });
+
+  it("con el formulario limpio, Atrás no pregunta nada ni empuja centinelas", () => {
+    const confirmar = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const push = vi.spyOn(window.history, "pushState");
+    renderForm();
+
+    fireEvent.popState(window);
+
+    expect(confirmar).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+
+    push.mockRestore();
+    confirmar.mockRestore();
+  });
+});
+
 describe("AdminProductoForm — reemplazo de fotos ya guardadas", () => {
   beforeAll(() => {
     // jsdom no implementa la API de object URLs que usa MediaUploader para

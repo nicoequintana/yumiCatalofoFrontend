@@ -384,6 +384,11 @@ export default function useProductoForm() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    // Guarda de reentrada: el botón Guardar se deshabilita solo, pero Enter en
+    // cualquier input dispara el submit nativo del <form> igual. Sin esto, dos
+    // POST concurrentes en un alta crean el producto (y sus fotos en
+    // Cloudinary) por duplicado.
+    if (guardando) return;
     setError(null);
     setGuardando(true);
 
