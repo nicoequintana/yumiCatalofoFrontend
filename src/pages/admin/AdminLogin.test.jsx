@@ -19,9 +19,9 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-function renderLogin() {
+function renderLogin(ruta = "/catalogo/admin/login") {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[ruta]}>
       <AdminLogin />
     </MemoryRouter>,
   );
@@ -74,5 +74,53 @@ describe("AdminLogin", () => {
     expect(authClient.setToken).toHaveBeenCalledWith("un-token");
     expect(navigateMock).toHaveBeenCalledWith("/catalogo/admin/productos");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("tras el login vuelve a la ruta admin que trae ?volverA=", async () => {
+    // `authClient.js` redirige al login ante un 401 preservando la ruta en
+    // `?volverA=`: el re-login tiene que devolver al admin adonde estaba, no
+    // siempre al listado de productos.
+    const user = userEvent.setup();
+    authApi.login.mockResolvedValue({ token: "un-token" });
+
+    renderLogin(
+      `/catalogo/admin/login?volverA=${encodeURIComponent("/catalogo/admin/ordenes?page=2")}`,
+    );
+    await completarYEnviar(user);
+
+    expect(navigateMock).toHaveBeenCalledWith("/catalogo/admin/ordenes?page=2");
+  });
+
+  it("rechaza un ?volverA= que no sea una ruta interna del admin (open redirect)", async () => {
+    // Un `volverA` con URL absoluta (u otra ruta del sitio) convertiría el
+    // login en un open redirect: se cae al default en vez de obedecerlo.
+    const user = userEvent.setup();
+    authApi.login.mockResolvedValue({ token: "un-token" });
+
+    for (const malicioso of [
+      "https://evil.example.com/phishing",
+      "//evil.example.com",
+      "/carrito",
+      "/catalogo/adminx",
+    ]) {
+      navigateMock.mockClear();
+      const { unmount } = renderLogin(
+        `/catalogo/admin/login?volverA=${encodeURIComponent(malicioso)}`,
+      );
+      await completarYEnviar(user);
+
+      expect(navigateMock).toHaveBeenCalledWith("/catalogo/admin/productos");
+      unmount();
+    }
+  });
+
+  it("sin ?volverA= navega al listado como siempre", async () => {
+    const user = userEvent.setup();
+    authApi.login.mockResolvedValue({ token: "un-token" });
+
+    renderLogin("/catalogo/admin/login");
+    await completarYEnviar(user);
+
+    expect(navigateMock).toHaveBeenCalledWith("/catalogo/admin/productos");
   });
 });

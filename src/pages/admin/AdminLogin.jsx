@@ -1,7 +1,28 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { login } from "../../api/auth.js";
 import { setToken } from "../../api/authClient.js";
+
+const DESTINO_POR_DEFECTO = "/catalogo/admin/productos";
+
+/**
+ * Valida el `?volverA=` que deja `authClient.js` al redirigir por un 401.
+ *
+ * Solo se obedece una ruta INTERNA del panel admin. Cualquier otra cosa cae
+ * al default: una URL absoluta ("https://evil.com") o protocol-relative
+ * ("//evil.com") convertiría el login en un open redirect, y una ruta interna
+ * fuera del admin no es un destino que un 401 del panel pueda haber generado.
+ * El prefijo se exige exacto o seguido de "/" o "?" para que
+ * "/catalogo/adminx" no pase por parecido.
+ */
+function destinoTrasLogin(volverA) {
+  if (typeof volverA !== "string") return DESTINO_POR_DEFECTO;
+  const esRutaAdmin =
+    volverA === "/catalogo/admin" ||
+    volverA.startsWith("/catalogo/admin/") ||
+    volverA.startsWith("/catalogo/admin?");
+  return esRutaAdmin ? volverA : DESTINO_POR_DEFECTO;
+}
 
 function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -9,6 +30,7 @@ function AdminLogin() {
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -17,7 +39,7 @@ function AdminLogin() {
     try {
       const { token } = await login(email, password);
       setToken(token);
-      navigate("/catalogo/admin/productos");
+      navigate(destinoTrasLogin(searchParams.get("volverA")));
     } catch (err) {
       setError(err.message);
     } finally {
