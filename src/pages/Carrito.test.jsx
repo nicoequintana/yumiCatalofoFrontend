@@ -1,4 +1,4 @@
-import { act, render, renderHook, screen } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -243,6 +243,93 @@ describe("Carrito", () => {
     renderCarrito();
 
     expect(await screen.findByRole("button", { name: /volver/i })).toBeInTheDocument();
+  });
+});
+
+describe("Carrito — tope de cantidad contra el stock disponible", () => {
+  const CON_STOCK = { id: 3, nombre: "Vela de soja", precio: "100.00", stock: 2, fotos: [] };
+
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("una línea que excede el stock muestra un aviso (nunca se ajusta en silencio) y bloquea el CTA", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([CON_STOCK]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(3, 5); // el stock vivo es 2
+    });
+
+    expect(await screen.findByText(/solo hay 2 unidades disponibles/i)).toBeInTheDocument();
+    // La cantidad pedida sigue visible tal cual: nada se recorta en silencio.
+    expect(carritoHook.current.carrito).toEqual([{ productId: 3, cantidad: 5 }]);
+    expect(screen.queryByRole("link", { name: /confirmar pedido/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /confirmar pedido/i })).toBeDisabled();
+  });
+
+  it("el botón de ajustar deja la línea en el stock disponible", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([CON_STOCK]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    const user = userEvent.setup();
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(3, 5);
+    });
+
+    await screen.findByText(/solo hay 2 unidades disponibles/i);
+    await user.click(screen.getByRole("button", { name: /ajustar a 2/i }));
+
+    expect(carritoHook.current.carrito).toEqual([{ productId: 3, cantidad: 2 }]);
+    expect(screen.queryByText(/solo hay 2 unidades disponibles/i)).not.toBeInTheDocument();
+  });
+
+  it("el selector no permite superar el stock conocido", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([CON_STOCK]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(3, 2);
+    });
+
+    await screen.findByText("Vela de soja");
+
+    const aumentar = screen.getByRole("button", { name: /aumentar/i });
+    expect(aumentar).toBeDisabled();
+    fireEvent.click(aumentar);
+    expect(carritoHook.current.carrito).toEqual([{ productId: 3, cantidad: 2 }]);
+  });
+
+  it("sin stock en el payload no clampea ni avisa (stock desconocido)", async () => {
+    // PRODUCTO_1 no trae `stock`: el clamp solo aplica con el dato vivo.
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 50);
+    });
+
+    await screen.findByText("Reloj Clásico");
+
+    expect(screen.queryByText(/unidades disponibles/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /aumentar/i })).not.toBeDisabled();
+    expect(screen.getByRole("link", { name: /confirmar pedido/i })).toBeInTheDocument();
   });
 });
 

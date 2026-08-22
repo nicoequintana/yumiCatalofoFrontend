@@ -73,11 +73,24 @@ function Carrito() {
   const lineas = carrito.map((linea) => {
     const producto = productosPorId.get(linea.productId);
     const noDisponible = !producto;
-    return { ...linea, producto, noDisponible };
+    // El clamp contra el stock aplica SOLO cuando el dato vivo vino del
+    // backend; un payload sin `stock` no inventa tope. Y nunca se ajusta la
+    // cantidad en silencio: la línea muestra un aviso con un botón de
+    // ajuste explícito, y el CTA queda bloqueado mientras tanto.
+    const stockConocido = Boolean(producto) && Number.isInteger(producto.stock);
+    const excedeStock = stockConocido && linea.cantidad > producto.stock;
+    return {
+      ...linea,
+      producto,
+      noDisponible,
+      excedeStock,
+      maxCantidad: stockConocido ? producto.stock : undefined,
+    };
   });
 
   const lineasValidas = lineas.filter((l) => !l.noDisponible);
   const hayProblemas = lineas.some((l) => l.noDisponible);
+  const hayExcesos = lineas.some((l) => l.excedeStock);
 
   const totalCentavos = lineasValidas.reduce(
     (total, l) => total + precioACentavos(l.producto.precio) * l.cantidad,
@@ -85,7 +98,7 @@ function Carrito() {
   );
   const total = formatPrecio(totalCentavos / 100);
 
-  const ctaDeshabilitado = hayProblemas || lineasValidas.length === 0;
+  const ctaDeshabilitado = hayProblemas || hayExcesos || lineasValidas.length === 0;
 
   return (
     <section className="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop md:py-24">
@@ -170,10 +183,27 @@ function Carrito() {
                     </button>
                   </div>
                 ) : (
+                  <>
+                    {l.excedeStock ? (
+                      <div className="flex items-center justify-between gap-3 rounded-lg bg-error-container px-3 py-2">
+                        <span className="font-body-md text-body-md text-on-error-container">
+                          Solo hay {l.producto.stock}{" "}
+                          {l.producto.stock === 1 ? "unidad disponible" : "unidades disponibles"}.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => actualizarCantidad(l.productId, l.producto.stock)}
+                          className="font-label-md text-label-md shrink-0 text-on-error-container underline"
+                        >
+                          Ajustar a {l.producto.stock}
+                        </button>
+                      </div>
+                    ) : null}
                   <div className="flex items-center justify-between">
                     <SelectorCantidad
                       value={l.cantidad}
                       onChange={(cantidad) => actualizarCantidad(l.productId, cantidad)}
+                      max={l.maxCantidad}
                     />
                     <button
                       type="button"
@@ -185,6 +215,7 @@ function Carrito() {
                       Eliminar
                     </button>
                   </div>
+                  </>
                 )}
               </li>
             ))}
@@ -203,6 +234,12 @@ function Carrito() {
           {hayProblemas ? (
             <p className="font-body-md text-body-md text-on-error-container">
               Quitá los productos no disponibles antes de continuar.
+            </p>
+          ) : null}
+
+          {hayExcesos ? (
+            <p className="font-body-md text-body-md text-on-error-container">
+              Ajustá las cantidades que superan el stock disponible antes de continuar.
             </p>
           ) : null}
 

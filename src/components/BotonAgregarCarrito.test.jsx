@@ -119,6 +119,82 @@ describe("BotonAgregarCarrito", () => {
     expect(screen.getByText("1")).toBeInTheDocument();
   });
 
+  it("limpia el timer de feedback al desmontar (sin timers vivos)", () => {
+    vi.useFakeTimers();
+    const { unmount } = render(<BotonAgregarCarrito producto={PRODUCTO} />);
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /agregar al carrito/i }));
+    });
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+
+    unmount();
+
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
+  describe("tope de cantidad contra el stock disponible", () => {
+    it("no deja seleccionar más unidades que el stock", () => {
+      render(<BotonAgregarCarrito producto={{ id: 7, nombre: "Poco stock", stock: 2 }} />);
+
+      const aumentar = screen.getByRole("button", { name: /aumentar/i });
+      fireEvent.click(aumentar); // 1 -> 2
+      fireEvent.click(aumentar); // en el máximo: no-op
+
+      expect(screen.getByText("2")).toBeInTheDocument();
+      expect(screen.queryByText("3")).not.toBeInTheDocument();
+      expect(aumentar).toBeDisabled();
+    });
+
+    it("descuenta lo que ya está en el carrito del margen disponible", () => {
+      // Mount ANTES de mutar (ver la nota del beforeEach: el localStorage
+      // real está roto acá, la sincronización llega por los listeners).
+      const { result: carritoHook } = renderHook(() => useCarrito());
+      render(<BotonAgregarCarrito producto={{ id: 7, nombre: "Poco stock", stock: 2 }} />);
+
+      act(() => {
+        carritoHook.current.agregar(7, 1);
+      });
+
+      // Stock 2 con 1 ya en el carrito: solo se puede agregar 1 más.
+      expect(screen.getByRole("button", { name: /aumentar/i })).toBeDisabled();
+      expect(screen.getByText("1")).toBeInTheDocument();
+    });
+
+    it("con todo el stock ya en el carrito deshabilita el CTA y lo dice", () => {
+      const { result: carritoHook } = renderHook(() => useCarrito());
+      render(<BotonAgregarCarrito producto={{ id: 7, nombre: "Poco stock", stock: 2 }} />);
+
+      act(() => {
+        carritoHook.current.agregar(7, 2);
+      });
+
+      const boton = screen.getByRole("button", { name: /máximo en carrito/i });
+      expect(boton).toBeDisabled();
+      // El selector no tiene nada que seleccionar en este estado.
+      expect(screen.queryByRole("button", { name: /aumentar/i })).toBeNull();
+
+      fireEvent.click(boton);
+      expect(carritoHook.current.carrito).toEqual([{ productId: 7, cantidad: 2 }]);
+      expect(productsApi.registrarEvento).not.toHaveBeenCalled();
+    });
+
+    it("sin stock conocido no inventa un tope", () => {
+      // Un producto sin el campo `stock` (payload viejo o parcial): el clamp
+      // solo aplica cuando el stock vivo se conoce.
+      render(<BotonAgregarCarrito producto={{ id: 8, nombre: "Sin dato" }} />);
+
+      const aumentar = screen.getByRole("button", { name: /aumentar/i });
+      fireEvent.click(aumentar);
+      fireEvent.click(aumentar);
+      fireEvent.click(aumentar);
+
+      expect(screen.getByText("4")).toBeInTheDocument();
+      expect(aumentar).not.toBeDisabled();
+    });
+  });
+
   describe("producto agotado (stock 0)", () => {
     it("deshabilita el CTA y lo etiqueta 'Sin stock'", () => {
       render(<BotonAgregarCarrito producto={PRODUCTO_AGOTADO} />);

@@ -46,6 +46,33 @@ describe("SelectorCantidad", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it("botón + en el máximo no llama a onChange y queda deshabilitado", () => {
+    const onChange = vi.fn();
+    render(<SelectorCantidad value={2} onChange={onChange} max={2} />);
+
+    const aumentar = screen.getByRole("button", { name: /aumentar/i });
+    expect(aumentar).toBeDisabled();
+
+    fireEvent.click(aumentar);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("botón + por debajo del máximo sigue incrementando", () => {
+    const onChange = vi.fn();
+    render(<SelectorCantidad value={1} onChange={onChange} max={3} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /aumentar/i }));
+    expect(onChange).toHaveBeenCalledWith(2);
+  });
+
+  it("sin max no inventa ningún tope", () => {
+    const onChange = vi.fn();
+    render(<SelectorCantidad value={999} onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /aumentar/i }));
+    expect(onChange).toHaveBeenCalledWith(1000);
+  });
+
   it("expone botones accesibles con aria-label", () => {
     render(<SelectorCantidad value={2} onChange={vi.fn()} />);
 

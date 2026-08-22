@@ -5,6 +5,7 @@ import EstadoVacio from "../components/EstadoVacio.jsx";
 import useCarrito from "../hooks/useCarrito.js";
 import { getProductsByIds } from "../api/products.js";
 import { crearOrden } from "../api/ordenes.js";
+import { formatPrecio, precioACentavos } from "../utils/formato.js";
 
 /**
  * `/checkout` — formulario de checkout de invitado (Sprint 6, Task 1).
@@ -109,6 +110,17 @@ function Checkout() {
 
   const lineasValidas = lineas.filter((l) => !l.noDisponible);
   const hayProblemas = lineas.some((l) => l.noDisponible);
+
+  // Total del pedido, con los precios FRESCOS de la reconciliación (los
+  // mismos que el backend va a snapshotear en la orden). Se acumula en
+  // centavos enteros — ver `precioACentavos` — igual que en `Carrito.jsx`:
+  // sumar floats decimales linea a linea acumula drift de punto flotante.
+  // Solo cuenta las líneas válidas, que son exactamente las que se envían.
+  const totalCentavos = lineasValidas.reduce(
+    (total, l) => total + precioACentavos(l.producto.precio) * l.cantidad,
+    0,
+  );
+  const total = formatPrecio(totalCentavos / 100);
 
   // Redirige a /carrito si no hay nada que checkear: carrito vacío, o todas
   // las líneas quedaron no-disponibles tras la reconciliación en vivo. Se
@@ -222,15 +234,41 @@ function Checkout() {
           </p>
         ) : null}
 
-        <ul className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
-          {lineasValidas.map((l) => (
-            <li key={l.productId} className="flex items-center justify-between gap-4">
-              <span className="font-body-md text-body-md text-on-surface">
-                {l.cantidad} × {l.producto.nombre}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {/* Resumen con montos: es el último paso donde todavía se puede
+            desistir, así que el usuario tiene que ver cuánto va a pagar ANTES
+            de confirmar — no recién en la pantalla de confirmación, con la
+            orden ya creada. Los precios son los frescos del re-fetch, los
+            mismos que el backend snapshotea al crear la orden. */}
+        <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
+          <ul className="flex flex-col gap-3">
+            {lineasValidas.map((l) => (
+              <li key={l.productId} className="flex items-center justify-between gap-4">
+                <span className="font-body-md text-body-md text-on-surface">
+                  {l.cantidad} × {l.producto.nombre}
+                </span>
+                <span className="flex shrink-0 flex-col items-end">
+                  <span className="font-body-md text-body-md text-on-surface">
+                    {formatPrecio((precioACentavos(l.producto.precio) * l.cantidad) / 100)}
+                  </span>
+                  <span className="font-body-md text-[13px] text-on-surface-variant">
+                    {formatPrecio(l.producto.precio)} c/u
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 flex items-center justify-between gap-4 border-t border-outline-variant pt-4">
+            <span className="font-label-md text-label-md uppercase tracking-widest text-on-surface">
+              Total
+            </span>
+            <span
+              data-testid="checkout-total"
+              className="font-body-lg text-body-lg font-semibold text-on-surface"
+            >
+              {total}
+            </span>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
           <div className="flex flex-col gap-2">

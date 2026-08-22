@@ -367,6 +367,62 @@ describe("Checkout", () => {
   });
 });
 
+describe("Checkout — precios y total", () => {
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    vi.clearAllMocks();
+  });
+
+  it("muestra el precio unitario de cada línea y el total del pedido", async () => {
+    // El resumen listaba solo `cantidad × nombre`: el usuario confirmaba el
+    // pedido sin ver cuánto iba a pagar, y recién se enteraba del monto en la
+    // pantalla de confirmación, con la orden ya creada.
+    const PRODUCTO_2 = { id: 2, nombre: "Anillo Plata", precio: "500.50", fotos: [] };
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCheckout();
+
+    act(() => {
+      carritoHook.current.agregar(1, 2); // 2 × 1500.00 = 3000.00
+      carritoHook.current.agregar(2, 1); // 1 × 500.50
+    });
+
+    await screen.findByLabelText(/dni/i);
+
+    // Precio unitario visible por línea.
+    expect(screen.getByText("$ 1.500,00 c/u")).toBeInTheDocument();
+    expect(screen.getByText("$ 500,50 c/u")).toBeInTheDocument();
+
+    // Subtotal por línea (cantidad × unitario).
+    expect(screen.getByText("$ 3.000,00")).toBeInTheDocument();
+
+    // Total = suma de los subtotales: 3000.00 + 500.50 = 3500.50.
+    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$ 3.500,50");
+  });
+
+  it("el total suma solo las líneas válidas, no las que quedaron sin producto", async () => {
+    // La reconciliación ya excluye del submit las líneas cuyo producto
+    // desapareció; el total tiene que contar lo mismo que se va a enviar.
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCheckout();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1); // válida: 1500.00
+      carritoHook.current.agregar(99, 3); // el producto 99 ya no existe
+    });
+
+    await screen.findByLabelText(/dni/i);
+
+    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$ 1.500,00");
+  });
+});
+
 describe("Checkout — fallo de red", () => {
   beforeEach(() => {
     const { result } = renderHook(() => useCarrito());
