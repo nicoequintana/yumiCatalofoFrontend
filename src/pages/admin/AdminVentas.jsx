@@ -7,9 +7,13 @@ import { formatPrecio } from "../../utils/formato.js";
 import { calcularRango } from "../../utils/periodo.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
+import Advertencia from "../../components/admin/Advertencia.jsx";
 import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
 import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
+
+/** Miles con separador local, para que "20000" se lea como "20.000". */
+const formatCantidad = new Intl.NumberFormat("es-AR").format;
 
 /** "2026-08-10" -> "10/08", etiqueta corta para el eje del gráfico. */
 function etiquetaDia(fecha) {
@@ -101,6 +105,14 @@ function GraficoIngresos({ serie }) {
  * todavía no facturado) y nunca se mezclan con los ingresos — de ahí que el
  * pipeline viva en su propio bloque visual y no entre las tarjetas de arriba.
  *
+ * **El histórico tiene tope** (`MAX_ORDENES_HISTORICO` en el backend, mismo
+ * mecanismo que `AdminClientes.jsx`). Cuando se alcanza, la respuesta llega
+ * con `historico.recortado: true` y las órdenes que quedaron afuera son las
+ * MÁS VIEJAS, así que los ingresos, las unidades y el ranking del período
+ * pasan a ser un piso: la facturación anterior al corte no está sumada. Eso
+ * se avisa arriba de todo, antes de los números, y se calla en el estado
+ * vacío porque califica métricas que ahí no se muestran.
+ *
  * Los montos llegan del backend como string (valores `Decimal` de Prisma,
  * serializados como string para no perder precisión) y se muestran con
  * `formatPrecio`, el mismo formateador que usa el resto de la app.
@@ -144,6 +156,11 @@ function AdminVentas() {
     resumen !== null &&
     resumen.cantidadOrdenes === 0 &&
     (resumen.pipeline?.cantidadOrdenes ?? 0) === 0;
+
+  // Se lee con `?.`: un backend anterior al tope no manda `historico`, y ahí
+  // no hay nada que advertir.
+  const mostrarAdvertenciaHistorico =
+    resumen !== null && !sinDatos && resumen.historico?.recortado === true;
 
   return (
     <main className="w-full px-4 py-6 md:px-8 md:py-8">
@@ -194,6 +211,32 @@ function AdminVentas() {
         />
       ) : (
         <>
+          {/*
+            La advertencia va ANTES de las métricas, igual que en
+            `AdminClientes.jsx`: si el histórico se recortó, los números de
+            abajo son un piso y eso hay que leerlo antes que los números, no
+            después.
+          */}
+          {mostrarAdvertenciaHistorico ? (
+            <Advertencia
+              testId="advertencia-historico"
+              titulo="Estos números son un mínimo, no el total"
+            >
+              <p className="font-body-md text-body-md text-on-surface">
+                Se analizaron las{" "}
+                {formatCantidad(resumen.historico.ordenesAnalizadas)} órdenes
+                más recientes, que es el tope de{" "}
+                {formatCantidad(resumen.historico.tope)} que se trae del
+                histórico. Las órdenes anteriores a ese corte quedaron afuera.
+              </p>
+              <p className="font-body-md text-body-md text-on-surface-variant">
+                Por eso los ingresos, las unidades vendidas y el ranking de
+                productos son un piso, no el total real: la facturación
+                anterior al corte no está sumada.
+              </p>
+            </Advertencia>
+          ) : null}
+
           <SeccionAdmin
             titulo="Resumen de facturación"
             etiqueta="Resumen de facturación"

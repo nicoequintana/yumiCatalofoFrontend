@@ -7,8 +7,12 @@ import * as adminVentasApi from "../../api/adminVentas.js";
 
 vi.mock("../../api/adminVentas.js");
 
+/** Histórico completo: el backend analizó todas las órdenes, sin tocar el tope. */
+const HISTORICO_COMPLETO = { ordenesAnalizadas: 120, tope: 20000, recortado: false };
+
 const RESUMEN = {
   periodo: { desde: "2026-07-21", hasta: "2026-08-19" },
+  historico: HISTORICO_COMPLETO,
   ingresosTotales: "3500.50",
   cantidadOrdenes: 2,
   ticketPromedio: "1750.25",
@@ -28,8 +32,18 @@ const RESUMEN = {
   ],
 };
 
+/**
+ * El histórico tocó el tope de 20.000 órdenes: se perdieron las órdenes más
+ * viejas, así que los totales del período pasan a ser un piso.
+ */
+const RESUMEN_RECORTADO = {
+  ...RESUMEN,
+  historico: { ordenesAnalizadas: 20000, tope: 20000, recortado: true },
+};
+
 const RESUMEN_VACIO = {
   periodo: { desde: "2026-07-21", hasta: "2026-08-19" },
+  historico: HISTORICO_COMPLETO,
   ingresosTotales: "0.00",
   cantidadOrdenes: 0,
   ticketPromedio: "0.00",
@@ -140,6 +154,55 @@ describe("AdminVentas", () => {
     renderPagina();
 
     expect(await screen.findByText("No hubo ventas en este período")).toBeInTheDocument();
+  });
+
+  it("no muestra la advertencia de histórico cuando no hubo recorte", async () => {
+    renderPagina();
+
+    await screen.findByText("$ 3.500,50");
+
+    expect(screen.queryByTestId("advertencia-historico")).not.toBeInTheDocument();
+  });
+
+  it("avisa que los totales son un piso cuando el histórico se recortó", async () => {
+    adminVentasApi.getResumenVentas.mockResolvedValue(RESUMEN_RECORTADO);
+
+    renderPagina();
+
+    const aviso = await screen.findByTestId("advertencia-historico");
+
+    // El aviso tiene que decir que los números son un MÍNIMO, no un total, y
+    // mostrar cuántas órdenes se alcanzaron a analizar.
+    expect(
+      within(aviso).getByText("Estos números son un mínimo, no el total"),
+    ).toBeInTheDocument();
+    expect(within(aviso).getByText(/20\.000/)).toBeInTheDocument();
+    expect(within(aviso).getByText(/quedaron afuera/i)).toBeInTheDocument();
+  });
+
+  it("no muestra la advertencia de histórico sobre el estado vacío", async () => {
+    adminVentasApi.getResumenVentas.mockResolvedValue({
+      ...RESUMEN_VACIO,
+      historico: { ordenesAnalizadas: 20000, tope: 20000, recortado: true },
+    });
+
+    renderPagina();
+
+    await screen.findByText("No hubo ventas en este período");
+
+    expect(screen.queryByTestId("advertencia-historico")).not.toBeInTheDocument();
+  });
+
+  it("no rompe si la respuesta no trae `historico` (backend viejo)", async () => {
+    const { historico, ...sinHistorico } = RESUMEN_RECORTADO;
+    expect(historico).toBeDefined();
+    adminVentasApi.getResumenVentas.mockResolvedValue(sinHistorico);
+
+    renderPagina();
+
+    await screen.findByText("$ 3.500,50");
+
+    expect(screen.queryByTestId("advertencia-historico")).not.toBeInTheDocument();
   });
 
   it("no muestra el aviso de período recortado cuando no hubo recorte", async () => {
