@@ -13,6 +13,8 @@
  */
 
 import { fetchAutenticado } from "./authClient.js";
+import { fetchConTimeout } from "./http.js";
+import { parsearCuerpo } from "./parseo.js";
 
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api`;
 
@@ -21,11 +23,11 @@ const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/ap
  * the backend's Spanish message on non-2xx responses.
  */
 async function pedir(url, options) {
-  const res = await fetch(url, options);
+  const res = await fetchConTimeout(url, options);
 
   // 204/empty-body responses (none currently exist, but keep this safe).
   const texto = await res.text();
-  const body = texto ? JSON.parse(texto) : null;
+  const body = parsearCuerpo(texto);
 
   if (!res.ok) {
     throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
@@ -39,7 +41,7 @@ async function pedirAutenticado(url, options) {
   const res = await fetchAutenticado(url, options);
 
   const texto = await res.text();
-  const body = texto ? JSON.parse(texto) : null;
+  const body = parsearCuerpo(texto);
 
   if (!res.ok) {
     throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");

@@ -14,6 +14,7 @@
  */
 
 import { fetchAutenticado } from "./authClient.js";
+import { parsearCuerpo } from "./parseo.js";
 
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api`;
 
@@ -22,7 +23,7 @@ async function pedirAutenticado(url, options) {
   const res = await fetchAutenticado(url, options);
 
   const texto = await res.text();
-  const body = texto ? JSON.parse(texto) : null;
+  const body = parsearCuerpo(texto);
 
   if (!res.ok) {
     throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");

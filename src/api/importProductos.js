@@ -5,6 +5,8 @@
  */
 
 import { fetchAutenticado } from "./authClient.js";
+import { TIMEOUT_SUBIDA_MS } from "./http.js";
+import { parsearCuerpo } from "./parseo.js";
 
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api`;
 
@@ -46,10 +48,16 @@ export async function importarProductos(file) {
   const fd = new FormData();
   fd.append("archivo", file);
 
-  const res = await fetchAutenticado(`${BASE}/products/import`, { method: "POST", body: fd });
+  // `TIMEOUT_SUBIDA_MS`: la planilla puede tener cientos de filas y el
+  // backend las procesa dentro de la misma request — más margen que un GET.
+  const res = await fetchAutenticado(
+    `${BASE}/products/import`,
+    { method: "POST", body: fd },
+    TIMEOUT_SUBIDA_MS,
+  );
 
   const texto = await res.text();
-  const body = texto ? JSON.parse(texto) : null;
+  const body = parsearCuerpo(texto);
 
   if (!res.ok) {
     const error = new Error(body?.error ?? "No se pudo importar el archivo.");

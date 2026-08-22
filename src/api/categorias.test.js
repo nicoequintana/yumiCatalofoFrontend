@@ -30,7 +30,11 @@ describe("getCategorias", () => {
 
     const resultado = await getCategorias();
 
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/categorias`, undefined);
+    const [url, opciones] = global.fetch.mock.calls[0];
+    expect(url).toBe(`${BASE}/categorias`);
+    // La señal de timeout viaja también acá; lo que importa es que NO sea la
+    // versión autenticada (un 401 acá redirigiría a un anónimo al login).
+    expect(opciones.signal).toBeInstanceOf(AbortSignal);
     expect(fetchAutenticado).not.toHaveBeenCalled();
     expect(resultado).toEqual([{ id: 1, nombre: "Velas", cantidadProductos: 2 }]);
   });

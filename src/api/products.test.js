@@ -33,7 +33,7 @@ describe("getProducts", () => {
 
   it("sin opciones no agrega querystring", async () => {
     await getProducts();
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products`, undefined);
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products`);
   });
 
   it("admin:true agrega ?admin=1 (regresión)", async () => {
@@ -44,32 +44,32 @@ describe("getProducts", () => {
 
   it("admin:false (default) no agrega admin a la querystring", async () => {
     await getProducts({ admin: false });
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products`, undefined);
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products`);
   });
 
   it("agrega categoria cuando se provee", async () => {
     await getProducts({ categoria: 3 });
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?categoria=3`, undefined);
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products?categoria=3`);
   });
 
   it("agrega search cuando se provee", async () => {
     await getProducts({ search: "reloj" });
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?search=reloj`, undefined);
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products?search=reloj`);
   });
 
   it("agrega minPrecio cuando se provee", async () => {
     await getProducts({ minPrecio: 100 });
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?minPrecio=100`, undefined);
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products?minPrecio=100`);
   });
 
   it("agrega maxPrecio cuando se provee", async () => {
     await getProducts({ maxPrecio: 500 });
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?maxPrecio=500`, undefined);
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products?maxPrecio=500`);
   });
 
   it("omite params no provistos o vacíos de la URL", async () => {
     await getProducts({ search: "", categoria: undefined, minPrecio: null });
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products`, undefined);
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products`);
   });
 
   it("combina múltiples filtros en una sola querystring", async () => {
@@ -123,7 +123,8 @@ describe("getProducts / getProductById — el token viaja en modo admin", () => 
   it("sin admin NO manda el token (la llamada pública sigue siendo anónima)", async () => {
     await getProducts();
 
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products`, undefined);
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products`);
+    expect(global.fetch.mock.calls[0][1]?.headers).toBeUndefined();
     expect(getToken).not.toHaveBeenCalled();
   });
 
@@ -132,7 +133,8 @@ describe("getProducts / getProductById — el token viaja en modo admin", () => 
 
     await getProducts({ admin: true });
 
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?admin=1`, undefined);
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products?admin=1`);
+    expect(global.fetch.mock.calls[0][1]?.headers).toBeUndefined();
   });
 
   it("no explota si leer el token lanza (localStorage bloqueado)", async () => {
@@ -141,7 +143,7 @@ describe("getProducts / getProductById — el token viaja en modo admin", () => 
     });
 
     await expect(getProducts({ admin: true })).resolves.toBeDefined();
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?admin=1`, undefined);
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products?admin=1`);
   });
 
   it("getProductById con admin:true manda el JWT", async () => {
@@ -166,7 +168,7 @@ describe("getProducts / getProductById — el token viaja en modo admin", () => 
     });
 
     await expect(getProductById(4)).resolves.toBeNull();
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products/4`, undefined);
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products/4`);
   });
 
   it("getProductsByIds propaga el token a cada tanda", async () => {
@@ -176,6 +178,30 @@ describe("getProducts / getProductById — el token viaja en modo admin", () => 
 
     const [, opciones] = global.fetch.mock.calls[0];
     expect(opciones.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+});
+
+describe("timeout en las lecturas públicas", () => {
+  it("getProducts adjunta una señal de timeout al fetch", async () => {
+    mockFetchOnce();
+
+    await getProducts();
+
+    const [, opciones] = global.fetch.mock.calls[0];
+    expect(opciones.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("getProductById adjunta una señal de timeout al fetch", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ id: 4 }),
+    });
+
+    await getProductById(4);
+
+    const [, opciones] = global.fetch.mock.calls[0];
+    expect(opciones.signal).toBeInstanceOf(AbortSignal);
   });
 });
 
@@ -262,7 +288,7 @@ describe("getProductsByIds", () => {
 
     const productos = await getProductsByIds([1, 7]);
 
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/products?ids=1%2C7`, undefined);
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products?ids=1%2C7`);
     expect(productos).toEqual([{ id: 1 }, { id: 7 }]);
   });
 

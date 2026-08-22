@@ -26,16 +26,19 @@ describe("crearOrden", () => {
 
     await crearOrden({ dni: "12345678", nombre: "Ana", telefono: "123", items: [{ productId: 1, cantidad: 1 }] });
 
-    expect(global.fetch).toHaveBeenCalledWith(`${BASE}/ordenes`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        dni: "12345678",
-        nombre: "Ana",
-        telefono: "123",
-        items: [{ productId: 1, cantidad: 1 }],
-      }),
+    const [url, opciones] = global.fetch.mock.calls[0];
+    expect(url).toBe(`${BASE}/ordenes`);
+    expect(opciones.method).toBe("POST");
+    expect(opciones.headers).toEqual({ "Content-Type": "application/json" });
+    expect(JSON.parse(opciones.body)).toEqual({
+      dni: "12345678",
+      nombre: "Ana",
+      telefono: "123",
+      items: [{ productId: 1, cantidad: 1 }],
     });
+    // La señal de timeout viaja en cada request pública: sin ella, un backend
+    // colgado deja el spinner del checkout girando minutos.
+    expect(opciones.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("lanza Error con el mensaje del backend ante un error", async () => {

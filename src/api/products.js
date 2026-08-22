@@ -13,6 +13,8 @@
  */
 
 import { fetchAutenticado, getToken } from "./authClient.js";
+import { TIMEOUT_SUBIDA_MS, fetchConTimeout } from "./http.js";
+import { parsearCuerpo } from "./parseo.js";
 
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api`;
 
@@ -22,11 +24,11 @@ const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/ap
  * `catch (err) => setError(err.message)` call sites keep working unchanged.
  */
 async function pedir(url, options) {
-  const res = await fetch(url, options);
+  const res = await fetchConTimeout(url, options);
 
   // 204/empty-body responses (none currently exist, but keep this safe).
   const texto = await res.text();
-  const body = texto ? JSON.parse(texto) : null;
+  const body = parsearCuerpo(texto);
 
   if (!res.ok) {
     throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
@@ -35,12 +37,16 @@ async function pedir(url, options) {
   return body;
 }
 
-/** Igual que `pedir`, pero usa el wrapper autenticado (agrega el JWT y maneja 401). */
-async function pedirAutenticado(url, options) {
-  const res = await fetchAutenticado(url, options);
+/**
+ * Igual que `pedir`, pero usa el wrapper autenticado (agrega el JWT y maneja
+ * 401). `timeoutMs` deja que las subidas de media pidan más margen que una
+ * request común.
+ */
+async function pedirAutenticado(url, options, timeoutMs) {
+  const res = await fetchAutenticado(url, options, timeoutMs);
 
   const texto = await res.text();
-  const body = texto ? JSON.parse(texto) : null;
+  const body = parsearCuerpo(texto);
 
   if (!res.ok) {
     throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
@@ -256,31 +262,44 @@ export async function getProductsByIds(ids, { admin = false } = {}) {
  */
 export async function getProductById(id, { admin = false } = {}) {
   const query = admin ? "?admin=1" : "";
-  const res = await fetch(`${BASE}/products/${id}${query}`, opcionesDeAdmin(admin));
+  const res = await fetchConTimeout(`${BASE}/products/${id}${query}`, opcionesDeAdmin(admin));
   if (res.status === 404) return null;
 
   const texto = await res.text();
-  const body = texto ? JSON.parse(texto) : null;
+  const body = parsearCuerpo(texto);
   if (!res.ok) {
     throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
   }
   return body;
 }
 
-/** @returns {Promise<Object>} the newly created product */
+/**
+ * @returns {Promise<Object>} the newly created product
+ *
+ * Va con `TIMEOUT_SUBIDA_MS`: el body puede llevar hasta 10 fotos + 1 video,
+ * y sobre un uplink lento eso no entra en el timeout de una request común.
+ */
 export async function createProduct(data) {
-  return pedirAutenticado(`${BASE}/products`, {
-    method: "POST",
-    body: construirFormData(data),
-  });
+  return pedirAutenticado(
+    `${BASE}/products`,
+    {
+      method: "POST",
+      body: construirFormData(data),
+    },
+    TIMEOUT_SUBIDA_MS,
+  );
 }
 
-/** @returns {Promise<Object>} the updated product */
+/** @returns {Promise<Object>} the updated product — mismo margen de subida que `createProduct` */
 export async function updateProduct(id, data) {
-  return pedirAutenticado(`${BASE}/products/${id}`, {
-    method: "PUT",
-    body: construirFormData(data),
-  });
+  return pedirAutenticado(
+    `${BASE}/products/${id}`,
+    {
+      method: "PUT",
+      body: construirFormData(data),
+    },
+    TIMEOUT_SUBIDA_MS,
+  );
 }
 
 /** @returns {Promise<{ok: true}>} */
