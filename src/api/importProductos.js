@@ -67,3 +67,53 @@ export async function importarProductos(file) {
 
   return body;
 }
+
+/**
+ * Descarga el catálogo completo (`.xlsx`, una fila por producto) para el
+ * flujo de ACTUALIZACIÓN masiva: exportar -> editar a mano -> volver a
+ * subir. Mismo patrón de descarga que `descargarPlantilla`.
+ */
+export async function exportarProductos() {
+  const res = await fetchAutenticado(`${BASE}/products/export`);
+
+  if (!res.ok) {
+    throw new Error("No se pudo exportar el catálogo.");
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = "productos-export.xlsx";
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Sube el archivo editado: actualiza los productos existentes por SKU y crea
+ * los que traigan la columna SKU vacía. Mismo patrón que `importarProductos`
+ * (incluido el manejo de `.errores`).
+ */
+export async function actualizarProductosMasivo(file) {
+  const fd = new FormData();
+  fd.append("archivo", file);
+
+  const res = await fetchAutenticado(
+    `${BASE}/products/actualizar-masivo`,
+    { method: "POST", body: fd },
+    TIMEOUT_SUBIDA_MS,
+  );
+
+  const texto = await res.text();
+  const body = parsearCuerpo(texto);
+
+  if (!res.ok) {
+    const error = new Error(body?.error ?? "No se pudo guardar el archivo.");
+    if (Array.isArray(body?.errores)) error.errores = body.errores;
+    throw error;
+  }
+
+  return body;
+}

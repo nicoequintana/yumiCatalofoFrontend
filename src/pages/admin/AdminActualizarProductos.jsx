@@ -3,55 +3,77 @@ import { Link } from "react-router-dom";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import TablaErroresImportacion from "../../components/admin/TablaErroresImportacion.jsx";
-import { descargarPlantilla, importarProductos } from "../../api/importProductos.js";
+import { actualizarProductosMasivo, exportarProductos } from "../../api/importProductos.js";
 
 /**
- * Importación masiva de productos desde `.xlsx`.
- *
- * Tres estados: inicial (descargar/subir), procesando, y resultado (éxito o
- * tabla de errores). El import es todo o nada — si el backend devuelve
- * errores, no se creó ningún producto y el archivo queda seleccionado para
- * reintentar después de corregirlo.
+ * Arma el mensaje de resultado a partir de `{ creados, actualizados }`: los
+ * dos juntos si el lote trajo altas y actualizaciones, o solo el que
+ * corresponda cuando el lote fue de un solo tipo — mostrar "se crearon 0"
+ * junto a "se actualizaron 7" es ruido que no aporta nada.
  */
-function AdminImportarProductos() {
+function mensajeResultado({ creados, actualizados }) {
+  if (creados > 0 && actualizados > 0) {
+    return `Se crearon ${creados} productos nuevos y se actualizaron ${actualizados}.`;
+  }
+  if (creados > 0) {
+    return `Se crearon ${creados} productos nuevos.`;
+  }
+  return `Se actualizaron ${actualizados} productos.`;
+}
+
+/**
+ * Actualización masiva del catálogo por planilla `.xlsx`, matcheada por SKU
+ * — y también alta: una fila con SKU vacío crea un producto nuevo, igual que
+ * el alta clásica (oculto, sin media, sku nuevo generado por el backend).
+ *
+ * Flujo separado del alta masiva (`AdminImportarProductos`), que sigue
+ * existiendo tal cual para la carga inicial en frío desde una plantilla en
+ * blanco. Acá el punto de partida es el catálogo YA exportado: la planilla
+ * no toca fotos, video ni visibilidad de los productos existentes, solo su
+ * contenido, precio y stock. Mismos tres estados que el alta: inicial
+ * (exportar/subir), procesando, y resultado (éxito o tabla de errores). Es
+ * todo o nada: si el backend devuelve errores, no se tocó ningún producto y
+ * el archivo queda seleccionado para reintentar después de corregirlo.
+ */
+function AdminActualizarProductos() {
   const inputRef = useRef(null);
   const [archivo, setArchivo] = useState(null);
-  const [descargando, setDescargando] = useState(false);
-  const [importando, setImportando] = useState(false);
+  const [exportando, setExportando] = useState(false);
+  const [actualizando, setActualizando] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState(null);
   const [errores, setErrores] = useState([]);
 
-  async function handleDescargar() {
+  async function handleExportar() {
     setError(null);
-    setDescargando(true);
+    setExportando(true);
     try {
-      await descargarPlantilla();
+      await exportarProductos();
     } catch (err) {
-      setError(err.message ?? "No se pudo descargar la plantilla.");
+      setError(err.message ?? "No se pudo exportar el catálogo.");
     } finally {
-      setDescargando(false);
+      setExportando(false);
     }
   }
 
-  async function handleImportar() {
+  async function handleActualizar() {
     if (!archivo) return;
 
     setError(null);
     setErrores([]);
     setResultado(null);
-    setImportando(true);
+    setActualizando(true);
 
     try {
-      const respuesta = await importarProductos(archivo);
+      const respuesta = await actualizarProductosMasivo(archivo);
       setResultado(respuesta);
       setArchivo(null);
       if (inputRef.current) inputRef.current.value = "";
     } catch (err) {
-      setError(err.message ?? "No se pudo importar el archivo.");
+      setError(err.message ?? "No se pudo actualizar el catálogo.");
       setErrores(err.errores ?? []);
     } finally {
-      setImportando(false);
+      setActualizando(false);
     }
   }
 
@@ -64,16 +86,22 @@ function AdminImportarProductos() {
       <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
         Panel de administración
       </span>
-      <h1 className="font-headline-lg text-headline-lg mb-6 text-primary">Importar productos</h1>
+      <h1 className="font-headline-lg text-headline-lg mb-6 text-primary">Actualizar productos</h1>
 
       <div className="mb-8 max-w-2xl rounded-lg bg-surface-container px-4 py-4">
         <p className="font-body-md text-body-md mb-2 text-on-surface">
-          Cargá varios productos de una sola vez desde una planilla de Excel.
+          Descargá el catálogo completo, editá lo que necesites (precio, stock, etc.) y volvé a
+          subirlo — actualiza los productos existentes por SKU sin tocar fotos, video o visibilidad,
+          y podés agregar filas nuevas al final para cargar productos.
         </p>
         <ul className="font-body-md text-body-md list-disc pl-5 text-on-surface-variant">
-          <li>Los productos se crean ocultos: no aparecen en el catálogo hasta que los publiques.</li>
-          <li>La planilla no incluye fotos ni video — se cargan después, producto por producto.</li>
-          <li>Si alguna fila tiene errores, no se importa ninguna. Se corrige y se vuelve a subir.</li>
+          <li>Cada fila se matchea por SKU: si el SKU no existe, esa fila se rechaza.</li>
+          <li>No borres ni cambies la columna SKU — es la que identifica a cada producto.</li>
+          <li>
+            Dejá la columna SKU vacía en una fila para agregar un producto nuevo — entra oculto y sin
+            fotos, igual que el alta.
+          </li>
+          <li>Si alguna fila tiene errores, no se guarda ninguna. Se corrige y se vuelve a subir.</li>
         </ul>
       </div>
 
@@ -81,19 +109,19 @@ function AdminImportarProductos() {
         <div>
           <button
             type="button"
-            onClick={handleDescargar}
-            disabled={descargando}
+            onClick={handleExportar}
+            disabled={exportando}
             className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
           >
-            {descargando ? (
+            {exportando ? (
               <Spinner className="h-4 w-4 text-on-surface-variant" />
             ) : (
               <span className="material-symbols-outlined text-[18px]">download</span>
             )}
-            Descargar plantilla
+            Exportar catálogo
           </button>
           <p className="font-body-md text-body-md mt-2 text-on-surface-variant">
-            La plantilla ya trae la lista de categorías cargadas.
+            Trae todos los productos, incluidos los ocultos y agotados.
           </p>
         </div>
 
@@ -102,7 +130,7 @@ function AdminImportarProductos() {
             htmlFor="archivo"
             className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface"
           >
-            Archivo completado (.xlsx)
+            Archivo editado (.xlsx)
           </label>
           <input
             id="archivo"
@@ -117,12 +145,12 @@ function AdminImportarProductos() {
         <div>
           <button
             type="button"
-            onClick={handleImportar}
-            disabled={!archivo || importando}
+            onClick={handleActualizar}
+            disabled={!archivo || actualizando}
             className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
           >
-            {importando ? <Spinner className="h-4 w-4 text-on-primary" /> : null}
-            {importando ? "Importando…" : "Importar"}
+            {actualizando ? <Spinner className="h-4 w-4 text-on-primary" /> : null}
+            {actualizando ? "Actualizando…" : "Actualizar"}
           </button>
         </div>
       </div>
@@ -130,7 +158,7 @@ function AdminImportarProductos() {
       {resultado ? (
         <div className="max-w-2xl rounded-lg bg-secondary-container px-4 py-4">
           <p className="font-body-md text-body-md text-on-secondary-container">
-            Se importaron {resultado.cantidad} productos como ocultos.{" "}
+            {mensajeResultado(resultado)}{" "}
             <Link to="/catalogo/admin/productos" className="underline">
               Ver productos
             </Link>
@@ -151,4 +179,4 @@ function AdminImportarProductos() {
   );
 }
 
-export default AdminImportarProductos;
+export default AdminActualizarProductos;
