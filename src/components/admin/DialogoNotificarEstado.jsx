@@ -68,7 +68,14 @@ function DialogoNotificarEstado({
         {puedeNotificar ? (
           <p className="font-body-md text-body-md mb-6 text-on-surface-variant">
             ¿Le avisamos al cliente por mail a{" "}
-            <strong className="break-all text-on-surface">{emailCliente}</strong>?
+            {/*
+              `break-words` y no `break-all`: este último parte en cualquier
+              carácter aunque la dirección entrara entera en la línea siguiente,
+              y dejaba cosas como "yimaproductos@g / mail.com". Con éste, el
+              email baja completo cuando no entra y solo se parte si de verdad
+              no hay forma.
+            */}
+            <strong className="break-words text-on-surface">{emailCliente}</strong>?
           </p>
         ) : (
           <p className="font-body-md text-body-md mb-6 rounded-lg bg-tertiary-container px-4 py-3 text-on-surface">
