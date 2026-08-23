@@ -37,6 +37,7 @@ const ITEMS_NAV = [
 
 const ITEMS_CONFIGURACION = [
   { to: "/catalogo/admin/configuracion/categorias", label: "Categorías" },
+  { to: "/catalogo/admin/configuracion/anuncios", label: "Anuncios" },
   { to: "/catalogo/admin/configuracion/usuarios", label: "Usuarios" },
 ];
 

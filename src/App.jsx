@@ -26,6 +26,7 @@ const AdminProductoForm = lazy(() => import("./pages/admin/AdminProductoForm.jsx
 const AdminImportarProductos = lazy(() => import("./pages/admin/AdminImportarProductos.jsx"));
 const AdminActualizarProductos = lazy(() => import("./pages/admin/AdminActualizarProductos.jsx"));
 const AdminCategorias = lazy(() => import("./pages/admin/AdminCategorias.jsx"));
+const AdminAnuncios = lazy(() => import("./pages/admin/AdminAnuncios.jsx"));
 const AdminMetricas = lazy(() => import("./pages/admin/AdminMetricas.jsx"));
 const AdminUsuarios = lazy(() => import("./pages/admin/AdminUsuarios.jsx"));
 const AdminOrdenes = lazy(() => import("./pages/admin/AdminOrdenes.jsx"));
@@ -88,6 +89,7 @@ function App() {
           <Route path="/catalogo/admin/metricas" element={<AdminMetricas />} />
           <Route path="/catalogo/admin/logs" element={<AdminLogs />} />
           <Route path="/catalogo/admin/configuracion/categorias" element={<AdminCategorias />} />
+          <Route path="/catalogo/admin/configuracion/anuncios" element={<AdminAnuncios />} />
           <Route path="/catalogo/admin/configuracion/usuarios" element={<AdminUsuarios />} />
         </Route>
       </Route>
