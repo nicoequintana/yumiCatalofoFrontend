@@ -81,15 +81,17 @@ test.describe("Admin cambia el estado de una orden y persiste tras recargar", ()
     const selectEstado = page.getByLabel("Cambiar estado de la orden");
     await expect(selectEstado).toHaveValue("PENDIENTE");
 
-    // 3. Cambiar el estado vía el <select> de la UI. `handleCambiarEstado`
-    // deshabilita el select de forma síncrona apenas dispara el cambio
-    // (`guardandoEstado = true`) y lo vuelve a habilitar recién cuando el
-    // PATCH resuelve — se espera primero el valor final (que solo aparece
-    // tras la respuesta) y DESPUÉS el estado enabled, no al revés: afirmar
-    // "enabled" inmediatamente después de `selectOption` puede pisar la
-    // ventana en la que legítimamente está disabled mientras el PATCH sigue
-    // en vuelo.
+    // 3. Cambiar el estado vía el <select> de la UI. Elegir un estado nuevo
+    // no dispara el PATCH directo: abre `DialogoNotificarEstado`, que decide
+    // si además se le avisa al cliente por mail. Acá se confirma "Guardar
+    // sin notificar" — el cliente de test se siembra con `email: null`
+    // (`crearClienteDeTest`), así que la acción primaria del diálogo
+    // ("Notificar y guardar") está deshabilitada; como bonus, la corrida
+    // ejercita la rama sin email. Recién tras ese click se manda el PATCH,
+    // así que el valor final del select y el `enabled` se esperan después de
+    // confirmar el diálogo, no después de `selectOption`.
     await selectEstado.selectOption("CONFIRMADA");
+    await page.getByRole("button", { name: "Guardar sin notificar" }).click();
     await expect(selectEstado).toHaveValue("CONFIRMADA");
     await expect(selectEstado).toBeEnabled();
 

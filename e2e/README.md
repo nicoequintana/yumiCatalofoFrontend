@@ -96,6 +96,29 @@ seed/cleanup en escenarios nuevos (Sprint 7 Task 2).
 - `global-teardown.js` — red de seguridad final: corre
   `limpiarTodoRastroDeTest()` al terminar toda la corrida.
 
+## Envío de correo real en cada corrida
+
+Desde la feature de notificaciones por email, el backend **no arranca** sin
+`SMTP_USER`, `SMTP_PASSWORD` y `MAIL_ADMIN_DESTINO` configuradas en
+`backend/.env` (ver "Arranque, seguridad y apagado del backend" en
+`CLAUDE.md`) — así que sin esas tres variables la suite E2E directamente no
+corre, porque el backend levantado a mano en el paso previo no levanta.
+
+Con ellas configuradas, `flujo-feliz.spec.js` y `cliente-recurrente.spec.js`
+crean órdenes de verdad, y cada orden real dispara `notificarOrdenCreada`:
+**dos correos REALES por corrida**, uno a `MAIL_ADMIN_DESTINO` y otro a la
+dirección del cliente de prueba.
+
+Las direcciones de los clientes de prueba usan el dominio `@example.com`,
+que no tiene registro MX — eso genera **rebotes duros** en cada corrida, y
+los rebotes duros repetidos castigan la reputación de envío de la cuenta de
+Gmail configurada. Esto es una consecuencia conocida y aceptada del diseño
+(la suite valida el flujo de notificación real, no un mock), no un bug a
+arreglar acá.
+
+**Recomendación**: mientras se corre esta suite, apuntar `MAIL_ADMIN_DESTINO`
+a una casilla de pruebas propia — no a la casilla de producción de YIMA.
+
 ## Rate limiting y corridas repetidas
 
 `POST /api/ordenes` está limitado a 10 requests/10min por IP (ver
