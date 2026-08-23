@@ -7,13 +7,19 @@ import { getOrdenById, actualizarEstadoOrden } from "../../api/ordenes.js";
 import { formatFecha, formatPrecio, precioACentavos } from "../../utils/formato.js";
 import { ESTADOS_ORDEN, ETIQUETA_ESTADO } from "../../constants/ordenes.js";
 import { claseEncabezado } from "../../components/admin/clasesTabla.js";
+import Advertencia from "../../components/admin/Advertencia.jsx";
+import DialogoNotificarEstado from "../../components/admin/DialogoNotificarEstado.jsx";
 
 /**
- * `/catalogo/admin/ordenes/:id` — detalle de una orden (Sprint 6, Task 2).
+ * `/catalogo/admin/ordenes/:id` — detalle de una orden.
  * El select de estado NO restringe transiciones — cualquiera de los 5
  * estados es siempre seleccionable, sin importar el estado actual (mismo
  * criterio deliberado del backend, ver `ordenes.controller.js`'s
  * `actualizarEstado`).
+ *
+ * Elegir un estado NO guarda: abre `DialogoNotificarEstado`, donde el admin
+ * decide si además se le avisa al cliente por mail. Guardar es siempre una
+ * confirmación explícita.
  */
 function AdminOrdenDetalle() {
   const { id } = useParams();
@@ -23,6 +29,10 @@ function AdminOrdenDetalle() {
   const [error, setError] = useState(null);
   const [guardandoEstado, setGuardandoEstado] = useState(false);
   const [errorEstado, setErrorEstado] = useState(null);
+  // Estado pretendido mientras el diálogo está abierto. `null` = cerrado.
+  const [estadoPendiente, setEstadoPendiente] = useState(null);
+  // Resultado del último intento de notificación, para el aviso de la pantalla.
+  const [avisoNotificacion, setAvisoNotificacion] = useState(null);
 
   useEffect(() => {
     let activo = true;
@@ -46,22 +56,49 @@ function AdminOrdenDetalle() {
     };
   }, [id]);
 
-  async function handleCambiarEstado(event) {
+  /**
+   * El select ya no guarda: abre el diálogo. Guardar sin preguntar le sacaría
+   * al admin la decisión de avisarle o no al cliente, que es justo lo que la
+   * feature existe para darle.
+   *
+   * El select queda sin reflejo optimista hasta que se confirme — su `value`
+   * sigue atado a `orden.estado`, así que cancelar lo deja donde estaba sin
+   * necesidad de revertir nada a mano.
+   */
+  function handleCambiarEstado(event) {
     const nuevoEstado = event.target.value;
-    const estadoAnterior = orden.estado;
+    if (nuevoEstado === orden.estado) return;
+    setErrorEstado(null);
+    setEstadoPendiente(nuevoEstado);
+  }
+
+  function handleCancelarCambio() {
+    setEstadoPendiente(null);
+  }
+
+  async function handleConfirmarCambio(notificar) {
+    const nuevoEstado = estadoPendiente;
 
     setErrorEstado(null);
+    setAvisoNotificacion(null);
     setGuardandoEstado(true);
-    // Reflejo optimista para que el select no "salte" mientras espera.
-    setOrden((actual) => ({ ...actual, estado: nuevoEstado }));
 
     try {
-      const actualizado = await actualizarEstadoOrden(id, nuevoEstado);
+      const actualizado = await actualizarEstadoOrden(id, nuevoEstado, notificar);
       setOrden(actualizado);
+      // Solo se avisa del fracaso: un envío exitoso no necesita anunciarse,
+      // el admin ya sabe que lo pidió.
+      if (actualizado.notificacion && actualizado.notificacion.enviada === false) {
+        setAvisoNotificacion(actualizado.notificacion);
+      }
+      setEstadoPendiente(null);
     } catch (err) {
       setErrorEstado(err.message ?? "No se pudo actualizar el estado de la orden.");
-      // Revierte al estado realmente persistido ante un error.
-      setOrden((actual) => ({ ...actual, estado: estadoAnterior }));
+      // Se cierra el diálogo a propósito: el mensaje de error se renderiza en
+      // la pantalla, y con el modal encima quedaría tapado. Reintentar cuesta
+      // volver a elegir el estado en el select, que es barato comparado con un
+      // fallo silencioso.
+      setEstadoPendiente(null);
     } finally {
       setGuardandoEstado(false);
     }
@@ -104,6 +141,15 @@ function AdminOrdenDetalle() {
       <div className="mb-6">
         <BotonVolver fallback="/catalogo/admin/ordenes" />
       </div>
+
+      {avisoNotificacion ? (
+        <Advertencia titulo="El cliente no fue notificado" icono="mark_email_unread">
+          <p className="font-body-md text-body-md text-on-surface">
+            El estado de la orden se guardó correctamente, pero no se pudo notificar al cliente
+            {avisoNotificacion.error ? `: ${avisoNotificacion.error}` : "."}
+          </p>
+        </Advertencia>
+      ) : null}
 
       <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
@@ -220,6 +266,18 @@ function AdminOrdenDetalle() {
           <strong className="font-headline-md text-headline-md text-primary">{total}</strong>
         </div>
       </div>
+
+      {estadoPendiente !== null ? (
+        <DialogoNotificarEstado
+          ordenId={orden.id}
+          estadoAnterior={orden.estado}
+          estadoNuevo={estadoPendiente}
+          emailCliente={orden.cliente?.email ?? null}
+          guardando={guardandoEstado}
+          onConfirmar={handleConfirmarCambio}
+          onCancelar={handleCancelarCambio}
+        />
+      ) : null}
     </main>
   );
 }
