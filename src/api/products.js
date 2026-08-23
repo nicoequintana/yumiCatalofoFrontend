@@ -307,6 +307,39 @@ export async function deleteProduct(id) {
   return pedirAutenticado(`${BASE}/products/${id}`, { method: "DELETE" });
 }
 
+/**
+ * Deletes several products in one request.
+ *
+ * The response is partial by design: products that appear in any order cannot
+ * be deleted, so the caller MUST render `rechazados` instead of treating a
+ * resolved promise as "everything was deleted".
+ *
+ * @param {number[]} ids
+ * @returns {Promise<{eliminados: number[], rechazados: Array<{id: number, nombre: string|null, motivo: string}>}>}
+ */
+export async function deleteProductsMasivo(ids) {
+  return pedirAutenticado(`${BASE}/products/eliminar-masivo`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+}
+
+/**
+ * Shows or hides several products at once.
+ *
+ * @param {number[]} ids
+ * @param {boolean} visible
+ * @returns {Promise<{actualizados: number}>}
+ */
+export async function updateVisibilidadMasiva(ids, visible) {
+  return pedirAutenticado(`${BASE}/products/visibilidad-masiva`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids, visible }),
+  });
+}
+
 /** @returns {Promise<Object>} the updated product, with its new visibleEnCatalogo value */
 export async function updateVisibilidad(id, visibleEnCatalogo) {
   return pedirAutenticado(`${BASE}/products/${id}/visibilidad`, {

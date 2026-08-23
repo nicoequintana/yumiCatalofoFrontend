@@ -305,6 +305,7 @@ describe("AdminProductos — buscador", () => {
         admin: true,
         page: 1,
         search: "",
+        pageSize: 50,
       });
     });
   });
@@ -324,6 +325,7 @@ describe("AdminProductos — buscador", () => {
         admin: true,
         page: 1,
         search: "reloj",
+        pageSize: 50,
       });
     });
 
@@ -350,6 +352,7 @@ describe("AdminProductos — buscador", () => {
         admin: true,
         page: 1,
         search: "YIMA-RELOJC-1",
+        pageSize: 50,
       });
     });
   });
@@ -401,6 +404,7 @@ describe("AdminProductos — la búsqueda vive en la URL", () => {
         admin: true,
         page: 1,
         search: "reloj",
+        pageSize: 50,
       });
     });
     expect(screen.getByRole("searchbox", { name: /buscar productos/i })).toHaveValue("reloj");
@@ -454,6 +458,7 @@ describe("AdminProductos — la búsqueda vive en la URL", () => {
         admin: true,
         page: 1,
         search: "mesa",
+        pageSize: 50,
       });
     });
   });
@@ -480,6 +485,7 @@ describe("AdminProductos — la búsqueda vive en la URL", () => {
         admin: true,
         page: 1,
         search: "reloj",
+        pageSize: 50,
       });
     });
   });

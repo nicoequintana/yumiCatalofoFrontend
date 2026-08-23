@@ -4,12 +4,30 @@ import Badge from "../../components/Badge.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import Paginador from "../../components/Paginador.jsx";
-import { deleteProduct, getProducts, updateMerchandising, updateVisibilidad } from "../../api/products.js";
+import {
+  deleteProduct,
+  deleteProductsMasivo,
+  getProducts,
+  updateMerchandising,
+  updateVisibilidad,
+  updateVisibilidadMasiva,
+} from "../../api/products.js";
 import { formatPrecio } from "../../utils/formato.js";
 import useDialogo from "../../hooks/useDialogo.js";
 
 /** Pausa antes de mandar lo tipeado a la URL (y por lo tanto al backend). */
 const DEBOUNCE_BUSQUEDA_MS = 350;
+
+/**
+ * Filas por página de ESTA pantalla.
+ *
+ * Se manda explícito en vez de heredar el `PAGE_SIZE_CATALOGO = 12` del
+ * backend: ese 12 existe por la grilla pública, que tiene 1, 2 o 4 columnas
+ * según el breakpoint y con otro número dejaría filas huérfanas. Acá es una
+ * tabla, así que el argumento no aplica y lo que importa es ver más catálogo
+ * de un saque. El techo del backend (`MAX_PAGE_SIZE`) es 100.
+ */
+const PRODUCTOS_POR_PAGINA = 50;
 
 /**
  * `/catalogo/admin` — admin product list.
@@ -70,6 +88,40 @@ function AdminProductos() {
   const [actualizandoDestacadoId, setActualizandoDestacadoId] = useState(null);
   const [ordenEditando, setOrdenEditando] = useState({});
 
+  // Ids tildados con los checkbox. Es un `Set` y no un array porque la
+  // pregunta que se le hace en cada fila del render es "¿está este id?".
+  const [seleccionados, setSeleccionados] = useState(() => new Set());
+  const [accionMasivaEnCurso, setAccionMasivaEnCurso] = useState(false);
+  const [confirmandoBorradoMasivo, setConfirmandoBorradoMasivo] = useState(false);
+  // Resultado del último borrado masivo, para poder informar lo que NO se
+  // borró. Ver el comentario de `handleEliminarMasivo`.
+  const [resultadoMasivo, setResultadoMasivo] = useState(null);
+
+  const idsSeleccionados = productos.filter((p) => seleccionados.has(p.id)).map((p) => p.id);
+  const haySeleccion = idsSeleccionados.length > 0;
+  const todosSeleccionados = productos.length > 0 && idsSeleccionados.length === productos.length;
+
+  // La selección NO sobrevive a un cambio de página ni de búsqueda: los ids
+  // tildados dejarían de estar en pantalla, y ejecutar "eliminar" sobre cosas
+  // que no se ven es exactamente el accidente que este checkbox podría causar.
+  useEffect(() => {
+    setSeleccionados(new Set());
+    setResultadoMasivo(null);
+  }, [pagina, busqueda]);
+
+  function alternarSeleccion(id) {
+    setSeleccionados((actuales) => {
+      const siguiente = new Set(actuales);
+      if (siguiente.has(id)) siguiente.delete(id);
+      else siguiente.add(id);
+      return siguiente;
+    });
+  }
+
+  function alternarTodos() {
+    setSeleccionados(todosSeleccionados ? new Set() : new Set(productos.map((p) => p.id)));
+  }
+
   // El borrado es destructivo e irreversible: el diálogo tiene que atrapar el
   // foco y cerrarse con Escape como cualquier modal, y no dejarse cerrar por
   // teclado mientras el borrado ya salió al backend.
@@ -80,6 +132,16 @@ function AdminProductos() {
     onCerrar: () => {
       if (eliminandoEnCurso) return;
       setProductoAEliminar(null);
+    },
+  });
+
+  // Mismo tratamiento de diálogo que el borrado individual: trampa de foco,
+  // Escape, y sin dejarse cerrar mientras el borrado ya salió al backend.
+  const dialogoMasivoRef = useDialogo({
+    abierto: confirmandoBorradoMasivo,
+    onCerrar: () => {
+      if (accionMasivaEnCurso) return;
+      setConfirmandoBorradoMasivo(false);
     },
   });
 
@@ -149,7 +211,7 @@ function AdminProductos() {
   async function cargarProductos() {
     setCargando(true);
     try {
-      aplicarPagina(await getProducts({ admin: true, page: pagina, search: busqueda }));
+      aplicarPagina(await getProducts({ admin: true, page: pagina, search: busqueda, pageSize: PRODUCTOS_POR_PAGINA }));
     } catch {
       setError("No se pudieron cargar los productos. Revisá tu conexión e intentá de nuevo.");
     } finally {
@@ -164,7 +226,7 @@ function AdminProductos() {
 
     setCargando(true);
 
-    getProducts({ admin: true, page: pagina, search: busqueda })
+    getProducts({ admin: true, page: pagina, search: busqueda, pageSize: PRODUCTOS_POR_PAGINA })
       .then((respuesta) => {
         if (!activo) return;
         aplicarPagina(respuesta);
@@ -204,6 +266,47 @@ function AdminProductos() {
       setError(err.message ?? "No se pudo eliminar el producto.");
     } finally {
       setEliminandoId(null);
+    }
+  }
+
+  async function handleVisibilidadMasiva(visible) {
+    setError(null);
+    setResultadoMasivo(null);
+    setAccionMasivaEnCurso(true);
+    try {
+      await updateVisibilidadMasiva(idsSeleccionados, visible);
+      setSeleccionados(new Set());
+      await cargarProductos();
+    } catch (err) {
+      setError(err.message ?? "No se pudo cambiar la visibilidad de los productos seleccionados.");
+    } finally {
+      setAccionMasivaEnCurso(false);
+    }
+  }
+
+  /**
+   * Borra los seleccionados y guarda el resultado para poder informarlo.
+   *
+   * **El resultado es parcial y hay que mostrarlo.** El backend rechaza todo
+   * producto que aparezca en alguna orden (`ItemOrden.product` es
+   * `onDelete: NoAction`), y en una selección grande eso es lo habitual. Un
+   * cartel de éxito a secas dejaría al admin creyendo que limpió el catálogo
+   * cuando la mitad sigue ahí — por eso se guarda `rechazados` con su motivo
+   * y se renderiza debajo de la barra de acciones.
+   */
+  async function handleEliminarMasivo() {
+    setError(null);
+    setAccionMasivaEnCurso(true);
+    try {
+      const resultado = await deleteProductsMasivo(idsSeleccionados);
+      setResultadoMasivo(resultado);
+      setConfirmandoBorradoMasivo(false);
+      setSeleccionados(new Set());
+      await cargarProductos();
+    } catch (err) {
+      setError(err.message ?? "No se pudieron eliminar los productos seleccionados.");
+    } finally {
+      setAccionMasivaEnCurso(false);
     }
   }
 
@@ -363,9 +466,92 @@ function AdminProductos() {
         )
       ) : (
         <div className="rounded-xl bg-surface-container-lowest shadow-ambient">
+          {haySeleccion ? (
+            <div className="flex flex-wrap items-center gap-3 border-b border-outline-variant px-3 py-3">
+              <span className="font-label-md text-on-surface">
+                {idsSeleccionados.length === 1
+                  ? "1 producto seleccionado"
+                  : `${idsSeleccionados.length} productos seleccionados`}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleVisibilidadMasiva(false)}
+                  disabled={accionMasivaEnCurso}
+                  className="rounded-lg border border-outline px-3 py-1.5 font-label-md text-on-surface transition-colors hover:bg-surface-container disabled:opacity-50"
+                >
+                  Ocultar seleccionados
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleVisibilidadMasiva(true)}
+                  disabled={accionMasivaEnCurso}
+                  className="rounded-lg border border-outline px-3 py-1.5 font-label-md text-on-surface transition-colors hover:bg-surface-container disabled:opacity-50"
+                >
+                  Mostrar seleccionados
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmandoBorradoMasivo(true)}
+                  disabled={accionMasivaEnCurso}
+                  className="rounded-lg bg-error px-3 py-1.5 font-label-md text-on-error transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  Eliminar seleccionados
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {resultadoMasivo ? (
+            <div
+              role="status"
+              className="border-b border-outline-variant px-3 py-3 font-body-md text-on-surface"
+            >
+              <p>
+                {resultadoMasivo.eliminados.length === 0
+                  ? "No se eliminó ningún producto."
+                  : resultadoMasivo.eliminados.length === 1
+                    ? "Se eliminó 1 producto."
+                    : `Se eliminaron ${resultadoMasivo.eliminados.length} productos.`}
+              </p>
+              {resultadoMasivo.rechazados.length > 0 ? (
+                <>
+                  <p className="mt-1 text-on-surface-variant">Estos no se pudieron eliminar:</p>
+                  <ul className="mt-1 list-disc pl-5 text-on-surface-variant">
+                    {resultadoMasivo.rechazados.map((rechazado) => (
+                      <li key={rechazado.id}>
+                        <strong className="text-on-surface">
+                          {rechazado.nombre ?? `Producto #${rechazado.id}`}
+                        </strong>
+                        {" — "}
+                        {rechazado.motivo}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+
           <table className="w-full min-w-[820px] text-left text-[13px] xl:text-sm">
             <thead>
               <tr className="border-b border-outline-variant">
+                <th className="px-2 py-2 xl:px-3 xl:py-3">
+                  <input
+                    type="checkbox"
+                    aria-label="Seleccionar todos los productos de esta página"
+                    checked={todosSeleccionados}
+                    // `indeterminate` no existe como atributo HTML, solo como
+                    // propiedad del nodo: se setea por ref o no se ve nunca.
+                    ref={(nodo) => {
+                      if (nodo) {
+                        nodo.indeterminate = haySeleccion && !todosSeleccionados;
+                      }
+                    }}
+                    onChange={alternarTodos}
+                    className="size-4 accent-primary"
+                  />
+                </th>
                 <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Foto
                 </th>
@@ -412,6 +598,15 @@ function AdminProductos() {
                     producto.stock === 0 ? "bg-error-container/40" : ""
                   }`}
                 >
+                  <td className="px-2 py-2 xl:px-3 xl:py-3">
+                    <input
+                      type="checkbox"
+                      aria-label={`Seleccionar ${producto.nombre}`}
+                      checked={seleccionados.has(producto.id)}
+                      onChange={() => alternarSeleccion(producto.id)}
+                      className="size-4 accent-primary"
+                    />
+                  </td>
                   <td className="px-2 py-2 xl:px-3 xl:py-3">
                     {producto.fotos?.[0]?.url ? (
                       <img
@@ -600,6 +795,60 @@ function AdminProductos() {
                 className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-error px-5 py-3 uppercase tracking-widest text-on-error disabled:opacity-60"
               >
                 {eliminandoId === productoAEliminar.id ? <Spinner className="h-4 w-4 text-on-error" /> : null}
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {confirmandoBorradoMasivo ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-margin-mobile">
+          <div
+            ref={dialogoMasivoRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-eliminar-masivo"
+            tabIndex={-1}
+            className="w-full max-w-sm rounded-xl bg-surface-container-lowest p-6 shadow-ambient outline-none"
+          >
+            <h2
+              id="titulo-eliminar-masivo"
+              className="font-headline-md text-headline-md mb-2 text-on-background"
+            >
+              Eliminar productos
+            </h2>
+            <p className="font-body-md text-body-md mb-6 text-on-surface-variant">
+              ¿Seguro que querés eliminar{" "}
+              <strong className="text-on-surface">
+                {idsSeleccionados.length === 1
+                  ? "1 producto"
+                  : `${idsSeleccionados.length} productos`}
+              </strong>
+              ? Esta acción no se puede deshacer. Si alguno tiene ventas, las órdenes conservan su
+              detalle pero dejan de estar ligadas al producto.
+            </p>
+            {error ? (
+              <p className="font-body-md text-body-md mb-4 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
+                {error}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmandoBorradoMasivo(false)}
+                disabled={accionMasivaEnCurso}
+                className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleEliminarMasivo}
+                disabled={accionMasivaEnCurso}
+                className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-error px-5 py-3 uppercase tracking-widest text-on-error disabled:opacity-60"
+              >
+                {accionMasivaEnCurso ? <Spinner className="h-4 w-4 text-on-error" /> : null}
                 Eliminar
               </button>
             </div>
