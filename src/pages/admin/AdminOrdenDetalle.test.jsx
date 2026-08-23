@@ -198,5 +198,6 @@ describe("AdminOrdenDetalle — cambio de estado", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(await screen.findByText("No se pudo actualizar.")).toBeInTheDocument();
+    expect(select).toHaveValue("PENDIENTE");
   });
 });
