@@ -24,6 +24,7 @@ const AdminLogin = lazy(() => import("./pages/admin/AdminLogin.jsx"));
 const AdminProductos = lazy(() => import("./pages/admin/AdminProductos.jsx"));
 const AdminProductoForm = lazy(() => import("./pages/admin/AdminProductoForm.jsx"));
 const AdminImportarProductos = lazy(() => import("./pages/admin/AdminImportarProductos.jsx"));
+const AdminActualizarProductos = lazy(() => import("./pages/admin/AdminActualizarProductos.jsx"));
 const AdminCategorias = lazy(() => import("./pages/admin/AdminCategorias.jsx"));
 const AdminMetricas = lazy(() => import("./pages/admin/AdminMetricas.jsx"));
 const AdminUsuarios = lazy(() => import("./pages/admin/AdminUsuarios.jsx"));
@@ -76,6 +77,7 @@ function App() {
           <Route path="/catalogo/admin/productos" element={<AdminProductos />} />
           <Route path="/catalogo/admin/productos/nuevo" element={<AdminProductoForm />} />
           <Route path="/catalogo/admin/productos/importar" element={<AdminImportarProductos />} />
+          <Route path="/catalogo/admin/productos/actualizar-masivo" element={<AdminActualizarProductos />} />
           <Route path="/catalogo/admin/productos/:id/editar" element={<AdminProductoForm />} />
           <Route path="/catalogo/admin/ordenes" element={<AdminOrdenes />} />
           <Route path="/catalogo/admin/ordenes/:id" element={<AdminOrdenDetalle />} />

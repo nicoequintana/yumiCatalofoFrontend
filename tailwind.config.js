@@ -57,13 +57,16 @@ export default {
         "margin-mobile": "20px",
         "navbar-height": "88px",
       },
+      // Sin serifas en todo el sitio, a propósito: "Libre Caslon Text" (la
+      // serif de titulares del mockup original) se sacó por completo — los
+      // seis tokens de headline/display quedan en la misma sans que el body.
       fontFamily: {
-        "headline-md": ["Libre Caslon Text", "serif"],
-        "headline-lg-mobile": ["Libre Caslon Text", "serif"],
+        "headline-md": ["Plus Jakarta Sans", "sans-serif"],
+        "headline-lg-mobile": ["Plus Jakarta Sans", "sans-serif"],
         "label-sm": ["Plus Jakarta Sans", "sans-serif"],
-        "headline-lg": ["Libre Caslon Text", "serif"],
+        "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
         "label-md": ["Plus Jakarta Sans", "sans-serif"],
-        "display-lg": ["Libre Caslon Text", "serif"],
+        "display-lg": ["Plus Jakarta Sans", "sans-serif"],
         "body-lg": ["Plus Jakarta Sans", "sans-serif"],
         "body-md": ["Plus Jakarta Sans", "sans-serif"],
       },
