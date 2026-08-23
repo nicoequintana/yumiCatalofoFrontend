@@ -43,7 +43,7 @@ test.describe("Checkout — accesibilidad básica del formulario", () => {
       await expect(page.getByLabel(label)).toBeVisible();
     }
 
-    // Submit con los 3 campos requeridos vacíos.
+    // Submit con los 4 campos requeridos vacíos (DNI, Nombre, Teléfono y Email).
     await page.getByRole("button", { name: "Confirmar pedido" }).click();
 
     const dniField = page.getByLabel("DNI");
@@ -55,7 +55,7 @@ test.describe("Checkout — accesibilidad básica del formulario", () => {
     await expect(mensajeError).toBeVisible();
     await expect(mensajeError).toHaveText("El DNI es obligatorio.");
 
-    // Los otros dos campos requeridos también quedan marcados.
+    // De los otros campos requeridos (Nombre, Teléfono y Email), se verifica que estos dos también queden marcados.
     await expect(page.getByLabel("Nombre")).toHaveAttribute("aria-invalid", "true");
     await expect(page.getByLabel("Teléfono")).toHaveAttribute("aria-invalid", "true");
   });
