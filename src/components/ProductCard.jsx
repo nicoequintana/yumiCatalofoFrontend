@@ -57,14 +57,17 @@ function ProductCard({ producto }) {
       <div className="relative aspect-square w-full bg-surface-container-low">
         <BotonFavorito productoId={producto.id} className="absolute top-2 right-2 z-10 rounded-full bg-surface-container-lowest/90 shadow-sm" />
         {foto ? (
-          // object-contain, no cover: la caja es cuadrada siempre (aspect-square,
-          // así que las cards ya salen parejas), pero cover recortaba distinto
-          // según la relacion de aspecto real de cada foto — una imagen apaisada
-          // (ej. un collage de variantes) se veia cortada de forma inconsistente
-          // contra una foto de producto centrada. Contain muestra la imagen
-          // entera, con el fondo de la caja como letterbox.
+          // `absolute inset-0`, NO `h-full w-full` en flujo normal: un <img> con
+          // alto en porcentaje no resuelve si el contenedor solo tiene su alto
+          // definido por `aspect-ratio` (gotcha real de CSS con elementos
+          // reemplazados) — el navegador cae al `height: auto` y el <img>
+          // termina de su propio alto intrínseco, estirando la caja entera al
+          // aspect ratio real de CADA foto. Eso era lo que hacía que las cards
+          // salieran de tamaños distintos según la imagen, con cover o con
+          // contain daba lo mismo. Sacándolo del flujo (como ya están el
+          // corazón y los chips acá al lado) la caja queda cuadrada siempre.
           <img
-            className="h-full w-full object-contain"
+            className="absolute inset-0 h-full w-full object-contain"
             src={foto.url}
             alt={producto.nombre}
             loading="lazy"

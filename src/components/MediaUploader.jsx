@@ -233,7 +233,7 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
                 <img
                   src={foto.url}
                   alt={`Foto ${index + 3} de la galería`}
-                  className="h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-cover"
                   loading="lazy"
                   decoding="async"
                 />
@@ -366,7 +366,7 @@ function RanuraFoto({
           <img
             src={foto.url}
             alt={alt}
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
             loading="lazy"
             decoding="async"
           />
