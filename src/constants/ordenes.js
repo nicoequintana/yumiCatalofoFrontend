@@ -20,7 +20,13 @@ export const ESTADOS_ORDEN = [
  */
 export const ESTADOS_NO_TERMINALES = ["PENDIENTE", "CONFIRMADA", "EN_PREPARACION"];
 
-/** Etiquetas legibles. El backend siempre devuelve las claves crudas. */
+/**
+ * Etiquetas legibles. El backend siempre devuelve las claves crudas.
+ *
+ * ESPEJO MANUAL de `backend/src/lib/estadosOrden.js`'s `ETIQUETA_ESTADO`, que
+ * las necesita para el asunto y el cuerpo de los mails de cambio de estado.
+ * Al agregar un estado, tocar los dos.
+ */
 export const ETIQUETA_ESTADO = {
   PENDIENTE: "Pendiente",
   CONFIRMADA: "Confirmada",
