@@ -6,8 +6,6 @@ import BotonVolver from "../components/BotonVolver.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import FiltrosCatalogo from "../components/FiltrosCatalogo.jsx";
 import Paginador from "../components/Paginador.jsx";
-import CarruselDestacados from "../components/CarruselDestacados.jsx";
-import useDestacados from "../hooks/useDestacados.js";
 import { getProducts } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
 
@@ -25,10 +23,9 @@ const CLAVES_FILTRO = ["categoria", "search", "minPrecio", "maxPrecio"];
  * `/coleccion` — catálogo completo con filtros, separado de la home
  * editorial (`/`) per design doc 2026-08-19-separacion-home-coleccion.
  *
- * El carrusel de destacados se muestra arriba con su propio fetch sin filtros
- * (`useDestacados`): es una vidriera fija de destacados globales y no debe
- * vaciarse ni cambiar cuando el usuario filtra el grid de abajo. Por eso
- * esta página hace dos llamadas a `getProducts` con params distintos.
+ * El carrusel de destacados ("Hallazgos del día") vive solo en la home
+ * (`Catalogo.jsx`) — acá no se renderiza, para no repetir la misma vidriera
+ * en dos pantallas.
  *
  * Filtros: `searchParams` es la única fuente de verdad para
  * categoria/precio — leerlos y escribirlos directo evita un loop duplicado
@@ -97,7 +94,6 @@ function Coleccion() {
   const paginaUrl = Number(searchParams.get("page"));
   const pagina = Number.isInteger(paginaUrl) && paginaUrl > 0 ? paginaUrl : 1;
 
-  const { productos: destacados } = useDestacados();
   const [searchInput, setSearchInput] = useState("");
 
   // Último valor que el input de búsqueda emitió o adoptó — mismo patrón que
@@ -259,8 +255,6 @@ function Coleccion() {
         <BotonVolver />
       </div>
 
-      <CarruselDestacados productos={destacados} />
-
       <FiltrosCatalogo
         categorias={categorias}
         categoria={categoria}
@@ -284,7 +278,7 @@ function Coleccion() {
             <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
               Nuestra Colección
             </span>
-            <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">
+            <h2 className="font-headline-md text-headline-md text-primary md:text-[28px]">
               Productos
             </h2>
           </div>
@@ -316,7 +310,7 @@ function Coleccion() {
             // `grid-cols-N` directo en lugar del sistema de 12 + `col-span-*`:
             // con columnas uniformes los spans no aportan nada y obligaban a
             // un `<div>` envoltorio por card.
-            <div className="grid grid-cols-1 gap-gutter md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-gutter lg:grid-cols-4">
               {productos.map((producto) => (
                 <ProductCard key={producto.id} producto={producto} />
               ))}

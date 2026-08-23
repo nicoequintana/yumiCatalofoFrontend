@@ -93,8 +93,11 @@ function ProductoDetalle() {
         <button type="button" className="p-2 text-on-surface" onClick={volver}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
+        {/* Título genérico, no el nombre del producto: ese ya se muestra en
+            `FichaProducto`, debajo de la galería. Repetirlo acá arriba hacía
+            que el nombre apareciera dos veces en mobile. */}
         <div className="font-headline-lg-mobile text-headline-lg-mobile tracking-tighter text-primary">
-          {producto.nombre}
+          Producto
         </div>
         <span className="w-10" aria-hidden="true" />
       </header>

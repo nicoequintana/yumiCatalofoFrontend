@@ -8,8 +8,9 @@ import { formatPrecio } from "../utils/formato.js";
  *
  * Marketplace-grid layout (Mercado Libre reference): square image tile,
  * floating favorite heart, an etiqueta chip anchored to the image's bottom
- * edge, then a compact text block (categoria eyebrow, 2-line clamped
- * nombre, large precio).
+ * edge, then a compact text block (categoria eyebrow, 1-line truncated
+ * nombre, precio). Two columns on mobile, like the reference app — one
+ * column per row made a single card fill almost the whole screen.
  *
  * The card is stacked-only on purpose. A `variant: "horizontal"` used to
  * render a wide card on every 4th grid slot, which mixed two card shapes in
@@ -68,10 +69,12 @@ function ProductCard({ producto }) {
         {etiquetaChip}
         {pocoStockChip}
       </div>
-      <div className="flex flex-1 flex-col p-4">
+      <div className="flex flex-1 flex-col p-2.5 md:p-3">
         {textoCategoria}
-        <h3 className="font-body-lg text-body-lg mb-2 line-clamp-2 text-on-surface">{producto.nombre}</h3>
-        <span className="font-headline-md text-headline-md mt-auto text-primary">
+        <h3 className="font-body-md text-[13px] md:text-body-md mb-1 truncate text-on-surface">
+          {producto.nombre}
+        </h3>
+        <span className="font-body-lg text-[15px] md:text-[17px] font-bold mt-auto text-primary">
           {formatPrecio(producto.precio)}
         </span>
       </div>

@@ -289,15 +289,11 @@ describe("Coleccion - filtros y grid", () => {
     expect(select.value).toBe("1");
   });
 
-  it("no muestra los destacados si hay menos de 4 productos destacados", async () => {
-    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO, destacado: true }]));
-    renderPagina();
-
-    await screen.findByText("Reloj Clásico");
-    expect(screen.queryByText("Hallazgos del día")).not.toBeInTheDocument();
-  });
-
-  it("muestra el carrusel con los destacados globales, con su propio fetch sin filtros", async () => {
+  it("no renderiza el carrusel de destacados — ese vive solo en la home", async () => {
+    // El carrusel se sacó de /coleccion (queda únicamente en la home) para no
+    // repetir la misma vidriera en dos pantallas. Da igual cuántos destacados
+    // haya: acá nunca debe aparecer, y el grid tampoco debe disparar el fetch
+    // separado (`destacado: true`) que antes alimentaba al carrusel.
     const destacados = [1, 2, 3, 4].map((id) => ({
       ...PRODUCTO,
       id,
@@ -308,12 +304,11 @@ describe("Coleccion - filtros y grid", () => {
 
     renderPagina();
 
-    expect(await screen.findByText("Hallazgos del día")).toBeInTheDocument();
-    // El carrusel pide los destacados al backend con su propio `pageSize`, y
-    // separado del fetch del grid que sí lleva los filtros y la página.
-    await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith({ destacado: true, pageSize: 12 });
-    });
+    await screen.findByText("Destacado 1");
+    expect(screen.queryByText("Hallazgos del día")).not.toBeInTheDocument();
+    expect(productsApi.getProducts).not.toHaveBeenCalledWith(
+      expect.objectContaining({ destacado: true }),
+    );
   });
 
   it("muestra el botón de volver, visible también en mobile", async () => {

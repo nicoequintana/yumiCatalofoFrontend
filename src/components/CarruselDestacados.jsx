@@ -85,18 +85,19 @@ function TarjetaDestacado({ producto, decorativa = false, onPausar, onReanudar, 
 
           La mezcla es deliberada: el desenfoque —no la opacidad— hace el
           grueso del trabajo. El fondo del panel es a su vez un degradado
-          (`/75` abajo → `/35` arriba) en lugar de un velo parejo: la parte
+          (`/85` abajo → `/50` arriba) en lugar de un velo parejo: la parte
           baja, donde vive el precio, necesita más respaldo, mientras que el
           borde superior se funde con la foto en vez de cortarla con una
-          línea dura. Un velo plano al `/30` se veía bien sobre fotos oscuras
-          pero dejaba el nombre ilegible sobre una foto clara (probado con
-          una caja de juego roja y blanca).
+          línea dura. Va en negro puro (`black`), no en `inverse-surface`: con
+          fotos muy claras el texto blanco seguía perdiendo contraste incluso
+          con el degradado, así que hace falta el respaldo más oscuro posible
+          debajo del blur.
 
           `backdrop-blur-md` y no `-xl`: el panel viaja a 40 px/s dentro del
           carrusel y el navegador recalcula el desenfoque en cada frame.
           `md` es el punto donde el texto ya se lee sin que el scroll pierda
           fluidez. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1.5 border-t border-surface/20 bg-gradient-to-t from-inverse-surface/75 to-inverse-surface/35 px-5 pb-5 pt-4 backdrop-blur-md">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1.5 border-t border-surface/20 bg-gradient-to-t from-black/85 to-black/50 px-5 pb-5 pt-4 backdrop-blur-md">
         {producto.etiqueta ? (
           /* Chip en blanco sobre vidrio, no en crema con texto oscuro.
              Dentro del panel esmerilado, el texto casi negro sobre
@@ -108,17 +109,7 @@ function TarjetaDestacado({ producto, decorativa = false, onPausar, onReanudar, 
             {producto.etiqueta}
           </span>
         ) : null}
-        {/* Sans y no la serif de titulares.
-            
-            `Libre Caslon Text` es la tipografía de headline del sitio, pero
-            sus remates y la alternancia de trazo grueso/fino se deshacen
-            sobre una fotografía: las partes finas de cada letra se mezclan
-            con el fondo. `Plus Jakarta Sans` mantiene un grosor parejo, que
-            es lo que sostiene la lectura sobre una imagen. Es una decisión
-            de contraste, no un capricho de estilo — en el resto del sitio,
-            donde el fondo es plano, la serif se conserva.
-
-            `line-clamp-2`: un nombre largo empujaba el precio fuera de la
+        {/* `line-clamp-2`: un nombre largo empujaba el precio fuera de la
             tarjeta. */}
         <h3 className="font-body-lg text-[19px] font-semibold leading-snug tracking-[-0.01em] text-surface line-clamp-2 [text-shadow:0_1px_3px_rgb(0_0_0/0.5)]">
           {producto.nombre}
@@ -304,6 +295,16 @@ function CarruselDestacados({ productos }) {
     // nada, para que un temblor del dedo no desplace el carrusel.
     if (!arrastre.movido) return;
 
+    // Sin este `preventDefault`, `touch-action: pan-y` deja pasar cualquier
+    // ambigüedad de la primera detección de gesto en algunos navegadores
+    // móviles: el sistema intenta aplicar SU propia física de scroll/rebote
+    // sobre el mismo `overflow-x-auto` a la vez que este handler escribe
+    // `scrollLeft` a mano, y las dos escrituras compitiendo es lo que se veía
+    // como el carrusel trabándose o saltando de golpe al soltar. Una vez que
+    // el gesto es un arrastre confirmado (pasado el umbral), el navegador ya
+    // no debe tocar el scroll — nosotros lo manejamos por completo.
+    if (evento.cancelable) evento.preventDefault();
+
     // El destino se normaliza ANTES de escribirlo, no después.
     //
     // `scrollLeft` está clampeado a [0, scrollWidth - clientWidth]: escribir
@@ -363,7 +364,7 @@ function CarruselDestacados({ productos }) {
     <section className="w-full bg-surface-container-lowest">
       <div className="mx-auto w-full max-w-container-max px-margin-mobile pt-16 md:px-margin-desktop md:pt-24">
         <div className="mb-12 flex flex-col gap-2">
-          <h2 className="font-headline-lg text-headline-lg text-on-surface">Hallazgos del día</h2>
+          <h2 className="font-headline-md text-headline-md text-on-surface">Hallazgos del día</h2>
           <p className="font-body-lg text-body-lg max-w-2xl text-on-surface-variant">
             Nuestra selección del momento — piezas destacadas que no vas a querer perderte.
           </p>

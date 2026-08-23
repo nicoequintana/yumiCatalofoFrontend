@@ -432,7 +432,7 @@ function FichaProducto({
           <h2 className="font-headline-md text-headline-md mb-8 text-primary">
             También te puede interesar
           </h2>
-          <div className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-gutter lg:grid-cols-4">
             {producto.relacionados.map((relacionado) => (
               <ProductCard key={relacionado.id} producto={relacionado} />
             ))}

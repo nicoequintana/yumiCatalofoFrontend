@@ -70,7 +70,7 @@ function PhotoGallery({ fotos = [], video = null, nombre = "", compacto = false 
             <img
               key={slideActivo.id ?? indiceActivo}
               alt={nombre}
-              className="h-full w-full object-cover animate-fadeIn"
+              className="h-full w-full object-contain animate-fadeIn"
               src={slideActivo.url}
               loading="eager"
               decoding="async"
