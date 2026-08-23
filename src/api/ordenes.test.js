@@ -148,7 +148,19 @@ describe("actualizarEstadoOrden", () => {
     expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/ordenes/5/estado`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estado: "CONFIRMADA" }),
+      body: JSON.stringify({ estado: "CONFIRMADA", notificarCliente: false }),
+    });
+  });
+
+  it("manda notificarCliente en true cuando se pide notificar", async () => {
+    mockFetchAutenticadoOnce({ id: 5, estado: "CONFIRMADA" });
+
+    await actualizarEstadoOrden(5, "CONFIRMADA", true);
+
+    expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/ordenes/5/estado`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ estado: "CONFIRMADA", notificarCliente: true }),
     });
   });
 

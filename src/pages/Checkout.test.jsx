@@ -175,6 +175,7 @@ describe("Checkout", () => {
     await user.type(screen.getByLabelText(/dni/i), "12345678");
     await user.type(screen.getByLabelText(/nombre/i), "Juana Pérez");
     await user.type(screen.getByLabelText(/teléfono/i), "1122334455");
+    await user.type(screen.getByLabelText(/email/i), "juana@gmail.com");
 
     await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
 
@@ -183,7 +184,7 @@ describe("Checkout", () => {
         dni: "12345678",
         nombre: "Juana Pérez",
         telefono: "1122334455",
-        email: undefined,
+        email: "juana@gmail.com",
         notas: undefined,
         items: [{ productId: 1, cantidad: 2 }],
       });
@@ -221,6 +222,7 @@ describe("Checkout", () => {
     await user.type(screen.getByLabelText(/dni/i), "12345678");
     await user.type(screen.getByLabelText(/nombre/i), "Juana Pérez");
     await user.type(screen.getByLabelText(/teléfono/i), "1122334455");
+    await user.type(screen.getByLabelText(/email/i), "juana@gmail.com");
 
     const boton = screen.getByRole("button", { name: /confirmar pedido/i });
     await user.click(boton);
@@ -286,6 +288,7 @@ describe("Checkout", () => {
     await user.type(screen.getByLabelText(/dni/i), "12.345.678");
     await user.type(screen.getByLabelText(/nombre/i), "Juana Pérez");
     await user.type(screen.getByLabelText(/teléfono/i), "1122334455");
+    await user.type(screen.getByLabelText(/email/i), "juana@gmail.com");
 
     await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
 
@@ -353,6 +356,7 @@ describe("Checkout", () => {
     await user.type(screen.getByLabelText(/dni/i), "12345678");
     await user.type(screen.getByLabelText(/nombre/i), "Juana Pérez");
     await user.type(screen.getByLabelText(/teléfono/i), "1122334455");
+    await user.type(screen.getByLabelText(/email/i), "juana@gmail.com");
 
     await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
 
@@ -364,6 +368,87 @@ describe("Checkout", () => {
 
     // El carrito sigue intacto.
     expect(carritoHook.current.carrito).toEqual([{ productId: 1, cantidad: 1 }]);
+  });
+
+  // Nota de implementación (desvío del brief, ver informe): el brief traía
+  // `agregar()` ANTES de `renderCheckout()`. En este entorno de tests
+  // `globalThis.localStorage` es un objeto vacío sin métodos (ver "Gotcha del
+  // entorno de tests" en CLAUDE.md), así que el `useState(() => leerCarrito())`
+  // de una instancia de `useCarrito` recién montada no puede releer lo que
+  // `agregar()` ya escribió — se entera solo vía el listener module-level, que
+  // recién existe una vez que `Checkout` está montado. Por eso acá se monta
+  // primero (como en el resto de los tests de este archivo) y se agrega
+  // después, con el mismo resultado observable que buscaba el brief.
+  async function prepararFormulario() {
+    const user = userEvent.setup();
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCheckout();
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+    await screen.findByLabelText(/dni/i);
+    return user;
+  }
+
+  it("no envía la orden si falta el email", async () => {
+    const user = await prepararFormulario();
+
+    await user.type(screen.getByLabelText(/dni/i), "12345678");
+    await user.type(screen.getByLabelText(/nombre/i), "Juana Pérez");
+    await user.type(screen.getByLabelText(/teléfono/i), "1122334455");
+    await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
+
+    expect(await screen.findByText("El email es obligatorio.")).toBeInTheDocument();
+    expect(ordenesApi.crearOrden).not.toHaveBeenCalled();
+  });
+
+  it("no envía la orden si el email tiene formato inválido", async () => {
+    const user = await prepararFormulario();
+
+    await user.type(screen.getByLabelText(/dni/i), "12345678");
+    await user.type(screen.getByLabelText(/nombre/i), "Juana Pérez");
+    await user.type(screen.getByLabelText(/teléfono/i), "1122334455");
+    await user.type(screen.getByLabelText(/email/i), "juana-arroba-gmail");
+    await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
+
+    expect(await screen.findByText("El email no tiene un formato válido.")).toBeInTheDocument();
+    expect(ordenesApi.crearOrden).not.toHaveBeenCalled();
+  });
+
+  it("devuelve el foco al email cuando es el primer campo inválido", async () => {
+    const user = await prepararFormulario();
+
+    await user.type(screen.getByLabelText(/dni/i), "12345678");
+    await user.type(screen.getByLabelText(/nombre/i), "Juana Pérez");
+    await user.type(screen.getByLabelText(/teléfono/i), "1122334455");
+    await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
+
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByLabelText(/email/i)),
+    );
+  });
+
+  it("el label del email ya no dice que es opcional", async () => {
+    await prepararFormulario();
+
+    // No se usa queryByLabelText(/opcional/i): el campo Notas también dice
+    // "(opcional)" y coincidiría con esa regex.
+    expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
+  });
+
+  it("manda el email en el payload de la orden", async () => {
+    const user = await prepararFormulario();
+    ordenesApi.crearOrden.mockResolvedValue({ id: 1, items: [], cliente: {} });
+
+    await user.type(screen.getByLabelText(/dni/i), "12345678");
+    await user.type(screen.getByLabelText(/nombre/i), "Juana Pérez");
+    await user.type(screen.getByLabelText(/teléfono/i), "1122334455");
+    await user.type(screen.getByLabelText(/email/i), "juana@gmail.com");
+    await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
+
+    await waitFor(() => expect(ordenesApi.crearOrden).toHaveBeenCalled());
+    expect(ordenesApi.crearOrden.mock.calls[0][0].email).toBe("juana@gmail.com");
   });
 });
 

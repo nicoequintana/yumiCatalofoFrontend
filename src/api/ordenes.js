@@ -88,14 +88,23 @@ export async function getOrdenById(id) {
  * Cambia el estado de una orden. Sin restricciones de transición — cualquier
  * estado válido puede pasar a cualquier otro (ver
  * `backend/src/controllers/ordenes.controller.js`'s `actualizarEstado`).
+ *
+ * `notificarCliente` decide si además se le manda un mail al comprador
+ * avisándole del cambio. El default es `false`: notificar es una decisión
+ * explícita que el admin toma en el diálogo, nunca un efecto colateral de
+ * guardar. Cuando es `true`, la respuesta trae `notificacion`
+ * (`{intentada, enviada, error?}`) — el estado se guarda igual aunque el
+ * correo falle.
+ *
  * @param {number|string} id
  * @param {string} estado uno de: PENDIENTE, CONFIRMADA, EN_PREPARACION, ENTREGADA, CANCELADA
+ * @param {boolean} [notificarCliente=false]
  * @returns {Promise<Object>} la orden actualizada
  */
-export async function actualizarEstadoOrden(id, estado) {
+export async function actualizarEstadoOrden(id, estado, notificarCliente = false) {
   return pedirAutenticado(`${BASE}/ordenes/${id}/estado`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ estado }),
+    body: JSON.stringify({ estado, notificarCliente }),
   });
 }

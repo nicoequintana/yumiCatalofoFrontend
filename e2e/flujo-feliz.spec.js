@@ -125,6 +125,7 @@ test.describe("Flujo feliz — checkout de invitado", () => {
     await page.getByLabel("DNI").fill(dniTest);
     await page.getByLabel("Nombre").fill(NOMBRE_CLIENTE_TEST);
     await page.getByLabel("Teléfono").fill("1122334455");
+    await page.getByLabel("Email").fill("flujo-feliz-e2e@example.com");
 
     // 6. Submit — un solo click. El botón se deshabilita mientras está en
     // vuelo (`enviando`), así que un segundo click deliberado sería un no-op

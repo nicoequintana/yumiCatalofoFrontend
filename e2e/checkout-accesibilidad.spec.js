@@ -39,7 +39,7 @@ test.describe("Checkout — accesibilidad básica del formulario", () => {
 
     // Los 5 campos resuelven por su accessible name (label asociado vía
     // htmlFor/id) — si esto falla, `getByLabel` no encuentra el input.
-    for (const label of ["DNI", "Nombre", "Teléfono", "Email (opcional)", "Notas (opcional)"]) {
+    for (const label of ["DNI", "Nombre", "Teléfono", "Email", "Notas (opcional)"]) {
       await expect(page.getByLabel(label)).toBeVisible();
     }
 
@@ -81,6 +81,7 @@ test.describe("Checkout — accesibilidad básica del formulario", () => {
     await page.getByLabel("DNI").fill("00123456");
     await page.getByLabel("Nombre").fill("E2E-TEST-A11y Cliente");
     await page.getByLabel("Teléfono").fill("1122334455");
+    await page.getByLabel("Email").fill("e2e-a11y@example.com");
     await page.getByRole("button", { name: "Confirmar pedido" }).click();
 
     const alerta = page.getByRole("alert");

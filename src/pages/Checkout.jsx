@@ -28,7 +28,7 @@ import { formatPrecio, precioACentavos } from "../utils/formato.js";
  * falla, y tiene que ser el primero de la pantalla, no el primero del objeto.
  * Cada clave es además el `id` del input, que es como se lo encuentra.
  */
-const CAMPOS_REQUERIDOS = ["dni", "nombre", "telefono"];
+const CAMPOS_REQUERIDOS = ["dni", "nombre", "telefono", "email"];
 
 /**
  * Chequeo de formato del DNI, solo para dar feedback inmediato y evitar un
@@ -53,6 +53,17 @@ const DNI_LARGO_MAX = 10;
 function dniTieneFormatoPlausible(valor) {
   const digitos = valor.replace(/\D/g, "");
   return digitos.length >= DNI_DIGITOS_MIN && digitos.length <= DNI_DIGITOS_MAX;
+}
+
+/**
+ * Chequeo de formato del email, del mismo tenor que el del DNI: feedback
+ * inmediato, no la validación real. La autoridad es
+ * `backend/src/lib/emailValido.js`, y usa esta misma forma (`algo@algo.algo`).
+ */
+const FORMATO_EMAIL = /^\S+@\S+\.\S+$/;
+
+function emailTieneFormatoPlausible(valor) {
+  return FORMATO_EMAIL.test(valor.trim());
 }
 
 function Checkout() {
@@ -147,6 +158,11 @@ function Checkout() {
     }
     if (!nombre.trim()) errores.nombre = "El nombre es obligatorio.";
     if (!telefono.trim()) errores.telefono = "El teléfono es obligatorio.";
+    if (!email.trim()) {
+      errores.email = "El email es obligatorio.";
+    } else if (!emailTieneFormatoPlausible(email)) {
+      errores.email = "El email no tiene un formato válido.";
+    }
     setErroresCampos(errores);
     return Object.keys(errores).length === 0;
   }
@@ -180,7 +196,7 @@ function Checkout() {
         dni: dni.trim(),
         nombre: nombre.trim(),
         telefono: telefono.trim(),
-        email: email.trim() || undefined,
+        email: email.trim(),
         notas: notas.trim() || undefined,
         items: lineasValidas.map((l) => ({ productId: l.productId, cantidad: l.cantidad })),
       });
@@ -343,7 +359,7 @@ function Checkout() {
 
           <div className="flex flex-col gap-2">
             <label htmlFor="email" className="font-label-md text-label-md text-on-surface">
-              Email (opcional)
+              Email
             </label>
             <input
               id="email"
@@ -352,8 +368,19 @@ function Checkout() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={Boolean(erroresCampos.email)}
+              aria-describedby={erroresCampos.email ? "email-error" : "email-ayuda"}
               className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
             />
+            {erroresCampos.email ? (
+              <p id="email-error" className="font-body-md text-body-md text-error">
+                {erroresCampos.email}
+              </p>
+            ) : (
+              <p id="email-ayuda" className="font-body-md text-body-md text-on-surface-variant">
+                Te enviamos ahí la confirmación del pedido y los cambios de estado.
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">

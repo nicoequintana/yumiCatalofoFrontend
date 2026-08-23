@@ -109,6 +109,7 @@ test.describe("Cliente recurrente — dos órdenes, mismo dni, un solo Cliente",
     await page.getByLabel("DNI").fill(dniTest);
     await page.getByLabel("Nombre").fill(NOMBRE_CLIENTE_TEST);
     await page.getByLabel("Teléfono").fill("1155667788"); // teléfono NUEVO, distinto del seed inicial
+    await page.getByLabel("Email").fill("cliente-recurrente-e2e@example.com");
 
     await page.getByRole("button", { name: "Confirmar pedido" }).click();
     await expect(page).toHaveURL(/\/checkout\/confirmacion$/);
