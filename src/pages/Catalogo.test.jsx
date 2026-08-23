@@ -47,17 +47,59 @@ describe("Catalogo - home editorial", () => {
   it("muestra el hero con el copy de marca", () => {
     renderPagina();
 
-    expect(screen.getByText("La Pregunta del Día")).toBeInTheDocument();
+    // El texto del eyebrow va en minúsculas en el DOM y lo pasa a mayúsculas el
+    // CSS (`uppercase`). Es a propósito: el aserto —y un lector de pantalla—
+    // leen la cadena legible, no una versión gritada.
+    expect(screen.getByText("Útiles • Innovadores • Para tu día a día")).toBeInTheDocument();
+
+    // El acento cromático de "más fácil." es un <span> DENTRO del <h1>, así que
+    // el nombre accesible sigue siendo la frase entera. Este aserto es lo que
+    // detectaría que alguien parta el titular en dos encabezados.
     expect(
-      screen.getByRole("heading", { name: "¿Qué vas a descubrir hoy?", level: 1 }),
+      screen.getByRole("heading", {
+        name: "Descubrí cosas que te hacen la vida más fácil.",
+        level: 1,
+      }),
     ).toBeInTheDocument();
   });
 
-  it("el botón del hero es un link que navega a /coleccion", () => {
+  it("el hero tiene UN solo CTA, que navega a /coleccion", () => {
     renderPagina();
 
-    const link = screen.getByRole("link", { name: "Explorar Colección" });
-    expect(link).toHaveAttribute("href", "/coleccion");
+    // Nombre por regex y no por igualdad: el link lleva un ícono de flecha
+    // adentro, y atarse al texto exacto rompería el test si el ícono cambia de
+    // nombre o de posición.
+    expect(screen.getByRole("link", { name: /ver productos/i })).toHaveAttribute(
+      "href",
+      "/coleccion",
+    );
+
+    // El mockup traía un segundo botón ("Explorar ahora") al MISMO destino. Se
+    // quitó por pedido explícito: dos acciones idénticas no son jerarquía. Este
+    // aserto existe para que no vuelva a colarse.
+    expect(screen.queryByRole("link", { name: /explorar ahora/i })).not.toBeInTheDocument();
+  });
+
+  // Las señales de confianza se renderizan DOS veces (fila en escritorio,
+  // tarjeta flotante en móvil) porque viven en columnas distintas del grid y no
+  // hay forma de mover un solo nodo entre ellas. En un navegador solo una está
+  // visible; en jsdom no hay CSS, así que las dos están en el DOM. Este test
+  // fija esa duplicación a propósito: si alguien la "arregla" dejando un solo
+  // nodo, o si las dos copias se separan, falla acá y no en producción.
+  it("las señales de confianza se renderizan en sus dos variantes con el mismo origen", () => {
+    renderPagina();
+
+    // Un ítem sin variante compacta aparece igual en las dos.
+    expect(screen.getAllByText("Diferentes")).toHaveLength(2);
+
+    // Etiqueta larga (fila de escritorio) y corta (tarjeta móvil) del mismo ítem.
+    expect(screen.getByText("Para vos o para regalar")).toBeInTheDocument();
+    expect(screen.getByText("Para regalar")).toBeInTheDocument();
+
+    // `soloEscritorio`: el ítem más largo no entra en la tarjeta de un teléfono
+    // sin partirla en dos renglones, así que aparece UNA sola vez. Si alguien
+    // saca ese flag "por consistencia", este aserto lo detiene.
+    expect(screen.getAllByText("Productos seleccionados")).toHaveLength(1);
   });
 
   // Complementa al test de `href` de arriba: ese sólo mira el atributo, así
@@ -81,7 +123,7 @@ describe("Catalogo - home editorial", () => {
       </StrictMode>,
     );
 
-    await user.click(screen.getByRole("link", { name: "Explorar Colección" }));
+    await user.click(screen.getByRole("link", { name: /ver productos/i }));
 
     // Contenido propio de /coleccion, que la home ya no renderiza.
     expect(await screen.findByLabelText("Buscar")).toBeInTheDocument();

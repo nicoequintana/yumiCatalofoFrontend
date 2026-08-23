@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
 import Navbar from "./Navbar.jsx";
@@ -78,5 +79,138 @@ describe("Navbar - logo", () => {
     renderNavbar("/catalogo/admin");
 
     expect(screen.getByRole("link", { name: "YIMA" })).toHaveAttribute("href", "/");
+  });
+});
+
+/** La barra de escritorio, para no confundirla con las copias del panel móvil. */
+function navPrincipal() {
+  return within(screen.getByRole("navigation", { name: "Navegación principal" }));
+}
+
+describe("Navbar - navegación", () => {
+  it("muestra Inicio y Productos con sus destinos", () => {
+    renderNavbar();
+
+    expect(navPrincipal().getByRole("link", { name: "Inicio" })).toHaveAttribute("href", "/");
+    expect(navPrincipal().getByRole("link", { name: "Productos" })).toHaveAttribute(
+      "href",
+      "/coleccion",
+    );
+  });
+
+  it("marca el destino activo con aria-current", () => {
+    renderNavbar("/coleccion");
+
+    expect(navPrincipal().getByRole("link", { name: "Productos" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(navPrincipal().getByRole("link", { name: "Inicio" })).not.toHaveAttribute(
+      "aria-current",
+    );
+  });
+
+  // El detalle de un producto no es "Productos": marcar ese item ahí haría que
+  // el subrayado dijera algo que la URL no dice.
+  it("no marca ningún destino como activo fuera de sus rutas", () => {
+    renderNavbar("/carrito");
+
+    expect(navPrincipal().getByRole("link", { name: "Inicio" })).not.toHaveAttribute(
+      "aria-current",
+    );
+    expect(navPrincipal().getByRole("link", { name: "Productos" })).not.toHaveAttribute(
+      "aria-current",
+    );
+  });
+
+  it("la lupa lleva a /coleccion, donde vive el buscador real", () => {
+    renderNavbar();
+
+    const lupa = screen.getByRole("link", { name: "Buscar productos" });
+    expect(lupa).toHaveAttribute("href", "/coleccion");
+
+    // El nombre accesible NO puede ser "Buscar": ese es el del input real de
+    // `/coleccion`, y compartirlo volvería ambiguas las consultas de esa pantalla.
+    expect(screen.queryByRole("link", { name: "Buscar" })).not.toBeInTheDocument();
+  });
+
+  it("oculta la navegación y el botón de menú en rutas de admin", () => {
+    renderNavbar("/catalogo/admin");
+
+    expect(screen.queryByRole("navigation", { name: "Navegación principal" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /abrir menú/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Buscar productos" })).not.toBeInTheDocument();
+  });
+});
+
+describe("Navbar - menú móvil", () => {
+  it("el panel no está en el DOM hasta que se abre", () => {
+    renderNavbar();
+
+    expect(screen.queryByRole("dialog", { name: "Menú" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Abrir menú" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  it("el botón abre el panel y cambia su estado anunciado", async () => {
+    const user = userEvent.setup();
+    renderNavbar();
+
+    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
+
+    const panel = screen.getByRole("dialog", { name: "Menú" });
+    expect(within(panel).getByRole("link", { name: "Inicio" })).toHaveAttribute("href", "/");
+    expect(within(panel).getByRole("link", { name: "Productos" })).toHaveAttribute(
+      "href",
+      "/coleccion",
+    );
+    expect(screen.getByRole("button", { name: "Cerrar menú" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+
+  // El corazón del header se rotula "Ver favoritos" y el del panel "Favoritos":
+  // aunque los dos estén montados (en jsdom no hay CSS que oculte ninguno),
+  // nunca comparten nombre accesible, así que `getByRole` sigue devolviendo uno
+  // solo y los tests del contrato de favoritos no se vuelven ambiguos.
+  it("el link de favoritos del panel no colisiona con el del header", async () => {
+    const user = userEvent.setup();
+    renderNavbar();
+
+    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
+
+    expect(screen.getByRole("link", { name: /ver favoritos/i })).toHaveAttribute(
+      "href",
+      "/favoritos",
+    );
+    const panel = screen.getByRole("dialog", { name: "Menú" });
+    expect(within(panel).getByRole("link", { name: "Favoritos" })).toHaveAttribute(
+      "href",
+      "/favoritos",
+    );
+  });
+
+  it("Escape cierra el panel", async () => {
+    const user = userEvent.setup();
+    renderNavbar();
+
+    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog", { name: "Menú" })).not.toBeInTheDocument();
+  });
+
+  it("cerrar el panel devuelve el scroll del documento", async () => {
+    const user = userEvent.setup();
+    renderNavbar();
+
+    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
+    expect(document.body.style.overflow).toBe("hidden");
+
+    await user.keyboard("{Escape}");
+    expect(document.body.style.overflow).not.toBe("hidden");
   });
 });

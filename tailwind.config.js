@@ -67,6 +67,8 @@ export default {
         "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
         "label-md": ["Plus Jakarta Sans", "sans-serif"],
         "display-lg": ["Plus Jakarta Sans", "sans-serif"],
+        "display-xl": ["Plus Jakarta Sans", "sans-serif"],
+        "display-xl-mobile": ["Plus Jakarta Sans", "sans-serif"],
         "body-lg": ["Plus Jakarta Sans", "sans-serif"],
         "body-md": ["Plus Jakarta Sans", "sans-serif"],
       },
@@ -77,6 +79,16 @@ export default {
         "headline-lg": ["32px", { lineHeight: "1.2", fontWeight: "600" }],
         "label-md": ["14px", { lineHeight: "1.2", letterSpacing: "0.05em", fontWeight: "600" }],
         "display-lg": ["48px", { lineHeight: "1.1", fontWeight: "700" }],
+        // Hero headline. Split into a desktop and a mobile token (instead of a
+        // single fluid `clamp()`) to match the `headline-lg` / `headline-lg-mobile`
+        // pair already in this file: `fontSize` tokens carry weight and tracking
+        // too, and those differ between the two sizes — a 72px headline needs
+        // tighter tracking than a 44px one to read as one block.
+        "display-xl": ["72px", { lineHeight: "1.05", letterSpacing: "-0.03em", fontWeight: "700" }],
+        "display-xl-mobile": [
+          "44px",
+          { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700" },
+        ],
         "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "400" }],
         "body-md": ["16px", { lineHeight: "1.6", fontWeight: "400" }],
       },
@@ -91,9 +103,23 @@ export default {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
         },
+        // Cinta de anuncios (`BarraAnuncios`). El -50% no es arbitrario: la
+        // pista renderiza el mismo grupo de mensajes DOS veces, así que
+        // desplazarla exactamente media pista deja la vista idéntica al punto
+        // de partida y el reinicio no se ve. Con cualquier otro valor aparece
+        // un salto en la costura.
+        marquee: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         fadeIn: "fadeIn 200ms ease-in-out",
+        // Sin duración acá a propósito: la fija el componente en un `style`
+        // inline, calculada a partir del ancho medido del grupo y una velocidad
+        // constante en px/s. Si la duración fuera fija, agregar o quitar
+        // mensajes cambiaría la velocidad del texto.
+        marquee: "marquee linear infinite",
       },
     },
   },
