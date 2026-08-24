@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BotonVolver from "../components/BotonVolver.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
+import MetaSeo from "../components/MetaSeo.jsx";
 import useCarrito from "../hooks/useCarrito.js";
 import { getProductsByIds } from "../api/products.js";
 import { crearOrden } from "../api/ordenes.js";
 import { formatPrecio, precioACentavos } from "../utils/formato.js";
+import { urlAbsoluta } from "../constants/seo.js";
 
 /**
  * `/checkout` — formulario de checkout de invitado (Sprint 6, Task 1).
@@ -211,13 +213,37 @@ function Checkout() {
     }
   }
 
+  // Props estáticas (no dependen de la reconciliación ni del formulario), así
+  // que se arman una sola vez y se reutilizan en cada rama de return —
+  // incluidas carga y error— para que la pestaña diga "Finalizar compra —
+  // YIMA" y lleve `noindex` desde el primer render, no solo en el camino
+  // feliz. La única rama que NO la lleva es el `return null` de más abajo:
+  // en ese instante no se renderiza nada (el efecto ya está por redirigir a
+  // `/carrito`), así que no hay `<head>` que emitir para esta página.
+  const metaSeo = (
+    <MetaSeo
+      titulo="Finalizar compra — YIMA"
+      descripcion="Completá tus datos para confirmar el pedido."
+      canonical={urlAbsoluta("/checkout")}
+      noindex
+    />
+  );
+
   if (cargando) {
-    return <EstadoVacio icono="hourglass_empty" mensaje="Cargando checkout…" />;
+    return (
+      <>
+        {metaSeo}
+        <EstadoVacio icono="hourglass_empty" mensaje="Cargando checkout…" />
+      </>
+    );
   }
 
   if (errorCarga) {
     return (
-      <EstadoVacio icono="cloud_off" titulo="No pudimos cargar tu pedido" mensaje={errorCarga} />
+      <>
+        {metaSeo}
+        <EstadoVacio icono="cloud_off" titulo="No pudimos cargar tu pedido" mensaje={errorCarga} />
+      </>
     );
   }
 
@@ -228,193 +254,196 @@ function Checkout() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop md:py-24">
-      <div className="mb-6">
-        <BotonVolver fallback="/carrito" />
-      </div>
-
-      <div className="mb-16 flex flex-col items-center">
-        <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
-          Un paso más
-        </span>
-        <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">
-          Checkout
-        </h2>
-      </div>
-
-      <div className="mx-auto flex max-w-3xl flex-col gap-8">
-        {hayProblemas ? (
-          <p className="rounded-lg bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container">
-            Algunos productos de tu carrito ya no están disponibles y no se van a incluir en el
-            pedido. Podés revisarlos en el carrito.
-          </p>
-        ) : null}
-
-        {/* Resumen con montos: es el último paso donde todavía se puede
-            desistir, así que el usuario tiene que ver cuánto va a pagar ANTES
-            de confirmar — no recién en la pantalla de confirmación, con la
-            orden ya creada. Los precios son los frescos del re-fetch, los
-            mismos que el backend snapshotea al crear la orden. */}
-        <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
-          <ul className="flex flex-col gap-3">
-            {lineasValidas.map((l) => (
-              <li key={l.productId} className="flex items-center justify-between gap-4">
-                <span className="font-body-md text-body-md text-on-surface">
-                  {l.cantidad} × {l.producto.nombre}
-                </span>
-                <span className="flex shrink-0 flex-col items-end">
-                  <span className="font-body-md text-body-md text-on-surface">
-                    {formatPrecio((precioACentavos(l.producto.precio) * l.cantidad) / 100)}
-                  </span>
-                  <span className="font-body-md text-[13px] text-on-surface-variant">
-                    {formatPrecio(l.producto.precio)} c/u
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-4 flex items-center justify-between gap-4 border-t border-outline-variant pt-4">
-            <span className="font-label-md text-label-md uppercase tracking-widest text-on-surface">
-              Total
-            </span>
-            <span
-              data-testid="checkout-total"
-              className="font-body-lg text-body-lg font-semibold text-on-surface"
-            >
-              {total}
-            </span>
-          </div>
+    <>
+      {metaSeo}
+      <section className="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop md:py-24">
+        <div className="mb-6">
+          <BotonVolver fallback="/carrito" />
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="dni" className="font-label-md text-label-md text-on-surface">
-              DNI
-            </label>
-            {/* `inputMode="numeric"` abre el teclado numérico en el celular:
-                un DNI son dígitos, y el QWERTY completo es fricción pura en
-                el formulario que más importa de la app. Sigue siendo
-                `type="text"` porque `type="number"` agrega flechas de spinner
-                y descarta los separadores que el backend sí acepta. */}
-            <input
-              id="dni"
-              type="text"
-              inputMode="numeric"
-              maxLength={DNI_LARGO_MAX}
-              value={dni}
-              onChange={(e) => setDni(e.target.value)}
-              aria-invalid={Boolean(erroresCampos.dni)}
-              aria-describedby={erroresCampos.dni ? "dni-error" : undefined}
-              className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
-            />
-            {erroresCampos.dni ? (
-              <p id="dni-error" className="font-body-md text-body-md text-error">
-                {erroresCampos.dni}
-              </p>
-            ) : null}
-          </div>
+        <div className="mb-16 flex flex-col items-center">
+          <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
+            Un paso más
+          </span>
+          <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">
+            Checkout
+          </h2>
+        </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="nombre" className="font-label-md text-label-md text-on-surface">
-              Nombre
-            </label>
-            <input
-              id="nombre"
-              type="text"
-              autoComplete="name"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              aria-invalid={Boolean(erroresCampos.nombre)}
-              aria-describedby={erroresCampos.nombre ? "nombre-error" : undefined}
-              className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
-            />
-            {erroresCampos.nombre ? (
-              <p id="nombre-error" className="font-body-md text-body-md text-error">
-                {erroresCampos.nombre}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label htmlFor="telefono" className="font-label-md text-label-md text-on-surface">
-              Teléfono
-            </label>
-            <input
-              id="telefono"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              aria-invalid={Boolean(erroresCampos.telefono)}
-              aria-describedby={erroresCampos.telefono ? "telefono-error" : undefined}
-              className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
-            />
-            {erroresCampos.telefono ? (
-              <p id="telefono-error" className="font-body-md text-body-md text-error">
-                {erroresCampos.telefono}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label htmlFor="email" className="font-label-md text-label-md text-on-surface">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              aria-invalid={Boolean(erroresCampos.email)}
-              aria-describedby={erroresCampos.email ? "email-error" : "email-ayuda"}
-              className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
-            />
-            {erroresCampos.email ? (
-              <p id="email-error" className="font-body-md text-body-md text-error">
-                {erroresCampos.email}
-              </p>
-            ) : (
-              <p id="email-ayuda" className="font-body-md text-body-md text-on-surface-variant">
-                Te enviamos ahí la confirmación del pedido y los cambios de estado.
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label htmlFor="notas" className="font-label-md text-label-md text-on-surface">
-              Notas (opcional)
-            </label>
-            <textarea
-              id="notas"
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              rows={3}
-              className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
-            />
-          </div>
-
-          {errorEnvio ? (
-            <p
-              role="alert"
-              className="rounded-lg bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container"
-            >
-              {errorEnvio}
+        <div className="mx-auto flex max-w-3xl flex-col gap-8">
+          {hayProblemas ? (
+            <p className="rounded-lg bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container">
+              Algunos productos de tu carrito ya no están disponibles y no se van a incluir en el
+              pedido. Podés revisarlos en el carrito.
             </p>
           ) : null}
 
-          <button
-            type="submit"
-            disabled={enviando}
-            className="font-label-md text-label-md inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:bg-surface-container-high disabled:text-on-surface-variant"
-          >
-            {enviando ? "Enviando…" : "Confirmar pedido"}
-          </button>
-        </form>
-      </div>
-    </section>
+          {/* Resumen con montos: es el último paso donde todavía se puede
+              desistir, así que el usuario tiene que ver cuánto va a pagar ANTES
+              de confirmar — no recién en la pantalla de confirmación, con la
+              orden ya creada. Los precios son los frescos del re-fetch, los
+              mismos que el backend snapshotea al crear la orden. */}
+          <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
+            <ul className="flex flex-col gap-3">
+              {lineasValidas.map((l) => (
+                <li key={l.productId} className="flex items-center justify-between gap-4">
+                  <span className="font-body-md text-body-md text-on-surface">
+                    {l.cantidad} × {l.producto.nombre}
+                  </span>
+                  <span className="flex shrink-0 flex-col items-end">
+                    <span className="font-body-md text-body-md text-on-surface">
+                      {formatPrecio((precioACentavos(l.producto.precio) * l.cantidad) / 100)}
+                    </span>
+                    <span className="font-body-md text-[13px] text-on-surface-variant">
+                      {formatPrecio(l.producto.precio)} c/u
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 flex items-center justify-between gap-4 border-t border-outline-variant pt-4">
+              <span className="font-label-md text-label-md uppercase tracking-widest text-on-surface">
+                Total
+              </span>
+              <span
+                data-testid="checkout-total"
+                className="font-body-lg text-body-lg font-semibold text-on-surface"
+              >
+                {total}
+              </span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="dni" className="font-label-md text-label-md text-on-surface">
+                DNI
+              </label>
+              {/* `inputMode="numeric"` abre el teclado numérico en el celular:
+                  un DNI son dígitos, y el QWERTY completo es fricción pura en
+                  el formulario que más importa de la app. Sigue siendo
+                  `type="text"` porque `type="number"` agrega flechas de spinner
+                  y descarta los separadores que el backend sí acepta. */}
+              <input
+                id="dni"
+                type="text"
+                inputMode="numeric"
+                maxLength={DNI_LARGO_MAX}
+                value={dni}
+                onChange={(e) => setDni(e.target.value)}
+                aria-invalid={Boolean(erroresCampos.dni)}
+                aria-describedby={erroresCampos.dni ? "dni-error" : undefined}
+                className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
+              />
+              {erroresCampos.dni ? (
+                <p id="dni-error" className="font-body-md text-body-md text-error">
+                  {erroresCampos.dni}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="nombre" className="font-label-md text-label-md text-on-surface">
+                Nombre
+              </label>
+              <input
+                id="nombre"
+                type="text"
+                autoComplete="name"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                aria-invalid={Boolean(erroresCampos.nombre)}
+                aria-describedby={erroresCampos.nombre ? "nombre-error" : undefined}
+                className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
+              />
+              {erroresCampos.nombre ? (
+                <p id="nombre-error" className="font-body-md text-body-md text-error">
+                  {erroresCampos.nombre}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="telefono" className="font-label-md text-label-md text-on-surface">
+                Teléfono
+              </label>
+              <input
+                id="telefono"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+                aria-invalid={Boolean(erroresCampos.telefono)}
+                aria-describedby={erroresCampos.telefono ? "telefono-error" : undefined}
+                className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
+              />
+              {erroresCampos.telefono ? (
+                <p id="telefono-error" className="font-body-md text-body-md text-error">
+                  {erroresCampos.telefono}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="email" className="font-label-md text-label-md text-on-surface">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={Boolean(erroresCampos.email)}
+                aria-describedby={erroresCampos.email ? "email-error" : "email-ayuda"}
+                className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
+              />
+              {erroresCampos.email ? (
+                <p id="email-error" className="font-body-md text-body-md text-error">
+                  {erroresCampos.email}
+                </p>
+              ) : (
+                <p id="email-ayuda" className="font-body-md text-body-md text-on-surface-variant">
+                  Te enviamos ahí la confirmación del pedido y los cambios de estado.
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="notas" className="font-label-md text-label-md text-on-surface">
+                Notas (opcional)
+              </label>
+              <textarea
+                id="notas"
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                rows={3}
+                className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
+              />
+            </div>
+
+            {errorEnvio ? (
+              <p
+                role="alert"
+                className="rounded-lg bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container"
+              >
+                {errorEnvio}
+              </p>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={enviando}
+              className="font-label-md text-label-md inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:bg-surface-container-high disabled:text-on-surface-variant"
+            >
+              {enviando ? "Enviando…" : "Confirmar pedido"}
+            </button>
+          </form>
+        </div>
+      </section>
+    </>
   );
 }
 

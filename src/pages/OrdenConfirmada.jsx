@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
+import MetaSeo from "../components/MetaSeo.jsx";
 import useCarrito from "../hooks/useCarrito.js";
 import { formatPrecio } from "../utils/formato.js";
+import { urlAbsoluta } from "../constants/seo.js";
 
 /**
  * `/checkout/confirmacion` — pantalla de éxito del checkout de invitado
@@ -52,49 +54,58 @@ function OrdenConfirmada() {
   }, 0);
 
   return (
-    <section className="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop md:py-24">
-      <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 text-center">
-        <span className="material-symbols-outlined text-6xl text-secondary">
-          check_circle
-        </span>
+    <>
+      <MetaSeo
+        titulo="Pedido confirmado — YIMA"
+        descripcion="Tu pedido fue registrado."
+        canonical={urlAbsoluta("/checkout/confirmacion")}
+        noindex
+      />
 
-        <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">
-          ¡Pedido confirmado!
-        </h2>
+      <section className="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop md:py-24">
+        <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 text-center">
+          <span className="material-symbols-outlined text-6xl text-secondary">
+            check_circle
+          </span>
 
-        <p className="font-body-lg text-body-lg text-on-surface-variant">
-          Orden #{orden.id} recibida. Nos vamos a poner en contacto por WhatsApp o teléfono para
-          coordinar el pago y la entrega.
-        </p>
+          <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">
+            ¡Pedido confirmado!
+          </h2>
 
-        <ul className="flex w-full flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 text-left">
-          {orden.items.map((item) => (
-            <li key={item.id ?? item.productId} className="flex items-center justify-between gap-4">
-              <span className="font-body-md text-body-md text-on-surface">
-                {item.cantidad} × {item.nombreProducto}
-              </span>
-              <span className="font-body-md text-body-md text-on-surface-variant">
-                {formatPrecio(item.precioUnitario)}
-              </span>
-            </li>
-          ))}
-        </ul>
+          <p className="font-body-lg text-body-lg text-on-surface-variant">
+            Orden #{orden.id} recibida. Nos vamos a poner en contacto por WhatsApp o teléfono para
+            coordinar el pago y la entrega.
+          </p>
 
-        <div className="flex w-full items-center justify-between border-t border-outline-variant pt-4">
-          <span className="font-headline-md text-headline-md text-primary">Total</span>
-          <strong className="font-headline-md text-headline-md text-primary">
-            {formatPrecio(totalCentavos / 100)}
-          </strong>
+          <ul className="flex w-full flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 text-left">
+            {orden.items.map((item) => (
+              <li key={item.id ?? item.productId} className="flex items-center justify-between gap-4">
+                <span className="font-body-md text-body-md text-on-surface">
+                  {item.cantidad} × {item.nombreProducto}
+                </span>
+                <span className="font-body-md text-body-md text-on-surface-variant">
+                  {formatPrecio(item.precioUnitario)}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex w-full items-center justify-between border-t border-outline-variant pt-4">
+            <span className="font-headline-md text-headline-md text-primary">Total</span>
+            <strong className="font-headline-md text-headline-md text-primary">
+              {formatPrecio(totalCentavos / 100)}
+            </strong>
+          </div>
+
+          <Link
+            to="/"
+            className="font-label-md text-label-md inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
+          >
+            Volver al catálogo
+          </Link>
         </div>
-
-        <Link
-          to="/"
-          className="font-label-md text-label-md inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
-        >
-          Volver al catálogo
-        </Link>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 

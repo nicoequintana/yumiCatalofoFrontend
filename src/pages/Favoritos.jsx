@@ -3,8 +3,10 @@ import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
+import MetaSeo from "../components/MetaSeo.jsx";
 import useFavoritos from "../hooks/useFavoritos.js";
 import { getProductsByIds } from "../api/products.js";
+import { urlAbsoluta } from "../constants/seo.js";
 
 /**
  * `/favoritos` — every product currently saved as a favorite (design item:
@@ -97,44 +99,53 @@ function Favoritos() {
   const productos = productosGuardados.filter((p) => favoritos.includes(p.id));
 
   return (
-    <section className="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop md:py-24">
-      <div className="mb-6">
-        <BotonVolver />
-      </div>
+    <>
+      <MetaSeo
+        titulo="Tus favoritos — YIMA"
+        descripcion="Los productos que guardaste."
+        canonical={urlAbsoluta("/favoritos")}
+        noindex
+      />
 
-      <div className="mb-16 flex flex-col items-center">
-        <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
-          Tu selección
-        </span>
-        <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">Favoritos</h2>
-      </div>
-
-      {cargando ? (
-        <EstadoVacio icono="hourglass_empty" mensaje="Cargando favoritos…" />
-      ) : errorCarga ? (
-        <EstadoVacio
-          icono="cloud_off"
-          titulo="No pudimos cargar tus favoritos"
-          mensaje={errorCarga}
-        />
-      ) : productos.length === 0 ? (
-        <EstadoVacio
-          icono="favorite_border"
-          titulo="Todavía no guardaste favoritos"
-          mensaje="Tocá el corazón en cualquier producto para guardarlo acá."
-        />
-      ) : (
-        <div className="grid grid-cols-2 gap-3 md:gap-gutter lg:grid-cols-4">
-          {/* Mismo grid que `/coleccion`: las dos pantallas del catálogo
-              público muestran la misma card en el mismo ancho. */}
-          {productos.map((producto) => (
-            <ProductCard key={producto.id} producto={producto} />
-          ))}
+      <section className="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop md:py-24">
+        <div className="mb-6">
+          <BotonVolver />
         </div>
-      )}
 
-      <BotonWhatsapp contexto={{ tipo: "favoritos", productos }} />
-    </section>
+        <div className="mb-16 flex flex-col items-center">
+          <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
+            Tu selección
+          </span>
+          <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">Favoritos</h2>
+        </div>
+
+        {cargando ? (
+          <EstadoVacio icono="hourglass_empty" mensaje="Cargando favoritos…" />
+        ) : errorCarga ? (
+          <EstadoVacio
+            icono="cloud_off"
+            titulo="No pudimos cargar tus favoritos"
+            mensaje={errorCarga}
+          />
+        ) : productos.length === 0 ? (
+          <EstadoVacio
+            icono="favorite_border"
+            titulo="Todavía no guardaste favoritos"
+            mensaje="Tocá el corazón en cualquier producto para guardarlo acá."
+          />
+        ) : (
+          <div className="grid grid-cols-2 gap-3 md:gap-gutter lg:grid-cols-4">
+            {/* Mismo grid que `/coleccion`: las dos pantallas del catálogo
+                público muestran la misma card en el mismo ancho. */}
+            {productos.map((producto) => (
+              <ProductCard key={producto.id} producto={producto} />
+            ))}
+          </div>
+        )}
+
+        <BotonWhatsapp contexto={{ tipo: "favoritos", productos }} />
+      </section>
+    </>
   );
 }
 

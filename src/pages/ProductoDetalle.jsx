@@ -3,10 +3,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import FichaProducto from "../components/FichaProducto.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
+import MetaSeo from "../components/MetaSeo.jsx";
 import { useVolver } from "../hooks/useVolver.js";
 import { getProductById } from "../api/products.js";
 import { useToast } from "../context/useToast.js";
-import { parsearIdDeRuta } from "../utils/slug.js";
+import { parsearIdDeRuta, rutaProducto } from "../utils/slug.js";
+import { urlAbsoluta } from "../constants/seo.js";
 
 /**
  * `/producto/:idSlug` — container for the public product detail view.
@@ -98,6 +100,14 @@ function ProductoDetalle() {
 
   return (
     <>
+      <MetaSeo
+        titulo={`${producto.nombre} — YIMA`}
+        descripcion={producto.fraseComercial ?? producto.descripcion ?? ""}
+        canonical={urlAbsoluta(rutaProducto(producto))}
+        imagen={producto.fotos[0]?.url}
+        tipoOg="product"
+      />
+
       {/* Mobile header — the one page-specific mobile-nav exception. */}
       <header className="sticky top-0 z-40 flex w-full items-center justify-between bg-background px-margin-mobile py-4 md:hidden">
         <button type="button" className="p-2 text-on-surface" onClick={volver}>

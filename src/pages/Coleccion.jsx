@@ -6,8 +6,10 @@ import BotonVolver from "../components/BotonVolver.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import FiltrosCatalogo from "../components/FiltrosCatalogo.jsx";
 import Paginador from "../components/Paginador.jsx";
+import MetaSeo from "../components/MetaSeo.jsx";
 import { getProducts } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
+import { urlAbsoluta } from "../constants/seo.js";
 
 const DEBOUNCE_SEARCH_MS = 350;
 
@@ -243,6 +245,15 @@ function Coleccion() {
 
   return (
     <>
+      <MetaSeo
+        titulo="Todos los productos — YIMA"
+        descripcion="Explorá el catálogo completo de YIMA: filtrá por categoría y precio para encontrar lo que buscás."
+        // El canonical apunta SIEMPRE a /coleccion limpio: las combinaciones de
+        // filtros y las páginas 2+ son la misma mercadería reordenada.
+        canonical={urlAbsoluta("/coleccion")}
+        noindex={pagina > 1}
+      />
+
       {/* Salida de la página, antes de cualquier contenido: `/coleccion` es un
           destino propio al que se puede llegar por link compartido, y sin esto
           el usuario queda sin forma de volver dentro de la app. A diferencia
@@ -274,6 +285,13 @@ function Coleccion() {
           más contraste sobre ella. */}
       <section className="w-full bg-surface-container-low">
         <div className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-12">
+          {/* La página venía sin `<h1>` propio — el "Productos" de acá abajo
+              es un `<h2>` decorativo, no el encabezado de nivel 1 de la
+              página. Se agrega arriba de la grilla, per brief. */}
+          <h1 className="font-headline-lg text-headline-lg-mobile lg:text-headline-lg mb-6 text-on-background">
+            Todos los productos
+          </h1>
+
           <div className="mb-8 flex flex-col items-center">
             <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
               Nuestra Colección

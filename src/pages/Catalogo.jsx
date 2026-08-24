@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import CarruselDestacados from "../components/CarruselDestacados.jsx";
+import MetaSeo from "../components/MetaSeo.jsx";
 import useDestacados from "../hooks/useDestacados.js";
 import { SENALES_CONFIANZA } from "../constants/hero.js";
+import { urlAbsoluta } from "../constants/seo.js";
 import heroImg from "../assets/hero.jpg";
 
 /**
@@ -88,6 +90,12 @@ function Catalogo() {
 
   return (
     <>
+      <MetaSeo
+        titulo="YIMA — Productos útiles, innovadores y con diseño"
+        descripcion="Productos útiles, innovadores y con diseño que simplifican tu rutina y suman estilo a tu hogar, tu trabajo y tus momentos."
+        canonical={urlAbsoluta("/")}
+      />
+
       {/* Hero — dos columnas con la foto a sangre contra el borde derecho.
           La `<section>` NO lleva `max-w-container-max`: si lo llevara, la foto
           se cortaría en el borde del contenedor en vez de llegar al borde de la
