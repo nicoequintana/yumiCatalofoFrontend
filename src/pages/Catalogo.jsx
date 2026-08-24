@@ -95,7 +95,11 @@ function Catalogo() {
           recupera en la columna de texto (ver el comentario de `max-w-[36rem]`). */}
       <section className="relative w-full overflow-hidden">
         <div className="grid grid-cols-1 lg:min-h-[42rem] lg:grid-cols-2">
-          <div className="flex items-center px-margin-mobile py-14 lg:px-margin-desktop lg:py-20">
+          {/* `relative z-10` es obligatorio, no cosmético: de `lg` para arriba
+              la foto desborda su columna y se mete por debajo de este bloque.
+              Sin contexto de apilado propio, la foto —que va después en el
+              DOM— se pintaría ENCIMA del titular. */}
+          <div className="relative z-10 flex items-center px-margin-mobile py-14 lg:px-margin-desktop lg:py-20">
             {/* 36rem = 576px = (1280px de container-max ÷ 2) − 64px de margen.
                 Con `lg:ml-auto` el borde izquierdo de este bloque cae exactamente
                 sobre el margen del contenedor, así el texto queda alineado con el
@@ -162,7 +166,26 @@ function Catalogo() {
 
           {/* Columna de la foto. En móvil el alto sale del `aspect-[4/5]`; en
               `lg` se cancela y el div estira al alto de la fila del grid. */}
-          <div className="relative aspect-[4/5] w-full bg-surface-container-low lg:aspect-auto lg:h-full">
+          {/* El solapamiento con el texto lo produce ESTE contenedor, no la
+              <img>: con `lg:-ml-[45%]` la celda del grid crece hacia la
+              izquierda y la imagen la llena con el `inset-0 h-full w-full` de
+              siempre.
+
+              Se intentó primero estirando la propia <img> (`-left` + `w-[145%]`)
+              y no funciona por dos razones que conviene no volver a pisar:
+              `w-full` le gana en la cascada a la variante `lg:` del ancho —así
+              que el `left` negativo se aplicaba y el ancho no, y la foto
+              quedaba corrida dejando una franja de fondo a la derecha— y, aun
+              resolviendo eso, un elemento REEMPLAZADO en posición absoluta con
+              `width:auto` usa su ancho intrínseco e ignora el `right`. Movido
+              al contenedor, el ancho de la imagen no depende de ninguna de las
+              dos cosas.
+
+              El `-mt-16` de móvil es el equivalente vertical: sube la foto para
+              que su borde superior —ya disuelto por la máscara— quede por
+              debajo del texto en vez de arrancar con un corte limpio bajo el
+              botón. Cada uno se cancela en el breakpoint del otro. */}
+          <div className="relative -mt-16 aspect-[4/5] w-full bg-background lg:-ml-[45%] lg:mt-0 lg:aspect-auto lg:h-full lg:w-auto">
             {/* La imagen va `absolute inset-0`, NUNCA `h-full w-full` en flujo
                 normal. Es el gotcha de CSS con elementos reemplazados que ya
                 mordió en ProductCard y MediaUploader: un <img> en flujo con
@@ -191,7 +214,7 @@ function Catalogo() {
                   mockup — lo único que se pierde es la pared vacía, que en esta
                   composición ya la aporta la columna de texto. */}
             <img
-              className="absolute inset-0 h-full w-full object-cover object-[65%_center] lg:object-right"
+              className="hero-fundido absolute inset-0 h-full w-full object-cover object-[65%_center] lg:object-right"
               src={heroImg}
               alt="Lámpara, vaso térmico, organizador y estuche de la selección YIMA sobre una mesa con luz natural"
               width={1672}

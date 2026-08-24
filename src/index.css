@@ -145,3 +145,134 @@ h6 {
 .shadow{
   box-shadow: 0px 5px 10px rgba(128, 128, 128, 0.199);
 }
+
+/*
+  El logo es un archivo de marca: su teal (#1a6a80) es un píxel, no un token, así
+  que redefinir custom properties —el mecanismo con el que el resto del admin
+  cambia de tema— no lo alcanza.
+
+  Contra `surface-container-lowest` del tema oscuro (#211d19) ese teal queda en
+  2,7:1. WCAG 1.4.11 exime explícitamente a los logotipos del mínimo de 3:1, así
+  que no es un incumplimiento — pero apagado se lee como un logo mal pegado
+  sobre el panel en vez de parte de él. El realce sube ese contraste a ~5:1
+  sin tocar el archivo ni servir un segundo asset.
+
+  Va acotado al tema oscuro del admin: en el catálogo público, que es siempre
+  claro, el logo se sirve tal cual vino.
+*/
+[data-tema-admin="oscuro"] .logo-yima {
+  filter: brightness(1.35) saturate(1.05);
+}
+
+/*
+  Fundido del borde de la foto del hero contra el bloque de texto.
+
+  Se hace con `mask-image` sobre la <img>, NO con un <div> de degradado por
+  encima. La diferencia importa: la máscara vuelve transparente el borde de la
+  foto y deja ver el fondo REAL de la página, así que el fundido sigue siendo
+  correcto si mañana cambia el color de fondo. Un velo superpuesto tendría que
+  repetir ese color, y el día que alguien lo cambie en un solo lado aparece una
+  banda del color viejo justo sobre la foto.
+
+  Por eso también el contenedor de la foto pasó a `bg-background`: la zona
+  enmascarada muestra lo que haya detrás, y con `surface-container-low` el
+  fundido terminaba en un beige distinto al de la columna de texto.
+
+  **Las paradas intermedias no son decorativas.** Un `linear-gradient` de dos
+  paradas es lineal en alfa, y el ojo percibe ahí un borde: se ve dónde
+  "empieza" la foto. Las paradas de abajo aproximan una curva ease-in-out, que
+  es lo que hace que el corte desaparezca en vez de suavizarse.
+
+  Dos direcciones porque el hero cambia de eje: en móvil la foto va DEBAJO del
+  texto (una columna) y funde por arriba; de `lg` para arriba va al costado
+  (dos columnas) y funde por la izquierda.
+
+  `-webkit-mask-image` va sí o sí: Safari solo soporta `mask-image` sin prefijo
+  desde la 15.4, y sin el prefijo esas versiones muestran la foto con el corte
+  duro — degradado aceptable, pero no es lo que se pidió.
+*/
+.hero-fundido {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.01) 6%,
+    rgba(0, 0, 0, 0.04) 11%,
+    rgba(0, 0, 0, 0.09) 15%,
+    rgba(0, 0, 0, 0.16) 19%,
+    rgba(0, 0, 0, 0.27) 23%,
+    rgba(0, 0, 0, 0.42) 27%,
+    rgba(0, 0, 0, 0.58) 31%,
+    rgba(0, 0, 0, 0.73) 35%,
+    rgba(0, 0, 0, 0.86) 40%,
+    rgba(0, 0, 0, 0.94) 45%,
+    rgba(0, 0, 0, 0.98) 51%,
+    #000 58%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.01) 6%,
+    rgba(0, 0, 0, 0.04) 11%,
+    rgba(0, 0, 0, 0.09) 15%,
+    rgba(0, 0, 0, 0.16) 19%,
+    rgba(0, 0, 0, 0.27) 23%,
+    rgba(0, 0, 0, 0.42) 27%,
+    rgba(0, 0, 0, 0.58) 31%,
+    rgba(0, 0, 0, 0.73) 35%,
+    rgba(0, 0, 0, 0.86) 40%,
+    rgba(0, 0, 0, 0.94) 45%,
+    rgba(0, 0, 0, 0.98) 51%,
+    #000 58%
+  );
+}
+
+/*
+  1024px = el breakpoint `lg` de Tailwind, donde el hero pasa a dos columnas.
+
+  Acá el fundido cubre más de la MITAD del ancho de la foto, y no es un número
+  arbitrario: de `lg` para arriba la foto desborda su columna hacia la
+  izquierda (`lg:-left-[45%]` en `Catalogo.jsx`) para meterse por debajo del
+  texto. Ese tramo invadido es justo el que la máscara tiene que disolver, así
+  que las dos medidas se mueven JUNTAS — agrandar el desborde sin estirar el
+  fundido deja la foto pisando el titular.
+
+  Las paradas están calculadas para que a la altura donde termina el texto la
+  foto todavía ronde el 15% de opacidad: apenas una insinuación detrás de las
+  palabras, nunca una textura que compita con la lectura.
+*/
+@media (min-width: 1024px) {
+  .hero-fundido {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.01) 10%,
+      rgba(0, 0, 0, 0.04) 18%,
+      rgba(0, 0, 0, 0.09) 25%,
+      rgba(0, 0, 0, 0.16) 31%,
+      rgba(0, 0, 0, 0.27) 37%,
+      rgba(0, 0, 0, 0.42) 43%,
+      rgba(0, 0, 0, 0.58) 49%,
+      rgba(0, 0, 0, 0.73) 55%,
+      rgba(0, 0, 0, 0.86) 62%,
+      rgba(0, 0, 0, 0.94) 70%,
+      rgba(0, 0, 0, 0.98) 78%,
+      #000 88%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.01) 10%,
+      rgba(0, 0, 0, 0.04) 18%,
+      rgba(0, 0, 0, 0.09) 25%,
+      rgba(0, 0, 0, 0.16) 31%,
+      rgba(0, 0, 0, 0.27) 37%,
+      rgba(0, 0, 0, 0.42) 43%,
+      rgba(0, 0, 0, 0.58) 49%,
+      rgba(0, 0, 0, 0.73) 55%,
+      rgba(0, 0, 0, 0.86) 62%,
+      rgba(0, 0, 0, 0.94) 70%,
+      rgba(0, 0, 0, 0.98) 78%,
+      #000 88%
+    );
+  }
+}
