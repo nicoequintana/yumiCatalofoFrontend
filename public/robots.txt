@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /catalogo/admin
+
+# NOTE: no Sitemap directive here on purpose. The backend serves a dynamic
+# /sitemap.xml, but frontend and backend live on separate EasyPanel
+# subdomains with no shared root domain today, so there is no real URL to
+# point to yet (see CLAUDE.md, "Autenticación del admin" section, for the
+# same subdomain-topology context). Add "Sitemap: https://<dominio-real>/sitemap.xml"
+# once a production domain makes that path reachable — a missing directive
+# is a neutral state; a present one pointing nowhere is worse (crawlers and
+# SEO audit tools would flag it as unreachable).
