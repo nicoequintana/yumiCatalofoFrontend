@@ -3,6 +3,8 @@ import { Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar.jsx";
 import LimiteDeError from "./LimiteDeError.jsx";
 import Spinner from "./Spinner.jsx";
+import MetaSeo from "./MetaSeo.jsx";
+import { urlAbsoluta } from "../constants/seo.js";
 
 /**
  * Shell propio del panel admin — navegación + contenido, sin Navbar/Footer
@@ -36,6 +38,19 @@ function AdminLayout() {
 
   return (
     <div className="relative min-h-screen bg-background">
+      {/* `noindex` en TODO el panel — nunca tiene valor de búsqueda y nada
+          ahí adentro debería rankear. Va acá, en el nivel más alto de
+          `AdminLayout` (que NO es lazy, a diferencia de las pantallas que
+          renderiza), para que se emita siempre: incluso mientras el chunk de
+          la pantalla concreta todavía está bajando dentro del `<Suspense>`
+          de más abajo, o si esa pantalla rompe y cae en el `<LimiteDeError>`. */}
+      <MetaSeo
+        titulo="Panel — YIMA"
+        descripcion="Panel de administración."
+        canonical={urlAbsoluta("/catalogo/admin")}
+        noindex
+      />
+
       {/* Marca de agua del panel. Va `fixed` y no `absolute` para que se quede
           quieta mientras el contenido scrollea —una marca de agua que se
           desplaza con la tabla deja de leerse como fondo— y `overflow-hidden`

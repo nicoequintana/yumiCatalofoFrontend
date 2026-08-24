@@ -11,6 +11,7 @@ import Carrito from "./pages/Carrito.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import OrdenConfirmada from "./pages/OrdenConfirmada.jsx";
 import ProductoDetalle from "./pages/ProductoDetalle.jsx";
+import NoEncontrado from "./pages/NoEncontrado.jsx";
 
 // Las pantallas del admin se cargan bajo demanda (`React.lazy`): son casi la
 // mitad del código fuente del frontend y ningún visitante público las
@@ -71,6 +72,11 @@ function App() {
             </Suspense>
           }
         />
+        {/* Catch-all DENTRO del `Layout` público, para conservar Navbar/Footer.
+            Antes era `<Navigate to="/" replace />`: toda URL inventada
+            respondía 200 con la home (soft 404), y Google la indexaba como
+            página real. `NoEncontrado` lleva `noindex` — ver ese archivo. */}
+        <Route path="*" element={<NoEncontrado />} />
       </Route>
       <Route element={<RequireAuth />}>
         <Route element={<AdminLayout />}>
@@ -93,7 +99,6 @@ function App() {
           <Route path="/catalogo/admin/configuracion/usuarios" element={<AdminUsuarios />} />
         </Route>
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
