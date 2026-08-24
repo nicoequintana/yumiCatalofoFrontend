@@ -165,6 +165,51 @@ h6 {
 }
 
 /*
+  Marca de agua del panel admin: el logo enorme, difuminado y muy tenue, detrás
+  del contenido. Decorativa pura — el <div> que la lleva va `aria-hidden` y
+  `pointer-events-none`, así no aparece en el árbol de accesibilidad ni se come
+  un solo click.
+
+  Se pinta con `background-image` y no con una <img> a propósito: sin nodo de
+  imagen no hay `alt` que gestionar (un logo repetido de fondo obligaría a un
+  lector de pantalla a anunciar la marca en cada pantalla del panel) ni ancho
+  que negociar contra las utilidades de Tailwind.
+
+  **La opacidad es deliberadamente baja.** Esto va DEBAJO de tablas, formularios
+  y números; en cuanto compite con ellos deja de ser fondo y pasa a ser ruido.
+  El `blur` es lo que la manda al fondo de verdad: sin él el logo se lee como un
+  elemento más de la interfaz, apenas desteñido.
+
+  La máscara radial la desvanece contra los bordes, así no aparece un rectángulo
+  con corte donde termina la imagen.
+
+  Solo WebP: es un elemento decorativo cuya ausencia nadie nota, así que no vale
+  la pena el `image-set` con PNG de respaldo que sí tiene el wordmark real.
+*/
+.marca-agua-admin {
+  background-image: url("/logo-yima-160.webp");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: min(78vw, 60rem) auto;
+  opacity: 0.06;
+  filter: blur(10px);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 25%, transparent 70%);
+  mask-image: radial-gradient(ellipse at center, #000 25%, transparent 70%);
+}
+
+/*
+  Sobre el fondo oscuro del panel el mismo alfa desaparece del todo: el teal de
+  la marca ya arranca oscuro, así que necesita más opacidad y más brillo para
+  quedar igual de presente que en el tema claro. Es la misma corrección que
+  aplica `.logo-yima`, por el mismo motivo.
+*/
+[data-tema-admin="oscuro"] .marca-agua-admin {
+  opacity: 0.1;
+  filter: blur(10px) brightness(1.5) saturate(1.05);
+}
+
+
+/*
   Fundido del borde de la foto del hero contra el bloque de texto.
 
   Se hace con `mask-image` sobre la <img>, NO con un <div> de degradado por

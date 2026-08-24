@@ -35,7 +35,25 @@ function AdminLayout() {
   const { pathname } = useLocation();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen bg-background">
+      {/* Marca de agua del panel. Va `fixed` y no `absolute` para que se quede
+          quieta mientras el contenido scrollea —una marca de agua que se
+          desplaza con la tabla deja de leerse como fondo— y `overflow-hidden`
+          contiene el desenfoque, que si no se derrama fuera del viewport y
+          agranda el área que el navegador tiene que componer.
+
+          `z-0` con el `<main>` en `z-10` es lo que la manda atrás: no alcanza
+          con un z-index negativo, porque quedaría por detrás del `bg-background`
+          de este mismo contenedor y no se vería nada. La sidebar ya vive en
+          `z-40`/`z-50` y el botón del menú en `z-30`, así que ninguno la pisa.
+
+          El estilo (tamaño, opacidad, desenfoque y el desvanecido de los
+          bordes) está en `.marca-agua-admin`, en `index.css`. */}
+      <div
+        aria-hidden="true"
+        className="marca-agua-admin pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      />
+
       <button
         type="button"
         onClick={() => setSidebarColapsada(false)}
@@ -47,7 +65,7 @@ function AdminLayout() {
 
       <AdminSidebar colapsada={sidebarColapsada} onCerrar={() => setSidebarColapsada(true)} />
 
-      <main className="w-full overflow-x-auto md:pb-20">
+      <main className="relative z-10 w-full overflow-x-auto md:pb-20">
         <Suspense
           fallback={
             <div className="flex min-h-[60vh] items-center justify-center text-on-surface-variant">
