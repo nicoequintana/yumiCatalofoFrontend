@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import useCarrito from "../hooks/useCarrito.js";
 import useDialogo from "../hooks/useDialogo.js";
+import LogoYima from "./LogoYima.jsx";
 
 /**
  * Navegación principal del catálogo público. Es la única lista de destinos del
@@ -90,11 +91,8 @@ function Navbar() {
           Sin esto, el velo taparía la propia barra y el botón "Cerrar menú"
           dejaría de ser clickeable. */}
       <div className="relative z-50 mx-auto flex w-full max-w-container-max items-center justify-between gap-4 bg-background px-margin-mobile py-4 md:grid md:grid-cols-[1fr_auto_1fr] md:px-margin-desktop md:py-5">
-        <Link
-          to="/"
-          className="font-headline-md text-headline-md tracking-[0.28em] text-on-surface transition-colors hover:text-primary"
-        >
-          YIMA
+        <Link to="/" className="shrink-0 transition-opacity hover:opacity-80">
+          <LogoYima className="h-7 md:h-8" />
         </Link>
 
         {esAdmin ? null : (
