@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import BotonFavorito from "./BotonFavorito.jsx";
 import { formatPrecio } from "../utils/formato.js";
 import { MIN_DESTACADOS } from "../hooks/useDestacados.js";
+import { rutaProducto } from "../utils/slug.js";
 
 /** Píxeles por segundo del desplazamiento automático. */
 const VELOCIDAD_PX_POR_SEGUNDO = 40;
@@ -58,7 +59,7 @@ function TarjetaDestacado({ producto, decorativa = false, onPausar, onReanudar, 
 
   return (
     <Link
-      to={`/producto/${producto.id}`}
+      to={rutaProducto(producto)}
       className="group relative h-[320px] w-[280px] shrink-0 overflow-hidden rounded-xl bg-surface-container md:h-[380px] md:w-[320px]"
       tabIndex={decorativa ? -1 : undefined}
       aria-hidden={decorativa ? "true" : undefined}

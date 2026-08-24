@@ -75,7 +75,7 @@ describe("CarruselDestacados", () => {
     // es exactamente la vista que tiene un lector de pantalla.
     const linksAccesibles = screen.getAllByRole("link");
     expect(linksAccesibles).toHaveLength(4);
-    expect(linksAccesibles[0]).toHaveAttribute("href", "/producto/1");
+    expect(linksAccesibles[0]).toHaveAttribute("href", "/producto/1-set-de-cafe");
 
     // Ningún link visible para asistencia debe estar fuera del orden de
     // tabulación, y ninguno de los clones debe estar dentro de él.
@@ -180,7 +180,7 @@ describe("CarruselDestacados — pausa y arrastre", () => {
 
     // Sin desplazamiento no hubo arrastre: la tarjeta tiene que abrirse. Si
     // esto falla, el carrusel se ve bien pero ningún producto es clickeable.
-    expect(rutaAhora()).toBe("/producto/1");
+    expect(rutaAhora()).toBe("/producto/1-set-de-cafe");
   });
 
   it("un temblor por debajo del umbral no se toma como arrastre", () => {
@@ -196,7 +196,7 @@ describe("CarruselDestacados — pausa y arrastre", () => {
     fireEvent.pointerUp(pista, { pointerId: 1, clientX: 297 });
     fireEvent.click(tarjeta);
 
-    expect(rutaAhora()).toBe("/producto/1");
+    expect(rutaAhora()).toBe("/producto/1-set-de-cafe");
   });
 
   it("las tarjetas son las que pausan, no la banda que las contiene", () => {

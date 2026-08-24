@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import BotonFavorito from "./BotonFavorito.jsx";
 import { formatPrecio } from "../utils/formato.js";
+import { rutaProducto } from "../utils/slug.js";
 
 /**
  * Single card component for the public product grids (`/coleccion`,
@@ -20,7 +21,7 @@ import { formatPrecio } from "../utils/formato.js";
  */
 function ProductCard({ producto }) {
   const foto = producto.fotos?.[0];
-  const href = `/producto/${producto.id}`;
+  const href = rutaProducto(producto);
 
   const shell = `bg-surface-container-lowest rounded-xl shadow-ambient relative group flex flex-col h-full overflow-hidden transition-shadow hover:shadow-lg ${
     producto.destacado ? "ring-2 ring-secondary shadow-[0_0_24px_-8px_rgba(119,89,47,0.5)]" : ""

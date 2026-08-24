@@ -102,7 +102,7 @@ describe("ProductoDetalle - relacionados", () => {
     renderPagina();
 
     const link = await screen.findByRole("link", { name: /Reloj Deportivo/ });
-    expect(link).toHaveAttribute("href", "/producto/2");
+    expect(link).toHaveAttribute("href", "/producto/2-reloj-deportivo");
   });
 });
 
