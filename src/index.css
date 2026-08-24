@@ -1,0 +1,278 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* "Vibrant Editorial Discovery" palette — terracotta primary, moss-green
+     secondary, golden-sand tertiary, warm cream surfaces. Replaces the prior
+     beige/brown editorial palette in full (see CLAUDE.md design tokens).
+
+     ┌──────────────────────────────────────────────────────────────────────┐
+     │ LOS TOKENS VAN EN CANALES ("157 62 29"), NO EN HEX ("#9d3e1d").      │
+     └──────────────────────────────────────────────────────────────────────┘
+
+     No es cosmético y volver al hex rompe cosas EN SILENCIO. `tailwind.config.js`
+     los envuelve como `rgb(var(--color-x) / <alpha-value>)`, y ese placeholder
+     es lo que le permite a Tailwind componer opacidad: sin él, una clase como
+     `bg-primary/20` no encuentra ni un color parseable ni el placeholder, así
+     que **Tailwind descarta la utilidad y no emite ninguna regla**. La clase
+     queda escrita en el markup, sin CSS detrás, y el elemento se pinta
+     transparente — sin error, sin warning en consola, sin test que falle.
+
+     Así estuvieron 16 lugares del proyecto hasta el 23/08/2026, incluido el
+     panel de vidrio del carrusel de destacados que CLAUDE.md describía en
+     detalle y que nunca se había renderizado.
+
+     El hex de cada token queda al lado como comentario: es para leerlo de un
+     vistazo y para pegarlo en un selector de color, no para volver a usarlo
+     como valor. */
+  --color-background: 255 248 245; /* #fff8f5 */
+  --color-on-background: 29 27 26; /* #1d1b1a */
+  --color-surface: 255 248 245; /* #fff8f5 */
+  --color-surface-container-lowest: 255 255 255; /* #ffffff */
+  --color-surface-container-low: 249 242 239; /* #f9f2ef */
+  --color-surface-container: 249 242 239; /* #f9f2ef */
+  --color-surface-container-high: 237 231 228; /* #ede7e4 */
+  --color-surface-container-highest: 232 225 222; /* #e8e1de */
+  --color-surface-variant: 232 225 222; /* #e8e1de */
+  --color-on-surface: 29 27 26; /* #1d1b1a */
+  --color-on-surface-variant: 86 66 60; /* #56423c */
+  --color-outline: 138 114 107; /* #8a726b */
+  --color-outline-variant: 221 192 184; /* #ddc0b8 */
+  --color-primary: 157 62 29; /* #9d3e1d */
+  --color-on-primary: 255 255 255; /* #ffffff */
+  --color-primary-container: 255 181 158; /* #ffb59e */
+  --color-on-primary-container: 92 28 7; /* #5c1c07 */
+  --color-secondary: 88 99 48; /* #586330 */
+  --color-on-secondary: 255 255 255; /* #ffffff */
+  --color-secondary-container: 219 230 172; /* #dbe6ac */
+  --color-on-secondary-container: 60 69 25; /* #3c4519 */
+  --color-tertiary: 115 88 2; /* #735802 */
+  --color-on-tertiary: 255 255 255; /* #ffffff */
+  --color-tertiary-container: 233 196 106; /* #e9c46a */
+  --color-on-tertiary-container: 71 54 0; /* #473600 */
+  --color-error: 186 26 26; /* #ba1a1a */
+  --color-on-error: 255 255 255; /* #ffffff */
+  --color-error-container: 255 218 214; /* #ffdad6 */
+  --color-on-error-container: 147 0 10; /* #93000a */
+  --color-inverse-surface: 29 27 26; /* #1d1b1a */
+
+  /* Mockup-literal aliases (used as Tailwind classes directly in markup,
+     e.g. `text-terracotta-warm`, `bg-cream-base`) — kept alongside the
+     semantic tokens above rather than replacing them, since components
+     already reference the semantic names. See tailwind.config.js. */
+  --color-terracotta-warm: 214 104 68; /* #d66844 */
+  --color-moss-green: 96 108 56; /* #606c38 */
+  --color-golden-sand: 233 196 106; /* #e9c46a */
+  --color-cream-base: 255 248 245; /* #fff8f5 */
+}
+
+/* Dark mode — admin panel only (`/catalogo/admin/*`), never the public
+   catalog. Set as `data-tema-admin="oscuro"` on <html> by
+   `hooks/useTemaAdmin.js`, a per-browser preference in localStorage.
+
+   Every color token in tailwind.config.js resolves to a `var(--color-*)`
+   custom property, so redefining them here repaints the whole panel without
+   touching a single admin component — which is why no `dark:` variant
+   appears anywhere in the admin markup.
+
+   Mismo formato de canales que `:root`, y por el mismo motivo — ver el bloque
+   enmarcado de arriba. Los dos bloques tienen que definir EXACTAMENTE los
+   mismos 34 tokens: si acá falta uno, ese color se queda en su valor claro
+   sobre fondo oscuro.
+
+   The palette keeps the same "Vibrant Editorial Discovery" hues as the light
+   theme (terracotta / moss / golden sand) but inverts the tone ladder:
+   surfaces climb from near-black to lighter greys as elevation increases,
+   and each `primary`/`secondary`/`tertiary` is lightened so it keeps a
+   readable contrast ratio against those dark surfaces — a dark background
+   needs light accents, not the same saturated mid-tones that work on cream.
+   The `on-*` pairs are flipped accordingly (dark text over light accents). */
+[data-tema-admin="oscuro"] {
+  --color-background: 22 19 15; /* #16130f */
+  --color-on-background: 236 224 218; /* #ece0da */
+  --color-surface: 22 19 15; /* #16130f */
+  --color-surface-container-lowest: 33 29 25; /* #211d19 */
+  --color-surface-container-low: 38 34 32; /* #262220 */
+  --color-surface-container: 43 39 36; /* #2b2724 */
+  --color-surface-container-high: 53 48 44; /* #35302c */
+  --color-surface-container-highest: 64 58 53; /* #403a35 */
+  --color-surface-variant: 82 68 62; /* #52443e */
+  --color-on-surface: 236 224 218; /* #ece0da */
+  --color-on-surface-variant: 215 194 187; /* #d7c2bb */
+  --color-outline: 160 141 134; /* #a08d86 */
+  --color-outline-variant: 82 68 62; /* #52443e */
+  --color-primary: 255 181 158; /* #ffb59e */
+  --color-on-primary: 92 28 7; /* #5c1c07 */
+  --color-primary-container: 125 42 15; /* #7d2a0f */
+  --color-on-primary-container: 255 219 208; /* #ffdbd0 */
+  --color-secondary: 191 203 146; /* #bfcb92 */
+  --color-on-secondary: 42 50 9; /* #2a3209 */
+  --color-secondary-container: 64 74 28; /* #404a1c */
+  --color-on-secondary-container: 219 230 172; /* #dbe6ac */
+  --color-tertiary: 233 196 106; /* #e9c46a */
+  --color-on-tertiary: 61 47 0; /* #3d2f00 */
+  --color-tertiary-container: 87 67 0; /* #574300 */
+  --color-on-tertiary-container: 255 223 154; /* #ffdf9a */
+  --color-error: 255 180 171; /* #ffb4ab */
+  --color-on-error: 105 0 5; /* #690005 */
+  --color-error-container: 147 0 10; /* #93000a */
+  --color-on-error-container: 255 218 214; /* #ffdad6 */
+  --color-inverse-surface: 236 224 218; /* #ece0da */
+
+  /* Mockup-literal aliases: lightened so they stay legible on dark
+     surfaces, keeping the same hue family as their light counterparts. */
+  --color-terracotta-warm: 240 147 112; /* #f09370 */
+  --color-moss-green: 168 181 115; /* #a8b573 */
+  --color-golden-sand: 233 196 106; /* #e9c46a */
+  --color-cream-base: 22 19 15; /* #16130f */
+}
+
+body {
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+
+.shadow{
+  box-shadow: 0px 5px 10px rgba(128, 128, 128, 0.199);
+}
+
+/*
+  El logo es un archivo de marca: su teal (#1a6a80) es un píxel, no un token, así
+  que redefinir custom properties —el mecanismo con el que el resto del admin
+  cambia de tema— no lo alcanza.
+
+  Contra `surface-container-lowest` del tema oscuro (#211d19) ese teal queda en
+  2,7:1. WCAG 1.4.11 exime explícitamente a los logotipos del mínimo de 3:1, así
+  que no es un incumplimiento — pero apagado se lee como un logo mal pegado
+  sobre el panel en vez de parte de él. El realce sube ese contraste a ~5:1
+  sin tocar el archivo ni servir un segundo asset.
+
+  Va acotado al tema oscuro del admin: en el catálogo público, que es siempre
+  claro, el logo se sirve tal cual vino.
+*/
+[data-tema-admin="oscuro"] .logo-yima {
+  filter: brightness(1.35) saturate(1.05);
+}
+
+/*
+  Fundido del borde de la foto del hero contra el bloque de texto.
+
+  Se hace con `mask-image` sobre la <img>, NO con un <div> de degradado por
+  encima. La diferencia importa: la máscara vuelve transparente el borde de la
+  foto y deja ver el fondo REAL de la página, así que el fundido sigue siendo
+  correcto si mañana cambia el color de fondo. Un velo superpuesto tendría que
+  repetir ese color, y el día que alguien lo cambie en un solo lado aparece una
+  banda del color viejo justo sobre la foto.
+
+  Por eso también el contenedor de la foto pasó a `bg-background`: la zona
+  enmascarada muestra lo que haya detrás, y con `surface-container-low` el
+  fundido terminaba en un beige distinto al de la columna de texto.
+
+  **Las paradas intermedias no son decorativas.** Un `linear-gradient` de dos
+  paradas es lineal en alfa, y el ojo percibe ahí un borde: se ve dónde
+  "empieza" la foto. Las paradas de abajo aproximan una curva ease-in-out, que
+  es lo que hace que el corte desaparezca en vez de suavizarse.
+
+  Dos direcciones porque el hero cambia de eje: en móvil la foto va DEBAJO del
+  texto (una columna) y funde por arriba; de `lg` para arriba va al costado
+  (dos columnas) y funde por la izquierda.
+
+  `-webkit-mask-image` va sí o sí: Safari solo soporta `mask-image` sin prefijo
+  desde la 15.4, y sin el prefijo esas versiones muestran la foto con el corte
+  duro — degradado aceptable, pero no es lo que se pidió.
+*/
+.hero-fundido {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.01) 6%,
+    rgba(0, 0, 0, 0.04) 11%,
+    rgba(0, 0, 0, 0.09) 15%,
+    rgba(0, 0, 0, 0.16) 19%,
+    rgba(0, 0, 0, 0.27) 23%,
+    rgba(0, 0, 0, 0.42) 27%,
+    rgba(0, 0, 0, 0.58) 31%,
+    rgba(0, 0, 0, 0.73) 35%,
+    rgba(0, 0, 0, 0.86) 40%,
+    rgba(0, 0, 0, 0.94) 45%,
+    rgba(0, 0, 0, 0.98) 51%,
+    #000 58%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.01) 6%,
+    rgba(0, 0, 0, 0.04) 11%,
+    rgba(0, 0, 0, 0.09) 15%,
+    rgba(0, 0, 0, 0.16) 19%,
+    rgba(0, 0, 0, 0.27) 23%,
+    rgba(0, 0, 0, 0.42) 27%,
+    rgba(0, 0, 0, 0.58) 31%,
+    rgba(0, 0, 0, 0.73) 35%,
+    rgba(0, 0, 0, 0.86) 40%,
+    rgba(0, 0, 0, 0.94) 45%,
+    rgba(0, 0, 0, 0.98) 51%,
+    #000 58%
+  );
+}
+
+/*
+  1024px = el breakpoint `lg` de Tailwind, donde el hero pasa a dos columnas.
+
+  Acá el fundido cubre más de la MITAD del ancho de la foto, y no es un número
+  arbitrario: de `lg` para arriba la foto desborda su columna hacia la
+  izquierda (`lg:-left-[45%]` en `Catalogo.jsx`) para meterse por debajo del
+  texto. Ese tramo invadido es justo el que la máscara tiene que disolver, así
+  que las dos medidas se mueven JUNTAS — agrandar el desborde sin estirar el
+  fundido deja la foto pisando el titular.
+
+  Las paradas están calculadas para que a la altura donde termina el texto la
+  foto todavía ronde el 15% de opacidad: apenas una insinuación detrás de las
+  palabras, nunca una textura que compita con la lectura.
+*/
+@media (min-width: 1024px) {
+  .hero-fundido {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.01) 10%,
+      rgba(0, 0, 0, 0.04) 18%,
+      rgba(0, 0, 0, 0.09) 25%,
+      rgba(0, 0, 0, 0.16) 31%,
+      rgba(0, 0, 0, 0.27) 37%,
+      rgba(0, 0, 0, 0.42) 43%,
+      rgba(0, 0, 0, 0.58) 49%,
+      rgba(0, 0, 0, 0.73) 55%,
+      rgba(0, 0, 0, 0.86) 62%,
+      rgba(0, 0, 0, 0.94) 70%,
+      rgba(0, 0, 0, 0.98) 78%,
+      #000 88%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.01) 10%,
+      rgba(0, 0, 0, 0.04) 18%,
+      rgba(0, 0, 0, 0.09) 25%,
+      rgba(0, 0, 0, 0.16) 31%,
+      rgba(0, 0, 0, 0.27) 37%,
+      rgba(0, 0, 0, 0.42) 43%,
+      rgba(0, 0, 0, 0.58) 49%,
+      rgba(0, 0, 0, 0.73) 55%,
+      rgba(0, 0, 0, 0.86) 62%,
+      rgba(0, 0, 0, 0.94) 70%,
+      rgba(0, 0, 0, 0.98) 78%,
+      #000 88%
+    );
+  }
+}
