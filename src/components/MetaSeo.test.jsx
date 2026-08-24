@@ -1,6 +1,7 @@
 import { describe, expect, it, afterEach, beforeEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import MetaSeo, { _reiniciarLimpiezaEstaticaParaTests } from "./MetaSeo.jsx";
+import MetaSeo from "./MetaSeo.jsx";
+import { _reiniciarLimpiezaEstaticaParaTests } from "../utils/metaEstaticos.js";
 
 afterEach(cleanup);
 
@@ -70,18 +71,19 @@ describe("MetaSeo", () => {
   });
 });
 
+// El mecanismo en sí (idempotencia, qué borra y qué respeta) se prueba en
+// `utils/metaEstaticos.test.js`, junto al código que lo implementa. Acá
+// solo se confirma el punto de integración: que montar `MetaSeo` de verdad
+// lo dispara.
 describe("limpieza de los tags estáticos duplicados de index.html", () => {
-  // El flag que decide si ya se corrió la limpieza vive a nivel de módulo
-  // (mismo patrón que useCarrito/useFavoritos/useTemaAdmin): sin resetearlo
-  // acá, el efecto ya se consumió con el primer `render(<MetaSeo />)` de
-  // este archivo y los tests de este bloque no verían ningún nodo borrarse.
-  // `document.head` también es estado global compartido entre tests, así
-  // que cada caso arma sus propios nodos falsos (simulando lo que
-  // `index.html` deja puesto antes de que React monte) y los saca al final,
-  // sobrevivan o no al efecto — sin esto un test que falla dejaría basura en
-  // el `<head>` para los que corren después.
+  // El flag vive a nivel de módulo (`utils/metaEstaticos.js`, mismo patrón
+  // que useCarrito/useFavoritos/useTemaAdmin): sin resetearlo acá, el efecto
+  // ya se consumió con el primer `render(<MetaSeo />)` de este archivo y
+  // este test no vería ningún nodo borrarse. `document.head` es estado
+  // global compartido entre tests, así que el nodo falso (simulando lo que
+  // `index.html` deja puesto antes de que React monte) se saca al final,
+  // sobreviva o no al efecto.
   let etiquetaMarcada;
-  let etiquetaSinMarcar;
 
   beforeEach(() => {
     _reiniciarLimpiezaEstaticaParaTests();
@@ -91,30 +93,15 @@ describe("limpieza de los tags estáticos duplicados de index.html", () => {
     etiquetaMarcada.setAttribute("property", "og:title");
     etiquetaMarcada.setAttribute("content", "YIMA — genérico de index.html");
     document.head.appendChild(etiquetaMarcada);
-
-    // Representa un tag que index.html declara pero MetaSeo NO emite
-    // (og:image:width, viewport, etc.) — no lleva data-seo-estatico porque
-    // borrarlo lo perdería sin que nadie lo reemplace.
-    etiquetaSinMarcar = document.createElement("meta");
-    etiquetaSinMarcar.setAttribute("property", "og:image:width");
-    etiquetaSinMarcar.setAttribute("content", "1200");
-    document.head.appendChild(etiquetaSinMarcar);
   });
 
   afterEach(() => {
     etiquetaMarcada.remove();
-    etiquetaSinMarcar.remove();
   });
 
-  it("borra del head los nodos marcados con data-seo-estatico al montar por primera vez", () => {
+  it("dispara la limpieza de tags estáticos duplicados al montar", () => {
     render(<MetaSeo titulo="t" descripcion="d" canonical="https://y.com/a" />);
 
     expect(document.head.querySelector("[data-seo-estatico]")).toBe(null);
-  });
-
-  it("no toca los tags estáticos que MetaSeo no emite (sin marcar)", () => {
-    render(<MetaSeo titulo="t" descripcion="d" canonical="https://y.com/a" />);
-
-    expect(head('meta[property="og:image:width"]').getAttribute("content")).toBe("1200");
   });
 });

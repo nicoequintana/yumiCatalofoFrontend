@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { SITIO } from "../constants/seo.js";
+import { limpiarMetaEstaticos } from "../utils/metaEstaticos.js";
 
 /**
  * Meta tags de SEO por ruta. Presentacional puro: recibe props, no hace fetch.
@@ -13,39 +14,12 @@ import { SITIO } from "../constants/seo.js";
  * ejecuta JS (o lo ejecuta tarde) nunca ve estos tags. Los dos caminos
  * coexisten y DEBEN declarar el mismo canonical.
  *
- * **Por qué el efecto de limpieza de acá abajo existe.** El hoisteo de React
- * 19 solo deduplica `<link>` de stylesheets — los `<meta>` los AGREGA,
- * nunca reemplaza un tag existente. `frontend/index.html` ya trae doce tags
- * (`description` + los OG/Twitter, incluido `og:site_name`) como fallback
- * para un cliente que NO ejecuta JS: un bot que `botDetector.js` no
- * reconoce, y que nginx por lo tanto no desvía al HTML server-side de
- * `/og/producto/:id`, solo ve esos.
- * Sin limpieza, en cualquier ruta con JS corriendo quedan DOS `og:title` (el
- * genérico de la home y el de esta ficha) en el `<head>` — y
- * `document.head.querySelector` devuelve el primero, o sea SIEMPRE el
- * genérico, sin importar en qué producto esté parado el visitante. Medido
- * con Playwright en una ficha real. Este efecto borra del `<head>` los tags
- * estáticos marcados con `data-seo-estatico` la primera vez que cualquier
- * `MetaSeo` monta en la vida de la página, para que sobreviva un único juego:
- * el genérico mientras no corrió JS, el de esta ruta apenas corre. Corre una
- * sola vez (flag a nivel de módulo, mismo patrón que `useCarrito.js` /
- * `useFavoritos.js` / `useTemaAdmin.js`) porque los tags estáticos solo
- * existen una vez en el documento — repetir el barrido en cada montaje de
- * `MetaSeo` sería trabajo de más sin ningún nodo nuevo que limpiar.
+ * Al montar dispara `limpiarMetaEstaticos()` (`utils/metaEstaticos.js`) —
+ * ver ahí el porqué: React no reemplaza los `<meta>` estáticos de
+ * `index.html`, solo los agrega, así que sin esto quedan duplicados y gana
+ * el genérico de la home. Vive en su propio módulo (no acá) para que este
+ * componente siga exportando solo el componente.
  */
-let limpiezaEstaticaHecha = false;
-
-/**
- * Solo para tests: `limpiezaEstaticaHecha` vive a nivel de módulo, así que
- * sin esto el primer test que monta `MetaSeo` en un archivo consume el
- * efecto y los siguientes lo ven como no-op. Explícito y a la vista en vez
- * de un reset automático escondido en `setup.js` — un reset global ahí
- * afectaría a toda la suite por un efecto que solo le importa a este
- * componente.
- */
-export function _reiniciarLimpiezaEstaticaParaTests() {
-  limpiezaEstaticaHecha = false;
-}
 
 /**
  * Serializa un objeto para meterlo dentro de un `<script type="application/ld+json">`.
@@ -75,15 +49,12 @@ function MetaSeo({
 }) {
   const bloques = jsonLd === null ? [] : Array.isArray(jsonLd) ? jsonLd : [jsonLd];
 
-  // No toca lo que este componente renderiza — solo remueve nodos que otro
-  // documento (`index.html`) ya puso en el `<head>` antes de que React
-  // montara. Sin `document` en el cuerpo del componente: un efecto ya es
-  // seguro en SSR (no corre en el servidor), pero además así el chequeo
-  // vale incluso si algún día esto se renderiza en un entorno sin `window`.
+  // No toca lo que este componente renderiza — solo dispara la limpieza de
+  // los tags estáticos duplicados (ver `utils/metaEstaticos.js`). Un efecto
+  // ya es seguro en SSR (no corre en el servidor); no accedemos a `document`
+  // acá en el cuerpo del componente, esa parte vive en el módulo aparte.
   useEffect(() => {
-    if (limpiezaEstaticaHecha || typeof document === "undefined") return;
-    limpiezaEstaticaHecha = true;
-    document.head.querySelectorAll("[data-seo-estatico]").forEach((nodo) => nodo.remove());
+    limpiarMetaEstaticos();
   }, []);
 
   return (
