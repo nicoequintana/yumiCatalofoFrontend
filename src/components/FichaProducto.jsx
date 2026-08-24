@@ -13,6 +13,11 @@ import { formatPrecio } from "../utils/formato.js";
  * product looks, shared by the public `/producto/:id` page and the admin
  * editor's live preview.
  *
+ * SYNC MANUAL: `backend/src/controllers/seo.cuerpo.js` mirrors this
+ * component's textual content for the crawler-facing HTML (cloaking rule,
+ * spec §3 of the SEO feature) — same text, not a summary. Whenever a content
+ * section is added here, add it to `seo.cuerpo.js` too.
+ *
  * It receives `producto` as a plain object and never fetches: the public page
  * feeds it API data, the admin form feeds it unsaved form state. That's the
  * whole point of the split — the admin preview can't drift from the public
