@@ -14,7 +14,7 @@
       Open Graph del SITIO (la home y cualquier ruta de la SPA). Las fichas de
       producto NO pasan por acá: nginx desvía los User-Agent de bots a
       `/og/producto/:id`, que el backend arma server-side con la foto del
-      producto — ver `backend/src/controllers/og.controller.js`.
+      producto — ver `backend/src/controllers/seo.controller.js`.
 
       Hasta ahora este archivo no declaraba ni un meta tag OG, así que al
       compartir el link del catálogo los bots no encontraban imagen y caían al
