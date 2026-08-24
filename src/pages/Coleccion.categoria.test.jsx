@@ -77,4 +77,18 @@ describe("/coleccion/categoria/:slugCategoria", () => {
     const args = getProductsMock.mock.calls.at(-1)[0];
     expect(args.categoria).toBeFalsy();
   });
+
+  // Fix de review (Hallazgo 1): `hayFiltrosActivos` no contaba la categoría de
+  // la RUTA (solo miraba `?categoria=`, vacío en esta ruta), así que una
+  // categoría real sin productos mostraba "Todavía no hay productos" — le dice
+  // al visitante que el catálogo entero está vacío, en vez de "Sin
+  // resultados", que es lo que corresponde a un filtro sin coincidencias.
+  it("una categoría de ruta sin productos muestra 'Sin resultados', no 'Todavía no hay productos'", async () => {
+    // El mock por default ya resuelve `{ data: [], total: 0 }` (ver
+    // `beforeEach`), así que alcanza con renderizar una categoría real.
+    const { findByText, queryByText } = renderEn("/coleccion/categoria/cocina-y-hogar");
+
+    expect(await findByText("Sin resultados")).toBeTruthy();
+    expect(queryByText("Todavía no hay productos")).toBeNull();
+  });
 });

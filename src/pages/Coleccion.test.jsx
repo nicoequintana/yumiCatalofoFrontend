@@ -61,11 +61,19 @@ function pagina(filas, extra = {}) {
 // invocación del cuerpo del componente en el mount rompe cualquier lógica de
 // "primer render" basada en refs mutables, y el reseteo de filtros heredados
 // depende exactamente de eso. Sin este wrapper los tests dan falsa confianza.
+// Envuelto en `<Routes>` con las dos rutas reales (no solo `<Coleccion />` a
+// secas): el selector de categoría navega a `/coleccion/categoria/:slug`
+// (Task 17, fix de review), y sin un `<Route>` que matchee ese patrón
+// `useParams()` siempre devuelve `{}` — la navegación cambiaría la URL pero
+// `Coleccion` nunca vería el `slugCategoria` resultante.
 function renderPagina(ruta = "/coleccion") {
   return render(
     <StrictMode>
       <MemoryRouter initialEntries={[ruta]}>
-        <Coleccion />
+        <Routes>
+          <Route path="/coleccion" element={<Coleccion />} />
+          <Route path="/coleccion/categoria/:slugCategoria" element={<Coleccion />} />
+        </Routes>
       </MemoryRouter>
     </StrictMode>,
   );
@@ -106,12 +114,20 @@ describe("Coleccion - filtros y grid", () => {
     });
   });
 
-  it("cambiar la categoría actualiza la URL y refetch con el filtro", async () => {
+  // Fix de review (Task 17): la categoría es la IDENTIDAD de la página, no un
+  // filtro — elegirla en el selector NAVEGA a `/coleccion/categoria/:slug`
+  // (vía `rutaCategoria`), nunca escribe `?categoria=` en `searchParams`.
+  // Escribirlo ahí reintroduciría el conflicto query-vs-ruta que la Task 17
+  // vino a eliminar: `categoriaActiva` ya ignora la query cuando hay
+  // `slugCategoria`, así que el control quedaría muerto, solo que ensuciando
+  // la URL.
+  it("elegir una categoría desde /coleccion NAVEGA a su URL propia (no escribe ?categoria=)", async () => {
     const user = userEvent.setup();
     renderPagina();
 
     await screen.findByText("Reloj Clásico");
     productsApi.getProducts.mockClear();
+    llamadasSetSearchParams.length = 0;
 
     const select = screen.getByLabelText("Categoría");
     await user.selectOptions(select, "1");
@@ -121,22 +137,87 @@ describe("Coleccion - filtros y grid", () => {
         expect.objectContaining({ categoria: "1" }),
       );
     });
+    // La prueba de que fue navegación y no un filtro: cero llamadas al
+    // `setSearchParams` espiado.
+    expect(llamadasSetSearchParams).toHaveLength(0);
   });
 
-  it("cambiar un filtro usa { replace: true } para no apilar historial", async () => {
+  it("cambiar un filtro (búsqueda) usa { replace: true } para no apilar historial", async () => {
+    // La categoría dejó de pasar por acá (ver el test de arriba) — el único
+    // camino que sigue escribiendo en `searchParams` son los filtros reales
+    // (búsqueda, precio).
     const user = userEvent.setup();
     renderPagina();
 
     await screen.findByText("Reloj Clásico");
     llamadasSetSearchParams.length = 0;
 
-    const select = screen.getByLabelText("Categoría");
-    await user.selectOptions(select, "1");
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const input = screen.getByLabelText("Buscar");
+    await user.type(input, "reloj");
+    vi.advanceTimersByTime(400);
+    vi.useRealTimers();
 
     await waitFor(() => {
       expect(llamadasSetSearchParams.length).toBeGreaterThan(0);
     });
     expect(llamadasSetSearchParams.every((opts) => opts?.replace === true)).toBe(true);
+  });
+
+  it("cambiar de categoría estando ya en una NAVEGA a la nueva y apila historial (push, no replace)", async () => {
+    // Segunda dirección del fix de review: no solo "elegir desde /coleccion"
+    // sino también "cambiar de una categoría a otra". Push, no replace: pasar
+    // de una categoría a otra es ir a OTRA página del sitio (mismo criterio
+    // que el Paginador con `page`, no el de un filtro de precio/búsqueda) —
+    // "atrás" tiene que devolver a la categoría anterior, no saltarla.
+    //
+    // La prueba real de push-vs-replace es esta: con un solo entry inicial
+    // ("/coleccion/categoria/relojes"), si el cambio de categoría fuera
+    // `replace`, "atrás" no tendría a dónde ir (se quedaría en Anillos). Solo
+    // con `push` el historial pasa a tener dos entries y "atrás" recupera
+    // Relojes.
+    const user = userEvent.setup();
+
+    function ConBotonAtras() {
+      const irAtras = useNavigate();
+      return (
+        <>
+          <button type="button" onClick={() => irAtras(-1)}>
+            Atrás
+          </button>
+          <Coleccion />
+        </>
+      );
+    }
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={["/coleccion/categoria/relojes"]}>
+          <Routes>
+            <Route path="/coleccion" element={<ConBotonAtras />} />
+            <Route path="/coleccion/categoria/:slugCategoria" element={<ConBotonAtras />} />
+          </Routes>
+        </MemoryRouter>
+      </StrictMode>,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Relojes"));
+    productsApi.getProducts.mockClear();
+
+    const select = screen.getByLabelText("Categoría");
+    await user.selectOptions(select, "2");
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Anillos");
+    });
+    expect(productsApi.getProducts).toHaveBeenCalledWith(expect.objectContaining({ categoria: "2" }));
+    // Push, no replace: esta navegación NUNCA pasa por el `setSearchParams`
+    // espiado (que es, de todos modos, exclusivo del mecanismo de filtros).
+    expect(llamadasSetSearchParams).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: "Atrás" }));
+
+    await waitFor(() => expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Relojes"));
   });
 
   it("muestra el estado vacío 'Sin resultados' cuando no hay coincidencias con filtros", async () => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
@@ -10,7 +10,7 @@ import MetaSeo from "../components/MetaSeo.jsx";
 import { getProducts } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
 import { urlAbsoluta } from "../constants/seo.js";
-import { slugify } from "../utils/slug.js";
+import { rutaCategoria, slugify } from "../utils/slug.js";
 
 const DEBOUNCE_SEARCH_MS = 350;
 
@@ -40,6 +40,7 @@ const CLAVES_FILTRO = ["categoria", "search", "minPrecio", "maxPrecio"];
  */
 function Coleccion() {
   const { slugCategoria } = useParams();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // La URL puede llegar con filtros heredados (ej. link compartido con
@@ -162,13 +163,48 @@ function Coleccion() {
 
   const titulo = categoriaDeRuta ? `${categoriaDeRuta.nombre} — YIMA` : "Todos los productos — YIMA";
   const encabezado = categoriaDeRuta ? categoriaDeRuta.nombre : "Todos los productos";
-  // Canonical propio SOLO para una categoría de ruta válida — tiene que ser
-  // el mismo string que el sitemap emite para esa categoría (`rutaCategoria`
-  // + `slugify`, ver `utils/slug.js`). Un slug inválido no tiene entrada en
-  // el sitemap y muestra el mismo contenido que `/coleccion` sin filtrar, así
-  // que canoniza ahí en vez de a una URL que no nombra ninguna categoría real.
-  const rutaCanonica =
-    slugCategoria && categoriaDeRuta ? `/coleccion/categoria/${slugCategoria}` : "/coleccion";
+  // Canonical propio SOLO para una categoría de ruta válida — construido con
+  // `rutaCategoria`, la MISMA función que arma el `<loc>` del sitemap (nunca
+  // a mano: son dos template literals mantenidos por separado esperando
+  // divergir). Un slug inválido no tiene entrada en el sitemap y muestra el
+  // mismo contenido que `/coleccion` sin filtrar, así que canoniza ahí en vez
+  // de a una URL que no nombra ninguna categoría real.
+  //
+  // El `?? "/coleccion"` es defensivo, no alcanzable hoy: si `categoriaDeRuta`
+  // existe es porque su `slugify(nombre)` matcheó el `slugCategoria` no vacío
+  // de la URL, así que `rutaCategoria` sobre esa misma categoría no puede
+  // devolver `null`.
+  const rutaCanonica = categoriaDeRuta ? (rutaCategoria(categoriaDeRuta) ?? "/coleccion") : "/coleccion";
+
+  // El selector de categoría de `FiltrosCatalogo` (la barra de filtros de
+  // `/coleccion`, no el dropdown del Navbar — ese sigue fuera de alcance).
+  // Cambiar la categoría NAVEGA, no escribe un filtro: la categoría es la
+  // identidad de la página, y escribir `?categoria=id` acá reintroduciría el
+  // conflicto query-vs-ruta que esta misma tarea vino a eliminar
+  // (`categoriaActiva` ya ignora la query cuando hay `slugCategoria`, así que
+  // el control seguiría muerto, solo que ensuciando la URL). El destino se
+  // arma con `rutaCategoria`, nunca a mano — mismo criterio que `rutaCanonica`.
+  //
+  // Sin `categoriaId` ("Todas las categorías"): navega a `/coleccion` limpio.
+  //
+  // Si la categoría elegida no tiene slug posible (nombre solo símbolos, o
+  // vacío — un caso de calidad de datos, no de ruteo: ninguna categoría real
+  // del catálogo cae acá hoy), no hay `/coleccion/categoria/…` al que ir. La
+  // alternativa evidente —navegar a `/coleccion?categoria=id`— se descartó
+  // aposta: esa navegación cruza al Route de `/coleccion` con querystring
+  // presente en el MISMO mount que dispara el blanqueo de filtros heredados
+  // (`teniaFiltrosHeredados`), que borra `?categoria=` antes de que llegue a
+  // usarse — el filtro se pierde en silencio, más confuso que no aplicarlo.
+  // Se navega a `/coleccion` sin filtro: la página resultante es honesta
+  // sobre lo que puede mostrar.
+  function irACategoria(categoriaId) {
+    if (!categoriaId) {
+      navigate("/coleccion");
+      return;
+    }
+    const elegida = categorias.find((c) => String(c.id) === categoriaId);
+    navigate((elegida && rutaCategoria(elegida)) || "/coleccion");
+  }
 
   // { replace: true }: react-router-dom v7's useSearchParams pushes a new
   // history entry by default. A filter change is a refinement of the same
@@ -299,7 +335,14 @@ function Coleccion() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargando, pagina, totalPaginas]);
 
-  const hayFiltrosActivos = Boolean(categoria || searchUrl || minPrecio || maxPrecio);
+  // `categoriaActiva`, no `categoria`: en `/coleccion/categoria/:slug` el
+  // filtro vive en la ruta, y `categoria` (derivado de la querystring) queda
+  // vacío ahí — con `categoria` a secas, una categoría de ruta sin productos
+  // mostraba "Todavía no hay productos" (le dice al visitante que el
+  // catálogo ENTERO está vacío) en vez de "Sin resultados" (lo que
+  // corresponde a un filtro que no encontró nada). Mismo criterio que
+  // documenta CLAUDE.md para el buscador del admin.
+  const hayFiltrosActivos = Boolean(categoriaActiva || searchUrl || minPrecio || maxPrecio);
 
   return (
     <>
@@ -335,8 +378,8 @@ function Coleccion() {
 
       <FiltrosCatalogo
         categorias={categorias}
-        categoria={categoria}
-        onChangeCategoria={(valor) => actualizarFiltro("categoria", valor)}
+        categoria={categoriaActiva}
+        onChangeCategoria={irACategoria}
         search={searchInput}
         onChangeSearch={setSearchInput}
         minPrecio={minPrecio}
