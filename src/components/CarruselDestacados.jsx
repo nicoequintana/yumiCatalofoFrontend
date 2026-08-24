@@ -11,6 +11,28 @@ const VELOCIDAD_PX_POR_SEGUNDO = 40;
 const UMBRAL_ARRASTRE_PX = 5;
 
 /**
+ * Velocidad mínima del gesto, en px/s, para que soltar deje al carrusel en
+ * movimiento. Por debajo de esto el gesto fue una colocación deliberada —
+ * arrastrar despacio hasta una tarjeta y soltar— y continuar el viaje sería
+ * llevarse puesto lo que la persona acaba de elegir mirar.
+ */
+const VELOCIDAD_MINIMA_INERCIA_PX_S = 120;
+
+/**
+ * Cuánta velocidad sobrevive a cada frame de 60 Hz. Se aplica elevado al
+ * tiempo real transcurrido, así el frenado dura lo mismo a 60 que a 120 Hz.
+ */
+const FRICCION_POR_FRAME = 0.94;
+
+/**
+ * Velocidad a la que la inercia se apaga y retoma el desplazamiento
+ * automático. Coincide a propósito con `VELOCIDAD_PX_POR_SEGUNDO`: el relevo
+ * ocurre cuando las dos velocidades son iguales, así no hay ningún escalón
+ * perceptible entre "todavía viene frenando" y "volvió a girar solo".
+ */
+const VELOCIDAD_FIN_INERCIA_PX_S = VELOCIDAD_PX_POR_SEGUNDO;
+
+/**
  * Tarjeta de un producto destacado dentro del carrusel.
  *
  * Hereda el lenguaje visual del bento que reemplazó a este componente:
@@ -167,7 +189,22 @@ function CarruselDestacados({ productos }) {
 
   // Estado del gesto de arrastre. En un ref y no en `useState`: cambia en
   // cada `pointermove` y no debe provocar un render por frame.
-  const arrastreRef = useRef({ activo: false, xInicial: 0, scrollInicial: 0, movido: false });
+  const arrastreRef = useRef({
+    activo: false,
+    xInicial: 0,
+    scrollInicial: 0,
+    movido: false,
+    // Velocidad del DEDO en px/s (positiva hacia la derecha), suavizada entre
+    // movimientos. El scroll va al revés que el dedo, así que al soltar se
+    // invierte el signo.
+    velocidad: 0,
+    xUltimo: 0,
+    tiempoUltimo: 0,
+  });
+
+  // Velocidad remanente del scroll, en px/s, mientras el carrusel viene
+  // frenando después de soltar. Cero significa que no hay inercia en curso.
+  const inerciaRef = useRef(0);
 
   const pausar = useCallback(() => setPausado(true), []);
   const reanudar = useCallback(() => setPausado(false), []);
@@ -213,9 +250,15 @@ function CarruselDestacados({ productos }) {
       // siempre. Ese fue exactamente el bug de "no gira solo".
       const pista = pistaRef.current;
 
+      // La inercia manda sobre la pausa: es un movimiento que la persona
+      // acaba de imprimir con el dedo y dura menos de un segundo. Frenarlo en
+      // seco porque el puntero quedó encima de una tarjeta sería, otra vez,
+      // el corte abrupto que esta rama existe para evitar.
+      const hayInercia = inerciaRef.current !== 0;
+
       // Un frame de más entre el desmontaje y el `cancelAnimationFrame` no
       // debe explotar.
-      if (pista && !pausadoRef.current && !arrastreRef.current.activo) {
+      if (pista && !arrastreRef.current.activo && (hayInercia || !pausadoRef.current)) {
         // Se resincroniza con el DOM cuando algo externo movió el scroll
         // (arrastre, rueda, teclado): si la posición propia se alejó del
         // scroll real, manda el real.
@@ -223,7 +266,22 @@ function CarruselDestacados({ productos }) {
           posicion = pista.scrollLeft;
         }
 
-        posicion += VELOCIDAD_PX_POR_SEGUNDO * delta;
+        if (hayInercia) {
+          posicion += inerciaRef.current * delta;
+
+          // El decaimiento se eleva al tiempo REAL transcurrido, no se aplica
+          // una vez por frame: si no, el carrusel frenaría al doble de rápido
+          // en una pantalla de 120 Hz que en una de 60.
+          inerciaRef.current *= Math.pow(FRICCION_POR_FRAME, delta * 60);
+
+          // Al caer a la velocidad del desplazamiento automático, se apaga y
+          // el relevo es imperceptible: las dos velocidades son la misma.
+          if (Math.abs(inerciaRef.current) < VELOCIDAD_FIN_INERCIA_PX_S) {
+            inerciaRef.current = 0;
+          }
+        } else {
+          posicion += VELOCIDAD_PX_POR_SEGUNDO * delta;
+        }
 
         // Rebobinado en las DOS direcciones: arrastrar hacia la derecha lleva
         // el scroll hacia 0, y sin la rama de abajo el carrusel se clavaba
@@ -256,12 +314,20 @@ function CarruselDestacados({ productos }) {
     const pista = pistaRef.current;
     if (!pista) return;
 
+    // Volver a apoyar el dedo agarra el carrusel donde está. Sin esto seguiría
+    // viajando por debajo del dedo, que es la sensación de que el control se
+    // le escapa a uno de las manos.
+    inerciaRef.current = 0;
+
     arrastreRef.current = {
       activo: true,
       xInicial: evento.clientX,
       scrollInicial: pista.scrollLeft,
       movido: false,
       pointerId: evento.pointerId,
+      velocidad: 0,
+      xUltimo: evento.clientX,
+      tiempoUltimo: performance.now(),
     };
 
     // NO se llama a `setPointerCapture` acá: medido en Chromium, capturar el
@@ -294,6 +360,21 @@ function CarruselDestacados({ productos }) {
     // Por debajo del umbral el gesto todavía puede ser un tap: no se mueve
     // nada, para que un temblor del dedo no desplace el carrusel.
     if (!arrastre.movido) return;
+
+    // Velocidad del dedo, suavizada. Se mide entre movimientos consecutivos y
+    // no contra el inicio del gesto: lo que decide la inercia es a qué
+    // velocidad venía la mano AL SOLTAR, no el promedio de todo el recorrido
+    // —un arrastre largo que se frena antes de levantar el dedo tiene que
+    // quedarse quieto—. La mezcla 60/40 evita que un único movimiento
+    // anómalo (un salto de muestreo, un rebote del dedo) mande solo.
+    const ahora = performance.now();
+    const dt = ahora - arrastre.tiempoUltimo;
+    if (dt > 0) {
+      const instantanea = ((evento.clientX - arrastre.xUltimo) / dt) * 1000;
+      arrastre.velocidad = arrastre.velocidad * 0.6 + instantanea * 0.4;
+      arrastre.xUltimo = evento.clientX;
+      arrastre.tiempoUltimo = ahora;
+    }
 
     // Sin este `preventDefault`, `touch-action: pan-y` deja pasar cualquier
     // ambigüedad de la primera detección de gesto en algunos navegadores
@@ -338,6 +419,15 @@ function CarruselDestacados({ productos }) {
     if (pista?.hasPointerCapture?.(evento.pointerId)) {
       pista.releasePointerCapture(evento.pointerId);
     }
+
+    // El scroll se mueve al revés que el dedo, de ahí el signo invertido.
+    // Solo un gesto que venía rápido deja al carrusel en movimiento; soltar
+    // despacio lo deja donde está.
+    const velocidadScroll = -arrastre.velocidad;
+    inerciaRef.current =
+      arrastre.movido && Math.abs(velocidadScroll) >= VELOCIDAD_MINIMA_INERCIA_PX_S
+        ? velocidadScroll
+        : 0;
 
     arrastre.activo = false;
     // `movido` NO se limpia acá: lo lee el `onClickCapture` de la tarjeta,

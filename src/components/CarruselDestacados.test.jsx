@@ -265,3 +265,149 @@ describe("CarruselDestacados — regresiones verificadas en navegador", () => {
     expect(pista.scrollLeft).toBeGreaterThan(0);
   });
 });
+
+/**
+ * Inercia del gesto táctil.
+ *
+ * `touch-action: pan-y` le prohíbe al navegador manejar el eje horizontal, así
+ * que el desplazamiento lo escribe este componente a mano — y con eso se pierde
+ * el momentum que el scroll nativo trae de fábrica. Medido en Chromium con
+ * emulación táctil sobre producción: un swipe de 220 px seguía al dedo 1:1
+ * (221 px) pero al soltar el carrusel avanzaba solo 24 px en 600 ms, que es
+ * exactamente el desplazamiento automático de 40 px/s. Es decir, frenaba en
+ * seco. En un celular, donde todo scroll tiene inercia, eso se siente como que
+ * el carrusel “no va fluido”.
+ */
+describe("CarruselDestacados — inercia al soltar", () => {
+  function obtenerPista() {
+    return screen.getByRole("region", { name: /productos destacados/i });
+  }
+
+  /**
+   * Toma el control del reloj y del bucle de animación.
+   *
+   * El componente lee el tiempo de dos fuentes distintas —`performance.now()`
+   * para medir la velocidad del gesto y el argumento del callback de
+   * `requestAnimationFrame` para el avance por frame—, así que las dos tienen
+   * que avanzar juntas o los cálculos se contradicen.
+   */
+  function tomarControlDelTiempo() {
+    let ahora = 0;
+    // El id tiene que ser un NÚMERO: el componente lo guarda en una variable
+    // que arranca en 0 y se lo pasa a `cancelAnimationFrame`. Con un Symbol,
+    // jsdom revienta con "Cannot convert a Symbol value to a number".
+    let proximoId = 1;
+    const pendientes = new Map();
+
+    const rafReal = window.requestAnimationFrame;
+    const cancelReal = window.cancelAnimationFrame;
+    const nowReal = performance.now;
+
+    window.requestAnimationFrame = (cb) => {
+      const id = proximoId++;
+      pendientes.set(id, cb);
+      return id;
+    };
+    window.cancelAnimationFrame = (id) => pendientes.delete(id);
+    performance.now = () => ahora;
+
+    return {
+      avanzar(ms) {
+        ahora += ms;
+        const aCorrer = [...pendientes.entries()];
+        pendientes.clear();
+        for (const [, cb] of aCorrer) cb(ahora);
+      },
+      restaurar() {
+        window.requestAnimationFrame = rafReal;
+        window.cancelAnimationFrame = cancelReal;
+        performance.now = nowReal;
+      },
+    };
+  }
+
+  it("sigue desplazándose después de soltar, mucho más que el avance automático", () => {
+    const reloj = tomarControlDelTiempo();
+    try {
+      renderComponente(cuatroDestacados());
+      const pista = obtenerPista();
+      Object.defineProperty(pista, "scrollWidth", { value: 4000, configurable: true });
+      pista.scrollLeft = 500;
+
+      // Arranca el bucle de animación.
+      reloj.avanzar(16);
+
+      // Swipe rápido hacia la izquierda: 5 tramos de 40 px en 16 ms cada uno,
+      // o sea 2500 px/s, un flick perfectamente normal en un celular.
+      fireEvent.pointerDown(pista, { button: 0, pointerId: 1, clientX: 300 });
+      for (let i = 1; i <= 5; i++) {
+        reloj.avanzar(16);
+        fireEvent.pointerMove(pista, { pointerId: 1, clientX: 300 - i * 40 });
+      }
+      const alSoltar = pista.scrollLeft;
+      fireEvent.pointerUp(pista, { pointerId: 1 });
+
+      // Medio segundo después de levantar el dedo.
+      for (let i = 0; i < 30; i++) reloj.avanzar(16);
+      const avanceTrasSoltar = pista.scrollLeft - alSoltar;
+
+      // El desplazamiento automático solo daría ~20 px en 500 ms (40 px/s).
+      // Cualquier valor de ese orden significa que el gesto frenó en seco.
+      expect(avanceTrasSoltar).toBeGreaterThan(100);
+    } finally {
+      reloj.restaurar();
+    }
+  });
+
+  it("un tap sin arrastre no dispara inercia", () => {
+    const reloj = tomarControlDelTiempo();
+    try {
+      renderComponente(cuatroDestacados());
+      const pista = obtenerPista();
+      Object.defineProperty(pista, "scrollWidth", { value: 4000, configurable: true });
+      pista.scrollLeft = 500;
+      reloj.avanzar(16);
+
+      fireEvent.pointerDown(pista, { button: 0, pointerId: 1, clientX: 300 });
+      reloj.avanzar(16);
+      fireEvent.pointerUp(pista, { pointerId: 1 });
+
+      const antes = pista.scrollLeft;
+      for (let i = 0; i < 10; i++) reloj.avanzar(16);
+
+      // Solo el avance automático: 40 px/s durante ~160 ms.
+      expect(pista.scrollLeft - antes).toBeLessThan(20);
+    } finally {
+      reloj.restaurar();
+    }
+  });
+
+  it("un gesto nuevo corta la inercia en curso", () => {
+    const reloj = tomarControlDelTiempo();
+    try {
+      renderComponente(cuatroDestacados());
+      const pista = obtenerPista();
+      Object.defineProperty(pista, "scrollWidth", { value: 4000, configurable: true });
+      pista.scrollLeft = 500;
+      reloj.avanzar(16);
+
+      fireEvent.pointerDown(pista, { button: 0, pointerId: 1, clientX: 300 });
+      for (let i = 1; i <= 5; i++) {
+        reloj.avanzar(16);
+        fireEvent.pointerMove(pista, { pointerId: 1, clientX: 300 - i * 40 });
+      }
+      fireEvent.pointerUp(pista, { pointerId: 1 });
+      reloj.avanzar(16);
+
+      // El dedo vuelve a apoyarse: el carrusel tiene que quedarse quieto donde
+      // está, no seguir viajando por debajo del dedo.
+      fireEvent.pointerDown(pista, { button: 0, pointerId: 2, clientX: 200 });
+      const alTocar = pista.scrollLeft;
+      for (let i = 0; i < 5; i++) reloj.avanzar(16);
+
+      expect(pista.scrollLeft).toBe(alTocar);
+    } finally {
+      reloj.restaurar();
+    }
+  });
+});
