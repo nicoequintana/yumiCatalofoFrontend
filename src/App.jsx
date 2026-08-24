@@ -49,6 +49,7 @@ function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<Catalogo />} />
         <Route path="/coleccion" element={<Coleccion />} />
+        <Route path="/coleccion/categoria/:slugCategoria" element={<Coleccion />} />
         <Route path="/favoritos" element={<Favoritos />} />
         <Route path="/carrito" element={<Carrito />} />
         <Route path="/checkout" element={<Checkout />} />

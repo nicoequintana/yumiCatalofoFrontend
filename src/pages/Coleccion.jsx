@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
@@ -10,6 +10,7 @@ import MetaSeo from "../components/MetaSeo.jsx";
 import { getProducts } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
 import { urlAbsoluta } from "../constants/seo.js";
+import { slugify } from "../utils/slug.js";
 
 const DEBOUNCE_SEARCH_MS = 350;
 
@@ -38,6 +39,7 @@ const CLAVES_FILTRO = ["categoria", "search", "minPrecio", "maxPrecio"];
  * efecto de fetch realmente reacciona.
  */
 function Coleccion() {
+  const { slugCategoria } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // La URL puede llegar con filtros heredados (ej. link compartido con
@@ -117,6 +119,56 @@ function Coleccion() {
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);
   const [totalPaginas, setTotalPaginas] = useState(1);
+
+  // La categoría de la RUTA (`/coleccion/categoria/:slugCategoria`) es la
+  // IDENTIDAD de la página, no un filtro heredado: por eso no entra en
+  // `CLAVES_FILTRO` ni se blanquea al montar, a diferencia de `?categoria=`.
+  // El slug se resuelve contra `categorias` (ya cargado o todavía no); un
+  // slug que no matchea ninguna categoría real deja `categoriaDeRuta` en
+  // `undefined` en vez de inventar un id — mismo resultado que "categorías
+  // aún no cargaron", indistinguible a propósito: en los dos casos hay que
+  // mostrarse como el catálogo sin filtrar hasta saber más.
+  const categoriaDeRuta = slugCategoria
+    ? categorias.find((c) => slugify(c.nombre) === slugCategoria)
+    : null;
+
+  // Una vez que `categorias` YA cargó, un slug que sigue sin matchear ninguna
+  // es definitivamente inválido (no "todavía no sabemos"). Es la única señal
+  // que distingue las dos situaciones, porque `categoriaDeRuta` es `undefined`
+  // en ambas.
+  const categoriaInvalida = Boolean(slugCategoria) && categorias.length > 0 && !categoriaDeRuta;
+
+  // Filtro que efectivamente viaja a `getProducts`: la categoría de la ruta
+  // manda sobre `?categoria=` cuando existe y es válida. Un slug inexistente
+  // NO cae al valor de la querystring — un slug roto no debe "heredar" un
+  // filtro que la URL no pidió — y en cambio deja pasar el catálogo entero,
+  // que es lo que la página termina mostrando en ese caso.
+  //
+  // El fallback usa `categoria` (ya derivado de `filtrosUrl`, arriba), NO
+  // `searchParams.get("categoria")` directo: `categoria` es el que respeta el
+  // blanqueo de filtros heredados. Leer `searchParams` acá se salteaba el
+  // blanqueo y un link viejo con `?categoria=2` volvía a filtrar solo en la
+  // ruta plana `/coleccion` — justo el bug que el blanqueo existe para evitar.
+  const categoriaActiva = categoriaDeRuta ? String(categoriaDeRuta.id) : slugCategoria ? "" : categoria;
+
+  // Señal de "ya sé qué mostrar" para el efecto de fetch: en `/coleccion`
+  // plano (sin `slugCategoria`) siempre es `true` y por lo tanto estable
+  // entre renders — no dispara refetches de más. En una categoría de ruta
+  // arranca en `false` mientras `categorias` está vacío y pasa a `true`
+  // exactamente una vez, cuando `categorias` carga (con o sin match): esa
+  // única transición es la que reactiva el efecto para pedir con el filtro ya
+  // resuelto (o sin filtro, si el slug no matchea ninguna categoría).
+  const categoriasListas = !slugCategoria || categorias.length > 0;
+
+  const titulo = categoriaDeRuta ? `${categoriaDeRuta.nombre} — YIMA` : "Todos los productos — YIMA";
+  const encabezado = categoriaDeRuta ? categoriaDeRuta.nombre : "Todos los productos";
+  // Canonical propio SOLO para una categoría de ruta válida — tiene que ser
+  // el mismo string que el sitemap emite para esa categoría (`rutaCategoria`
+  // + `slugify`, ver `utils/slug.js`). Un slug inválido no tiene entrada en
+  // el sitemap y muestra el mismo contenido que `/coleccion` sin filtrar, así
+  // que canoniza ahí en vez de a una URL que no nombra ninguna categoría real.
+  const rutaCanonica =
+    slugCategoria && categoriaDeRuta ? `/coleccion/categoria/${slugCategoria}` : "/coleccion";
 
   // { replace: true }: react-router-dom v7's useSearchParams pushes a new
   // history entry by default. A filter change is a refinement of the same
@@ -200,10 +252,16 @@ function Coleccion() {
   }, []);
 
   useEffect(() => {
+    // Con categoría de ruta, `categorias` todavía no cargó: el slug no se
+    // pudo resolver todavía a un id (o a "inválido"). Salir ahora —en vez de
+    // pedir sin filtro— es lo que evita el flash del catálogo completo antes
+    // de que aparezca la vista filtrada por categoría.
+    if (!categoriasListas) return;
+
     let activo = true;
     setCargando(true);
 
-    getProducts({ categoria, search: searchUrl, minPrecio, maxPrecio, page: pagina })
+    getProducts({ categoria: categoriaActiva, search: searchUrl, minPrecio, maxPrecio, page: pagina })
       .then(({ data, total, pageSize }) => {
         if (!activo) return;
         setProductos(data);
@@ -228,7 +286,7 @@ function Coleccion() {
     return () => {
       activo = false;
     };
-  }, [categoria, searchUrl, minPrecio, maxPrecio, pagina]);
+  }, [categoriaActiva, searchUrl, minPrecio, maxPrecio, pagina, categoriasListas]);
 
   // Un link viejo o un catálogo que se achicó pueden dejar la URL apuntando a
   // una página que ya no existe. En vez de mostrar "Sin resultados" —que
@@ -246,12 +304,21 @@ function Coleccion() {
   return (
     <>
       <MetaSeo
-        titulo="Todos los productos — YIMA"
-        descripcion="Explorá el catálogo completo de YIMA: filtrá por categoría y precio para encontrar lo que buscás."
-        // El canonical apunta SIEMPRE a /coleccion limpio: las combinaciones de
-        // filtros y las páginas 2+ son la misma mercadería reordenada.
-        canonical={urlAbsoluta("/coleccion")}
-        noindex={pagina > 1}
+        titulo={titulo}
+        descripcion={
+          categoriaDeRuta
+            ? `Productos de ${categoriaDeRuta.nombre} en YIMA: útiles, innovadores y con diseño.`
+            : "Explorá el catálogo completo de YIMA: filtrá por categoría y precio para encontrar lo que buscás."
+        }
+        // El canonical de una categoría de ruta VÁLIDA apunta a su propia URL
+        // (mismo string que emite el sitemap para esa categoría). `/coleccion`
+        // sin filtro, las combinaciones por querystring, las páginas 2+ y un
+        // slug de categoría inválido canonizan a /coleccion limpio: son la
+        // misma mercadería reordenada, o —en el caso del slug inválido— el
+        // mismo contenido sin filtrar servido bajo una URL que no nombra
+        // ninguna categoría real.
+        canonical={urlAbsoluta(rutaCanonica)}
+        noindex={pagina > 1 || categoriaInvalida}
       />
 
       {/* Salida de la página, antes de cualquier contenido: `/coleccion` es un
@@ -289,7 +356,7 @@ function Coleccion() {
               es un `<h2>` decorativo, no el encabezado de nivel 1 de la
               página. Se agrega arriba de la grilla, per brief. */}
           <h1 className="font-headline-lg text-headline-lg-mobile lg:text-headline-lg mb-6 text-on-background">
-            Todos los productos
+            {encabezado}
           </h1>
 
           <div className="mb-8 flex flex-col items-center">
