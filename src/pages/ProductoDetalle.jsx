@@ -6,9 +6,10 @@ import BotonVolver from "../components/BotonVolver.jsx";
 import { useVolver } from "../hooks/useVolver.js";
 import { getProductById } from "../api/products.js";
 import { useToast } from "../context/useToast.js";
+import { parsearIdDeRuta } from "../utils/slug.js";
 
 /**
- * `/producto/:id` — container for the public product detail view.
+ * `/producto/:idSlug` — container for the public product detail view.
  *
  * Owns only page concerns: fetching by route param, redirecting when the
  * product is gone, and the mobile back header. All of the actual product
@@ -16,7 +17,11 @@ import { useToast } from "../context/useToast.js";
  * the preview an admin sees while editing cannot drift from this page.
  */
 function ProductoDetalle() {
-  const { id } = useParams();
+  const { idSlug } = useParams();
+  // El param trae "123-nombre-del-producto": la clave real es el prefijo
+  // numérico. `null` significa una URL que no nombra ningún producto — se
+  // trata igual que un producto inexistente.
+  const id = parsearIdDeRuta(idSlug);
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
   const volver = useVolver();
@@ -25,6 +30,11 @@ function ProductoDetalle() {
   const [errorCarga, setErrorCarga] = useState(null);
 
   useEffect(() => {
+    if (id === null) {
+      navigate("/", { replace: true });
+      return undefined;
+    }
+
     let activo = true;
     setCargando(true);
     setErrorCarga(null);

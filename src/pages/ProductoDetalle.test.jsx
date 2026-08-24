@@ -49,7 +49,7 @@ function renderPagina(id = "1") {
       <ToastProvider>
         <Routes>
           <Route path="/" element={<div>Catálogo (mock)</div>} />
-          <Route path="/producto/:id" element={<ProductoDetalle />} />
+          <Route path="/producto/:idSlug" element={<ProductoDetalle />} />
         </Routes>
       </ToastProvider>
     </MemoryRouter>,

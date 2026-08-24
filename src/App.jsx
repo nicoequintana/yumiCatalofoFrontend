@@ -52,7 +52,7 @@ function App() {
         <Route path="/carrito" element={<Carrito />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/checkout/confirmacion" element={<OrdenConfirmada />} />
-        <Route path="/producto/:id" element={<ProductoDetalle />} />
+        <Route path="/producto/:idSlug" element={<ProductoDetalle />} />
         {/* El login vive en el `Layout` público (con Navbar/Footer) porque
             todavía no hay sesión, pero es una pantalla del admin y también se
             carga bajo demanda. Como el resto de ese branch es síncrono, lleva
