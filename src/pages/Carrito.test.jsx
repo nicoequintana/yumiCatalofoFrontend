@@ -1,0 +1,403 @@
+import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import Carrito from "./Carrito.jsx";
+import useCarrito from "../hooks/useCarrito.js";
+import * as productsApi from "../api/products.js";
+
+vi.mock("../api/products.js");
+
+const PRODUCTO_1 = {
+  id: 1,
+  nombre: "Reloj Clásico",
+  precio: "1500",
+  fotos: [{ url: "https://ejemplo.com/foto1.jpg" }],
+};
+
+const PRODUCTO_2 = {
+  id: 2,
+  nombre: "Anillo Elegance",
+  precio: "2300",
+  fotos: [],
+};
+
+// NOTA sobre orden de mount (mismo patrón que BotonAgregarCarrito.test.jsx /
+// useCarrito.test.jsx): el localStorage real de este entorno de test es poco
+// confiable, así que `useCarrito`'s initial `useState(() => leerCarrito())`
+// no puede usarse para "sembrar" estado antes de montar `Carrito` — hay que
+// montar PRIMERO (`renderCarrito()` y/o un `renderHook` de control), y recién
+// después mutar el carrito con `act()`, para que ambas instancias reciban el
+// cambio vía el mecanismo de listeners a nivel de módulo, no vía una lectura
+// fresca de localStorage.
+function renderCarrito() {
+  return render(
+    <MemoryRouter>
+      <Carrito />
+    </MemoryRouter>,
+  );
+}
+
+describe("Carrito", () => {
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("muestra el estado vacío cuando el carrito no tiene líneas", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
+
+    renderCarrito();
+
+    expect(await screen.findByText(/tu carrito está vacío/i)).toBeInTheDocument();
+  });
+
+  it("renderiza las líneas del carrito reconciliadas contra el fetch en vivo", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 2);
+    });
+
+    expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
+    expect(screen.getByText("$ 1.500")).toBeInTheDocument();
+    // Subtotal de la línea: 1500.00 * 2 = 3000.00 (coincide con el total
+    // porque hay una sola línea, por eso se buscan ambos por separado).
+    expect(screen.getAllByText("$ 3.000")).toHaveLength(2);
+    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 3.000");
+  });
+
+  it("muestra un placeholder cuando el producto no tiene foto", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(2, 1);
+    });
+
+    expect(await screen.findByText("Anillo Elegance")).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /anillo elegance/i })).not.toBeInTheDocument();
+  });
+
+  it("advierte sobre una línea cuyo producto ya no existe y permite quitarla", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar(99, 1); // 99 no existe en el fetch en vivo
+    });
+
+    expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
+    expect(screen.getByText(/ya no está disponible/i)).toBeInTheDocument();
+
+    expect(carritoHook.current.carrito).toEqual([
+      { productId: 1, cantidad: 1 },
+      { productId: 99, cantidad: 1 },
+    ]);
+  });
+
+  it("permite quitar una línea con problema de reconciliación mediante el botón de aviso", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    const user = userEvent.setup();
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar(99, 1);
+    });
+
+    await screen.findByText(/ya no está disponible/i);
+
+    await user.click(screen.getByRole("button", { name: /quitar producto no disponible/i }));
+
+    expect(carritoHook.current.carrito).toEqual([{ productId: 1, cantidad: 1 }]);
+  });
+
+  it("deshabilita el CTA de continuar cuando hay una línea con problema de reconciliación", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar(99, 1);
+    });
+
+    await screen.findByText(/ya no está disponible/i);
+
+    // `aria-disabled` sobre un <Link>/<a> no es confiable entre lectores de
+    // pantalla, así que el CTA deshabilitado se renderiza como <button
+    // disabled> nativo en vez de un link con ARIA — no debe existir ningún
+    // link "Confirmar pedido" enfocable/clickeable en este estado.
+    expect(screen.queryByRole("link", { name: /confirmar pedido/i })).not.toBeInTheDocument();
+    const cta = screen.getByRole("button", { name: /confirmar pedido/i });
+    expect(cta).toBeDisabled();
+  });
+
+  it("habilita el CTA cuando todas las líneas son válidas", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+
+    expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
+
+    // Habilitado: debe ser un <Link> real (navegable), no un botón.
+    expect(screen.queryByRole("button", { name: /confirmar pedido/i })).not.toBeInTheDocument();
+    const cta = screen.getByRole("link", { name: /confirmar pedido/i });
+    expect(cta).toHaveAttribute("href", "/checkout");
+  });
+
+  it("actualiza la cantidad de una línea vía el selector, y el subtotal reacciona", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    const user = userEvent.setup();
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+
+    await screen.findByText("Reloj Clásico");
+
+    await user.click(screen.getByRole("button", { name: /aumentar/i }));
+
+    expect(carritoHook.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);
+    expect(await screen.findByTestId("carrito-total")).toHaveTextContent("$ 3.000");
+  });
+
+  it("quita una línea válida mediante el botón de eliminar", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    const user = userEvent.setup();
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+
+    await screen.findByText("Reloj Clásico");
+
+    await user.click(screen.getByRole("button", { name: /eliminar del carrito/i }));
+
+    expect(carritoHook.current.carrito).toEqual([]);
+    expect(await screen.findByText(/tu carrito está vacío/i)).toBeInTheDocument();
+  });
+
+  it("suma el total de varias líneas distintas", async () => {
+    // Este test compraba montos con centavos ($2,675 x3) para probar que la
+    // suma no arrastra drift de float. Desde que los precios son enteros
+    // (`Product.precio` es `Decimal(10, 0)`) y `formatPrecio` no emite
+    // decimales, ese caso formatea igual con una suma correcta o con una
+    // naive: dejó de ser un guard. El guard sigue vivo donde sí muerde,
+    // `utils/formato.test.js`, que afirma sobre los centavos enteros que
+    // devuelve `precioACentavos` sin pasarlos por el formateador.
+    //
+    // Lo que este test sigue cubriendo es el camino de la pantalla: tres
+    // productos distintos, un fetch, un total. 2675 * 3 = 8025.
+    const PROD_A = { id: 10, nombre: "A", precio: "2675", fotos: [] };
+    const PROD_B = { id: 11, nombre: "B", precio: "2675", fotos: [] };
+    const PROD_C = { id: 12, nombre: "C", precio: "2675", fotos: [] };
+
+    productsApi.getProductsByIds.mockResolvedValue([PROD_A, PROD_B, PROD_C]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(10, 1);
+      carritoHook.current.agregar(11, 1);
+      carritoHook.current.agregar(12, 1);
+    });
+
+    await screen.findByText("A");
+
+    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 8.025");
+  });
+
+  it("usa BotonVolver para la navegación hacia atrás", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([]);
+
+    renderCarrito();
+
+    expect(await screen.findByRole("button", { name: /volver/i })).toBeInTheDocument();
+  });
+});
+
+describe("Carrito — tope de cantidad contra el stock disponible", () => {
+  const CON_STOCK = { id: 3, nombre: "Vela de soja", precio: "100", stock: 2, fotos: [] };
+
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("una línea que excede el stock muestra un aviso (nunca se ajusta en silencio) y bloquea el CTA", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([CON_STOCK]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(3, 5); // el stock vivo es 2
+    });
+
+    expect(await screen.findByText(/solo hay 2 unidades disponibles/i)).toBeInTheDocument();
+    // La cantidad pedida sigue visible tal cual: nada se recorta en silencio.
+    expect(carritoHook.current.carrito).toEqual([{ productId: 3, cantidad: 5 }]);
+    expect(screen.queryByRole("link", { name: /confirmar pedido/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /confirmar pedido/i })).toBeDisabled();
+  });
+
+  it("el botón de ajustar deja la línea en el stock disponible", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([CON_STOCK]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    const user = userEvent.setup();
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(3, 5);
+    });
+
+    await screen.findByText(/solo hay 2 unidades disponibles/i);
+    await user.click(screen.getByRole("button", { name: /ajustar a 2/i }));
+
+    expect(carritoHook.current.carrito).toEqual([{ productId: 3, cantidad: 2 }]);
+    expect(screen.queryByText(/solo hay 2 unidades disponibles/i)).not.toBeInTheDocument();
+  });
+
+  it("el selector no permite superar el stock conocido", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([CON_STOCK]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(3, 2);
+    });
+
+    await screen.findByText("Vela de soja");
+
+    const aumentar = screen.getByRole("button", { name: /aumentar/i });
+    expect(aumentar).toBeDisabled();
+    fireEvent.click(aumentar);
+    expect(carritoHook.current.carrito).toEqual([{ productId: 3, cantidad: 2 }]);
+  });
+
+  it("sin stock en el payload no clampea ni avisa (stock desconocido)", async () => {
+    // PRODUCTO_1 no trae `stock`: el clamp solo aplica con el dato vivo.
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 50);
+    });
+
+    await screen.findByText("Reloj Clásico");
+
+    expect(screen.queryByText(/unidades disponibles/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /aumentar/i })).not.toBeDisabled();
+    expect(screen.getByRole("link", { name: /confirmar pedido/i })).toBeInTheDocument();
+  });
+});
+
+describe("Carrito — fallo de red", () => {
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    vi.clearAllMocks();
+  });
+
+  it("muestra un error y apaga el spinner si no se pueden cargar los productos", async () => {
+    productsApi.getProductsByIds.mockRejectedValue(new Error("network down"));
+
+    renderCarrito();
+
+    expect(
+      await screen.findByText(/No pudimos cargar tu carrito/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Cargando carrito…")).not.toBeInTheDocument();
+  });
+});
+
+describe("Carrito — fetch acotado a los productos del carrito", () => {
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    vi.clearAllMocks();
+  });
+
+  it("pide solo los ids del carrito, no el catálogo entero", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 2);
+      carritoHook.current.agregar(2, 1);
+    });
+
+    await screen.findByText("Reloj Clásico");
+    expect(productsApi.getProductsByIds).toHaveBeenLastCalledWith([1, 2]);
+    expect(productsApi.getProducts).not.toHaveBeenCalled();
+  });
+
+  it("no vuelve a pedir productos al cambiar solo la cantidad de una línea", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+    await screen.findByText("Reloj Clásico");
+
+    const llamadasPrevias = productsApi.getProductsByIds.mock.calls.length;
+    act(() => {
+      carritoHook.current.actualizarCantidad(1, 5);
+    });
+
+    expect(productsApi.getProductsByIds.mock.calls.length).toBe(llamadasPrevias);
+  });
+});
