@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YIMA — Productos útiles, innovadores y con diseño</title>
+    <meta
+      data-seo-estatico
+      name="description"
+      content="Productos útiles, innovadores y con diseño que simplifican tu rutina y suman estilo a tu hogar, tu trabajo y tus momentos."
+    />
+
+    <!--
+      Open Graph del SITIO (la home y cualquier ruta de la SPA). Las fichas de
+      producto NO pasan por acá: nginx desvía los User-Agent de bots a
+      `/og/producto/:id`, que el backend arma server-side con la foto del
+      producto — ver `backend/src/controllers/seo.controller.js`.
+
+      Hasta ahora este archivo no declaraba ni un meta tag OG, así que al
+      compartir el link del catálogo los bots no encontraban imagen y caían al
+      favicon.
+
+      **Las URL son absolutas y están escritas a mano.** Un bot no ejecuta JS
+      —por eso estos tags viven en el HTML estático y no los pone React— y Vite
+      no interpola variables de entorno dentro de `index.html` sin un plugin
+      aparte. Consecuencia a tener presente: si cambia el dominio público, hay
+      que actualizarlas acá. Es el mismo tipo de sincronización manual que ya
+      tienen `botDetector.js` ↔ `nginx.conf`.
+
+      **La imagen es PNG, no SVG.** Los scrapers de WhatsApp, Facebook, Twitter
+      y LinkedIn no renderizan SVG como `og:image`: la preview sale sin imagen.
+      `og-default.png` es la misma que usa el backend cuando un producto no
+      tiene fotos: un producto sin foto y la home piden lo mismo, la marca.
+      Las medidas declaradas (1200×630) evitan que el bot tenga que bajar el
+      archivo para saber cómo maquetar la tarjeta.
+
+      **`data-seo-estatico`** marca los tags que `MetaSeo.jsx` también emite
+      por ruta — React 19 no deduplica `<meta>`, así que en una ficha de
+      producto quedaban DOS `og:title` (este, el genérico, y el específico) y
+      ganaba este por ser el primero en el `<head>`. `MetaSeo` los borra al
+      montar por primera vez; ver el razonamiento completo ahí. Los que
+      `MetaSeo` no emite (`og:image:type/width/height/alt`,
+      `twitter:image:alt`, charset, viewport, favicon, fuentes) quedan SIN
+      marcar a propósito: si se marcaran, desaparecerían del `<head>` sin que
+      nadie los reponga.
+    -->
+    <meta data-seo-estatico property="og:type" content="website" />
+    <meta data-seo-estatico property="og:site_name" content="YIMA" />
+    <meta data-seo-estatico property="og:locale" content="es_AR" />
+    <meta data-seo-estatico property="og:title" content="YIMA — Productos útiles, innovadores y con diseño" />
+    <meta
+      data-seo-estatico
+      property="og:description"
+      content="Productos útiles, innovadores y con diseño que simplifican tu rutina y suman estilo a tu hogar, tu trabajo y tus momentos."
+    />
+    <meta data-seo-estatico property="og:url" content="https://yima-productos.com/" />
+    <meta data-seo-estatico property="og:image" content="https://yima-productos.com/og-default.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="YIMA" />
+
+    <meta data-seo-estatico name="twitter:card" content="summary_large_image" />
+    <meta data-seo-estatico name="twitter:title" content="YIMA — Productos útiles, innovadores y con diseño" />
+    <meta
+      data-seo-estatico
+      name="twitter:description"
+      content="Productos útiles, innovadores y con diseño que simplifican tu rutina y suman estilo a tu hogar, tu trabajo y tus momentos."
+    />
+    <meta data-seo-estatico name="twitter:image" content="https://yima-productos.com/og-default.png" />
+    <meta name="twitter:image:alt" content="YIMA" />
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
