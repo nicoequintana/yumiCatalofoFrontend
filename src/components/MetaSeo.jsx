@@ -10,6 +10,17 @@ import { limpiarMetaEstaticos } from "../utils/metaEstaticos.js";
  * dependencia: se renderizan como cualquier otro elemento y React los sube
  * solo (y los retira al desmontar el componente).
  *
+ * EXCEPCIÓN, verificada en el navegador: el hoisting NO alcanza a los
+ * `<script type="application/ld+json">` de abajo. React 19 solo sube los
+ * `<script async>`, así que los bloques JSON-LD quedan renderizados donde
+ * los pone el componente — dentro del `<main>`, no en el `<head>`.
+ *
+ * **Eso es correcto y no hay que "arreglarlo"**: Google lee JSON-LD en
+ * cualquier parte del documento, `<head>` o `<body>`, y así lo documenta.
+ * Se aclara acá porque un `document.head.querySelector('script[type=...]')`
+ * devuelve vacío y parece un bug: hay que buscar en `document`, no en el
+ * `<head>`. Ya mandó a debuggear un problema inexistente una vez.
+ *
  * OJO: esto NO reemplaza al HTML server-side de `/og/*`. Un crawler que no
  * ejecuta JS (o lo ejecuta tarde) nunca ve estos tags. Los dos caminos
  * coexisten y DEBEN declarar el mismo canonical.
