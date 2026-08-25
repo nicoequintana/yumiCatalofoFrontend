@@ -6,34 +6,23 @@ import TablaErroresImportacion from "../../components/admin/TablaErroresImportac
 import { actualizarProductosMasivo, exportarProductos } from "../../api/importProductos.js";
 
 /**
- * Arma el mensaje de resultado a partir de `{ creados, actualizados }`: los
- * dos juntos si el lote trajo altas y actualizaciones, o solo el que
- * corresponda cuando el lote fue de un solo tipo — mostrar "se crearon 0"
- * junto a "se actualizaron 7" es ruido que no aporta nada.
- */
-function mensajeResultado({ creados, actualizados }) {
-  if (creados > 0 && actualizados > 0) {
-    return `Se crearon ${creados} productos nuevos y se actualizaron ${actualizados}.`;
-  }
-  if (creados > 0) {
-    return `Se crearon ${creados} productos nuevos.`;
-  }
-  return `Se actualizaron ${actualizados} productos.`;
-}
-
-/**
- * Actualización masiva del catálogo por planilla `.xlsx`, matcheada por SKU
- * — y también alta: una fila con SKU vacío crea un producto nuevo, igual que
- * el alta clásica (oculto, sin media, sku nuevo generado por el backend).
+ * Actualización masiva del catálogo por planilla `.xlsx`, matcheada por SKU.
  *
- * Flujo separado del alta masiva (`AdminImportarProductos`), que sigue
- * existiendo tal cual para la carga inicial en frío desde una plantilla en
- * blanco. Acá el punto de partida es el catálogo YA exportado: la planilla
- * no toca fotos, video ni visibilidad de los productos existentes, solo su
- * contenido, precio y stock. Mismos tres estados que el alta: inicial
- * (exportar/subir), procesando, y resultado (éxito o tabla de errores). Es
- * todo o nada: si el backend devuelve errores, no se tocó ningún producto y
- * el archivo queda seleccionado para reintentar después de corregirlo.
+ * La planilla tiene CUATRO columnas — `sku`, `nombre`, `precio`, `stock` — y
+ * eso es literalmente todo lo que la subida puede modificar. Descripción,
+ * categoría, etiqueta, contenido comercial, fotos, video y visibilidad quedan
+ * intactos porque no viajan en el archivo.
+ *
+ * **Este flujo no crea productos.** Hasta el 25/08/2026 una fila con SKU vacío
+ * daba de alta un producto; dejó de poder hacerlo cuando la planilla se
+ * recortó, porque la descripción es obligatoria y ya no viene en el archivo.
+ * Las altas van por `AdminImportarProductos` (`/catalogo/admin/productos/importar`),
+ * que usa la plantilla completa y sigue igual.
+ *
+ * Tres estados, mismos que el alta: inicial (exportar/subir), procesando, y
+ * resultado (éxito o tabla de errores). Es todo o nada: si el backend devuelve
+ * errores, no se tocó ningún producto y el archivo queda seleccionado para
+ * reintentar después de corregirlo.
  */
 function AdminActualizarProductos() {
   const inputRef = useRef(null);
@@ -90,16 +79,26 @@ function AdminActualizarProductos() {
 
       <div className="mb-8 max-w-2xl rounded-lg bg-surface-container px-4 py-4">
         <p className="font-body-md text-body-md mb-2 text-on-surface">
-          Descargá el catálogo completo, editá lo que necesites (precio, stock, etc.) y volvé a
-          subirlo — actualiza los productos existentes por SKU sin tocar fotos, video o visibilidad,
-          y podés agregar filas nuevas al final para cargar productos.
+          Descargá el catálogo, editá lo que necesites y volvé a subirlo. La planilla trae cuatro
+          columnas: <strong>SKU</strong>, <strong>nombre</strong>, <strong>precio</strong> y{" "}
+          <strong>stock</strong>.
         </p>
         <ul className="font-body-md text-body-md list-disc pl-5 text-on-surface-variant">
-          <li>Cada fila se matchea por SKU: si el SKU no existe, esa fila se rechaza.</li>
+          <li>
+            Solo se modifican nombre, precio y stock. La descripción, la categoría, las fotos y el
+            resto del contenido quedan como están.
+          </li>
           <li>No borres ni cambies la columna SKU — es la que identifica a cada producto.</li>
           <li>
-            Dejá la columna SKU vacía en una fila para agregar un producto nuevo — entra oculto y sin
-            fotos, igual que el alta.
+            Cada fila necesita un SKU que ya exista. Una fila sin SKU, o con uno que no está en el
+            catálogo, se rechaza.
+          </li>
+          <li>
+            Para cargar productos nuevos usá{" "}
+            <Link to="/catalogo/admin/productos/importar" className="underline hover:text-primary">
+              Importar productos
+            </Link>
+            , que pide todos los campos.
           </li>
           <li>Si alguna fila tiene errores, no se guarda ninguna. Se corrige y se vuelve a subir.</li>
         </ul>
@@ -158,7 +157,7 @@ function AdminActualizarProductos() {
       {resultado ? (
         <div className="max-w-2xl rounded-lg bg-secondary-container px-4 py-4">
           <p className="font-body-md text-body-md text-on-secondary-container">
-            {mensajeResultado(resultado)}{" "}
+            {`Se ${resultado.actualizados === 1 ? "actualizó" : "actualizaron"} ${resultado.actualizados} ${resultado.actualizados === 1 ? "producto" : "productos"}.`}{" "}
             <Link to="/catalogo/admin/productos" className="underline">
               Ver productos
             </Link>

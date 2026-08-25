@@ -38,11 +38,34 @@ describe("AdminActualizarProductos", () => {
     expect(screen.getByRole("button", { name: /^actualizar$/i })).toBeInTheDocument();
   });
 
-  it("avisa que actualiza por SKU y no toca fotos, video ni visibilidad", () => {
+  it("nombra las cuatro columnas del archivo", () => {
     renderizar();
 
     expect(screen.getAllByText(/sku/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/fotos, video o visibilidad/i)).toBeInTheDocument();
+    expect(screen.getByText(/^nombre$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^precio$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^stock$/i)).toBeInTheDocument();
+  });
+
+  // El aviso importa más que el resto del copy: es lo único que le dice al
+  // admin que subir este archivo NO le vacía la descripción ni el contenido
+  // comercial de todo el catálogo, que es lo que haría la versión anterior de
+  // `dataDeActualizacion` con una planilla de cuatro columnas.
+  it("aclara que solo se tocan nombre, precio y stock", () => {
+    renderizar();
+
+    expect(
+      screen.getByText(/solo se modifican nombre, precio y stock/i),
+    ).toBeInTheDocument();
+  });
+
+  it("manda a la pantalla de importación para dar de alta productos nuevos", () => {
+    renderizar();
+
+    expect(screen.getByRole("link", { name: /importar productos/i })).toHaveAttribute(
+      "href",
+      "/catalogo/admin/productos/importar",
+    );
   });
 
   it("deshabilita Actualizar mientras no haya archivo seleccionado", () => {
@@ -60,8 +83,8 @@ describe("AdminActualizarProductos", () => {
     expect(exportarProductosMock).toHaveBeenCalled();
   });
 
-  it("muestra solo la cantidad actualizada cuando no hubo altas", async () => {
-    actualizarProductosMasivoMock.mockResolvedValue({ creados: 0, actualizados: 7, productos: [] });
+  it("muestra la cantidad actualizada", async () => {
+    actualizarProductosMasivoMock.mockResolvedValue({ actualizados: 7, productos: [] });
     renderizar();
 
     await userEvent.upload(screen.getByLabelText(/archivo/i), archivoXlsx());
@@ -70,31 +93,19 @@ describe("AdminActualizarProductos", () => {
     await waitFor(() => {
       expect(screen.getByText(/se actualizaron 7 productos/i)).toBeInTheDocument();
     });
+    // Este flujo dejó de crear productos el 25/08/2026.
     expect(screen.queryByText(/se crearon/i)).not.toBeInTheDocument();
   });
 
-  it("muestra solo la cantidad creada cuando no hubo actualizaciones", async () => {
-    actualizarProductosMasivoMock.mockResolvedValue({ creados: 3, actualizados: 0, productos: [] });
+  it("usa el singular cuando actualizó un solo producto", async () => {
+    actualizarProductosMasivoMock.mockResolvedValue({ actualizados: 1, productos: [] });
     renderizar();
 
     await userEvent.upload(screen.getByLabelText(/archivo/i), archivoXlsx());
     await userEvent.click(screen.getByRole("button", { name: /^actualizar$/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/se crearon 3 productos nuevos/i)).toBeInTheDocument();
-    });
-    expect(screen.queryByText(/se actualizaron/i)).not.toBeInTheDocument();
-  });
-
-  it("muestra creados y actualizados juntos cuando el lote trae los dos", async () => {
-    actualizarProductosMasivoMock.mockResolvedValue({ creados: 2, actualizados: 5, productos: [] });
-    renderizar();
-
-    await userEvent.upload(screen.getByLabelText(/archivo/i), archivoXlsx());
-    await userEvent.click(screen.getByRole("button", { name: /^actualizar$/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/se crearon 2 productos nuevos y se actualizaron 5/i)).toBeInTheDocument();
+      expect(screen.getByText(/se actualizó 1 producto\./i)).toBeInTheDocument();
     });
   });
 
