@@ -8,7 +8,8 @@ import { useVolver } from "../hooks/useVolver.js";
 import { getProductById } from "../api/products.js";
 import { useToast } from "../context/useToast.js";
 import { parsearIdDeRuta, rutaProducto } from "../utils/slug.js";
-import { urlAbsoluta } from "../constants/seo.js";
+import { jsonLdProducto, jsonLdBreadcrumb } from "../utils/jsonLd.js";
+import { SITIO, urlAbsoluta } from "../constants/seo.js";
 
 /**
  * `/producto/:idSlug` — container for the public product detail view.
@@ -18,6 +19,26 @@ import { urlAbsoluta } from "../constants/seo.js";
  * markup lives in `FichaProducto`, which the admin editor renders too — so
  * the preview an admin sees while editing cannot drift from this page.
  */
+/**
+ * Resuelve la URL de una foto a ABSOLUTA para el `image` del JSON-LD —
+ * `schema.org/Product` exige URL absoluta, igual que `og:image`.
+ *
+ * Espeja lo que hace `resolverImagenOg` (`backend/src/lib/ogMeta.js`) del
+ * lado del servidor, pero con una pista distinta: acá el producto ya pasó
+ * por `mapProducto`, que resuelve el storage de cada foto en `foto.url` y NO
+ * expone `cloudinaryPublicId`/`driveFileId` (ver `products.mapper.js`) — no
+ * hay flag para decidir. Una foto de Cloudinary ya es una URL absoluta (CDN);
+ * una foto legado de Drive es una ruta relativa al proxy propio del backend
+ * (`/api/products/:id/fotos/:fotoId`) que hay que volver absoluta. Se
+ * distingue por FORMA (¿ya empieza con `http`?) en vez de por flag, que es
+ * lo único que esta forma del producto deja disponible.
+ */
+function urlAbsolutaDeFoto(url) {
+  if (/^https?:\/\//.test(url)) return url;
+  const backendUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+  return `${backendUrl}${url}`;
+}
+
 function ProductoDetalle() {
   const { idSlug } = useParams();
   // El param trae "123-nombre-del-producto": la clave real es el prefijo
@@ -98,6 +119,16 @@ function ProductoDetalle() {
     );
   }
 
+  // Mismos dos bloques que arma `seo.controller.js` (`servirSeoProducto`)
+  // del lado del servidor, con las mismas dos funciones — para que el
+  // JSON-LD que ve un bot desviado por nginx y el que ve un navegador que
+  // ejecuta esta SPA sean el mismo dato.
+  const imagenesJsonLd = producto.fotos.map((foto) => urlAbsolutaDeFoto(foto.url));
+  const bloquesJsonLd = [
+    jsonLdProducto(producto, { frontendUrl: SITIO.url, imagenes: imagenesJsonLd }),
+    jsonLdBreadcrumb(producto, { frontendUrl: SITIO.url }),
+  ];
+
   return (
     <>
       <MetaSeo
@@ -106,6 +137,7 @@ function ProductoDetalle() {
         canonical={urlAbsoluta(rutaProducto(producto))}
         imagen={producto.fotos[0]?.url}
         tipoOg="product"
+        jsonLd={bloquesJsonLd}
       />
 
       {/* Mobile header — the one page-specific mobile-nav exception. */}
