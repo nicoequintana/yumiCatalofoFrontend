@@ -172,7 +172,7 @@ describe("AdminProductoForm — vista previa en vivo", () => {
     fireEvent.change(screen.getByLabelText("Precio"), { target: { value: "48900" } });
 
     const preview = screen.getByTestId("preview-ficha");
-    expect(within(preview).getAllByText("$ 48.900,00").length).toBeGreaterThan(0);
+    expect(within(preview).getAllByText("$ 48.900").length).toBeGreaterThan(0);
   });
 
   it("refleja la frase comercial y la oculta al borrarla", () => {

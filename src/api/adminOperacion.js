@@ -5,7 +5,7 @@
  * así que va por `fetchAutenticado` (adjunta el JWT y, ante un 401, limpia el
  * token y manda al login) — mismo patrón que `adminVentas.js`.
  *
- * Los totales de las órdenes estancadas vienen como string con dos decimales
+ * Los totales de las órdenes estancadas vienen como string entero, sin decimales
  * (valores `Decimal` de Prisma, serializados así para no perder precisión al
  * pasar por JSON) y se muestran con `formatPrecio` de `utils/formato.js`.
  */

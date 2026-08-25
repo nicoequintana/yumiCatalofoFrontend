@@ -42,7 +42,7 @@ const { default: ProductoDetalle } = await import("./ProductoDetalle.jsx");
 const PRODUCTO = {
   id: 42,
   nombre: "Lámpara de diseño",
-  precio: "45000.00",
+  precio: "45000",
   stock: 3,
   fotos: [],
   caracteristicas: [],

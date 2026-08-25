@@ -35,7 +35,7 @@ function renderEn(ruta) {
 beforeEach(() => {
   getProductByIdMock.mockReset();
   getProductByIdMock.mockResolvedValue({
-    id: 12, nombre: "Set de cuchillos", precio: "45000.00", stock: 3,
+    id: 12, nombre: "Set de cuchillos", precio: "45000", stock: 3,
     fotos: [], caracteristicas: [], beneficios: [], usos: [], idealPara: [],
     incluye: [], especificaciones: [], categoria: null, video: null,
   });

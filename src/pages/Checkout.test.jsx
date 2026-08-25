@@ -23,7 +23,7 @@ vi.mock("react-router-dom", async () => {
 const PRODUCTO_1 = {
   id: 1,
   nombre: "Reloj Clásico",
-  precio: "1500.00",
+  precio: "1500",
   fotos: [],
 };
 
@@ -465,7 +465,7 @@ describe("Checkout — precios y total", () => {
     // El resumen listaba solo `cantidad × nombre`: el usuario confirmaba el
     // pedido sin ver cuánto iba a pagar, y recién se enteraba del monto en la
     // pantalla de confirmación, con la orden ya creada.
-    const PRODUCTO_2 = { id: 2, nombre: "Anillo Plata", precio: "500.50", fotos: [] };
+    const PRODUCTO_2 = { id: 2, nombre: "Anillo Plata", precio: "500", fotos: [] };
     productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1, PRODUCTO_2]);
 
     const { result: carritoHook } = renderHook(() => useCarrito());
@@ -479,14 +479,14 @@ describe("Checkout — precios y total", () => {
     await screen.findByLabelText(/dni/i);
 
     // Precio unitario visible por línea.
-    expect(screen.getByText("$ 1.500,00 c/u")).toBeInTheDocument();
-    expect(screen.getByText("$ 500,50 c/u")).toBeInTheDocument();
+    expect(screen.getByText("$ 1.500 c/u")).toBeInTheDocument();
+    expect(screen.getByText("$ 500 c/u")).toBeInTheDocument();
 
     // Subtotal por línea (cantidad × unitario).
-    expect(screen.getByText("$ 3.000,00")).toBeInTheDocument();
+    expect(screen.getByText("$ 3.000")).toBeInTheDocument();
 
     // Total = suma de los subtotales: 3000.00 + 500.50 = 3500.50.
-    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$ 3.500,50");
+    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$ 3.500");
   });
 
   it("el total suma solo las líneas válidas, no las que quedaron sin producto", async () => {
@@ -504,7 +504,7 @@ describe("Checkout — precios y total", () => {
 
     await screen.findByLabelText(/dni/i);
 
-    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$ 1.500,00");
+    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$ 1.500");
   });
 });
 

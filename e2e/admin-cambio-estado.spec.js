@@ -33,7 +33,7 @@ test.describe("Admin cambia el estado de una orden y persiste tras recargar", ()
   test.beforeEach(async () => {
     producto = await crearProductoDeTest({
       nombre: "E2E-TEST-Producto Admin Estado",
-      precio: "4500.00",
+      precio: "4500",
     });
 
     orden = await crearOrdenDeTest({

@@ -11,14 +11,14 @@ vi.mock("../api/products.js");
 const PRODUCTO_1 = {
   id: 1,
   nombre: "Reloj Clásico",
-  precio: "1500.00",
+  precio: "1500",
   fotos: [{ url: "https://ejemplo.com/foto1.jpg" }],
 };
 
 const PRODUCTO_2 = {
   id: 2,
   nombre: "Anillo Elegance",
-  precio: "2300.50",
+  precio: "2300",
   fotos: [],
 };
 
@@ -71,11 +71,11 @@ describe("Carrito", () => {
     });
 
     expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
-    expect(screen.getByText("$ 1.500,00")).toBeInTheDocument();
+    expect(screen.getByText("$ 1.500")).toBeInTheDocument();
     // Subtotal de la línea: 1500.00 * 2 = 3000.00 (coincide con el total
     // porque hay una sola línea, por eso se buscan ambos por separado).
-    expect(screen.getAllByText("$ 3.000,00")).toHaveLength(2);
-    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 3.000,00");
+    expect(screen.getAllByText("$ 3.000")).toHaveLength(2);
+    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 3.000");
   });
 
   it("muestra un placeholder cuando el producto no tiene foto", async () => {
@@ -187,7 +187,7 @@ describe("Carrito", () => {
     await user.click(screen.getByRole("button", { name: /aumentar/i }));
 
     expect(carritoHook.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);
-    expect(await screen.findByTestId("carrito-total")).toHaveTextContent("$ 3.000,00");
+    expect(await screen.findByTestId("carrito-total")).toHaveTextContent("$ 3.000");
   });
 
   it("quita una línea válida mediante el botón de eliminar", async () => {
@@ -209,17 +209,20 @@ describe("Carrito", () => {
     expect(await screen.findByText(/tu carrito está vacío/i)).toBeInTheDocument();
   });
 
-  it("calcula el total sumando en centavos para evitar drift de punto flotante", async () => {
-    // Caso que SÍ detecta una regresión (a diferencia de 0.10+0.20+0.30, que
-    // formatea igual con Intl.NumberFormat sin importar el método de suma —
-    // falso guardián). Con tres líneas de $2,675, la suma naive en float
-    // da 8.024999999999999 -> formatea a "8,02"; la suma correcta en
-    // centavos (redondeando cada línea a centavos antes de sumar) da
-    // 8.04 -> formatea a "8,04". Si alguien revierte `precioACentavos` a una
-    // suma naive con parseFloat, este test falla.
-    const PROD_A = { id: 10, nombre: "A", precio: "2.675", fotos: [] };
-    const PROD_B = { id: 11, nombre: "B", precio: "2.675", fotos: [] };
-    const PROD_C = { id: 12, nombre: "C", precio: "2.675", fotos: [] };
+  it("suma el total de varias líneas distintas", async () => {
+    // Este test compraba montos con centavos ($2,675 x3) para probar que la
+    // suma no arrastra drift de float. Desde que los precios son enteros
+    // (`Product.precio` es `Decimal(10, 0)`) y `formatPrecio` no emite
+    // decimales, ese caso formatea igual con una suma correcta o con una
+    // naive: dejó de ser un guard. El guard sigue vivo donde sí muerde,
+    // `utils/formato.test.js`, que afirma sobre los centavos enteros que
+    // devuelve `precioACentavos` sin pasarlos por el formateador.
+    //
+    // Lo que este test sigue cubriendo es el camino de la pantalla: tres
+    // productos distintos, un fetch, un total. 2675 * 3 = 8025.
+    const PROD_A = { id: 10, nombre: "A", precio: "2675", fotos: [] };
+    const PROD_B = { id: 11, nombre: "B", precio: "2675", fotos: [] };
+    const PROD_C = { id: 12, nombre: "C", precio: "2675", fotos: [] };
 
     productsApi.getProductsByIds.mockResolvedValue([PROD_A, PROD_B, PROD_C]);
 
@@ -234,7 +237,7 @@ describe("Carrito", () => {
 
     await screen.findByText("A");
 
-    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 8,04");
+    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 8.025");
   });
 
   it("usa BotonVolver para la navegación hacia atrás", async () => {
@@ -247,7 +250,7 @@ describe("Carrito", () => {
 });
 
 describe("Carrito — tope de cantidad contra el stock disponible", () => {
-  const CON_STOCK = { id: 3, nombre: "Vela de soja", precio: "100.00", stock: 2, fotos: [] };
+  const CON_STOCK = { id: 3, nombre: "Vela de soja", precio: "100", stock: 2, fotos: [] };
 
   beforeEach(() => {
     const { result } = renderHook(() => useCarrito());

@@ -120,96 +120,98 @@ export function precioACentavos(precio) {
 }
 
 /**
- * Formats a product's `precio` for display using Argentine number
- * conventions: dot as thousands separator, comma as decimal separator
- * (e.g. 10000 -> "$ 10.000,00").
+ * Formatea el `precio` de un producto para mostrar, con las convenciones
+ * argentinas: punto como separador de miles y SIN decimales
+ * (ej. 10000 -> "$ 10.000").
  *
- * `precio` is stored as a string (see design D5: mirrors how Prisma `Decimal`
- * serializes to string over JSON on SQL Server), so this always coerces
- * before formatting rather than assuming a number.
+ * Los montos del sistema son enteros — `Product.precio` e
+ * `ItemOrden.precioUnitario` son `Decimal(10, 0)` en la base — así que un
+ * `,00` fijo al final sería ruido en cada precio de la app.
+ * `maximumFractionDigits: 0` igual redondea por las dudas: si llega un valor
+ * con parte fraccionaria (una respuesta cacheada de antes de la migración, un
+ * promedio calculado en el cliente), es preferible mostrarlo redondeado que
+ * con una cola de decimales.
+ *
+ * `precio` llega como string (así serializa Prisma un `Decimal` sobre JSON en
+ * SQL Server), por eso siempre se coerciona antes de formatear en vez de
+ * asumir que ya es un número.
+ *
+ * ESPEJO MANUAL de `formatearMonto` en `backend/src/lib/plantillasEmail.js`,
+ * que formatea los mails transaccionales y el precio del HTML que ve un
+ * crawler (`controllers/seo.cuerpo.js`). Los dos repos se publican por
+ * separado. La cantidad de decimales tiene que coincidir entre las dos: si
+ * esta mostrara `"$ 45.000"` y aquella `"$45.000,00"`, el texto que ve un
+ * buscador dejaría de coincidir con el que ve una persona, que es justo lo
+ * que la regla de cloaking prohíbe.
  *
  * @param {string|number} precio
- * @returns {string} e.g. "$ 10.000,00"
+ * @returns {string} ej. "$ 10.000"
  */
 export function formatPrecio(precio) {
   const numero = typeof precio === "number" ? precio : parseFloat(precio);
 
   if (Number.isNaN(numero)) {
-    return "$ 0,00";
+    return "$ 0";
   }
 
   const formateado = new Intl.NumberFormat("es-AR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 0,
   }).format(numero);
 
   return `$ ${formateado}`;
 }
 
 /**
- * Formats raw user input for a live-typing price field: keeps only digits
- * and (at most) one comma as the decimal separator, then re-inserts dots as
- * thousands separators on the integer part — e.g. typing "10000" shows
- * "10.000", typing "10000,5" shows "10.000,5".
+ * Formatea lo que se tipea en un campo de precio en vivo: deja solo dígitos,
+ * saca los ceros a la izquierda y reinserta los puntos de miles — tipear
+ * "10000" muestra "10.000".
  *
- * Returns the same value split into `formateado` (what to show in the input)
- * and `crudo` (normalized "10000.5" form, dot-decimal, ready for
- * `parseFloat`/submission) so callers don't need to reverse the formatting.
+ * NO acepta separador decimal de ninguna forma. Los precios son enteros, y un
+ * campo que dejara escribir "1500,50" para que el backend lo rechace con un
+ * 400 estaría invitando a un error que puede evitar en el momento.
  *
- * @param {string} valor - raw input value (may already contain dots/commas
- *   from a previous formatting pass)
+ * Devuelve `formateado` (lo que se muestra en el input) y `crudo` (dígitos
+ * pelados, listo para `Number()` o para mandar como query param), así quien lo
+ * usa no tiene que revertir el formato.
+ *
+ * Es la única función de tipeo de precio de la app: absorbió a
+ * `formatearPrecioFiltro`, que existía solo porque los filtros de precio ya
+ * eran enteros cuando el precio del producto todavía tenía centavos. Sin
+ * decimales en ningún lado, las dos hacían exactamente lo mismo.
+ *
+ * @param {string} valor - valor crudo del input (puede ya traer puntos de una
+ *   pasada de formateo anterior)
  * @returns {{ formateado: string, crudo: string }}
  */
 export function formatearPrecioInput(valor) {
-  const soloDigitosYComa = valor.replace(/[^\d,]/g, "");
-  const [parteEnteraRaw, ...resto] = soloDigitosYComa.split(",");
-  const parteDecimal = resto.join("").slice(0, 2);
-  const parteEntera = parteEnteraRaw.replace(/^0+(?=\d)/, "");
-
-  const parteEnteraFormateada = parteEntera === "" ? "" : new Intl.NumberFormat("es-AR").format(Number(parteEntera));
-
-  const formateado = resto.length > 0 ? `${parteEnteraFormateada},${parteDecimal}` : parteEnteraFormateada;
-  const crudo = parteEntera === "" ? "" : `${parteEntera}${parteDecimal ? `.${parteDecimal}` : ""}`;
-
-  return { formateado, crudo };
-}
-
-/**
- * Converts an already-valid backend `precio` value (dot-decimal string, e.g.
- * Prisma `Decimal.toString()` -> "1500.00" or "1500") into the shape the edit
- * form needs to prefill the price field: `formateado` (comma-decimal display,
- * e.g. "1.500,00") and `crudo` (dot-decimal, ready for submission as-is).
- *
- * This is a prefill-only conversion, distinct from `formatearPrecioInput`:
- * that function parses raw, possibly-partial keystroke input (comma-decimal,
- * digits typed live) and would corrupt an already-normalized dot-decimal
- * value (e.g. "1500.00" -> strips the "." as a non-digit/non-comma char ->
- * "150000" -> displayed as "150.000", a 100x price bug). Use this function
- * whenever prefilling from a trusted backend value instead.
- *
- * @param {string} valor - backend dot-decimal numeric string, e.g. "1500.00"
- * @returns {{ formateado: string, crudo: string }}
- */
-/**
- * Formats raw user input for a live-typing integer-only price filter (e.g.
- * catalog min/max price): keeps only digits, strips leading zeros, and
- * re-inserts dots as thousands separators — e.g. typing "10000" shows
- * "10.000". No decimal separator is ever accepted.
- *
- * Returns `formateado` (what to show in the input) and `crudo` (plain digit
- * string, ready for `Number()`/submission as a query param).
- *
- * @param {string} valor - raw input value (may already contain dots from a
- *   previous formatting pass)
- * @returns {{ formateado: string, crudo: string }}
- */
-export function formatearPrecioFiltro(valor) {
-  const soloDigitos = valor.replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+  const soloDigitos = String(valor).replace(/[^0-9]/g, "").replace(/^0+(?=[0-9])/, "");
   const formateado = soloDigitos === "" ? "" : new Intl.NumberFormat("es-AR").format(Number(soloDigitos));
 
   return { formateado, crudo: soloDigitos };
 }
 
+/**
+ * Convierte un `precio` que ya viene del backend (string numérico con punto
+ * decimal, ej. `Decimal.toString()` -> "1500") a la forma que necesita el
+ * formulario de edición para precargar el campo: `formateado` ("1.500") y
+ * `crudo` ("1500", listo para enviar tal cual).
+ *
+ * NO se reemplaza por `formatearPrecioInput` aunque hoy la entrada sea entera,
+ * y la razón es un bug de 100x, no prolijidad. `formatearPrecioInput` tira
+ * todo lo que no sea dígito: si alguna vez le llega un "1500.00" —una
+ * respuesta cacheada de antes de que los precios fueran enteros, un valor
+ * escrito a mano en la base— borraría el punto y precargaría "150000", un
+ * precio cien veces mayor que el real, sin error ni aviso. Esta función
+ * interpreta el número primero y recién después formatea, así que ese valor
+ * precarga "1.500", que es lo correcto.
+ *
+ * Redondea, porque el campo del formulario no puede representar centavos: es
+ * mejor precargar el entero más cercano que dejar el input vacío o con un
+ * valor que el backend va a rechazar.
+ *
+ * @param {string|number} valor - numérico con punto decimal, ej. "1500"
+ * @returns {{ formateado: string, crudo: string }}
+ */
 export function formatearPrecioParaEdicion(valor) {
   const numero = typeof valor === "number" ? valor : parseFloat(valor);
 
@@ -217,12 +219,8 @@ export function formatearPrecioParaEdicion(valor) {
     return { formateado: "", crudo: "" };
   }
 
-  const formateado = new Intl.NumberFormat("es-AR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(numero);
+  const entero = Math.round(numero);
+  const formateado = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(entero);
 
-  const crudo = numero.toFixed(2);
-
-  return { formateado, crudo };
+  return { formateado, crudo: String(entero) };
 }

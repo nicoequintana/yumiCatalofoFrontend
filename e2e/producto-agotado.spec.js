@@ -29,7 +29,7 @@ test.describe("Producto agotado — visible pero no comprable", () => {
   test.beforeEach(async () => {
     producto = await crearProductoDeTest({
       nombre: "E2E-TEST-Producto Agotado",
-      precio: "3200.00",
+      precio: "3200",
       stock: 0,
     });
   });

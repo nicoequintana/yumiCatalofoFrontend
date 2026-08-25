@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { formatearPrecioFiltro } from "../utils/formato.js";
+import { formatearPrecioInput } from "../utils/formato.js";
 
 /**
  * Espera antes de avisarle al padre un cambio de precio. Mismo criterio (y
@@ -68,8 +68,8 @@ function CampoPrecio({ id, label, placeholder, valor, onChange }) {
         type="text"
         inputMode="numeric"
         placeholder={placeholder}
-        value={formatearPrecioFiltro(valorLocal).formateado}
-        onChange={(e) => setValorLocal(formatearPrecioFiltro(e.target.value).crudo)}
+        value={formatearPrecioInput(valorLocal).formateado}
+        onChange={(e) => setValorLocal(formatearPrecioInput(e.target.value).crudo)}
         className={CLASE_INPUT}
       />
     </div>

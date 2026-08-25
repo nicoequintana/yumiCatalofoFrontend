@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { formatFecha, formatFechaHora, precioACentavos } from "./formato.js";
+import {
+  formatFecha,
+  formatFechaHora,
+  formatPrecio,
+  formatearPrecioInput,
+  formatearPrecioParaEdicion,
+  precioACentavos,
+} from "./formato.js";
 
 // Toda la suite corre en la zona horaria de Argentina (UTC-3), la del negocio.
 // No es cosmético: los bugs de corrimiento de día solo aparecen en zonas al
@@ -78,7 +85,7 @@ describe("formas ISO incompletas", () => {
 
 describe("precioACentavos", () => {
   it("convierte string y number a centavos enteros", () => {
-    expect(precioACentavos("1500.00")).toBe(150000);
+    expect(precioACentavos("1500")).toBe(150000);
     expect(precioACentavos(1500)).toBe(150000);
     expect(precioACentavos("0.10")).toBe(10);
   });
@@ -100,5 +107,70 @@ describe("precioACentavos", () => {
       0,
     );
     expect(centavos).toBe(700);
+  });
+});
+
+describe("formatPrecio", () => {
+  it("usa punto para miles y NO emite decimales", () => {
+    expect(formatPrecio("45000")).toBe("$ 45.000");
+    expect(formatPrecio(1500)).toBe("$ 1.500");
+    expect(formatPrecio("999")).toBe("$ 999");
+  });
+
+  // Los montos del sistema son enteros (`Product.precio` es `Decimal(10, 0)`),
+  // así que esto no debería llegar. Se fija igual: una respuesta cacheada de
+  // antes de la migración, o un valor escrito a mano en la base, tiene que
+  // mostrarse redondeado y no con una cola de decimales en medio de una
+  // pantalla donde todo el resto va sin centavos.
+  it("redondea un valor con centavos en vez de arrastrarlos", () => {
+    expect(formatPrecio("1500.60")).toBe("$ 1.501");
+    expect(formatPrecio("1500.40")).toBe("$ 1.500");
+  });
+
+  it("degrada a $ 0 ante un valor ilegible, sin romper la pantalla", () => {
+    expect(formatPrecio("no es un precio")).toBe("$ 0");
+    expect(formatPrecio(undefined)).toBe("$ 0");
+  });
+});
+
+describe("formatearPrecioInput", () => {
+  it("formatea los miles mientras se tipea", () => {
+    expect(formatearPrecioInput("10000")).toEqual({ formateado: "10.000", crudo: "10000" });
+  });
+
+  it("descarta cualquier separador decimal: los precios son enteros", () => {
+    // La coma no abre una parte decimal, se ignora como cualquier otro
+    // carácter que no sea dígito. El backend rechaza los centavos con un 400,
+    // así que el campo no tiene por qué dejar escribirlos.
+    expect(formatearPrecioInput("1500,").crudo).toBe("1500");
+    expect(formatearPrecioInput("$1.500 ").crudo).toBe("1500");
+  });
+
+  it("saca los ceros a la izquierda y tolera el campo vacío", () => {
+    expect(formatearPrecioInput("007").crudo).toBe("7");
+    expect(formatearPrecioInput("")).toEqual({ formateado: "", crudo: "" });
+  });
+});
+
+describe("formatearPrecioParaEdicion", () => {
+  it("precarga un valor entero del backend", () => {
+    expect(formatearPrecioParaEdicion("1500")).toEqual({ formateado: "1.500", crudo: "1500" });
+  });
+
+  // ESTE es el motivo por el que la función no se reemplazó por
+  // `formatearPrecioInput`: esa tira todo lo que no sea dígito, así que un
+  // "1500.00" precargaría "150000" — un precio cien veces mayor, sin error ni
+  // aviso. Puede llegar desde una respuesta cacheada de antes de la migración.
+  it("interpreta el punto como separador decimal, no lo borra (bug de 100x)", () => {
+    expect(formatearPrecioParaEdicion("1500.00")).toEqual({ formateado: "1.500", crudo: "1500" });
+    expect(formatearPrecioInput("1500.00").crudo).toBe("150000");
+  });
+
+  it("redondea los centavos, porque el campo no puede representarlos", () => {
+    expect(formatearPrecioParaEdicion("1500.60").crudo).toBe("1501");
+  });
+
+  it("devuelve campos vacíos ante un valor ilegible", () => {
+    expect(formatearPrecioParaEdicion("abc")).toEqual({ formateado: "", crudo: "" });
   });
 });

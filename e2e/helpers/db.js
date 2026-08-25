@@ -107,7 +107,7 @@ export async function crearProductoDeTest(overrides = {}) {
     data: {
       nombre: overrides.nombre ?? `${MARCA_TEST}Producto E2E`,
       descripcion: overrides.descripcion ?? "Producto sembrado por un test E2E de Playwright.",
-      precio: overrides.precio ?? "1000.00",
+      precio: overrides.precio ?? "1000",
       sku,
       visibleEnCatalogo: overrides.visibleEnCatalogo ?? true,
       stock: overrides.stock ?? 10,

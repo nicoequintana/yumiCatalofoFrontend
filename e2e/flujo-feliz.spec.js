@@ -30,7 +30,7 @@ test.describe("Flujo feliz — checkout de invitado", () => {
   test.beforeEach(async ({ page }) => {
     producto = await crearProductoDeTest({
       nombre: "E2E-TEST-Producto Flujo Feliz",
-      precio: "2500.00",
+      precio: "2500",
     });
     // Generado ANTES del checkout (no recién al leer la orden de vuelta),
     // así el cleanup de abajo puede encontrar al cliente/orden por este dni
@@ -100,17 +100,17 @@ test.describe("Flujo feliz — checkout de invitado", () => {
     await page.goto("/carrito");
     const linea = page.getByRole("listitem").filter({ hasText: "E2E-TEST-Producto Flujo Feliz" });
     await expect(linea).toBeVisible();
-    await expect(linea.getByText("$ 2.500,00")).toBeVisible(); // precio unitario
-    await expect(linea.getByText("$ 5.000,00")).toBeVisible(); // subtotal (2 x 2500)
+    await expect(linea.getByText("$ 2.500")).toBeVisible(); // precio unitario
+    await expect(linea.getByText("$ 5.000")).toBeVisible(); // subtotal (2 x 2500)
 
     const totalAntes = page.getByTestId("carrito-total");
-    await expect(totalAntes).toHaveText("$ 5.000,00");
+    await expect(totalAntes).toHaveText("$ 5.000");
 
     // Editar la cantidad a 3 vía SelectorCantidad y verificar que el total
     // se actualiza (2500 x 3 = 7500).
     await linea.getByRole("button", { name: "Aumentar cantidad" }).click();
-    await expect(linea.getByText("$ 7.500,00")).toBeVisible();
-    await expect(page.getByTestId("carrito-total")).toHaveText("$ 7.500,00");
+    await expect(linea.getByText("$ 7.500")).toBeVisible();
+    await expect(page.getByTestId("carrito-total")).toHaveText("$ 7.500");
 
     // 4. CTA "Confirmar pedido" — debe ser un <Link> real y habilitado (no
     // aria-disabled), ver Carrito.jsx. Un carrito sano con un único producto
@@ -158,10 +158,10 @@ test.describe("Flujo feliz — checkout de invitado", () => {
     const item = ordenEnDb.items[0];
     expect(item.productId).toBe(producto.id);
     expect(item.nombreProducto).toBe("E2E-TEST-Producto Flujo Feliz");
-    // `precioUnitario.toString()` no siempre conserva los dos decimales
-    // (depende de cómo el driver mssql serializa el Decimal) — se compara
-    // numéricamente en vez de como string exacto, que es lo que realmente
-    // importa para la integridad del snapshot.
+    // Se compara numéricamente y no como string exacto: la columna es
+    // `Decimal(10, 0)`, pero cómo el driver mssql serializa ese Decimal a
+    // string no es una garantía del proyecto. Lo que importa para la
+    // integridad del snapshot es el VALOR.
     expect(parseFloat(item.precioUnitario.toString())).toBe(2500);
     expect(item.cantidad).toBe(3);
   });

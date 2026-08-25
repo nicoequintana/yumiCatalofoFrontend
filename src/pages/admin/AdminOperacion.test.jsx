@@ -26,14 +26,14 @@ const RESUMEN = {
         estado: "PENDIENTE",
         diasSinCambios: 12,
         clienteNombre: "Ana Gómez",
-        total: "200.00",
+        total: "200",
       },
       {
         id: 4,
         estado: "CONFIRMADA",
         diasSinCambios: 5,
         clienteNombre: "Luis Paz",
-        total: "50.00",
+        total: "50",
       },
     ],
   },
@@ -98,7 +98,7 @@ describe("AdminOperacion", () => {
 
     // Primera fila es el encabezado; la segunda, la orden más estancada.
     expect(within(filas[1]).getByText("Ana Gómez")).toBeInTheDocument();
-    expect(within(filas[1]).getByText("$ 200,00")).toBeInTheDocument();
+    expect(within(filas[1]).getByText("$ 200")).toBeInTheDocument();
     expect(within(filas[2]).getByText("Luis Paz")).toBeInTheDocument();
 
     // Link accionable al detalle de la orden, para poder destrabarla.

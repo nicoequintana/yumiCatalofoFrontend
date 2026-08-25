@@ -16,13 +16,13 @@ const RESUMEN = {
   totalClientes: 4,
   clientesNuevos: 3,
   clientesRecurrentes: 1,
-  ingresosPeriodo: "7000.00",
-  valorPromedioPorCliente: "1750.00",
+  ingresosPeriodo: "7000",
+  valorPromedioPorCliente: "1750",
   tasaRecompra: 0.25,
   tiempoEntreCompras: 12.5,
   rankingClientes: [
-    { dni: "30111222", nombre: "Ana", cantidadOrdenes: 2, facturacion: "7000.00" },
-    { dni: "28333444", nombre: "Beto", cantidadOrdenes: 1, facturacion: "5000.00" },
+    { dni: "30111222", nombre: "Ana", cantidadOrdenes: 2, facturacion: "7000" },
+    { dni: "28333444", nombre: "Beto", cantidadOrdenes: 1, facturacion: "5000" },
   ],
 };
 
@@ -36,12 +36,12 @@ const RESUMEN_SIN_RECOMPRAS = {
   totalClientes: 3,
   clientesNuevos: 3,
   clientesRecurrentes: 0,
-  ingresosPeriodo: "3000.00",
-  valorPromedioPorCliente: "1000.00",
+  ingresosPeriodo: "3000",
+  valorPromedioPorCliente: "1000",
   tasaRecompra: 0,
   tiempoEntreCompras: null,
   rankingClientes: [
-    { dni: "30111222", nombre: "Ana", cantidadOrdenes: 1, facturacion: "1500.00" },
+    { dni: "30111222", nombre: "Ana", cantidadOrdenes: 1, facturacion: "1500" },
   ],
 };
 
@@ -60,8 +60,8 @@ const RESUMEN_VACIO = {
   totalClientes: 0,
   clientesNuevos: 0,
   clientesRecurrentes: 0,
-  ingresosPeriodo: "0.00",
-  valorPromedioPorCliente: "0.00",
+  ingresosPeriodo: "0",
+  valorPromedioPorCliente: "0",
   tasaRecompra: 0,
   tiempoEntreCompras: null,
   rankingClientes: [],
@@ -86,7 +86,7 @@ describe("AdminClientes", () => {
 
     expect(screen.getByText("Cargando clientes…")).toBeInTheDocument();
 
-    expect(await screen.findByText("$ 1.750,00")).toBeInTheDocument();
+    expect(await screen.findByText("$ 1.750")).toBeInTheDocument();
 
     const resumen = screen.getByLabelText("Resumen de clientes");
     expect(within(resumen).getByText("Clientes")).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe("AdminClientes", () => {
   it("muestra la tasa de recompra como porcentaje", async () => {
     renderPagina();
 
-    await screen.findByText("$ 1.750,00");
+    await screen.findByText("$ 1.750");
 
     expect(screen.getByText("25.0%")).toBeInTheDocument();
   });
@@ -135,19 +135,19 @@ describe("AdminClientes", () => {
   it("muestra el ranking de clientes ordenado por facturación", async () => {
     renderPagina();
 
-    await screen.findByText("$ 1.750,00");
+    await screen.findByText("$ 1.750");
 
     const filas = screen.getAllByRole("row");
     // La primera fila es el encabezado.
     expect(within(filas[1]).getByText("Ana")).toBeInTheDocument();
-    expect(within(filas[1]).getByText("$ 7.000,00")).toBeInTheDocument();
+    expect(within(filas[1]).getByText("$ 7.000")).toBeInTheDocument();
     expect(within(filas[2]).getByText("Beto")).toBeInTheDocument();
   });
 
   it("muestra el DNI de cada cliente del ranking", async () => {
     renderPagina();
 
-    await screen.findByText("$ 1.750,00");
+    await screen.findByText("$ 1.750");
 
     // El DNI es la identidad del cliente en el checkout de invitado: sin él,
     // dos clientes con el mismo nombre son indistinguibles.
@@ -158,7 +158,7 @@ describe("AdminClientes", () => {
     const user = userEvent.setup();
     renderPagina();
 
-    await screen.findByText("$ 1.750,00");
+    await screen.findByText("$ 1.750");
     vi.clearAllMocks();
     adminClientesApi.getResumenClientes.mockResolvedValue(RESUMEN);
 
@@ -185,7 +185,7 @@ describe("AdminClientes", () => {
   it("no muestra la advertencia de histórico cuando no hubo recorte", async () => {
     renderPagina();
 
-    await screen.findByText("$ 1.750,00");
+    await screen.findByText("$ 1.750");
 
     expect(screen.queryByTestId("advertencia-historico")).not.toBeInTheDocument();
   });
@@ -226,7 +226,7 @@ describe("AdminClientes", () => {
 
     renderPagina();
 
-    await screen.findByText("$ 1.750,00");
+    await screen.findByText("$ 1.750");
 
     expect(screen.queryByTestId("advertencia-historico")).not.toBeInTheDocument();
   });
@@ -234,7 +234,7 @@ describe("AdminClientes", () => {
   it("no muestra el aviso de período recortado cuando no hubo recorte", async () => {
     renderPagina();
 
-    await screen.findByText("$ 1.750,00");
+    await screen.findByText("$ 1.750");
 
     expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
   });
@@ -259,7 +259,7 @@ describe("AdminClientes", () => {
 
     renderPagina();
 
-    await screen.findByText("$ 1.750,00");
+    await screen.findByText("$ 1.750");
 
     expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
   });

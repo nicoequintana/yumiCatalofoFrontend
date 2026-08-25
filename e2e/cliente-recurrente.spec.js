@@ -31,7 +31,7 @@ test.describe("Cliente recurrente — dos órdenes, mismo dni, un solo Cliente",
   test.beforeEach(async ({ page }) => {
     producto = await crearProductoDeTest({
       nombre: "E2E-TEST-Producto Cliente Recurrente",
-      precio: "1800.00",
+      precio: "1800",
     });
     dniTest = crearDniDeTest();
 

@@ -27,7 +27,7 @@ test.describe("Click en WhatsApp desde el detalle de producto", () => {
   test.beforeEach(async () => {
     producto = await crearProductoDeTest({
       nombre: "E2E-TEST-Producto WhatsApp",
-      precio: "990.00",
+      precio: "990",
     });
   });
 

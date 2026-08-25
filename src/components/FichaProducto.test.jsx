@@ -56,7 +56,7 @@ describe("FichaProducto — renderizado base", () => {
 
     expect(screen.getAllByText("Reloj Clásico").length).toBeGreaterThan(0);
     expect(screen.getByText("Un reloj elegante.")).toBeInTheDocument();
-    expect(screen.getAllByText("$ 1.000,00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$ 1.000").length).toBeGreaterThan(0);
   });
 
   it("nunca busca el producto: lo renderiza tal cual viene por props", () => {

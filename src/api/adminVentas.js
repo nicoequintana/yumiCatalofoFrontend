@@ -5,7 +5,7 @@
  * así que va por `fetchAutenticado` (adjunta el JWT y, ante un 401, limpia el
  * token y manda al login) — mismo patrón que `adminLogs.js`.
  *
- * Los montos vienen del backend como string con dos decimales (no como
+ * Los montos vienen del backend como string entero, sin decimales (no como
  * number): son valores `Decimal` de Prisma y se serializan como string a
  * propósito para no perder precisión al pasar por JSON. Se formatean para
  * mostrar con `formatPrecio` de `utils/formato.js`.

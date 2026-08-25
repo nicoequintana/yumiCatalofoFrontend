@@ -19,7 +19,7 @@ beforeEach(() => {
 
 describe("getResumenVentas", () => {
   it("sin filtros no agrega querystring", async () => {
-    mockFetchAutenticadoOnce({ ingresosTotales: "0.00" });
+    mockFetchAutenticadoOnce({ ingresosTotales: "0" });
 
     await getResumenVentas();
 
@@ -27,7 +27,7 @@ describe("getResumenVentas", () => {
   });
 
   it("manda desde y hasta como query params", async () => {
-    mockFetchAutenticadoOnce({ ingresosTotales: "0.00" });
+    mockFetchAutenticadoOnce({ ingresosTotales: "0" });
 
     await getResumenVentas({ desde: "2026-08-01", hasta: "2026-08-15" });
 
@@ -38,7 +38,7 @@ describe("getResumenVentas", () => {
   });
 
   it("ignora valores vacíos", async () => {
-    mockFetchAutenticadoOnce({ ingresosTotales: "0.00" });
+    mockFetchAutenticadoOnce({ ingresosTotales: "0" });
 
     await getResumenVentas({ desde: "", hasta: undefined });
 
@@ -47,7 +47,7 @@ describe("getResumenVentas", () => {
 
   it("devuelve el body parseado", async () => {
     const body = {
-      ingresosTotales: "3500.50",
+      ingresosTotales: "3500",
       cantidadOrdenes: 2,
       rankingProductos: [],
       serieTemporal: [],

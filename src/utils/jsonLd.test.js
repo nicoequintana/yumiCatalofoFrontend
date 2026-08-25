@@ -14,7 +14,7 @@ function productoDePrueba(extra = {}) {
     nombre: "Set de cuchillos",
     descripcion: "Seis piezas de acero inoxidable.",
     sku: "YIMA-0012",
-    precio: "45000.00",
+    precio: "45000",
     stock: 4,
     categoria: { id: 3, nombre: "Cocina" },
     especificaciones: [{ id: 1, nombre: "Material", valor: "Acero inoxidable" }],
@@ -42,7 +42,7 @@ describe("jsonLdProducto", () => {
     const { offers } = jsonLdProducto(productoDePrueba(), { frontendUrl, imagenes: [] });
 
     // Un float acá publica "45000.000000001" en el SERP.
-    expect(offers.price).toBe("45000.00");
+    expect(offers.price).toBe("45000");
     expect(typeof offers.price).toBe("string");
     expect(offers.priceCurrency).toBe("ARS");
     expect(offers.itemCondition).toBe("https://schema.org/NewCondition");
@@ -187,8 +187,8 @@ describe("jsonLdColeccion", () => {
  */
 describe("equivalencia de forma: Prisma (Decimal) vs. mapProducto (string)", () => {
   it("jsonLdProducto da el MISMO resultado con precio-Decimal que con precio-string", () => {
-    const formaPrisma = productoDePrueba({ precio: { toString: () => "45000.00" } });
-    const formaMapProducto = productoDePrueba({ precio: "45000.00" });
+    const formaPrisma = productoDePrueba({ precio: { toString: () => "45000" } });
+    const formaMapProducto = productoDePrueba({ precio: "45000" });
 
     const resultadoPrisma = jsonLdProducto(formaPrisma, {
       frontendUrl,
@@ -203,8 +203,8 @@ describe("equivalencia de forma: Prisma (Decimal) vs. mapProducto (string)", () 
   });
 
   it("jsonLdBreadcrumb da el MISMO resultado con las dos formas de producto", () => {
-    const formaPrisma = productoDePrueba({ precio: { toString: () => "45000.00" } });
-    const formaMapProducto = productoDePrueba({ precio: "45000.00" });
+    const formaPrisma = productoDePrueba({ precio: { toString: () => "45000" } });
+    const formaMapProducto = productoDePrueba({ precio: "45000" });
 
     expect(jsonLdBreadcrumb(formaMapProducto, { frontendUrl })).toEqual(
       jsonLdBreadcrumb(formaPrisma, { frontendUrl }),

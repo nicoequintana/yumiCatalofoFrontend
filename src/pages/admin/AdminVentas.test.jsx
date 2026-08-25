@@ -13,22 +13,22 @@ const HISTORICO_COMPLETO = { ordenesAnalizadas: 120, tope: 20000, recortado: fal
 const RESUMEN = {
   periodo: { desde: "2026-07-21", hasta: "2026-08-19" },
   historico: HISTORICO_COMPLETO,
-  ingresosTotales: "3500.50",
+  ingresosTotales: "3500",
   cantidadOrdenes: 2,
-  ticketPromedio: "1750.25",
+  ticketPromedio: "1750",
   unidadesVendidas: 4,
   productosPorOrden: 1.5,
-  pipeline: { cantidadOrdenes: 3, valorTotal: "1999.98" },
+  pipeline: { cantidadOrdenes: 3, valorTotal: "1998" },
   ordenesCanceladas: 1,
   tasaCancelacion: 0.25,
   rankingProductos: [
-    { productId: 2, nombre: "Perfume", unidades: 2, facturacion: "1000.00" },
-    { productId: 1, nombre: "Jabón", unidades: 10, facturacion: "100.00" },
+    { productId: 2, nombre: "Perfume", unidades: 2, facturacion: "1000" },
+    { productId: 1, nombre: "Jabón", unidades: 10, facturacion: "100" },
   ],
   serieTemporal: [
-    { fecha: "2026-08-10", ingresos: "150.00" },
-    { fecha: "2026-08-11", ingresos: "0.00" },
-    { fecha: "2026-08-12", ingresos: "25.00" },
+    { fecha: "2026-08-10", ingresos: "150" },
+    { fecha: "2026-08-11", ingresos: "0" },
+    { fecha: "2026-08-12", ingresos: "25" },
   ],
 };
 
@@ -44,12 +44,12 @@ const RESUMEN_RECORTADO = {
 const RESUMEN_VACIO = {
   periodo: { desde: "2026-07-21", hasta: "2026-08-19" },
   historico: HISTORICO_COMPLETO,
-  ingresosTotales: "0.00",
+  ingresosTotales: "0",
   cantidadOrdenes: 0,
-  ticketPromedio: "0.00",
+  ticketPromedio: "0",
   unidadesVendidas: 0,
   productosPorOrden: 0,
-  pipeline: { cantidadOrdenes: 0, valorTotal: "0.00" },
+  pipeline: { cantidadOrdenes: 0, valorTotal: "0" },
   ordenesCanceladas: 0,
   tasaCancelacion: 0,
   rankingProductos: [],
@@ -75,8 +75,8 @@ describe("AdminVentas", () => {
 
     expect(screen.getByText("Cargando ventas…")).toBeInTheDocument();
 
-    expect(await screen.findByText("$ 3.500,50")).toBeInTheDocument();
-    expect(screen.getByText("$ 1.750,25")).toBeInTheDocument();
+    expect(await screen.findByText("$ 3.500")).toBeInTheDocument();
+    expect(screen.getByText("$ 1.750")).toBeInTheDocument();
 
     // Órdenes y unidades se buscan dentro del resumen: un "2" suelto también
     // aparece como número de fila en el ranking.
@@ -94,33 +94,33 @@ describe("AdminVentas", () => {
 
     // El valor del pipeline vive en su propia región, no entre las tarjetas
     // de ingresos — no se puede leer como plata ya facturada.
-    expect(within(pipeline).getByText("$ 1.999,98")).toBeInTheDocument();
+    expect(within(pipeline).getByText("$ 1.998")).toBeInTheDocument();
     expect(within(pipeline).getByText(/pendiente de confirmar/i)).toBeInTheDocument();
     expect(within(pipeline).getByText(/todavía no cuenta como ingreso/i)).toBeInTheDocument();
 
     // Y sobre todo: el monto del pipeline NO está dentro del resumen de
     // ingresos, que es lo que lo haría confundible con plata ya facturada.
     const resumen = screen.getByLabelText("Resumen de facturación");
-    expect(within(resumen).queryByText("$ 1.999,98")).not.toBeInTheDocument();
+    expect(within(resumen).queryByText("$ 1.998")).not.toBeInTheDocument();
   });
 
   it("muestra el ranking de productos ordenado por facturación", async () => {
     renderPagina();
 
-    await screen.findByText("$ 3.500,50");
+    await screen.findByText("$ 3.500");
 
     const filas = screen.getAllByRole("row");
     // Primera fila es el encabezado; la segunda debe ser el producto que más
     // factura, aunque no sea el de más unidades.
     expect(within(filas[1]).getByText("Perfume")).toBeInTheDocument();
-    expect(within(filas[1]).getByText("$ 1.000,00")).toBeInTheDocument();
+    expect(within(filas[1]).getByText("$ 1.000")).toBeInTheDocument();
     expect(within(filas[2]).getByText("Jabón")).toBeInTheDocument();
   });
 
   it("renderiza la serie temporal sin librería de gráficos", async () => {
     const { container } = renderPagina();
 
-    await screen.findByText("$ 3.500,50");
+    await screen.findByText("$ 3.500");
 
     // Gráfico inline en SVG: sin dependencias externas.
     const grafico = container.querySelector("svg");
@@ -132,7 +132,7 @@ describe("AdminVentas", () => {
     const user = userEvent.setup();
     renderPagina();
 
-    await screen.findByText("$ 3.500,50");
+    await screen.findByText("$ 3.500");
     vi.clearAllMocks();
     adminVentasApi.getResumenVentas.mockResolvedValue(RESUMEN);
 
@@ -159,7 +159,7 @@ describe("AdminVentas", () => {
   it("no muestra la advertencia de histórico cuando no hubo recorte", async () => {
     renderPagina();
 
-    await screen.findByText("$ 3.500,50");
+    await screen.findByText("$ 3.500");
 
     expect(screen.queryByTestId("advertencia-historico")).not.toBeInTheDocument();
   });
@@ -200,7 +200,7 @@ describe("AdminVentas", () => {
 
     renderPagina();
 
-    await screen.findByText("$ 3.500,50");
+    await screen.findByText("$ 3.500");
 
     expect(screen.queryByTestId("advertencia-historico")).not.toBeInTheDocument();
   });
@@ -208,7 +208,7 @@ describe("AdminVentas", () => {
   it("no muestra el aviso de período recortado cuando no hubo recorte", async () => {
     renderPagina();
 
-    await screen.findByText("$ 3.500,50");
+    await screen.findByText("$ 3.500");
 
     expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
   });
@@ -248,7 +248,7 @@ describe("AdminVentas", () => {
 
     renderPagina();
 
-    await screen.findByText("$ 3.500,50");
+    await screen.findByText("$ 3.500");
 
     expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
   });

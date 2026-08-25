@@ -108,12 +108,17 @@ function SeccionesFormulario({
             <label htmlFor="precio" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">
               Precio
             </label>
+            {/* `inputMode="numeric"` y no `"decimal"`: los precios son enteros
+                (`Product.precio` es `Decimal(10, 0)`) y `formatearPrecioInput`
+                descarta todo lo que no sea dígito, así que un teclado de
+                celular que ofrezca la coma solo invita a tipear algo que el
+                campo va a ignorar. */}
             <div className="flex items-center rounded-lg border border-outline-variant bg-surface px-4 focus-within:border-primary">
               <span className="font-body-md text-body-md text-on-surface-variant">$</span>
               <input
                 id="precio"
                 type="text"
-                inputMode="decimal"
+                inputMode="numeric"
                 required
                 value={valores.precioVisual}
                 onChange={(e) => editarPrecio(e.target.value)}

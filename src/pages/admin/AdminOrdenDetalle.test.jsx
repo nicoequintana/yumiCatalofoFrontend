@@ -17,7 +17,7 @@ const ORDEN = {
   notas: null,
   createdAt: "2026-08-23T12:00:00.000Z",
   cliente: { dni: "12345678", nombre: "Juan Perez", telefono: "1122334455", email: "juan@gmail.com" },
-  items: [{ id: 1, productId: 1, nombreProducto: "Difusor", precioUnitario: "8000.00", cantidad: 1 }],
+  items: [{ id: 1, productId: 1, nombreProducto: "Difusor", precioUnitario: "8000", cantidad: 1 }],
 };
 
 // Fixture de las tres pruebas preexistentes (info de cliente, link de DNI,
@@ -31,8 +31,8 @@ const ORDEN_ENTREGADA = {
   createdAt: "2026-08-01T00:00:00.000Z",
   cliente: { nombre: "Ana López", dni: "12345678", telefono: "1122334455", email: "ana@example.com" },
   items: [
-    { id: 1, nombreProducto: "Producto A", precioUnitario: "0.10", cantidad: 1 },
-    { id: 2, nombreProducto: "Producto B", precioUnitario: "0.20", cantidad: 1 },
+    { id: 1, nombreProducto: "Producto A", precioUnitario: "1250", cantidad: 3 },
+    { id: 2, nombreProducto: "Producto B", precioUnitario: "2000", cantidad: 1 },
   ],
 };
 
@@ -54,7 +54,7 @@ beforeEach(() => {
 });
 
 describe("AdminOrdenDetalle — datos de la orden", () => {
-  it("muestra info de cliente, items y total calculado en centavos (evita drift de floats)", async () => {
+  it("muestra info de cliente, items y el total del pedido", async () => {
     getOrdenById.mockResolvedValue(ORDEN_ENTREGADA);
     renderDetalle();
 
@@ -66,9 +66,13 @@ describe("AdminOrdenDetalle — datos de la orden", () => {
     expect(screen.getByText("Producto B")).toBeInTheDocument();
     expect(screen.getByText("Entregar por la tarde")).toBeInTheDocument();
 
-    // 0.10 + 0.20 en floats da 0.30000000000000004 — la suma en centavos
-    // debe devolver exactamente $ 0,30.
-    expect(screen.getByText("$ 0,30")).toBeInTheDocument();
+    // 1250*3 + 2000 = 5750. El fixture usaba montos con centavos (0.10 + 0.20)
+    // para probar que la suma no arrastra drift de float; desde que
+    // `ItemOrden.precioUnitario` es `Decimal(10, 0)` y `formatPrecio` no emite
+    // decimales, ese caso ya no distingue una suma correcta de una naive. El
+    // guard sigue vivo donde sí muerde: `utils/formato.test.js`, que afirma
+    // sobre los centavos enteros que devuelve `precioACentavos`, sin formatear.
+    expect(screen.getByText("$ 5.750")).toBeInTheDocument();
   });
 
   it("el dni es un link a /catalogo/admin/ordenes?dni=<dni>", async () => {

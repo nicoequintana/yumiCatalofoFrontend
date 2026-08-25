@@ -18,7 +18,7 @@ test.describe("Checkout — accesibilidad básica del formulario", () => {
   let producto;
 
   test.beforeEach(async ({ page }) => {
-    producto = await crearProductoDeTest({ nombre: "E2E-TEST-A11y Checkout", precio: "500.00" });
+    producto = await crearProductoDeTest({ nombre: "E2E-TEST-A11y Checkout", precio: "500" });
     await page.goto("/");
     await page.evaluate(() => localStorage.removeItem("yumi-carrito"));
   });
