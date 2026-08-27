@@ -4,16 +4,19 @@ import Badge from "../../components/Badge.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import Paginador from "../../components/Paginador.jsx";
+import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
 import {
   deleteProduct,
   deleteProductsMasivo,
   getProducts,
+  getProductsResumen,
   updateMerchandising,
   updateVisibilidad,
   updateVisibilidadMasiva,
 } from "../../api/products.js";
 import { formatPrecio } from "../../utils/formato.js";
 import useDialogo from "../../hooks/useDialogo.js";
+import { MIN_DESTACADOS } from "../../hooks/useDestacados.js";
 
 /** Pausa antes de mandar lo tipeado a la URL (y por lo tanto al backend). */
 const DEBOUNCE_BUSQUEDA_MS = 350;
@@ -28,6 +31,57 @@ const DEBOUNCE_BUSQUEDA_MS = 350;
  * de un saque. El techo del backend (`MAX_PAGE_SIZE`) es 100.
  */
 const PRODUCTOS_POR_PAGINA = 50;
+
+/**
+ * Valor de una tarjeta de contador.
+ *
+ * Se emite el número pelado, sin `toLocaleString`: la salida de `Intl` depende
+ * de la versión de ICU del runtime — el mismo motivo por el que `formatPrecio`
+ * y `formatearMonto` son manuales en este proyecto — y un conteo de catálogo no
+ * llega a necesitar separador de miles.
+ *
+ * Un valor ausente (todavía cargando, o el pedido falló) es `—`, jamás `0`.
+ */
+function valorResumen(numero) {
+  return typeof numero === "number" ? String(numero) : "—";
+}
+
+/** Cuántos productos están cargados pero fuera del catálogo público. */
+function detalleTotales(resumen) {
+  if (!resumen) return "Contadores no disponibles";
+  const ocultos = resumen.total - resumen.visibles;
+  return ocultos > 0 ? `${ocultos} ocultos` : "Ninguno oculto";
+}
+
+/**
+ * Aclara la diferencia entre "visible" y "se ve en la tienda".
+ *
+ * El toggle "Catálogo" de la tabla es `visibleEnCatalogo`, pero `/coleccion`
+ * además excluye los agotados. Sin esta línea, el número de arriba no cuadraría
+ * con lo que el admin cuenta en el sitio público y no habría forma de saber por
+ * qué.
+ */
+function detalleVisibles(resumen) {
+  if (!resumen) return "Contadores no disponibles";
+  const agotados = resumen.visibles - resumen.publicados;
+  return agotados > 0
+    ? `${agotados} sin stock, no se ven en la tienda`
+    : `${resumen.publicados} se ven en la tienda`;
+}
+
+/**
+ * Contesta la pregunta que aparece cuando el carrusel de la home no se ve.
+ *
+ * `CarruselDestacados` se esconde por debajo de `MIN_DESTACADOS` productos
+ * destacados **visibles y con stock** — no basta con encender el flag. Ese
+ * umbral se importa del hook, no se reescribe acá.
+ */
+function detalleDestacados(resumen) {
+  if (!resumen) return "Contadores no disponibles";
+  return resumen.destacadosPublicados >= MIN_DESTACADOS
+    ? `${resumen.destacadosPublicados} en el carrusel de la home`
+    : `El carrusel de la home no se muestra: hacen falta ${MIN_DESTACADOS} destacados visibles y con stock`;
+}
 
 /**
  * `/catalogo/admin` — admin product list.
@@ -80,6 +134,20 @@ function AdminProductos() {
 
   const [productos, setProductos] = useState([]);
   const [totalPaginas, setTotalPaginas] = useState(1);
+
+  // Conteos del catálogo ENTERO, independientes de la página y de la búsqueda.
+  //
+  // Tres formas, y las tres significan cosas distintas: `undefined` es "todavía
+  // no llegaron", `null` es "no se pudieron traer" y el objeto son los números.
+  // Las dos primeras se muestran como `—`, nunca como `0`: un cero se leería
+  // como "no hay productos" justo arriba de una tabla que sí tiene filas, que
+  // es exactamente el dato inventado que esta pantalla no puede dar.
+  const [resumen, setResumen] = useState(undefined);
+  // Se incrementa después de cada mutación exitosa para que los contadores se
+  // vuelvan a pedir. Sin esto, los toggles de visibilidad y destacado —que
+  // actualizan la fila en memoria sin recargar el listado— dejarían el número
+  // de arriba contradiciendo a la tabla de abajo, sin ningún aviso.
+  const [versionResumen, setVersionResumen] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [productoAEliminar, setProductoAEliminar] = useState(null);
   const [eliminandoId, setEliminandoId] = useState(null);
@@ -245,6 +313,33 @@ function AdminProductos() {
     };
   }, [pagina, busqueda]);
 
+  // Los contadores se piden aparte del listado: son globales, así que no
+  // dependen de `pagina` ni de `busqueda`. Un fallo acá deja `resumen` en
+  // `null` (las tarjetas muestran `—`) y NO toca `error`: la tabla es lo que
+  // esta pantalla existe para mostrar, y un cartel rojo arriba de un listado
+  // que cargó bien confundiría más de lo que informa.
+  useEffect(() => {
+    let activo = true;
+
+    (async () => {
+      try {
+        const datos = await getProductsResumen();
+        if (activo) setResumen(datos ?? null);
+      } catch {
+        if (activo) setResumen(null);
+      }
+    })();
+
+    return () => {
+      activo = false;
+    };
+  }, [versionResumen]);
+
+  /** Marca los contadores como vencidos tras una mutación exitosa. */
+  function refrescarResumen() {
+    setVersionResumen((v) => v + 1);
+  }
+
   // Borrar el último producto de la última página la deja sin filas. En vez de
   // mostrar la tabla vacía como si no hubiera productos, se retrocede una
   // página (el efecto de arriba vuelve a cargar).
@@ -261,6 +356,7 @@ function AdminProductos() {
     try {
       await deleteProduct(id);
       setProductoAEliminar(null);
+      refrescarResumen();
       await cargarProductos();
     } catch (err) {
       setError(err.message ?? "No se pudo eliminar el producto.");
@@ -276,6 +372,7 @@ function AdminProductos() {
     try {
       await updateVisibilidadMasiva(idsSeleccionados, visible);
       setSeleccionados(new Set());
+      refrescarResumen();
       await cargarProductos();
     } catch (err) {
       setError(err.message ?? "No se pudo cambiar la visibilidad de los productos seleccionados.");
@@ -302,6 +399,7 @@ function AdminProductos() {
       setResultadoMasivo(resultado);
       setConfirmandoBorradoMasivo(false);
       setSeleccionados(new Set());
+      refrescarResumen();
       await cargarProductos();
     } catch (err) {
       setError(err.message ?? "No se pudieron eliminar los productos seleccionados.");
@@ -316,6 +414,7 @@ function AdminProductos() {
     try {
       const actualizado = await updateVisibilidad(producto.id, !producto.visibleEnCatalogo);
       setProductos((actuales) => actuales.map((p) => (p.id === actualizado.id ? actualizado : p)));
+      refrescarResumen();
     } catch (err) {
       setError(err.message ?? "No se pudo actualizar la visibilidad del producto.");
     } finally {
@@ -329,6 +428,7 @@ function AdminProductos() {
     try {
       const actualizado = await updateMerchandising(producto.id, { destacado: !producto.destacado });
       setProductos((actuales) => actuales.map((p) => (p.id === actualizado.id ? actualizado : p)));
+      refrescarResumen();
     } catch (err) {
       setError(err.message ?? "No se pudo actualizar el destacado del producto.");
     } finally {
@@ -416,6 +516,33 @@ function AdminProductos() {
             Agregar producto
           </Link>
         </div>
+      </div>
+
+      {/* Contadores del catálogo entero, no de esta página ni de esta búsqueda:
+          la pregunta que contestan es "cuánto catálogo tengo cargado". Van
+          ARRIBA del buscador para que quede claro que no los filtra. */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <TarjetaMetrica
+          testId="resumen-total"
+          icono="inventory_2"
+          etiqueta="Productos totales"
+          valor={valorResumen(resumen?.total)}
+          detalle={detalleTotales(resumen)}
+        />
+        <TarjetaMetrica
+          testId="resumen-visibles"
+          icono="storefront"
+          etiqueta="En el catálogo"
+          valor={valorResumen(resumen?.visibles)}
+          detalle={detalleVisibles(resumen)}
+        />
+        <TarjetaMetrica
+          testId="resumen-destacados"
+          icono="star"
+          etiqueta="Destacados"
+          valor={valorResumen(resumen?.destacados)}
+          detalle={detalleDestacados(resumen)}
+        />
       </div>
 
       {/* Un solo campo para nombre, SKU y categoría: el admin no tiene por qué

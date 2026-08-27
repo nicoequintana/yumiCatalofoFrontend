@@ -227,6 +227,24 @@ export async function getProducts({
 }
 
 /**
+ * Conteos de catálogo del encabezado del listado del admin.
+ *
+ * Son GLOBALES: no los afecta la búsqueda ni la página que se esté mirando.
+ * Por eso es un endpoint aparte y no un campo más del sobre de `getProducts`
+ * — ese `total` responde "cuántas filas entraron en este filtro", que es otra
+ * pregunta.
+ *
+ * `visibles` y `publicados` no son lo mismo: el primero es el toggle
+ * "Catálogo", el segundo además exige stock, que es lo que el listado público
+ * realmente muestra. Ver el comentario de `resumen()` en el backend.
+ *
+ * @returns {Promise<{total: number, visibles: number, publicados: number, destacados: number, destacadosPublicados: number}>}
+ */
+export async function getProductsResumen() {
+  return pedirAutenticado(`${BASE}/products/resumen`);
+}
+
+/**
  * Trae exactamente los productos de `ids`, en tandas de `MAX_IDS_POR_CONSULTA`.
  *
  * Existe para carrito, checkout y favoritos: los tres tienen una lista de ids
