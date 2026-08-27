@@ -1,8 +1,6 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
-import MediaUploader from "../../MediaUploader.jsx";
 import ListaDinamica from "../../ListaDinamica.jsx";
-import SeccionGenerarImagenes from "./SeccionGenerarImagenes.jsx";
 
 const SUGERENCIAS_ETIQUETA = ["Exclusivo", "Nuevo", "Best Seller", "Trending", "Popular"];
 
@@ -47,7 +45,6 @@ function SeccionesFormulario({
   eliminarCaracteristica,
   agregarEspecificacion,
   eliminarEspecificacion,
-  onChangeFotos,
 }) {
   // Enter en el Nombre de una especificación pasa el foco acá, al Valor: el
   // borrador todavía no tiene las dos mitades, así que agregar el ítem sería
@@ -57,9 +54,16 @@ function SeccionesFormulario({
 
   return (
     <div
-      className={`px-4 py-6 md:px-8 ${
-        visible ? "" : "hidden"
-      } lg:block lg:h-full lg:overflow-y-auto`}
+      // Sin `lg:block`: hasta el 27/08/2026 esta columna forzaba su propia
+      // visibilidad en `lg` (dos paneles fijos, formulario y preview, lado a
+      // lado) porque las pestañas solo existían debajo de `lg`. Ahora el
+      // formulario comparte la columna izquierda con la solapa Imágenes, y las
+      // pestañas son lo único que decide cuál se ve — en CUALQUIER tamaño. Un
+      // override de `lg` acá volvería a mostrar el formulario en escritorio
+      // aunque la solapa activa fuera Imágenes. El scroll de la columna ahora
+      // lo controla el `<div>` que envuelve a este componente y a
+      // `SolapaImagenes` en `AdminProductoForm.jsx`.
+      className={`px-4 py-6 md:px-8 ${visible ? "" : "hidden"}`}
     >
       <form
         id="form-producto"
@@ -350,14 +354,12 @@ function SeccionesFormulario({
           </div>
         </div>
 
-        <div className="flex flex-col gap-6 border-t border-outline-variant pt-8">
-          <h2 className="font-headline-md text-headline-md text-primary">Multimedia</h2>
-          <MediaUploader
-            fotos={valores.fotos}
-            video={valores.video}
-            onChangeFotos={onChangeFotos}
-            onChangeVideo={editar("video")}
-          />
+        <div className="flex flex-col gap-3 border-t border-outline-variant pt-8">
+          <h2 className="font-headline-md text-headline-md text-primary">Fotos y video</h2>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            Se gestionan en la solapa <strong>Imágenes</strong>, arriba: ahí están la portada, la
+            imagen de «¿Qué problema resuelve?», la galería y la generación con IA.
+          </p>
         </div>
 
         {/* ---------- Lo que no se ve en la ficha pública ---------- */}
@@ -485,12 +487,6 @@ function SeccionesFormulario({
         ) : null}
         </fieldset>
       </form>
-
-      {/* Fuera del <form> a propósito: es una acción externa, no parte de
-          guardar el producto. Adentro, además, cualquier <button> sin
-          type="button" dispararía el submit. Se monta sola solo en edición:
-          con `valores.id` undefined el componente no renderiza nada. */}
-      <SeccionGenerarImagenes productoId={valores.id} />
     </div>
   );
 }

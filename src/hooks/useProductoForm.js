@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { createProduct, deletePhoto, getProductById, updateProduct } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
@@ -231,38 +231,45 @@ export default function useProductoForm() {
   const [nuevaSpecNombre, setNuevaSpecNombre] = useState("");
   const [nuevaSpecValor, setNuevaSpecValor] = useState("");
 
-  useEffect(() => {
-    if (!esEdicion) return;
+  // Un token, no un simple booleano cerrado sobre el efecto: `recargarProducto`
+  // también se llama desde AFUERA del montaje (al adoptar imágenes generadas
+  // en la solapa Imágenes), así que la guarda contra una respuesta vieja tiene
+  // que sobrevivir más de una sola ejecución del efecto. Cada llamada toma su
+  // propio número; si la respuesta llega y ya no es la más reciente, se
+  // descarta en silencio — mismo propósito que el `activo` de antes, pero
+  // reutilizable fuera del efecto.
+  const tokenCargaRef = useRef(0);
 
-    let activo = true;
+  const recargarProducto = useCallback(async () => {
+    const miToken = ++tokenCargaRef.current;
     setCargando(true);
 
-    getProductById(id, { admin: true })
-      .then((producto) => {
-        if (!activo) return;
+    try {
+      const producto = await getProductById(id, { admin: true });
+      if (tokenCargaRef.current !== miToken) return;
 
-        if (!producto) {
-          setNoEncontrado(true);
-          setCargando(false);
-          return;
-        }
-
-        despachar({ tipo: "cargar", producto });
+      if (!producto) {
+        setNoEncontrado(true);
         setCargando(false);
-      })
+        return;
+      }
+
+      despachar({ tipo: "cargar", producto });
+      setCargando(false);
+    } catch {
       // Sin este catch, un backend caído deja la promesa rechazada sin manejar
       // y la pantalla en blanco. Preferimos un error visible sobre un spinner
       // eterno: el admin necesita saber que el problema es la conexión.
-      .catch(() => {
-        if (!activo) return;
-        setErrorCarga("Revisá tu conexión e intentá de nuevo.");
-        setCargando(false);
-      });
+      if (tokenCargaRef.current !== miToken) return;
+      setErrorCarga("Revisá tu conexión e intentá de nuevo.");
+      setCargando(false);
+    }
+  }, [id]);
 
-    return () => {
-      activo = false;
-    };
-  }, [id, esEdicion]);
+  useEffect(() => {
+    if (!esEdicion) return;
+    recargarProducto();
+  }, [esEdicion, recargarProducto]);
 
   useEffect(() => {
     let activo = true;
@@ -440,5 +447,6 @@ export default function useProductoForm() {
     handleSubmit,
     confirmarSalida,
     salirDelEditor,
+    recargarProducto,
   };
 }

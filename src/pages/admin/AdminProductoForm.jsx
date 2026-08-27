@@ -5,6 +5,7 @@ import SeccionesFormulario from "../../components/admin/producto/SeccionesFormul
 import EditorHeader from "../../components/admin/producto/EditorHeader.jsx";
 import EditorTabs from "../../components/admin/producto/EditorTabs.jsx";
 import PanelPreview from "../../components/admin/producto/PanelPreview.jsx";
+import SolapaImagenes from "../../components/admin/producto/SolapaImagenes.jsx";
 import useProductoForm from "../../hooks/useProductoForm.js";
 
 /**
@@ -55,6 +56,7 @@ function AdminProductoForm() {
     handleSubmit,
     confirmarSalida,
     salirDelEditor,
+    recargarProducto,
   } = useProductoForm();
 
   // Estado puramente visual: qué panel se ve, con qué ancho y en qué modo. No
@@ -142,26 +144,41 @@ function AdminProductoForm() {
       <EditorTabs panelActivo={panelActivo} onCambiarPanel={setPanelActivo} />
 
       <div className="grid grid-cols-1 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
-        {/* ---------------- Columna izquierda: formulario ---------------- */}
-        <SeccionesFormulario
-          visible={panelActivo === "form"}
-          formRef={formRef}
-          onSubmit={handleSubmit}
-          guardando={guardando}
-          valores={valores}
-          editar={editar}
-          editarPrecio={editarPrecio}
-          categorias={categorias}
-          errorCategorias={errorCategorias}
-          error={error}
-          esEdicion={esEdicion}
-          borradores={borradores}
-          agregarCaracteristica={agregarCaracteristica}
-          eliminarCaracteristica={eliminarCaracteristica}
-          agregarEspecificacion={agregarEspecificacion}
-          eliminarEspecificacion={eliminarEspecificacion}
-          onChangeFotos={handleChangeFotos}
-        />
+        {/* ---------------- Columna izquierda: formulario / imágenes ----------------
+            Comparten esta columna: en CUALQUIER tamaño se ve solo la que
+            corresponde según `panelActivo` (ver el comentario en
+            `EditorTabs.jsx`). El scroll ahora es de este envoltorio, no de
+            cada hijo por separado — antes cada uno scrolleaba por su cuenta
+            porque solo uno de los dos existía acá. */}
+        <div className="lg:min-h-0 lg:overflow-y-auto">
+          <SeccionesFormulario
+            visible={panelActivo === "form"}
+            formRef={formRef}
+            onSubmit={handleSubmit}
+            guardando={guardando}
+            valores={valores}
+            editar={editar}
+            editarPrecio={editarPrecio}
+            categorias={categorias}
+            errorCategorias={errorCategorias}
+            error={error}
+            esEdicion={esEdicion}
+            borradores={borradores}
+            agregarCaracteristica={agregarCaracteristica}
+            eliminarCaracteristica={eliminarCaracteristica}
+            agregarEspecificacion={agregarEspecificacion}
+            eliminarEspecificacion={eliminarEspecificacion}
+          />
+
+          <SolapaImagenes
+            visible={panelActivo === "imagenes"}
+            productoId={valores.id}
+            valores={valores}
+            onChangeFotos={handleChangeFotos}
+            onChangeVideo={editar("video")}
+            onAdoptadas={recargarProducto}
+          />
+        </div>
 
         {/* ---------------- Columna derecha: vista previa ---------------- */}
         <PanelPreview

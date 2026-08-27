@@ -112,8 +112,10 @@ describe("AdminProductoForm — contenido comercial", () => {
 
     expect(await screen.findByDisplayValue("Frase existente")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Ya cargado")).toBeInTheDocument();
-    // Aparece dos veces: en la lista editable del form y en la vista previa.
-    expect(screen.getAllByText("Beneficio existente")).toHaveLength(2);
+    // Aparece tres veces: en la lista editable del form, en la vista previa y
+    // en "este texto se va a dibujar" de la solapa Imágenes (PreviaTextoImpreso
+    // muestra el mismo beneficio antes de generar con IA).
+    expect(screen.getAllByText("Beneficio existente")).toHaveLength(3);
   });
 
   it("agrega una especificación y la envía en el submit", async () => {
