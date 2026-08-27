@@ -96,5 +96,9 @@ describe("GaleriaGeneradas", () => {
     getMock.mockRejectedValue(new Error("No se pudo conectar"));
     render(<GaleriaGeneradas productoId={7} fotosActuales={[]} onAdoptadas={() => {}} />);
     expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo/i);
+    // La ausencia del texto de carpeta vacía es la otra mitad de "se distingue":
+    // sin esta aserción, romper el guard que separa los dos estados seguiría
+    // en verde.
+    expect(screen.queryByText(/todavía no hay imágenes generadas/i)).not.toBeInTheDocument();
   });
 });
