@@ -1,0 +1,209 @@
+import { useCallback, useEffect, useState } from "react";
+import {
+  getImagenesGeneradas,
+  adoptarImagenesGeneradas,
+  borrarImagenesGeneradas,
+} from "../../../api/products.js";
+import Spinner from "../../Spinner.jsx";
+
+/** Espejo de `MAX_FOTOS` del backend. Acá solo evita un viaje que el servidor rechazaría igual. */
+const MAX_FOTOS = 10;
+
+/**
+ * Galería de lo que n8n dejó en `productos/{sku}`, con selección para pasar
+ * imágenes a la ficha.
+ *
+ * Distingue tres estados que se confunden fácil y no son lo mismo: la carpeta
+ * vacía (todavía no se generó), el fallo de carga (no se pudo consultar) y la
+ * galería con contenido. Un `catch` que solo vacía la lista haría que un
+ * Cloudinary caído se lea como "no generaste nada".
+ *
+ * Adoptar no sube nada: el backend crea filas que apuntan al archivo que ya
+ * está. Por eso es inmediato y por eso el borrado conserva las que están en uso
+ * — son el mismo archivo.
+ */
+function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas }) {
+  const [imagenes, setImagenes] = useState([]);
+  const [seleccion, setSeleccion] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [trabajando, setTrabajando] = useState(false);
+  const [error, setError] = useState("");
+  const [aviso, setAviso] = useState("");
+
+  const libres = MAX_FOTOS - fotosActuales.length;
+  const excede = seleccion.length > libres;
+
+  const cargar = useCallback(async () => {
+    setCargando(true);
+    setError("");
+    try {
+      const { imagenes: recibidas } = await getImagenesGeneradas(productoId);
+      setImagenes(recibidas);
+      setSeleccion([]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargando(false);
+    }
+  }, [productoId]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  function alternar(publicId) {
+    setAviso("");
+    setSeleccion((actual) =>
+      actual.includes(publicId) ? actual.filter((id) => id !== publicId) : [...actual, publicId],
+    );
+  }
+
+  async function handleAdoptar() {
+    setTrabajando(true);
+    setError("");
+    setAviso("");
+    try {
+      const { agregadas } = await adoptarImagenesGeneradas(productoId, seleccion);
+      setAviso(`Se ${agregadas === 1 ? "agregó 1 foto" : `agregaron ${agregadas} fotos`} a la ficha.`);
+      setSeleccion([]);
+      onAdoptadas?.();
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setTrabajando(false);
+    }
+  }
+
+  async function handleBorrar() {
+    setTrabajando(true);
+    setError("");
+    setAviso("");
+    try {
+      const { borradas, conservadas, carpetaBorrada } = await borrarImagenesGeneradas(productoId);
+      setAviso(
+        conservadas > 0
+          ? `Se borraron ${borradas}. Se conservaron ${conservadas} porque están en uso en la ficha: para volver a generar, quitalas primero del producto.`
+          : `Se borraron ${borradas} imágenes${carpetaBorrada ? " y la carpeta" : ""}. Ya podés generar de nuevo.`,
+      );
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setTrabajando(false);
+    }
+  }
+
+  if (cargando) {
+    return (
+      <p className="font-body-md text-body-md flex items-center gap-2 text-on-surface-variant">
+        <Spinner className="h-4 w-4" /> Buscando imágenes generadas…
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      {imagenes.length === 0 && !error ? (
+        <div className="rounded-lg border border-dashed border-outline p-8 text-center">
+          <span className="material-symbols-outlined text-[34px] text-outline">auto_awesome</span>
+          <p className="font-body-md text-body-md mt-2 text-on-surface-variant">
+            Todavía no hay imágenes generadas para este producto.
+          </p>
+        </div>
+      ) : null}
+
+      {imagenes.length > 0 ? (
+        <>
+          <ul className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            {imagenes.map((imagen) => {
+              const elegida = seleccion.includes(imagen.publicId);
+              return (
+                <li key={imagen.publicId}>
+                  <button
+                    type="button"
+                    aria-pressed={elegida}
+                    disabled={imagen.adoptada}
+                    onClick={() => alternar(imagen.publicId)}
+                    className={`block w-full rounded-lg text-left ${elegida ? "ring-2 ring-primary" : ""} ${
+                      imagen.adoptada ? "opacity-60" : ""
+                    }`}
+                  >
+                    {/* `absolute inset-0`: un <img> en flujo normal dentro de una
+                        caja con aspect ratio estira la caja al ratio del archivo
+                        (ver CLAUDE.md, "Grid del catálogo público"). */}
+                    <span className="relative block aspect-square overflow-hidden rounded-lg bg-surface-container-high">
+                      <img
+                        src={imagen.url}
+                        alt={imagen.nombre}
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    </span>
+                    <span className="font-label-sm text-label-sm mt-1 block text-center text-on-surface-variant">
+                      {imagen.nombre}
+                      {imagen.adoptada ? " · ya en la ficha" : ""}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant pt-4">
+            <span className="font-body-md text-body-md text-on-surface-variant">
+              <strong className="text-on-surface">{seleccion.length}</strong> seleccionadas ·{" "}
+              {libres === 0 ? "la ficha ya tiene 10 fotos" : `entran ${libres} más`}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleBorrar}
+                disabled={trabajando}
+                className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant disabled:opacity-60"
+              >
+                <span className="material-symbols-outlined text-[16px]">delete</span> Borrar generadas
+              </button>
+              <button
+                type="button"
+                onClick={handleAdoptar}
+                disabled={trabajando || excede || seleccion.length === 0}
+                className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 uppercase tracking-widest text-on-primary disabled:opacity-60"
+              >
+                {trabajando ? <Spinner className="h-4 w-4 text-on-primary" /> : null}
+                Agregar a la ficha
+              </button>
+            </div>
+          </div>
+        </>
+      ) : null}
+
+      {excede ? (
+        <p
+          role="alert"
+          className="font-body-md text-body-md mt-3 rounded-lg bg-error-container px-4 py-3 text-on-error-container"
+        >
+          Elegiste {seleccion.length} y solo {libres === 1 ? "entra 1" : `entran ${libres}`}. Quitá
+          alguna de la selección o sacá fotos de la ficha.
+        </p>
+      ) : null}
+
+      {error ? (
+        <p
+          role="alert"
+          className="font-body-md text-body-md mt-3 rounded-lg bg-error-container px-4 py-3 text-on-error-container"
+        >
+          {error}
+        </p>
+      ) : null}
+
+      {aviso ? (
+        <p role="status" className="font-body-md text-body-md mt-3 text-secondary">
+          {aviso}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export default GaleriaGeneradas;
