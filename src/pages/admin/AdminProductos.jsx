@@ -33,6 +33,36 @@ const DEBOUNCE_BUSQUEDA_MS = 350;
 const PRODUCTOS_POR_PAGINA = 50;
 
 /**
+ * Criterios del selector "Ordenar por", espejo de `ORDENES_LISTADO` en
+ * `backend/src/controllers/products.controller.js`.
+ *
+ * **El orden lo resuelve la BASE, no esta pantalla.** La tabla está paginada:
+ * un `sort()` sobre `productos` reordenaría las 50 filas que tocaron, no el
+ * catálogo — el mismo error que ya obligó a bajar el ranking de vistas al
+ * backend. Por eso cada valor viaja tal cual en `?orden=`.
+ *
+ * El default (`""`) NO manda el parámetro: el orden de merchandising lo decide
+ * el backend, y mandarlo explícito desde acá duplicaría esa decisión.
+ *
+ * Es una sincronización manual entre repos, del mismo tipo que
+ * `MAX_IDS_POR_CONSULTA` — un valor que no exista allá cae al default sin
+ * error, así que un typo acá se ve como "el orden no hace nada".
+ */
+const ORDENES = [
+  { valor: "", etiqueta: "Orden manual (merchandising)" },
+  { valor: "nombre", etiqueta: "Nombre: A → Z" },
+  { valor: "nombre-desc", etiqueta: "Nombre: Z → A" },
+  { valor: "precio-asc", etiqueta: "Precio: menor a mayor" },
+  { valor: "precio-desc", etiqueta: "Precio: mayor a menor" },
+  { valor: "stock-asc", etiqueta: "Stock: menos primero" },
+  { valor: "stock-desc", etiqueta: "Stock: más primero" },
+  { valor: "fotos-asc", etiqueta: "Sin fotos primero" },
+  { valor: "fotos-desc", etiqueta: "Con más fotos primero" },
+  { valor: "recientes", etiqueta: "Más recientes primero" },
+  { valor: "vistas", etiqueta: "Más vistos primero" },
+];
+
+/**
  * Valor de una tarjeta de contador.
  *
  * Se emite el número pelado, sin `toLocaleString`: la salida de `Intl` depende
@@ -110,6 +140,10 @@ function AdminProductos() {
   const paginaUrl = Number(searchParams.get("page"));
   const pagina = Number.isInteger(paginaUrl) && paginaUrl > 0 ? paginaUrl : 1;
   const busqueda = searchParams.get("search") ?? "";
+  // Igual que `page` y `search`: vive en la URL, así un listado ordenado se
+  // comparte, se recarga, y volver de editar un producto devuelve al mismo
+  // orden en vez de a la tabla por defecto.
+  const orden = searchParams.get("orden") ?? "";
 
   // Estado local para que cada tecla no escriba en la URL (y no dispare un
   // request). Se inicializa desde la URL para que recargar con `?search=`
@@ -175,7 +209,7 @@ function AdminProductos() {
   useEffect(() => {
     setSeleccionados(new Set());
     setResultadoMasivo(null);
-  }, [pagina, busqueda]);
+  }, [pagina, busqueda, orden]);
 
   function alternarSeleccion(id) {
     setSeleccionados((actuales) => {
@@ -240,6 +274,34 @@ function AdminProductos() {
    * en el nuevo, y quedarse ahí mostraría una tabla vacía como si la búsqueda
    * no encontrara nada.
    */
+  /**
+   * Commitea el criterio de orden a la URL.
+   *
+   * Mismo criterio que `commitBusqueda`: se borra `page` (la página 3 del
+   * orden anterior no contiene lo mismo en el nuevo, y quedarse ahí muestra
+   * filas que nadie pidió) y va con `replace` porque reordenar es seguir en
+   * la misma pantalla, no navegar a otra.
+   *
+   * El default se quita de la URL en vez de escribirse como `orden=`: una
+   * dirección sin el parámetro y una con el valor vacío tienen que significar
+   * lo mismo.
+   */
+  function cambiarOrden(valor) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (valor) {
+          next.set("orden", valor);
+        } else {
+          next.delete("orden");
+        }
+        next.delete("page");
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
   function commitBusqueda(valor) {
     setSearchParams(
       (prev) => {
@@ -279,7 +341,7 @@ function AdminProductos() {
   async function cargarProductos() {
     setCargando(true);
     try {
-      aplicarPagina(await getProducts({ admin: true, page: pagina, search: busqueda, pageSize: PRODUCTOS_POR_PAGINA }));
+      aplicarPagina(await getProducts({ admin: true, page: pagina, search: busqueda, orden: orden || undefined, pageSize: PRODUCTOS_POR_PAGINA }));
     } catch {
       setError("No se pudieron cargar los productos. Revisá tu conexión e intentá de nuevo.");
     } finally {
@@ -294,7 +356,7 @@ function AdminProductos() {
 
     setCargando(true);
 
-    getProducts({ admin: true, page: pagina, search: busqueda, pageSize: PRODUCTOS_POR_PAGINA })
+    getProducts({ admin: true, page: pagina, search: busqueda, orden: orden || undefined, pageSize: PRODUCTOS_POR_PAGINA })
       .then((respuesta) => {
         if (!activo) return;
         aplicarPagina(respuesta);
@@ -311,7 +373,7 @@ function AdminProductos() {
     return () => {
       activo = false;
     };
-  }, [pagina, busqueda]);
+  }, [pagina, busqueda, orden]);
 
   // Los contadores se piden aparte del listado: son globales, así que no
   // dependen de `pagina` ni de `busqueda`. Un fallo acá deja `resumen` en
@@ -548,11 +610,11 @@ function AdminProductos() {
       {/* Un solo campo para nombre, SKU y categoría: el admin no tiene por qué
           declarar en qué campo está tipeando — busca con lo que se acuerde del
           producto. El backend une los tres con OR. */}
-      <div className="mb-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <label htmlFor="buscar-productos" className="sr-only">
           Buscar productos por nombre, SKU o categoría
         </label>
-        <div className="relative max-w-md">
+        <div className="relative w-full max-w-md">
           <span
             className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
             aria-hidden="true"
@@ -567,6 +629,32 @@ function AdminProductos() {
             placeholder="Buscar por nombre, SKU o categoría…"
             className="w-full rounded-lg border border-outline-variant bg-surface py-3 pl-11 pr-4 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:outline-none"
           />
+        </div>
+
+        {/* El orden lo resuelve el backend sobre el catálogo entero, no un
+            `sort()` sobre las 50 filas de esta página — ver `ORDENES`. Sin
+            debounce a propósito: un `<select>` emite una sola vez por
+            selección, mismo criterio que el selector de categoría de
+            `/coleccion`. */}
+        <div className="flex items-center gap-2 sm:ml-auto">
+          <label
+            htmlFor="orden-productos"
+            className="font-label-sm text-label-sm shrink-0 uppercase tracking-widest text-on-surface-variant"
+          >
+            Ordenar por
+          </label>
+          <select
+            id="orden-productos"
+            value={orden}
+            onChange={(e) => cambiarOrden(e.target.value)}
+            className="rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
+          >
+            {ORDENES.map((opcion) => (
+              <option key={opcion.valor || "default"} value={opcion.valor}>
+                {opcion.etiqueta}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
