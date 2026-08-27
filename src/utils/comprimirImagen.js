@@ -102,6 +102,10 @@ export async function comprimirImagen(
     // en vez de sacarlo.
     if (blob.size >= file.size) return file;
 
+    // Se renombra a `.jpg` a propósito: el archivo que sale de acá ES un
+    // JPEG aunque el original fuera PNG/WEBP, y el nombre viaja en el
+    // multipart hacia n8n. Conservar una extensión `.png` mentiría sobre el
+    // contenido para quien mire esa ejecución del otro lado.
     return new File([blob], nombreComprimido(file.name), {
       type: "image/jpeg",
       lastModified: Date.now(),
