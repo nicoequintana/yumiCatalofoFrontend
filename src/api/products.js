@@ -418,3 +418,28 @@ export async function registrarEvento(tipo, productId) {
     // the actual action (opening WhatsApp) the user just triggered.
   }
 }
+
+/**
+ * Dispara el flujo de generación de imágenes de n8n para un producto.
+ *
+ * Las referencias viajan como bytes: no están persistidas en ningún lado, así
+ * que no hay URL que mandar. Usa el timeout de subida y no el de request común
+ * porque el cuerpo lleva hasta dos imágenes.
+ *
+ * NO se setea `Content-Type` a mano: el navegador tiene que agregar el
+ * `boundary` del multipart, y fijarlo rompe el parseo del lado del servidor.
+ *
+ * @param {number|string} id
+ * @param {File[]} archivos entre 1 y 2 imágenes de referencia
+ * @returns {Promise<{enviado: boolean, estado: "processing"|"already_processed", carpeta?: string}>}
+ */
+export async function generarImagenes(id, archivos = []) {
+  const cuerpo = new FormData();
+  for (const archivo of archivos) cuerpo.append("referencias", archivo);
+
+  return pedirAutenticado(
+    `${BASE}/products/${id}/generar-imagenes`,
+    { method: "POST", body: cuerpo },
+    TIMEOUT_SUBIDA_MS,
+  );
+}
