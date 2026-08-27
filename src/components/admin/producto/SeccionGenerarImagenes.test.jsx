@@ -16,6 +16,16 @@ vi.mock("../../../api/products.js", () => ({
   generarImagenes: (...args) => generarImagenesMock(...args),
 }));
 
+// `comprimirImagen` tiene su propia suite (comprimirImagen.test.js) que cubre
+// redimensionado, reencode y las ramas de fallback. Acá solo importa que el
+// componente la llame por cada archivo antes de enviar y que muestre un
+// estado mientras tanto — se mockea pass-through para no arrastrar canvas/
+// Image, que jsdom no decodifica de verdad.
+const comprimirImagenMock = vi.fn(async (archivo) => archivo);
+vi.mock("../../../utils/comprimirImagen.js", () => ({
+  comprimirImagen: (...args) => comprimirImagenMock(...args),
+}));
+
 // jsdom no implementa createObjectURL, que el componente usa para las previews.
 // Se agregan los métodos al URL existente en vez de reemplazarlo con un objeto:
 // `URL` es una clase, y un spread la aplana perdiendo el constructor — que el
@@ -33,6 +43,7 @@ describe("SeccionGenerarImagenes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     generarImagenesMock.mockResolvedValue({ enviado: true, estado: "processing" });
+    comprimirImagenMock.mockImplementation(async (archivo) => archivo);
   });
 
   /** Elegir una referencia es lo mínimo que habilita el botón. */
@@ -68,6 +79,53 @@ describe("SeccionGenerarImagenes", () => {
     await waitFor(() => expect(generarImagenesMock).toHaveBeenCalledTimes(1));
     expect(generarImagenesMock.mock.calls[0][0]).toBe(7);
     expect(generarImagenesMock.mock.calls[0][1]).toHaveLength(1);
+  });
+
+  it("comprime cada referencia antes de enviarla", async () => {
+    const usuario = userEvent.setup();
+    render(<SeccionGenerarImagenes productoId={7} />);
+
+    await usuario.upload(screen.getByLabelText(/imágenes de referencia/i), [
+      archivo("a.jpg"),
+      archivo("b.jpg"),
+    ]);
+    await usuario.click(screen.getByRole("button", { name: /generar imágenes/i }));
+
+    await waitFor(() => expect(generarImagenesMock).toHaveBeenCalledTimes(1));
+    // Una llamada a comprimirImagen por archivo, con el File original — nunca
+    // el array completo de una sola vez.
+    expect(comprimirImagenMock).toHaveBeenCalledTimes(2);
+    expect(comprimirImagenMock.mock.calls[0][0].name).toBe("a.jpg");
+    expect(comprimirImagenMock.mock.calls[1][0].name).toBe("b.jpg");
+    // Lo que llega a generarImagenes es la SALIDA de comprimirImagen, no el
+    // archivo elegido tal cual — acá pass-through, pero el contrato es que el
+    // resultado de comprimir es lo que viaja.
+    expect(generarImagenesMock.mock.calls[0][1]).toHaveLength(2);
+  });
+
+  it("muestra un estado de compresión antes de mostrar el de envío", async () => {
+    // Comprimir 4 imágenes toma un momento perceptible: sin un aviso propio,
+    // el admin ve "Enviando…" mientras en realidad nada salió todavía.
+    let resolverCompresion;
+    comprimirImagenMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolverCompresion = resolve;
+        }),
+    );
+    const usuario = userEvent.setup();
+    render(<SeccionGenerarImagenes productoId={7} />);
+
+    await elegirUnaReferencia(usuario);
+    await usuario.click(screen.getByRole("button", { name: /generar imágenes/i }));
+
+    const boton = await screen.findByRole("button", { name: /comprimiendo/i });
+    expect(boton).toBeDisabled();
+    expect(generarImagenesMock).not.toHaveBeenCalled();
+
+    resolverCompresion(archivo());
+
+    await waitFor(() => expect(generarImagenesMock).toHaveBeenCalledTimes(1));
   });
 
   it("confirma que el pedido se envió, sin prometer que las imágenes estén listas", async () => {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { generarImagenes } from "../../../api/products.js";
+import { comprimirImagen } from "../../../utils/comprimirImagen.js";
 import Spinner from "../../Spinner.jsx";
 
 /**
@@ -29,6 +30,10 @@ const MAX_REFERENCIAS = 4;
 function SeccionGenerarImagenes({ productoId }) {
   const [archivos, setArchivos] = useState([]);
   const [enviando, setEnviando] = useState(false);
+  // Distingue las dos mitades de `enviando`: comprimir 4 imágenes en el
+  // navegador toma un momento perceptible, y sin este flag el botón diría
+  // "Enviando…" mientras en realidad no salió nada todavía.
+  const [comprimiendo, setComprimiendo] = useState(false);
   // `null` = todavía no se envió. Si no, el resultado que devolvió n8n.
   const [resultado, setResultado] = useState(null);
   const [error, setError] = useState("");
@@ -58,11 +63,20 @@ function SeccionGenerarImagenes({ productoId }) {
     setError("");
     setResultado(null);
     try {
-      setResultado(await generarImagenes(productoId, archivos));
+      setComprimiendo(true);
+      // Comprimir en el navegador ANTES de subir: sin esto, 4 referencias sin
+      // comprimir pueden pesar hasta 60 MB en un solo request contra un
+      // timeout de 15s hacia n8n — ver `utils/comprimirImagen.js` para el
+      // cálculo completo. El modelo escala estas imágenes a su resolución de
+      // trabajo igual, así que los MB de más no compran calidad.
+      const comprimidos = await Promise.all(archivos.map((archivo) => comprimirImagen(archivo)));
+      setComprimiendo(false);
+      setResultado(await generarImagenes(productoId, comprimidos));
     } catch (err) {
       setError(err.message);
     } finally {
       setEnviando(false);
+      setComprimiendo(false);
     }
   }
 
@@ -112,7 +126,10 @@ function SeccionGenerarImagenes({ productoId }) {
         className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-3 uppercase tracking-widest text-on-primary hover:opacity-90 disabled:opacity-60"
       >
         {enviando ? <Spinner className="h-4 w-4 text-on-primary" /> : null}
-        {enviando ? "Enviando…" : "Generar imágenes"}
+        {/* Dos textos distintos durante el envío: comprimir 4 imágenes toma
+            un momento perceptible, y "Enviando…" durante esa espera sería
+            mentira — todavía no salió nada al servidor. */}
+        {enviando ? (comprimiendo ? "Comprimiendo…" : "Enviando…") : "Generar imágenes"}
       </button>
 
       {/* Dos mensajes distintos, y la diferencia importa: `already_processed`
