@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Link } from "react-router-dom";
 import MediaUploader from "../../MediaUploader.jsx";
 import ListaDinamica from "../../ListaDinamica.jsx";
+import SeccionGenerarImagenes from "./SeccionGenerarImagenes.jsx";
 
 const SUGERENCIAS_ETIQUETA = ["Exclusivo", "Nuevo", "Best Seller", "Trending", "Popular"];
 
@@ -484,6 +485,12 @@ function SeccionesFormulario({
         ) : null}
         </fieldset>
       </form>
+
+      {/* Fuera del <form> a propósito: es una acción externa, no parte de
+          guardar el producto. Adentro, además, cualquier <button> sin
+          type="button" dispararía el submit. Se monta sola solo en edición:
+          con `valores.id` undefined el componente no renderiza nada. */}
+      <SeccionGenerarImagenes productoId={valores.id} />
     </div>
   );
 }
