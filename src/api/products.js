@@ -443,3 +443,25 @@ export async function generarImagenes(id, archivos = []) {
     TIMEOUT_SUBIDA_MS,
   );
 }
+
+/** Lo que hay en la carpeta que genera n8n, con `adoptada` ya resuelto por el backend. */
+export async function getImagenesGeneradas(id) {
+  return pedirAutenticado(`${BASE}/products/${id}/imagenes-generadas`);
+}
+
+/**
+ * Agrega imágenes generadas a la ficha. No sube nada: el backend crea filas que
+ * apuntan al archivo que ya está en Cloudinary.
+ */
+export async function adoptarImagenesGeneradas(id, publicIds) {
+  return pedirAutenticado(`${BASE}/products/${id}/imagenes-generadas/adoptar`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ publicIds }),
+  });
+}
+
+/** Borra las generadas que no estén en uso. Las adoptadas se conservan. */
+export async function borrarImagenesGeneradas(id) {
+  return pedirAutenticado(`${BASE}/products/${id}/imagenes-generadas`, { method: "DELETE" });
+}
