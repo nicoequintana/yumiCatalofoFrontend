@@ -67,13 +67,7 @@ function SeccionGenerarImagenes({ productoId }) {
   }
 
   return (
-    <section className="mt-8 rounded-xl border border-outline-variant bg-surface-container-low p-6">
-      <h2 className="font-headline-md text-headline-md mb-2 text-on-surface">Generar imágenes</h2>
-      <p className="font-body-md text-body-md mb-4 text-on-surface-variant">
-        Manda los datos de este producto y hasta {MAX_REFERENCIAS} imágenes de referencia al flujo de
-        n8n. Las referencias no se guardan como fotos del producto.
-      </p>
-
+    <div>
       <label
         htmlFor="referencias-n8n"
         className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface-variant"
@@ -150,7 +144,7 @@ function SeccionGenerarImagenes({ productoId }) {
           {error}
         </p>
       ) : null}
-    </section>
+    </div>
   );
 }
 
