@@ -7,7 +7,7 @@ import Spinner from "../../Spinner.jsx";
  * Sincronización manual entre repos, mismo criterio que `botDetector.js` ↔
  * `nginx.conf`. Acá solo evita un viaje que el servidor rechazaría igual.
  */
-const MAX_REFERENCIAS = 2;
+const MAX_REFERENCIAS = 4;
 
 /**
  * Dispara el flujo de n8n que genera las imágenes del producto.

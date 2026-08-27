@@ -128,7 +128,7 @@ describe("SeccionGenerarImagenes", () => {
     expect(screen.getByRole("button", { name: /generar imágenes/i })).toBeEnabled();
   });
 
-  it("no deja enviar más de 2 referencias", async () => {
+  it("no deja enviar más de 4 referencias", async () => {
     const usuario = userEvent.setup();
     render(<SeccionGenerarImagenes productoId={7} />);
 
@@ -136,9 +136,11 @@ describe("SeccionGenerarImagenes", () => {
       archivo("a.jpg"),
       archivo("b.jpg"),
       archivo("c.jpg"),
+      archivo("d.jpg"),
+      archivo("e.jpg"),
     ]);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("2");
+    expect(await screen.findByRole("alert")).toHaveTextContent("4");
     expect(screen.getByRole("button", { name: /generar imágenes/i })).toBeDisabled();
   });
 });
