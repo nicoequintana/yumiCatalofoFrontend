@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { createProduct, deletePhoto, getProductById, updateProduct } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
@@ -231,45 +231,81 @@ export default function useProductoForm() {
   const [nuevaSpecNombre, setNuevaSpecNombre] = useState("");
   const [nuevaSpecValor, setNuevaSpecValor] = useState("");
 
-  // Un token, no un simple booleano cerrado sobre el efecto: `recargarProducto`
-  // también se llama desde AFUERA del montaje (al adoptar imágenes generadas
-  // en la solapa Imágenes), así que la guarda contra una respuesta vieja tiene
-  // que sobrevivir más de una sola ejecución del efecto. Cada llamada toma su
-  // propio número; si la respuesta llega y ya no es la más reciente, se
-  // descarta en silencio — mismo propósito que el `activo` de antes, pero
-  // reutilizable fuera del efecto.
-  const tokenCargaRef = useRef(0);
+  useEffect(() => {
+    if (!esEdicion) return;
 
-  const recargarProducto = useCallback(async () => {
-    const miToken = ++tokenCargaRef.current;
+    let activo = true;
     setCargando(true);
 
-    try {
-      const producto = await getProductById(id, { admin: true });
-      if (tokenCargaRef.current !== miToken) return;
+    getProductById(id, { admin: true })
+      .then((producto) => {
+        if (!activo) return;
 
-      if (!producto) {
-        setNoEncontrado(true);
+        if (!producto) {
+          setNoEncontrado(true);
+          setCargando(false);
+          return;
+        }
+
+        despachar({ tipo: "cargar", producto });
         setCargando(false);
-        return;
-      }
-
-      despachar({ tipo: "cargar", producto });
-      setCargando(false);
-    } catch {
+      })
       // Sin este catch, un backend caído deja la promesa rechazada sin manejar
       // y la pantalla en blanco. Preferimos un error visible sobre un spinner
       // eterno: el admin necesita saber que el problema es la conexión.
-      if (tokenCargaRef.current !== miToken) return;
-      setErrorCarga("Revisá tu conexión e intentá de nuevo.");
-      setCargando(false);
-    }
-  }, [id]);
+      .catch(() => {
+        if (!activo) return;
+        setErrorCarga("Revisá tu conexión e intentá de nuevo.");
+        setCargando(false);
+      });
 
-  useEffect(() => {
-    if (!esEdicion) return;
-    recargarProducto();
-  }, [esEdicion, recargarProducto]);
+    return () => {
+      activo = false;
+    };
+  }, [id, esEdicion]);
+
+  /**
+   * Refresca SOLO las fotos del producto contra el servidor — nada de nombre,
+   * precio, descripción ni el resto. La usa la solapa Imágenes cuando se
+   * adoptan imágenes generadas: adoptar crea filas `Foto` del lado del
+   * servidor, así que el uploader necesita verlas, pero eso no es motivo para
+   * recargar el producto entero.
+   *
+   * Deliberadamente NO hace lo que hacía la primera versión de esta función
+   * (recargar todo con `cargando`/`cargar`): ese camino reusaba el mismo flag
+   * que dispara el spinner de página completa en `AdminProductoForm`
+   * (desmontaría el editor entero al volver de adoptar) y pisaba `valores`
+   * entero con el snapshot del servidor — perdiendo en silencio cualquier foto
+   * recién arrastrada en la solapa que todavía no se subió, y sin tocar
+   * `sucio`, dejando la guarda de salida mintiendo sobre qué había pendiente.
+   *
+   * Por eso: no toca `cargando` (sin spinner global), despacha solo el campo
+   * `fotos` (nunca `cargar`), y MERGEA en vez de pisar — conserva las fotos
+   * locales sin subir (tienen `file`, mismo criterio que usa `construirPayload`
+   * para distinguir "existente" de "nueva") a continuación de las persistidas
+   * que devolvió el servidor, en el orden que ya traían. Tampoco toca `sucio`:
+   * adoptar imágenes no vuelve "guardado" un cambio pendiente que ya estaba, ni
+   * inventa uno donde no había.
+   */
+  const refrescarFotos = useCallback(async () => {
+    try {
+      const producto = await getProductById(id, { admin: true });
+      if (!producto) return;
+
+      despachar({
+        tipo: "campo",
+        campo: "fotos",
+        valor: [...producto.fotos, ...valores.fotos.filter((f) => f.file)],
+      });
+    } catch {
+      // Falla blanda y muda a propósito: esto es un refresco en segundo plano
+      // disparado sin `await` desde `GaleriaGeneradas` (fire-and-forget, igual
+      // que `logEvento` del backend). El adoptar en sí ya tuvo éxito y su
+      // propio aviso ya se mostró; si este refresco puntual falla, el
+      // uploader se queda con las fotos que ya tenía en memoria en vez de
+      // mostrar un error sobre una acción que en los hechos funcionó.
+    }
+  }, [id, valores.fotos]);
 
   useEffect(() => {
     let activo = true;
@@ -447,6 +483,6 @@ export default function useProductoForm() {
     handleSubmit,
     confirmarSalida,
     salirDelEditor,
-    recargarProducto,
+    refrescarFotos,
   };
 }

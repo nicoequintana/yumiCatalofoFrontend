@@ -56,7 +56,7 @@ function AdminProductoForm() {
     handleSubmit,
     confirmarSalida,
     salirDelEditor,
-    recargarProducto,
+    refrescarFotos,
   } = useProductoForm();
 
   // Estado puramente visual: qué panel se ve, con qué ancho y en qué modo. No
@@ -176,7 +176,7 @@ function AdminProductoForm() {
             valores={valores}
             onChangeFotos={handleChangeFotos}
             onChangeVideo={editar("video")}
-            onAdoptadas={recargarProducto}
+            onAdoptadas={refrescarFotos}
           />
         </div>
 

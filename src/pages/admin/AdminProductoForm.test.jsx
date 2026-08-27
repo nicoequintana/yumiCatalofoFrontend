@@ -796,3 +796,139 @@ describe("AdminProductoForm — reemplazo de fotos ya guardadas", () => {
     confirmar.mockRestore();
   });
 });
+
+describe("AdminProductoForm — refrescar fotos al adoptar imágenes generadas", () => {
+  // Reproduce el hallazgo del review: `refrescarFotos` (disparado por
+  // `onAdoptadas` desde la Galería de generadas) pedía el producto entero y
+  // reemplazaba `valores` completo — perdiendo cualquier foto arrastrada en
+  // la solapa que todavía no se había subido. El fix mergea: persistidas del
+  // servidor primero, locales sin subir después.
+  beforeAll(() => {
+    global.URL.createObjectURL = vi.fn(() => "blob:mock-local");
+    global.URL.revokeObjectURL = vi.fn();
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    categoriasApi.getCategorias.mockResolvedValue([]);
+  });
+
+  function productoConDosFotos() {
+    return {
+      id: 1,
+      nombre: "Lámpara",
+      descripcion: "Descripción",
+      precio: "1000",
+      etiqueta: null,
+      categoria: null,
+      stock: 5,
+      fraseComercial: null,
+      porQueLoVasAQuerer: null,
+      tePasaEsto: null,
+      beneficios: [],
+      usos: [],
+      idealPara: [],
+      incluye: [],
+      especificaciones: [],
+      caracteristicas: [],
+      fotos: [
+        { id: 11, url: "portada.jpg" },
+        { id: 12, url: "problema.jpg" },
+      ],
+      video: null,
+    };
+  }
+
+  /** Lo que devolvería el servidor DESPUÉS de adoptar: una tercera foto persistida. */
+  function productoConTresFotos() {
+    return {
+      ...productoConDosFotos(),
+      fotos: [
+        { id: 11, url: "portada.jpg" },
+        { id: 12, url: "problema.jpg" },
+        { id: 13, url: "generada-adoptada.jpg" },
+      ],
+    };
+  }
+
+  function mockearGeneradas() {
+    productsApi.getImagenesGeneradas.mockResolvedValue({
+      carpeta: "productos/X",
+      imagenes: [{ publicId: "gen-1", nombre: "generada.jpg", url: "generada.jpg", adoptada: false }],
+    });
+    productsApi.adoptarImagenesGeneradas.mockResolvedValue({ agregadas: 1 });
+  }
+
+  async function irAImagenesYSeleccionarGenerada() {
+    // Con `/Imágenes/i` a secas también matchea "Generar imágenes" (el botón
+    // de la sección de generación, que vive en la misma solapa): se acota la
+    // búsqueda a la barra de pestañas.
+    const barraPaneles = screen.getByRole("group", { name: "Panel visible" });
+    fireEvent.click(within(barraPaneles).getByRole("button", { name: /Imágenes/i }));
+    const miniatura = await screen.findByAltText("generada.jpg");
+    fireEvent.click(miniatura.closest("button"));
+  }
+
+  it("una foto local sin subir sobrevive a refrescar las fotos tras adoptar", async () => {
+    // Primera llamada: la carga inicial del editor. Segunda: la que dispara
+    // `refrescarFotos` al adoptar — el servidor ya tiene la tercera foto.
+    productsApi.getProductById
+      .mockResolvedValueOnce(productoConDosFotos())
+      .mockResolvedValueOnce(productoConTresFotos());
+    mockearGeneradas();
+
+    renderForm("/catalogo/admin/productos/1/editar");
+    await screen.findByAltText("Foto de portada");
+
+    await irAImagenesYSeleccionarGenerada();
+
+    // Agrega una foto a la galería que NO está subida: no tiene id numérico,
+    // solo el `file` recién elegido. Es la que el bug original perdía.
+    fireEvent.change(screen.getByLabelText("Agregar fotos a la galería"), {
+      target: { files: [new File(["x"], "local-sin-subir.png", { type: "image/png" })] },
+    });
+    expect(await screen.findByAltText("Foto 3 de la galería")).toHaveAttribute(
+      "src",
+      "blob:mock-local",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /agregar a la ficha/i }));
+
+    // `refrescarFotos` pidió el producto de nuevo.
+    await waitFor(() => {
+      expect(productsApi.getProductById).toHaveBeenCalledTimes(2);
+    });
+
+    // La foto local sigue ahí — ahora en la posición 4 porque el refresco trajo
+    // una tercera foto persistida (la recién adoptada) antes que ella. Si el
+    // bug siguiera presente, esta foto ya no existiría en ningún lado.
+    expect(await screen.findByAltText("Foto 4 de la galería")).toHaveAttribute(
+      "src",
+      "blob:mock-local",
+    );
+  });
+
+  it("no dispara el spinner de carga de página completa al refrescar las fotos", async () => {
+    // Con una sola respuesta para las dos llamadas alcanza: lo que se
+    // verifica acá es que el editor no se desmonte, no el contenido final.
+    productsApi.getProductById.mockResolvedValue(productoConDosFotos());
+    mockearGeneradas();
+
+    renderForm("/catalogo/admin/productos/1/editar");
+    await screen.findByAltText("Foto de portada");
+
+    await irAImagenesYSeleccionarGenerada();
+    fireEvent.click(screen.getByRole("button", { name: /agregar a la ficha/i }));
+
+    await waitFor(() => {
+      expect(productsApi.getProductById).toHaveBeenCalledTimes(2);
+    });
+
+    // Si `refrescarFotos` tocara el `cargando` global (el bug original), el
+    // editor entero se habría desmontado y reemplazado por el spinner de
+    // "Cargando producto…" — este campo, que solo existe en el formulario
+    // montado, ya no estaría en el documento.
+    expect(screen.getByLabelText("Nombre")).toBeInTheDocument();
+    expect(screen.queryByText("Cargando producto…")).not.toBeInTheDocument();
+  });
+});
