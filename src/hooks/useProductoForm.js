@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { createProduct, deletePhoto, getProductById, updateProduct } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
@@ -192,6 +192,66 @@ function construirPayload(valores) {
 }
 
 /**
+ * Mergea las fotos que trae el servidor (tras adoptar una imagen generada) con
+ * las locales todavía no subidas — POR POSICIÓN, nunca concatenando.
+ *
+ * Concatenar (servidor primero, locales después) pierde un REEMPLAZO: si
+ * `MediaUploader.ponerEn` cambió la portada o la imagen de "¿Qué problema
+ * resuelve?" in situ, ese id ya no aparece en `valoresFotos` — pero el
+ * servidor todavía lo tiene, porque el reemplazo recién se persiste en el
+ * submit (manda `ordenFotos`, que es lo que borra la vieja). Concatenar la
+ * resucita en la posición 0 y manda a la local al final, invirtiendo justo lo
+ * que el admin acaba de hacer — y con el badge de cambios sin guardar
+ * apagado, "Guardar" persistiría el orden del servidor pisando el reemplazo.
+ *
+ * El merge recorre `valoresFotos` preservando su forma: una entrada local
+ * (`file`) queda donde está; una persistida se actualiza con su versión del
+ * servidor si sigue existiendo, o se descarta si ya no está (baja externa).
+ * Las fotos recién adoptadas (en el servidor, nunca vistas en este formulario)
+ * se insertan ANTES de la corrida de locales sin subir que haya quedado
+ * pegada al final del array: esas son cargas todavía sin posición reclamada,
+ * así que no tiene sentido que una foto ya persistida quede detrás de ellas.
+ *
+ * `idsConocidos` (ids vistos en la carga inicial o en un refresco anterior)
+ * es lo que distingue "recién adoptada" (nunca vista) de "conocida pero ya no
+ * referenciada" (reemplazada localmente): sin este set, una foto reemplazada
+ * y todavía viva en el servidor volvería a aparecer al final del array — el
+ * mismo bug que este merge existe para evitar, solo que en otra posición.
+ */
+export function fusionarFotosPorPosicion(valoresFotos, fotosServidor, idsConocidos) {
+  // La corrida final de entradas locales sin subir: cargas que todavía no
+  // reclamaron ninguna posición concreta, a diferencia de un reemplazo en
+  // sitio (portada o "problema"), que sí ocupa un lugar fijo.
+  let corte = valoresFotos.length;
+  while (corte > 0 && valoresFotos[corte - 1].file) corte -= 1;
+  const prefijo = valoresFotos.slice(0, corte);
+  const colaLocal = valoresFotos.slice(corte);
+
+  const porIdServidor = new Map(fotosServidor.map((f) => [f.id, f]));
+  const vistos = new Set();
+
+  const prefijoFusionado = [];
+  for (const foto of prefijo) {
+    if (foto.file) {
+      prefijoFusionado.push(foto);
+      continue;
+    }
+    const delServidor = porIdServidor.get(foto.id);
+    if (delServidor) {
+      prefijoFusionado.push(delServidor);
+      vistos.add(foto.id);
+    }
+    // Si ya no está en el servidor, se descarta: baja externa al producto.
+  }
+
+  const recienAdoptadas = fotosServidor.filter(
+    (f) => !vistos.has(f.id) && !idsConocidos.has(f.id),
+  );
+
+  return [...prefijoFusionado, ...recienAdoptadas, ...colaLocal];
+}
+
+/**
  * Todo el estado y el comportamiento del editor de producto del admin: carga,
  * edición, vista previa, guardado y guarda de salida. Lo que queda afuera es
  * puramente visual (qué panel se ve, ancho del preview, plantilla completa),
@@ -221,6 +281,13 @@ export default function useProductoForm() {
 
   const [valores, despachar] = useReducer(reducirValores, VALORES_INICIALES);
 
+  // Ids de fotos que este formulario ya conoció (carga inicial + cada
+  // refresco posterior). `fusionarFotosPorPosicion` lo usa para distinguir una
+  // foto recién adoptada (nunca vista) de una conocida pero reemplazada
+  // localmente (no debe resucitar). Vive en un ref, no en el reducer: no es
+  // dato del producto que se envíe en ningún payload.
+  const idsFotosConocidasRef = useRef(new Set());
+
   // Fuera del reducer a propósito: las categorías no son parte del producto,
   // se traen aparte y no se envían en el submit.
   const [categorias, setCategorias] = useState([]);
@@ -248,6 +315,7 @@ export default function useProductoForm() {
         }
 
         despachar({ tipo: "cargar", producto });
+        idsFotosConocidasRef.current = new Set(producto.fotos.map((f) => f.id));
         setCargando(false);
       })
       // Sin este catch, un backend caído deja la promesa rechazada sin manejar
@@ -280,30 +348,38 @@ export default function useProductoForm() {
    * `sucio`, dejando la guarda de salida mintiendo sobre qué había pendiente.
    *
    * Por eso: no toca `cargando` (sin spinner global), despacha solo el campo
-   * `fotos` (nunca `cargar`), y MERGEA en vez de pisar — conserva las fotos
-   * locales sin subir (tienen `file`, mismo criterio que usa `construirPayload`
-   * para distinguir "existente" de "nueva") a continuación de las persistidas
-   * que devolvió el servidor, en el orden que ya traían. Tampoco toca `sucio`:
-   * adoptar imágenes no vuelve "guardado" un cambio pendiente que ya estaba, ni
-   * inventa uno donde no había.
+   * `fotos` (nunca `cargar`), y MERGEA por posición vía
+   * `fusionarFotosPorPosicion` en vez de concatenar — ver su docstring para el
+   * porqué (concatenar resucita una foto reemplazada). Tampoco toca `sucio`:
+   * adoptar imágenes no vuelve "guardado" un cambio pendiente que ya estaba,
+   * ni inventa uno donde no había.
+   *
+   * Devuelve `true`/`false` para que quien la llama (`GaleriaGeneradas`) sepa
+   * si el refresco falló: adoptar ya creó la fila `Foto` en el servidor
+   * ANTES de llamar acá, así que un fallo de este `fetch` deja `valores.fotos`
+   * sin la recién adoptada — y el próximo Guardar la borraría de Cloudinary
+   * (el backend interpreta "no vino en el payload" como "sacala"). El
+   * silencio total ya no es opción: la Galería necesita poder avisar.
    */
   const refrescarFotos = useCallback(async () => {
     try {
       const producto = await getProductById(id, { admin: true });
-      if (!producto) return;
+      if (!producto) return false;
 
-      despachar({
-        tipo: "campo",
-        campo: "fotos",
-        valor: [...producto.fotos, ...valores.fotos.filter((f) => f.file)],
-      });
+      const merged = fusionarFotosPorPosicion(
+        valores.fotos,
+        producto.fotos,
+        idsFotosConocidasRef.current,
+      );
+      idsFotosConocidasRef.current = new Set(producto.fotos.map((f) => f.id));
+
+      despachar({ tipo: "campo", campo: "fotos", valor: merged });
+      return true;
     } catch {
-      // Falla blanda y muda a propósito: esto es un refresco en segundo plano
-      // disparado sin `await` desde `GaleriaGeneradas` (fire-and-forget, igual
-      // que `logEvento` del backend). El adoptar en sí ya tuvo éxito y su
-      // propio aviso ya se mostró; si este refresco puntual falla, el
-      // uploader se queda con las fotos que ya tenía en memoria en vez de
-      // mostrar un error sobre una acción que en los hechos funcionó.
+      // A diferencia de la versión anterior, esto YA NO es un fallo mudo: se
+      // reporta `false` para que `GaleriaGeneradas` avise que lo que se ve en
+      // pantalla puede no reflejar lo que hay realmente en el servidor.
+      return false;
     }
   }, [id, valores.fotos]);
 

@@ -908,6 +908,45 @@ describe("AdminProductoForm — refrescar fotos al adoptar imágenes generadas",
     );
   });
 
+  it("reemplazar la portada sobrevive a refrescar las fotos tras adoptar, sin resucitar la vieja", async () => {
+    // Reproduce el CRÍTICO del review: el merge de `refrescarFotos` concatenaba
+    // (servidor primero, locales después), lo que devolvía la portada VIEJA a
+    // la posición 0 y mandaba el reemplazo local al final — invirtiendo justo
+    // lo que el admin acababa de hacer.
+    productsApi.getProductById
+      .mockResolvedValueOnce(productoConDosFotos())
+      .mockResolvedValueOnce(productoConTresFotos());
+    mockearGeneradas();
+
+    const { container } = renderForm("/catalogo/admin/productos/1/editar");
+    await screen.findByAltText("Foto de portada");
+
+    fireEvent.change(screen.getByLabelText(/Reemplazar foto de portada/i), {
+      target: { files: [new File(["x"], "nueva-portada.png", { type: "image/png" })] },
+    });
+    await waitFor(() => {
+      expect(screen.getByAltText("Foto de portada")).toHaveAttribute("src", "blob:mock-local");
+    });
+
+    await irAImagenesYSeleccionarGenerada();
+    fireEvent.click(screen.getByRole("button", { name: /agregar a la ficha/i }));
+
+    await waitFor(() => {
+      expect(productsApi.getProductById).toHaveBeenCalledTimes(2);
+    });
+
+    // La local sigue en portada tras el refresco — si el bug siguiera
+    // presente, acá volvería a mostrarse la portada vieja del servidor.
+    await waitFor(() => {
+      expect(screen.getByAltText("Foto de portada")).toHaveAttribute("src", "blob:mock-local");
+    });
+
+    // La portada vieja del servidor ("portada.jpg") no reaparece en ningún
+    // lado del documento — ni en el uploader ni en la vista previa en vivo.
+    const srcs = Array.from(container.querySelectorAll("img")).map((img) => img.getAttribute("src"));
+    expect(srcs.some((src) => src?.includes("portada.jpg"))).toBe(false);
+  });
+
   it("no dispara el spinner de carga de página completa al refrescar las fotos", async () => {
     // Con una sola respuesta para las dos llamadas alcanza: lo que se
     // verifica acá es que el editor no se desmonte, no el contenido final.
