@@ -81,6 +81,75 @@ describe("GaleriaGeneradas", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/ya tiene 10 fotos/i);
   });
 
+  it("si el refresco posterior a adoptar falla, avisa que hay que recargar antes de guardar", async () => {
+    // Reproduce el IMPORTANTE 1 del review: un fallo silencioso de
+    // `refrescarFotos` (disparado por `onAdoptadas`) deja la vista mostrando
+    // una foto que, si se guarda tal cual, el backend borra de verdad.
+    const onAdoptadas = vi.fn().mockResolvedValue(false);
+    const usuario = userEvent.setup();
+    render(<GaleriaGeneradas productoId={7} fotosActuales={[]} onAdoptadas={onAdoptadas} />);
+
+    await usuario.click(await screen.findByRole("button", { name: /X-1/ }));
+    await usuario.click(screen.getByRole("button", { name: /agregar a la ficha/i }));
+
+    expect(onAdoptadas).toHaveBeenCalled();
+    expect(await screen.findByRole("status")).toHaveTextContent(/recargá la página antes de guardar/i);
+  });
+
+  it("si el refresco posterior a adoptar funciona, no muestra la advertencia de recargar", async () => {
+    const onAdoptadas = vi.fn().mockResolvedValue(true);
+    const usuario = userEvent.setup();
+    render(<GaleriaGeneradas productoId={7} fotosActuales={[]} onAdoptadas={onAdoptadas} />);
+
+    await usuario.click(await screen.findByRole("button", { name: /X-1/ }));
+    await usuario.click(screen.getByRole("button", { name: /agregar a la ficha/i }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(/agregó 1 foto/i);
+    expect(screen.queryByText(/recargá la página antes de guardar/i)).not.toBeInTheDocument();
+  });
+
+  it("vuelve a pedir la galería cuando cambian las fotos actuales del producto", async () => {
+    // Reproduce el IMPORTANTE 2: quitar del producto una foto adoptada (en el
+    // bloque 1) tiene que liberar esa imagen en esta galería, no dejarla
+    // deshabilitada "ya en la ficha" para siempre.
+    const { rerender } = render(
+      <GaleriaGeneradas productoId={7} fotosActuales={[]} onAdoptadas={() => {}} />,
+    );
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <GaleriaGeneradas productoId={7} fotosActuales={[{ id: 99 }]} onAdoptadas={() => {}} />,
+    );
+
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
+  });
+
+  it("no consulta la API hasta que la solapa se muestra por primera vez", async () => {
+    // Reproduce el MENOR 2: montar el editor entero (con `productoId`) no
+    // debería gastar cuota de la Admin API de Cloudinary si el admin nunca
+    // abrió la pestaña Imágenes.
+    render(
+      <GaleriaGeneradas productoId={7} fotosActuales={[]} onAdoptadas={() => {}} visible={false} />,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(getMock).not.toHaveBeenCalled();
+  });
+
+  it("consulta la API en cuanto la solapa pasa a visible por primera vez", async () => {
+    const { rerender } = render(
+      <GaleriaGeneradas productoId={7} fotosActuales={[]} onAdoptadas={() => {}} visible={false} />,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(getMock).not.toHaveBeenCalled();
+
+    rerender(
+      <GaleriaGeneradas productoId={7} fotosActuales={[]} onAdoptadas={() => {}} visible />,
+    );
+
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
+  });
+
   it("al borrar informa cuántas se conservaron por estar en uso", async () => {
     const usuario = userEvent.setup();
     render(<GaleriaGeneradas productoId={7} fotosActuales={[]} onAdoptadas={() => {}} />);

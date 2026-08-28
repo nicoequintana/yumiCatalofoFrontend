@@ -21,14 +21,30 @@ const MAX_FOTOS = 10;
  * Adoptar no sube nada: el backend crea filas que apuntan al archivo que ya
  * está. Por eso es inmediato y por eso el borrado conserva las que están en uso
  * — son el mismo archivo.
+ *
+ * `visible` (default `true` para no romper un uso directo del componente sin
+ * pasarlo) es la señal de "¿la solapa Imágenes ya se mostró alguna vez?": la
+ * primera carga se difiere hasta ahí para no gastar cuota de la Admin API de
+ * Cloudinary —más ajustada que la de entrega— en cada editor que se abre,
+ * aunque nadie mire esta pestaña. Una vez que se cargó, sigue viva: no se
+ * vuelve a esconder si el admin cambia de pestaña y vuelve.
+ *
+ * `fotosActuales` también dispara un refetch cuando cambia (ver el segundo
+ * efecto): el flujo previsto para regenerar es sacar del producto las fotos
+ * adoptadas que se estén usando y recién después borrar las generadas, y sin
+ * este refetch esta lista seguía marcando esa imagen "ya en la ficha" para
+ * siempre, aunque ya no lo estuviera.
  */
-function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas }) {
+function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas, visible = true }) {
   const [imagenes, setImagenes] = useState([]);
   const [seleccion, setSeleccion] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [trabajando, setTrabajando] = useState(false);
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
+  // Arranca en `visible`: si el componente ya nace visible (caso común de un
+  // uso directo sin pestañas), no tiene sentido diferir la primera carga.
+  const [haSidoVisible, setHaSidoVisible] = useState(visible);
 
   const libres = MAX_FOTOS - fotosActuales.length;
   const excede = seleccion.length > libres;
@@ -39,7 +55,18 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas }) {
     try {
       const { imagenes: recibidas } = await getImagenesGeneradas(productoId);
       setImagenes(recibidas);
-      setSeleccion([]);
+      // Filtra en vez de vaciar: con el refetch nuevo disparado por
+      // `fotosActuales` (ver el efecto de abajo), un cambio de fotos AJENO a
+      // esta galería —agregar una foto en el bloque 1, por ejemplo— no tiene
+      // por qué tirar a la basura una selección que el admin ya hizo acá. Solo
+      // se descartan los publicId que ya no están en la respuesta o que ahora
+      // figuran adoptados (alguien más los adoptó mientras tanto).
+      setSeleccion((actual) => {
+        const disponibles = new Set(
+          recibidas.filter((imagen) => !imagen.adoptada).map((imagen) => imagen.publicId),
+        );
+        return actual.filter((publicId) => disponibles.has(publicId));
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -48,8 +75,17 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas }) {
   }, [productoId]);
 
   useEffect(() => {
+    if (visible) setHaSidoVisible(true);
+  }, [visible]);
+
+  useEffect(() => {
+    if (!haSidoVisible) return;
     cargar();
-  }, [cargar]);
+    // `fotosActuales` entra a propósito: adoptar también la cambia (vía
+    // `refrescarFotos`), lo que dispara una llamada de más acá — aceptable, y
+    // no realimenta más allá de esa: `cargar()` solo toca estado local
+    // (`imagenes`/`seleccion`), nunca `fotosActuales`.
+  }, [haSidoVisible, cargar, fotosActuales]);
 
   function alternar(publicId) {
     setAviso("");
@@ -64,9 +100,21 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas }) {
     setAviso("");
     try {
       const { agregadas } = await adoptarImagenesGeneradas(productoId, seleccion);
-      setAviso(`Se ${agregadas === 1 ? "agregó 1 foto" : `agregaron ${agregadas} fotos`} a la ficha.`);
+      // Se espera el resultado del refresco del padre (`useProductoForm.
+      // refrescarFotos`) para saber si falló: adoptar ya creó la fila `Foto`
+      // en el servidor en la línea de arriba, así que un fallo mudo acá deja
+      // la vista sin la foto recién adoptada — y el próximo Guardar la
+      // borraría de Cloudinary, creyendo que el admin la sacó. El silencio no
+      // es opción: si `refrescoOk` es `false`, se avisa en el mismo `aviso`
+      // que ya usa el camino feliz, en vez de sumar un componente nuevo.
+      const refrescoOk = await onAdoptadas?.();
+      const base = `Se ${agregadas === 1 ? "agregó 1 foto" : `agregaron ${agregadas} fotos`} a la ficha.`;
+      setAviso(
+        refrescoOk === false
+          ? `${base} Pero no pude actualizar la vista: recargá la página antes de guardar.`
+          : base,
+      );
       setSeleccion([]);
-      onAdoptadas?.();
       await cargar();
     } catch (err) {
       setError(err.message);
