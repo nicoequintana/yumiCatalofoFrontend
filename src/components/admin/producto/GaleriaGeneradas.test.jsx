@@ -124,6 +124,63 @@ describe("GaleriaGeneradas", () => {
     await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
   });
 
+  it("NO vuelve a pedir la galería si los ids de fotosActuales son los mismos, aunque el array sea una referencia nueva", async () => {
+    // Re-review, hallazgo 3: el hook despacha un array nuevo ante CUALQUIER
+    // mutación de fotos (reordenar una galería de 10 incluida), y la dep del
+    // efecto era la identidad del array — eso disparaba un refetch por cada
+    // reorden, la misma cuota que el MENOR 2 acababa de proteger.
+    const { rerender } = render(
+      <GaleriaGeneradas
+        productoId={7}
+        fotosActuales={[{ id: 1 }, { id: 2 }]}
+        onAdoptadas={() => {}}
+      />,
+    );
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1));
+
+    // Mismo conjunto de ids, orden distinto y objetos/array nuevos — como
+    // pasaría al reordenar la galería del bloque 1.
+    rerender(
+      <GaleriaGeneradas
+        productoId={7}
+        fotosActuales={[{ id: 2 }, { id: 1 }]}
+        onAdoptadas={() => {}}
+      />,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(getMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("un refetch en segundo plano no colapsa el bloque al spinner de carga completa", async () => {
+    // Re-review, hallazgo 3: `cargar()` prendía el spinner de bloque completo
+    // en CADA llamada, así que el bloque 3 entero desaparecía ("Buscando
+    // imágenes generadas…") por cada clic del bloque 1 que cambiara los ids.
+    const { rerender } = render(
+      <GaleriaGeneradas productoId={7} fotosActuales={[{ id: 1 }]} onAdoptadas={() => {}} />,
+    );
+    await screen.findByRole("button", { name: /X-1/ });
+
+    let resolverSegundaCarga;
+    getMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolverSegundaCarga = resolve;
+      }),
+    );
+
+    rerender(
+      <GaleriaGeneradas productoId={7} fotosActuales={[{ id: 2 }]} onAdoptadas={() => {}} />,
+    );
+
+    // Mientras el refetch está en vuelo, la galería ya cargada sigue en
+    // pantalla — no el spinner de bloque completo.
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("button", { name: /X-1/ })).toBeInTheDocument();
+    expect(screen.queryByText(/buscando imágenes generadas/i)).not.toBeInTheDocument();
+
+    resolverSegundaCarga({ carpeta: "productos/X", imagenes: IMAGENES });
+  });
+
   it("no consulta la API hasta que la solapa se muestra por primera vez", async () => {
     // Reproduce el MENOR 2: montar el editor entero (con `productoId`) no
     // debería gastar cuota de la Admin API de Cloudinary si el admin nunca

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getImagenesGeneradas,
   adoptarImagenesGeneradas,
@@ -34,6 +34,16 @@ const MAX_FOTOS = 10;
  * adoptadas que se estén usando y recién después borrar las generadas, y sin
  * este refetch esta lista seguía marcando esa imagen "ya en la ficha" para
  * siempre, aunque ya no lo estuviera.
+ *
+ * Esa dependencia NO es `fotosActuales` en sí (la identidad del array): el
+ * reducer de `useProductoForm` despacha un array nuevo ante CUALQUIER
+ * mutación de fotos, reordenar una galería de 10 incluido, y eso disparaba un
+ * refetch por cada reorden — la misma cuota de la Admin API que el diferido
+ * de arriba existe para proteger. La dependencia real es `firmaIdsFotos`, una
+ * firma estable armada con los ids persistidos (ordenados, así que reordenar
+ * NO cambia la firma): solo cambia cuando el CONJUNTO de fotos persistidas
+ * cambia — agregar, sacar o reemplazar una —, que es lo único que puede
+ * alterar qué imagen generada ya está "en uso".
  */
 function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas, visible = true }) {
   const [imagenes, setImagenes] = useState([]);
@@ -45,9 +55,24 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas, visible
   // Arranca en `visible`: si el componente ya nace visible (caso común de un
   // uso directo sin pestañas), no tiene sentido diferir la primera carga.
   const [haSidoVisible, setHaSidoVisible] = useState(visible);
+  // Se pone en `true` recién cuando la PRIMERA carga terminó (con éxito o con
+  // error) — es lo que distingue esa carga inicial (bloquea todo el bloque
+  // con el spinner de abajo) de un refetch en segundo plano (no debe
+  // colapsar una galería que ya está en pantalla a "Buscando…").
+  const primeraCargaHechaRef = useRef(false);
 
   const libres = MAX_FOTOS - fotosActuales.length;
   const excede = seleccion.length > libres;
+
+  // Firma estable de qué fotos persistidas tiene el producto ahora mismo. Las
+  // locales sin subir (`file`, sin id numérico) se excluyen a propósito: no
+  // tienen `cloudinaryPublicId`, así que no pueden estar "en uso" del lado del
+  // backend y no deberían disparar un refetch.
+  const firmaIdsFotos = fotosActuales
+    .filter((f) => typeof f.id === "number")
+    .map((f) => f.id)
+    .sort((a, b) => a - b)
+    .join(",");
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -56,7 +81,7 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas, visible
       const { imagenes: recibidas } = await getImagenesGeneradas(productoId);
       setImagenes(recibidas);
       // Filtra en vez de vaciar: con el refetch nuevo disparado por
-      // `fotosActuales` (ver el efecto de abajo), un cambio de fotos AJENO a
+      // `firmaIdsFotos` (ver el efecto de abajo), un cambio de fotos AJENO a
       // esta galería —agregar una foto en el bloque 1, por ejemplo— no tiene
       // por qué tirar a la basura una selección que el admin ya hizo acá. Solo
       // se descartan los publicId que ya no están en la respuesta o que ahora
@@ -71,6 +96,7 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas, visible
       setError(err.message);
     } finally {
       setCargando(false);
+      primeraCargaHechaRef.current = true;
     }
   }, [productoId]);
 
@@ -81,11 +107,11 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas, visible
   useEffect(() => {
     if (!haSidoVisible) return;
     cargar();
-    // `fotosActuales` entra a propósito: adoptar también la cambia (vía
-    // `refrescarFotos`), lo que dispara una llamada de más acá — aceptable, y
-    // no realimenta más allá de esa: `cargar()` solo toca estado local
-    // (`imagenes`/`seleccion`), nunca `fotosActuales`.
-  }, [haSidoVisible, cargar, fotosActuales]);
+    // La dependencia es la FIRMA, no `fotosActuales`: ver el comentario de
+    // cabecera. No realimenta más allá de la llamada de más ya aceptada:
+    // `cargar()` solo toca estado local (`imagenes`/`seleccion`), nunca las
+    // fotos del producto.
+  }, [haSidoVisible, cargar, firmaIdsFotos]);
 
   function alternar(publicId) {
     setAviso("");
@@ -142,7 +168,13 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas, visible
     }
   }
 
-  if (cargando) {
+  // El spinner de bloque completo es SOLO para la primera carga: bloquearla
+  // entera está bien cuando todavía no hay nada que mostrar. Un refetch en
+  // segundo plano (disparado por `firmaIdsFotos`, ver cabecera) con la
+  // galería ya en pantalla usa el indicador discreto de más abajo — colapsar
+  // todo el bloque a "Buscando…" en cada clic del bloque 1 sería peor que no
+  // avisar nada.
+  if (cargando && !primeraCargaHechaRef.current) {
     return (
       <p className="font-body-md text-body-md flex items-center gap-2 text-on-surface-variant">
         <Spinner className="h-4 w-4" /> Buscando imágenes generadas…
@@ -152,6 +184,12 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas, visible
 
   return (
     <div>
+      {cargando ? (
+        <p className="font-body-md text-body-md mb-3 flex items-center gap-2 text-on-surface-variant">
+          <Spinner className="h-3 w-3" /> Actualizando…
+        </p>
+      ) : null}
+
       {imagenes.length === 0 && !error ? (
         <div className="rounded-lg border border-dashed border-outline p-8 text-center">
           <span className="material-symbols-outlined text-[34px] text-outline">auto_awesome</span>
