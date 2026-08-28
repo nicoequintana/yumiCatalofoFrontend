@@ -204,13 +204,24 @@ function construirPayload(valores) {
  * que el admin acaba de hacer — y con el badge de cambios sin guardar
  * apagado, "Guardar" persistiría el orden del servidor pisando el reemplazo.
  *
- * El merge recorre `valoresFotos` preservando su forma: una entrada local
- * (`file`) queda donde está; una persistida se actualiza con su versión del
- * servidor si sigue existiendo, o se descarta si ya no está (baja externa).
- * Las fotos recién adoptadas (en el servidor, nunca vistas en este formulario)
- * se insertan ANTES de la corrida de locales sin subir que haya quedado
- * pegada al final del array: esas son cargas todavía sin posición reclamada,
- * así que no tiene sentido que una foto ya persistida quede detrás de ellas.
+ * El merge recorre `valoresFotos` EN ORDEN preservando cada posición tal
+ * cual: una entrada local (`file`) queda exactamente donde está, una
+ * persistida se actualiza con su versión del servidor si sigue existiendo, o
+ * se descarta si ya no está (baja externa). Las fotos recién adoptadas (en el
+ * servidor, nunca vistas en este formulario) se anexan LITERAL al final del
+ * array resultante — sin ninguna heurística que intente "colarlas" antes de
+ * una corrida de locales sin subir.
+ *
+ * Esa heurística existió en una primera versión (cortar el array donde
+ * empezaba la corrida final de locales, e insertar ahí) y se sacó a
+ * propósito: confundía un REEMPLAZO con un simple append apenas ese
+ * reemplazo quedaba último en `valoresFotos` — que es exactamente lo que pasa
+ * al reemplazar la imagen de "¿Qué problema resuelve?" en un producto de dos
+ * fotos, o la portada en un producto de una sola. En los dos casos la local
+ * terminaba corrida y la recién adoptada le robaba la posición semántica
+ * (portada incluida). Anexar sin heurística no tiene ese modo de falla: cada
+ * entrada de `valoresFotos` conserva su posición pase lo que pase, y lo único
+ * que se decide es DÓNDE va lo nuevo (siempre al final, nunca antes).
  *
  * `idsConocidos` (ids vistos en la carga inicial o en un refresco anterior)
  * es lo que distingue "recién adoptada" (nunca vista) de "conocida pero ya no
@@ -219,26 +230,18 @@ function construirPayload(valores) {
  * mismo bug que este merge existe para evitar, solo que en otra posición.
  */
 export function fusionarFotosPorPosicion(valoresFotos, fotosServidor, idsConocidos) {
-  // La corrida final de entradas locales sin subir: cargas que todavía no
-  // reclamaron ninguna posición concreta, a diferencia de un reemplazo en
-  // sitio (portada o "problema"), que sí ocupa un lugar fijo.
-  let corte = valoresFotos.length;
-  while (corte > 0 && valoresFotos[corte - 1].file) corte -= 1;
-  const prefijo = valoresFotos.slice(0, corte);
-  const colaLocal = valoresFotos.slice(corte);
-
   const porIdServidor = new Map(fotosServidor.map((f) => [f.id, f]));
   const vistos = new Set();
 
-  const prefijoFusionado = [];
-  for (const foto of prefijo) {
+  const fusionado = [];
+  for (const foto of valoresFotos) {
     if (foto.file) {
-      prefijoFusionado.push(foto);
+      fusionado.push(foto);
       continue;
     }
     const delServidor = porIdServidor.get(foto.id);
     if (delServidor) {
-      prefijoFusionado.push(delServidor);
+      fusionado.push(delServidor);
       vistos.add(foto.id);
     }
     // Si ya no está en el servidor, se descarta: baja externa al producto.
@@ -248,7 +251,7 @@ export function fusionarFotosPorPosicion(valoresFotos, fotosServidor, idsConocid
     (f) => !vistos.has(f.id) && !idsConocidos.has(f.id),
   );
 
-  return [...prefijoFusionado, ...recienAdoptadas, ...colaLocal];
+  return [...fusionado, ...recienAdoptadas];
 }
 
 /**

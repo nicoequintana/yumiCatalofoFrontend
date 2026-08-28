@@ -899,10 +899,12 @@ describe("AdminProductoForm — refrescar fotos al adoptar imágenes generadas",
       expect(productsApi.getProductById).toHaveBeenCalledTimes(2);
     });
 
-    // La foto local sigue ahí — ahora en la posición 4 porque el refresco trajo
-    // una tercera foto persistida (la recién adoptada) antes que ella. Si el
-    // bug siguiera presente, esta foto ya no existiría en ningún lado.
-    expect(await screen.findByAltText("Foto 4 de la galería")).toHaveAttribute(
+    // La foto local NO se mueve de su posición (sigue siendo la "Foto 3": el
+    // merge preserva cada entrada de `valoresFotos` tal cual, sin heurística
+    // que la corra). La recién adoptada se anexa DESPUÉS, al final — si el
+    // bug original (concatenar) siguiera presente, esta foto local ya no
+    // existiría en ningún lado.
+    expect(await screen.findByAltText("Foto 3 de la galería")).toHaveAttribute(
       "src",
       "blob:mock-local",
     );
@@ -945,6 +947,46 @@ describe("AdminProductoForm — refrescar fotos al adoptar imágenes generadas",
     // lado del documento — ni en el uploader ni en la vista previa en vivo.
     const srcs = Array.from(container.querySelectorAll("img")).map((img) => img.getAttribute("src"));
     expect(srcs.some((src) => src?.includes("portada.jpg"))).toBe(false);
+  });
+
+  it("reemplazar la portada en un producto de UNA sola foto: la adoptada no le roba el lugar", async () => {
+    // Re-review, hallazgo 2, el caso más grave que dejó a medias el fix del
+    // CRÍTICO: la heurística de "corte" confundía este reemplazo con un
+    // simple append (la local queda última en `valoresFotos` porque es la
+    // ÚNICA foto) y la imagen recién adoptada se volvía la portada.
+    productsApi.getProductById
+      .mockResolvedValueOnce({ ...productoConDosFotos(), fotos: [{ id: 11, url: "portada.jpg" }] })
+      .mockResolvedValueOnce({
+        ...productoConDosFotos(),
+        fotos: [
+          { id: 11, url: "portada.jpg" },
+          { id: 13, url: "generada-adoptada.jpg" },
+        ],
+      });
+    mockearGeneradas();
+
+    renderForm("/catalogo/admin/productos/1/editar");
+    await screen.findByAltText("Foto de portada");
+
+    fireEvent.change(screen.getByLabelText(/Reemplazar foto de portada/i), {
+      target: { files: [new File(["x"], "nueva-portada.png", { type: "image/png" })] },
+    });
+    await waitFor(() => {
+      expect(screen.getByAltText("Foto de portada")).toHaveAttribute("src", "blob:mock-local");
+    });
+
+    await irAImagenesYSeleccionarGenerada();
+    fireEvent.click(screen.getByRole("button", { name: /agregar a la ficha/i }));
+
+    await waitFor(() => {
+      expect(productsApi.getProductById).toHaveBeenCalledTimes(2);
+    });
+
+    // La local SIGUE siendo la portada tras el refresco — la recién adoptada
+    // no se cuela ahí, sin importar que sea la única foto del producto.
+    await waitFor(() => {
+      expect(screen.getByAltText("Foto de portada")).toHaveAttribute("src", "blob:mock-local");
+    });
   });
 
   it("no dispara el spinner de carga de página completa al refrescar las fotos", async () => {
