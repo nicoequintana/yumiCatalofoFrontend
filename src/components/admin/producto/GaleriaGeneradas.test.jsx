@@ -181,6 +181,39 @@ describe("GaleriaGeneradas", () => {
     resolverSegundaCarga({ carpeta: "productos/X", imagenes: IMAGENES });
   });
 
+  it("no afirma carpeta vacía mientras se refetchea tras una carga inicial fallida", async () => {
+    // Re-review, último Menor: si la PRIMERA carga falla, `primeraCargaHechaRef`
+    // igual queda en `true` (se prende en el `finally`, pase lo que pase). Un
+    // refetch posterior (disparado por un cambio de ids) limpia `error` al
+    // arrancar, y sin `!cargando` en la condición del estado vacío la pantalla
+    // afirmaba "Todavía no hay imágenes generadas" mientras la respuesta
+    // todavía no había llegado — la distinción entre "falló la carga" y "no
+    // hay nada" que este proyecto exige explícitamente (ver CLAUDE.md).
+    getMock.mockRejectedValueOnce(new Error("No se pudo conectar"));
+    const { rerender } = render(
+      <GaleriaGeneradas productoId={7} fotosActuales={[{ id: 1 }]} onAdoptadas={() => {}} />,
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo/i);
+
+    let resolverRefetch;
+    getMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolverRefetch = resolve;
+      }),
+    );
+
+    rerender(
+      <GaleriaGeneradas productoId={7} fotosActuales={[{ id: 2 }]} onAdoptadas={() => {}} />,
+    );
+
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(2));
+    // Mientras el refetch está en vuelo, todavía no sabemos si hay o no.
+    expect(screen.queryByText(/todavía no hay imágenes generadas/i)).not.toBeInTheDocument();
+
+    resolverRefetch({ carpeta: "productos/X", imagenes: [] });
+    expect(await screen.findByText(/todavía no hay imágenes generadas/i)).toBeInTheDocument();
+  });
+
   it("no consulta la API hasta que la solapa se muestra por primera vez", async () => {
     // Reproduce el MENOR 2: montar el editor entero (con `productoId`) no
     // debería gastar cuota de la Admin API de Cloudinary si el admin nunca

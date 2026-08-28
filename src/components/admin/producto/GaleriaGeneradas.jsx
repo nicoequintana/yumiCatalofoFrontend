@@ -190,7 +190,13 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas, visible
         </p>
       ) : null}
 
-      {imagenes.length === 0 && !error ? (
+      {/* `!cargando` es necesario, no cosmético: si la carga anterior falló
+          (`error` seteado) y un refetch en segundo plano arranca, `cargar()`
+          limpia `error` de entrada, así que sin este chequeo la pantalla
+          afirmaría "no hay nada" mientras la respuesta todavía no llegó — la
+          misma distinción entre "falló la carga" y "no hay nada" que exige
+          CLAUDE.md para toda pantalla que hace fetch. */}
+      {imagenes.length === 0 && !error && !cargando ? (
         <div className="rounded-lg border border-dashed border-outline p-8 text-center">
           <span className="material-symbols-outlined text-[34px] text-outline">auto_awesome</span>
           <p className="font-body-md text-body-md mt-2 text-on-surface-variant">
