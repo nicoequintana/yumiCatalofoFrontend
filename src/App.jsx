@@ -32,6 +32,9 @@ const AdminMetricas = lazy(() => import("./pages/admin/AdminMetricas.jsx"));
 const AdminUsuarios = lazy(() => import("./pages/admin/AdminUsuarios.jsx"));
 const AdminOrdenes = lazy(() => import("./pages/admin/AdminOrdenes.jsx"));
 const AdminOrdenDetalle = lazy(() => import("./pages/admin/AdminOrdenDetalle.jsx"));
+const AdminProductosSolicitados = lazy(
+  () => import("./pages/admin/AdminProductosSolicitados.jsx"),
+);
 const AdminLogs = lazy(() => import("./pages/admin/AdminLogs.jsx"));
 const AdminVentas = lazy(() => import("./pages/admin/AdminVentas.jsx"));
 const AdminEmbudo = lazy(() => import("./pages/admin/AdminEmbudo.jsx"));
@@ -88,6 +91,13 @@ function App() {
           <Route path="/catalogo/admin/productos/actualizar-masivo" element={<AdminActualizarProductos />} />
           <Route path="/catalogo/admin/productos/:id/editar" element={<AdminProductoForm />} />
           <Route path="/catalogo/admin/ordenes" element={<AdminOrdenes />} />
+          {/* Segmento literal dentro de `/ordenes/`: convive con `/:id` de
+              abajo porque react-router resuelve por especificidad, no por
+              orden de declaración. Hay un test que lo fija. */}
+          <Route
+            path="/catalogo/admin/ordenes/productos-solicitados"
+            element={<AdminProductosSolicitados />}
+          />
           <Route path="/catalogo/admin/ordenes/:id" element={<AdminOrdenDetalle />} />
           <Route path="/catalogo/admin/ventas" element={<AdminVentas />} />
           <Route path="/catalogo/admin/embudo" element={<AdminEmbudo />} />

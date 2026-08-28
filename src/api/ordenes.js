@@ -76,6 +76,43 @@ export async function getOrdenes(filtros = {}) {
 }
 
 /**
+ * Grilla de productos solicitados: agrupa por producto todo lo que los
+ * clientes vienen pidiendo, a través de todas las órdenes menos las
+ * canceladas. Requiere sesión.
+ *
+ * @returns {Promise<{data: Array<{productId: number|null, sku: string|null, nombre: string, unidades: number, ordenes: number, facturacion: string}>, historico: {ordenesAnalizadas: number, tope: number, recortado: boolean}}>}
+ */
+export async function getProductosSolicitados() {
+  return pedirAutenticado(`${BASE}/ordenes/productos-solicitados`);
+}
+
+/**
+ * Descarga esa misma grilla como `.xlsx` y dispara el "guardar como" del
+ * browser.
+ *
+ * El archivo se pide con el header de auth, así que no sirve un `<a href>`
+ * directo: hay que traerlo como blob y crear un object URL temporal. Mismo
+ * patrón que `descargarPlantilla` en `importProductos.js`.
+ */
+export async function descargarProductosSolicitados() {
+  const res = await fetchAutenticado(`${BASE}/ordenes/productos-solicitados/export`);
+
+  if (!res.ok) {
+    throw new Error("No se pudo descargar el Excel de productos solicitados.");
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = "productos-solicitados.xlsx";
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Detalle completo de una orden (cliente + items), para el panel admin.
  * @param {number|string} id
  * @returns {Promise<Object>}

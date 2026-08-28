@@ -82,6 +82,14 @@ function AdminOrdenes() {
         </div>
 
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+          <Link
+            to="/catalogo/admin/ordenes/productos-solicitados"
+            className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+          >
+            <span className="material-symbols-outlined text-[18px]">inventory_2</span>
+            Productos solicitados
+          </Link>
+
           {dni ? (
             <span className="font-body-md text-body-md flex items-center gap-2 rounded-lg bg-surface-container-high px-3 py-2 text-on-surface-variant">
               DNI: {dni}
