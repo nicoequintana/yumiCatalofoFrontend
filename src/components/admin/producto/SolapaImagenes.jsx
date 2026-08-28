@@ -1,5 +1,5 @@
 import MediaUploader from "../../MediaUploader.jsx";
-import SeccionGenerarImagenes from "./SeccionGenerarImagenes.jsx";
+import SeccionGenerarImagenes, { MAX_REFERENCIAS } from "./SeccionGenerarImagenes.jsx";
 import PreviaTextoImpreso from "./PreviaTextoImpreso.jsx";
 import GaleriaGeneradas from "./GaleriaGeneradas.jsx";
 
@@ -56,7 +56,7 @@ function SolapaImagenes({ visible, productoId, valores, onChangeFotos, onChangeV
         <Bloque
           numero="2"
           titulo="Generar con IA"
-          ayuda="Mandá 1 o 2 fotos de referencia junto con los datos del producto. Las referencias no se guardan como fotos: viajan y se descartan."
+          ayuda={`Mandá hasta ${MAX_REFERENCIAS} fotos de referencia junto con los datos del producto. Las referencias no se guardan como fotos: viajan y se descartan.`}
         >
           <PreviaTextoImpreso producto={valores} />
           <SeccionGenerarImagenes productoId={productoId} />
@@ -73,6 +73,7 @@ function SolapaImagenes({ visible, productoId, valores, onChangeFotos, onChangeV
             productoId={productoId}
             fotosActuales={valores.fotos}
             onAdoptadas={onAdoptadas}
+            visible={visible}
           />
         </Bloque>
       ) : null}

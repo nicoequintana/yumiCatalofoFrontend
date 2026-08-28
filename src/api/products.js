@@ -430,7 +430,7 @@ export async function registrarEvento(tipo, productId) {
  * `boundary` del multipart, y fijarlo rompe el parseo del lado del servidor.
  *
  * @param {number|string} id
- * @param {File[]} archivos entre 1 y 2 imágenes de referencia
+ * @param {File[]} archivos entre 1 y MAX_REFERENCIAS (4) imágenes de referencia
  * @returns {Promise<{enviado: boolean, estado: "processing"|"already_processed", carpeta?: string}>}
  */
 export async function generarImagenes(id, archivos = []) {

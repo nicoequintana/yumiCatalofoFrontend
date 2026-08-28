@@ -8,7 +8,7 @@ import Spinner from "../../Spinner.jsx";
  * Sincronización manual entre repos, mismo criterio que `botDetector.js` ↔
  * `nginx.conf`. Acá solo evita un viaje que el servidor rechazaría igual.
  */
-const MAX_REFERENCIAS = 4;
+export const MAX_REFERENCIAS = 4;
 
 /**
  * Dispara el flujo de n8n que genera las imágenes del producto.
@@ -86,7 +86,7 @@ function SeccionGenerarImagenes({ productoId }) {
         htmlFor="referencias-n8n"
         className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface-variant"
       >
-        Imágenes de referencia (al menos 1)
+        {`Imágenes de referencia (entre 1 y ${MAX_REFERENCIAS})`}
       </label>
       <input
         id="referencias-n8n"
