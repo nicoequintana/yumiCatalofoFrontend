@@ -523,6 +523,13 @@ function AdminProductos() {
             Actualizar por Excel
           </Link>
           <Link
+            to="/catalogo/admin/productos/precios"
+            className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+          >
+            <span className="material-symbols-outlined text-[18px]">sell</span>
+            Costos y precios
+          </Link>
+          <Link
             to="/catalogo/admin/productos/nuevo"
             className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container"
           >

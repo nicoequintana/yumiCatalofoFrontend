@@ -26,6 +26,11 @@ const VALORES_INICIALES = {
   descripcion: "",
   precio: "",
   precioVisual: "",
+  // Costo de adquisición y coeficiente. El precio NO se deriva de ellos acá:
+  // se calculan y se aplican desde `/catalogo/admin/productos/precios`. Este
+  // formulario solo los guarda, igual que cualquier otro campo del producto.
+  costo: "",
+  coeficiente: "",
   etiqueta: "",
   categoriaId: "",
   stock: "0",
@@ -66,6 +71,8 @@ function reducirValores(valores, accion) {
         descripcion: producto.descripcion ?? "",
         precio: crudo,
         precioVisual: formateado,
+        costo: producto.costo ?? "",
+        coeficiente: producto.coeficiente ?? "",
         etiqueta: producto.etiqueta ?? "",
         categoriaId: producto.categoria?.id ? String(producto.categoria.id) : "",
         stock: String(producto.stock ?? 0),
@@ -147,8 +154,12 @@ function construirPayload(valores) {
     nombre: valores.nombre,
     descripcion: valores.descripcion,
     precio: valores.precio,
-    etiqueta: valores.etiqueta.trim() === "" ? null : valores.etiqueta.trim(),
+    // Se mandan siempre, incluso vacíos: `""` le dice al backend que BORRE la
+    // columna. Omitirlos dejaría un costo cargado por error pegado para siempre.
+    costo: valores.costo,
+    coeficiente: valores.coeficiente,
     categoriaId: valores.categoriaId === "" ? null : valores.categoriaId,
+    etiqueta: valores.etiqueta.trim() === "" ? null : valores.etiqueta.trim(),
     stock: valores.stock,
     fraseComercial: valores.fraseComercial.trim() === "" ? null : valores.fraseComercial.trim(),
     porQueLoVasAQuerer:

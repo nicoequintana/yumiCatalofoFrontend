@@ -132,6 +132,51 @@ function SeccionesFormulario({
             </div>
           </div>
 
+          {/* Costo y coeficiente son OPCIONALES y no mueven el precio de acá
+              arriba: el cálculo se aplica desde la pantalla de precios, a
+              pedido. Cargarlos en el editor es la vía cómoda al dar de alta un
+              producto; retocarlos en lote es lo que hace esa otra pantalla. */}
+          <div>
+            <label htmlFor="costo" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">
+              Costo (opcional)
+            </label>
+            <div className="flex items-center rounded-lg border border-outline-variant bg-surface px-4 focus-within:border-primary">
+              <span className="font-body-md text-body-md text-on-surface-variant">$</span>
+              <input
+                id="costo"
+                type="text"
+                inputMode="numeric"
+                value={valores.costo}
+                onChange={(e) => editar("costo")(e.target.value)}
+                className="font-body-md text-body-md w-full bg-transparent px-2 py-3 text-on-surface focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="coeficiente" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">
+              Coeficiente (opcional)
+            </label>
+            {/* `inputMode="decimal"` acá SÍ, al revés que el precio: es el único
+                campo del sistema que lleva decimales (2,05 = ×2,05). */}
+            <input
+              id="coeficiente"
+              type="text"
+              inputMode="decimal"
+              placeholder="2,05"
+              value={valores.coeficiente}
+              onChange={(e) => editar("coeficiente")(e.target.value)}
+              className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
+            />
+            <p className="font-body-md text-body-md mt-2 text-on-surface-variant">
+              Multiplicador sobre el costo. El precio de venta se calcula y se aplica desde{" "}
+              <Link to="/catalogo/admin/productos/precios" className="text-primary hover:underline">
+                Costos y precios
+              </Link>
+              .
+            </p>
+          </div>
+
           <div>
             <label htmlFor="etiqueta" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">
               Etiqueta (opcional)

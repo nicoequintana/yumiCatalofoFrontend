@@ -358,6 +358,53 @@ export async function updateVisibilidadMasiva(ids, visible) {
   });
 }
 
+/**
+ * Saves a single product's cost and markup coefficient from the pricing table.
+ *
+ * Deliberately does NOT touch `precio`: saving a cost never moves the published
+ * price. Publishing is a separate, explicit step (`aplicarPreciosMasivo`).
+ *
+ * An empty string clears the column.
+ *
+ * @param {number} id
+ * @param {{costo?: string, coeficiente?: string}} campos
+ * @returns {Promise<object>} the updated product
+ */
+export async function updateCosteo(id, campos) {
+  return pedirAutenticado(`${BASE}/products/${id}/costeo`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(campos),
+  });
+}
+
+/**
+ * Applies the calculated price (`costo × coeficiente`, rounded up to the
+ * nearest hundred) to the selected products.
+ *
+ * This is the only endpoint that writes a cost-derived price: editing a cost
+ * never moves the published price on its own. `coeficiente` is optional and
+ * overrides each product's own — it is saved along with the price.
+ *
+ * The response is a per-product report, not a counter: `rechazados` carries the
+ * products that could not be priced (no cost loaded, or already deleted).
+ *
+ * @param {number[]} ids
+ * @param {{coeficiente?: string}} [opciones]
+ * @returns {Promise<{
+ *   actualizados: number,
+ *   resultados: Array<{id: number, nombre: string, precioAnterior: string, precioNuevo: string, cambio: boolean}>,
+ *   rechazados: Array<{id: number, nombre: string|null, motivo: string}>,
+ * }>}
+ */
+export async function aplicarPreciosMasivo(ids, { coeficiente } = {}) {
+  return pedirAutenticado(`${BASE}/products/precios-masivo`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(coeficiente ? { ids, coeficiente } : { ids }),
+  });
+}
+
 /** @returns {Promise<Object>} the updated product, with its new visibleEnCatalogo value */
 export async function updateVisibilidad(id, visibleEnCatalogo) {
   return pedirAutenticado(`${BASE}/products/${id}/visibilidad`, {
