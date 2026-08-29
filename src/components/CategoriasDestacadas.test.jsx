@@ -98,7 +98,7 @@ describe("CategoriasDestacadas", () => {
 
     renderSeccion();
 
-    const cta = await screen.findByRole("link", { name: "Ver productos" });
+    const cta = await screen.findByRole("link", { name: "Ver más" });
 
     // La misma URL que emiten el sitemap y el canonical de esa página: sale de
     // `rutaCategoria`, nunca de un template literal armado acá.
