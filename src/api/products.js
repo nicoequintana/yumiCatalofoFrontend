@@ -369,8 +369,10 @@ export async function updateVisibilidad(id, visibleEnCatalogo) {
 
 /**
  * @param {number} id
- * @param {{destacado?: boolean, orden?: number}} cambios at least one of the two
- * @returns {Promise<Object>} the updated product, with its new destacado/orden values
+ * @param {{destacado: boolean}} cambios — el toggle "Destacado" del listado.
+ *   La ruta conserva el nombre `merchandising` por historia: manejaba también
+ *   un `orden` manual, eliminado el 29/08/2026 por no usarse.
+ * @returns {Promise<Object>} the updated product, with its new destacado value
  */
 export async function updateMerchandising(id, cambios) {
   return pedirAutenticado(`${BASE}/products/${id}/merchandising`, {

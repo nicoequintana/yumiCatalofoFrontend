@@ -15,7 +15,7 @@ import useGuardaSalida from "./useGuardaSalida.js";
  * dependencias de la vista previa la dejaba sin actualizarse en silencio, sin
  * error ni aviso.
  *
- * `sku`, `visibleEnCatalogo`, `destacado` y `orden` viven acá aunque sean de
+ * `sku`, `visibleEnCatalogo` y `destacado` viven acá aunque sean de
  * solo lectura: son parte del producto cargado y se muestran en el editor,
  * pero se editan en el listado, que los guarda al instante vía PATCH — un
  * `PUT` desde este formulario pisaría un toggle recién cambiado ahí.
@@ -43,7 +43,6 @@ const VALORES_INICIALES = {
   sku: null,
   visibleEnCatalogo: true,
   destacado: false,
-  orden: null,
 };
 
 /**
@@ -84,7 +83,6 @@ function reducirValores(valores, accion) {
         sku: producto.sku ?? null,
         visibleEnCatalogo: producto.visibleEnCatalogo ?? true,
         destacado: producto.destacado ?? false,
-        orden: producto.orden ?? null,
       };
     }
 

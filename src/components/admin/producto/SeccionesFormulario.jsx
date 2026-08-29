@@ -455,13 +455,8 @@ function SeccionesFormulario({
                 </span>
               </div>
 
-              <div className="flex items-center justify-between gap-4 border-b border-outline-variant px-4 py-3">
-                <span className="font-body-md text-body-md text-on-surface">Orden de merchandising</span>
-                <span className="font-body-md text-body-md text-on-surface-variant">{valores.orden ?? "—"}</span>
-              </div>
-
               <p className="font-body-md px-4 py-3 text-[13px] leading-snug text-on-surface-variant">
-                Estos tres se cambian desde el{" "}
+                Estos dos se cambian desde el{" "}
                 <Link to="/catalogo/admin/productos" className="text-primary underline">
                   listado de productos
                 </Link>
@@ -470,7 +465,7 @@ function SeccionesFormulario({
             </div>
           ) : (
             <p className="font-body-md rounded-lg border border-outline-variant px-4 py-3 text-[13px] leading-snug text-on-surface-variant">
-              El SKU se genera solo al guardar. La visibilidad, el destacado y el orden se ajustan después
+              El SKU se genera solo al guardar. La visibilidad y el destacado se ajustan después
               desde el{" "}
               <Link to="/catalogo/admin/productos" className="text-primary underline">
                 listado de productos

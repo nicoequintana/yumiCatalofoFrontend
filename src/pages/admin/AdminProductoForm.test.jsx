@@ -296,7 +296,6 @@ describe("AdminProductoForm — configuración del catálogo", () => {
       stock: 5,
       visibleEnCatalogo: true,
       destacado: false,
-      orden: 10,
       beneficios: [],
       usos: [],
       idealPara: [],
@@ -314,7 +313,7 @@ describe("AdminProductoForm — configuración del catálogo", () => {
     expect(screen.queryByLabelText("SKU")).not.toBeInTheDocument();
   });
 
-  it("muestra visibilidad, destacado y orden como solo lectura, con enlace al listado", async () => {
+  it("muestra visibilidad y destacado como solo lectura, con enlace al listado", async () => {
     productsApi.getProductById.mockResolvedValue({
       id: 1,
       nombre: "Lámpara",
@@ -326,7 +325,6 @@ describe("AdminProductoForm — configuración del catálogo", () => {
       stock: 5,
       visibleEnCatalogo: true,
       destacado: false,
-      orden: 7,
       beneficios: [],
       usos: [],
       idealPara: [],
@@ -344,7 +342,6 @@ describe("AdminProductoForm — configuración del catálogo", () => {
     const seccion = screen.getByTestId("config-catalogo");
     expect(within(seccion).getByText("Visible en el catálogo")).toBeInTheDocument();
     expect(within(seccion).getByText("Destacado")).toBeInTheDocument();
-    expect(within(seccion).getByText("7")).toBeInTheDocument();
 
     // No se editan acá: viven en el listado, que guarda al instante vía PATCH.
     expect(within(seccion).queryByRole("switch")).not.toBeInTheDocument();

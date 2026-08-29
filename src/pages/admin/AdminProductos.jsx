@@ -41,7 +41,7 @@ const PRODUCTOS_POR_PAGINA = 50;
  * catálogo — el mismo error que ya obligó a bajar el ranking de vistas al
  * backend. Por eso cada valor viaja tal cual en `?orden=`.
  *
- * El default (`""`) NO manda el parámetro: el orden de merchandising lo decide
+ * El default (`""`) NO manda el parámetro: el orden lo decide
  * el backend, y mandarlo explícito desde acá duplicaría esa decisión.
  *
  * Es una sincronización manual entre repos, del mismo tipo que
@@ -49,7 +49,7 @@ const PRODUCTOS_POR_PAGINA = 50;
  * error, así que un typo acá se ve como "el orden no hace nada".
  */
 const ORDENES = [
-  { valor: "", etiqueta: "Orden manual (merchandising)" },
+  { valor: "", etiqueta: "Más recientes" },
   { valor: "nombre", etiqueta: "Nombre: A → Z" },
   { valor: "nombre-desc", etiqueta: "Nombre: Z → A" },
   { valor: "precio-asc", etiqueta: "Precio: menor a mayor" },
@@ -188,7 +188,6 @@ function AdminProductos() {
   const [error, setError] = useState(null);
   const [actualizandoVisibilidadId, setActualizandoVisibilidadId] = useState(null);
   const [actualizandoDestacadoId, setActualizandoDestacadoId] = useState(null);
-  const [ordenEditando, setOrdenEditando] = useState({});
 
   // Ids tildados con los checkbox. Es un `Set` y no un array porque la
   // pregunta que se le hace en cada fila del render es "¿está este id?".
@@ -498,53 +497,6 @@ function AdminProductos() {
     }
   }
 
-  /** Local, per-row draft while the admin types a new `orden` — committed on blur via `handleGuardarOrden`. */
-  function handleCambiarOrdenLocal(producto, valor) {
-    setOrdenEditando((actuales) => ({ ...actuales, [producto.id]: valor }));
-  }
-
-  /**
-   * Clears the local draft for a product's `orden` ONLY if it still matches
-   * the value that triggered this particular save (`valorEnvio`, captured in
-   * the calling closure). Guards against a race: blur fires an async PATCH,
-   * the admin refocuses and types a new value before that PATCH resolves,
-   * and the late `finally` would otherwise wipe the newer, still-unsaved
-   * draft out from under them — silently reverting the input to the old
-   * `producto.orden` with no error or "unsaved" indicator.
-   */
-  function limpiarDraftOrdenSiVigente(productoId, valorEnvio) {
-    setOrdenEditando((actuales) => {
-      if (actuales[productoId] !== valorEnvio) return actuales;
-      const { [productoId]: _omitido, ...resto } = actuales;
-      return resto;
-    });
-  }
-
-  async function handleGuardarOrden(producto) {
-    const valor = ordenEditando[producto.id];
-    if (valor === undefined) return;
-
-    const ordenNum = Number(valor);
-    if (valor === "" || !Number.isInteger(ordenNum)) {
-      limpiarDraftOrdenSiVigente(producto.id, valor);
-      return;
-    }
-    if (ordenNum === producto.orden) {
-      limpiarDraftOrdenSiVigente(producto.id, valor);
-      return;
-    }
-
-    setError(null);
-    try {
-      const actualizado = await updateMerchandising(producto.id, { orden: ordenNum });
-      setProductos((actuales) => actuales.map((p) => (p.id === actualizado.id ? actualizado : p)));
-    } catch (err) {
-      setError(err.message ?? "No se pudo actualizar el orden del producto.");
-    } finally {
-      limpiarDraftOrdenSiVigente(producto.id, valor);
-    }
-  }
-
   return (
     <main className="w-full px-4 py-6 md:px-8 md:py-8">
       <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
@@ -805,9 +757,6 @@ function AdminProductos() {
                   Destacado
                 </th>
                 <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                  Orden
-                </th>
-                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Acciones
                 </th>
               </tr>
@@ -927,16 +876,6 @@ function AdminProductos() {
                         <Spinner className="h-3.5 w-3.5 text-on-surface-variant" />
                       ) : null}
                     </div>
-                  </td>
-                  <td className="px-2 py-2 xl:px-3 xl:py-3">
-                    <input
-                      type="number"
-                      aria-label={`Orden de ${producto.nombre}`}
-                      value={ordenEditando[producto.id] ?? producto.orden}
-                      onChange={(e) => handleCambiarOrdenLocal(producto, e.target.value)}
-                      onBlur={() => handleGuardarOrden(producto)}
-                      className="w-14 rounded-lg border border-outline-variant bg-surface px-2 py-1.5 font-body-md text-on-surface focus:border-primary focus:outline-none xl:w-20 xl:px-3 xl:py-2"
-                    />
                   </td>
                   <td className="px-2 py-2 xl:px-3 xl:py-3">
                     <div className="flex items-center gap-2 xl:gap-4">
