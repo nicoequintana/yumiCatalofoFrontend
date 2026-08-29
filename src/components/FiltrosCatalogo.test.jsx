@@ -28,10 +28,12 @@ function renderFiltros(props = {}) {
     onChangeSearch: vi.fn(),
     onChangeMinPrecio: vi.fn(),
     onChangeMaxPrecio: vi.fn(),
+    onLimpiarFiltros: vi.fn(),
   };
 
   const utils = render(
     <FiltrosCatalogo
+      titulo="Todos los productos"
       categorias={CATEGORIAS}
       categoria=""
       search=""
@@ -45,11 +47,115 @@ function renderFiltros(props = {}) {
   return { ...utils, ...manejadores };
 }
 
+function botonFiltros() {
+  return screen.getByRole("button", { name: /filtros/i });
+}
+
+function abrirPanel() {
+  act(() => {
+    fireEvent.click(botonFiltros());
+  });
+}
+
+/**
+ * El panel se mantiene MONTADO siempre (es lo que permite animar la salida
+ * con CSS puro), así que "cerrado" no se verifica con `queryBy…`: jsdom no
+ * implementa `inert`, y Testing Library encuentra los nodos igual. La
+ * afirmación honesta es sobre el atributo — mismo criterio que ya documenta
+ * CLAUDE.md para los CTA inertes de la vista previa del admin.
+ */
+function panelEstaCerrado() {
+  return screen.getAllByLabelText("Categoría")[0].closest("[inert]") !== null;
+}
+
 function avanzarPastLaPausa() {
   act(() => {
     vi.advanceTimersByTime(400);
   });
 }
+
+describe("FiltrosCatalogo — barra sticky", () => {
+  it("conserva el h1 de la página aunque no se muestre", () => {
+    renderFiltros({ titulo: "Cocina" });
+
+    // El título se sacó de la vista por pedido, pero el `<h1>` sigue en el
+    // DOM como `sr-only`: es el ÚNICO de `/coleccion` desde que se eliminó el
+    // que estaba arriba de la grilla. Borrarlo deja la página sin encabezado
+    // de nivel 1 — se pierde la señal más fuerte de SEO sobre de qué trata y
+    // el punto de entrada de la navegación por encabezados de un lector de
+    // pantalla. Este test es lo que frena ese borrado.
+    const encabezado = screen.getByRole("heading", { level: 1, name: "Cocina" });
+
+    expect(encabezado).toBeInTheDocument();
+    expect(encabezado).toHaveClass("sr-only");
+  });
+
+  it("deja el buscador SIEMPRE afuera del panel", () => {
+    renderFiltros();
+
+    // Decisión de producto: buscar por nombre es la acción más frecuente del
+    // catálogo y tiene que costar un solo toque. Si alguna vez se mueve
+    // adentro del panel, este test es lo que lo frena.
+    expect(screen.getByLabelText("Buscar")).toBeInTheDocument();
+    expect(screen.getByLabelText("Buscar").closest("[inert]")).toBeNull();
+  });
+
+  it("arranca con el panel cerrado e inerte", () => {
+    renderFiltros();
+
+    expect(botonFiltros()).toHaveAttribute("aria-expanded", "false");
+    expect(panelEstaCerrado()).toBe(true);
+  });
+
+  it("abre y cierra el panel con el botón", () => {
+    renderFiltros();
+
+    abrirPanel();
+    expect(botonFiltros()).toHaveAttribute("aria-expanded", "true");
+    expect(panelEstaCerrado()).toBe(false);
+
+    abrirPanel();
+    expect(botonFiltros()).toHaveAttribute("aria-expanded", "false");
+    expect(panelEstaCerrado()).toBe(true);
+  });
+
+  it("cierra el panel con Escape", () => {
+    renderFiltros();
+    abrirPanel();
+
+    act(() => {
+      fireEvent.keyDown(document, { key: "Escape" });
+    });
+
+    expect(botonFiltros()).toHaveAttribute("aria-expanded", "false");
+    expect(panelEstaCerrado()).toBe(true);
+  });
+
+  it("cierra el panel al clickear fuera", () => {
+    renderFiltros();
+    abrirPanel();
+
+    act(() => {
+      fireEvent.mouseDown(document.body);
+    });
+
+    expect(panelEstaCerrado()).toBe(true);
+  });
+
+  it("cuenta los filtros activos, sin contar la búsqueda libre", () => {
+    // La búsqueda queda afuera del panel y se ve sola en el input: sumarla al
+    // contador del botón le atribuiría al panel un filtro que no contiene.
+    renderFiltros({ categoria: "2", minPrecio: "1000", search: "reloj" });
+
+    expect(botonFiltros()).toHaveTextContent("2");
+  });
+
+  it("no muestra contador cuando no hay filtros de panel aplicados", () => {
+    renderFiltros({ search: "reloj" });
+
+    expect(botonFiltros()).not.toHaveTextContent(/\d/);
+  });
+});
 
 describe("FiltrosCatalogo — precio con debounce", () => {
   beforeEach(() => {
@@ -62,6 +168,7 @@ describe("FiltrosCatalogo — precio con debounce", () => {
 
   it("no avisa al padre en cada tecla: commitea una sola vez tras la pausa", () => {
     const { onChangeMaxPrecio } = renderFiltros();
+    abrirPanel();
 
     // Sin debounce, cada dígito disparaba su propio GET /products: seis
     // requests para escribir un precio, cinco de ellas descartadas al llegar.
@@ -77,6 +184,7 @@ describe("FiltrosCatalogo — precio con debounce", () => {
 
   it("muestra lo tipeado al instante aunque el commit al padre espere", () => {
     renderFiltros();
+    abrirPanel();
 
     const campo = screen.getAllByLabelText("Precio min.")[0];
     tipear(campo, "2500");
@@ -88,6 +196,7 @@ describe("FiltrosCatalogo — precio con debounce", () => {
 
   it("commitea el vaciado del campo para que el filtro se saque", () => {
     const { onChangeMinPrecio } = renderFiltros({ minPrecio: "2500" });
+    abrirPanel();
 
     act(() => {
       fireEvent.change(screen.getAllByLabelText("Precio min.")[0], { target: { value: "" } });
@@ -109,6 +218,7 @@ describe("FiltrosCatalogo — precio con debounce", () => {
     // como si el usuario lo hubiera tipeado.
     rerender(
       <FiltrosCatalogo
+        titulo="Todos los productos"
         categorias={CATEGORIAS}
         categoria=""
         search=""
@@ -128,6 +238,7 @@ describe("FiltrosCatalogo — precio con debounce", () => {
 
   it("avisa el cambio de categoría en el acto, sin esperar", () => {
     const { onChangeCategoria } = renderFiltros();
+    abrirPanel();
 
     // El `<select>` emite un cambio por selección, no por tecla: diferirlo
     // solo agregaría latencia sin ahorrar ninguna request.
@@ -136,5 +247,141 @@ describe("FiltrosCatalogo — precio con debounce", () => {
     });
 
     expect(onChangeCategoria).toHaveBeenCalledWith("2");
+  });
+
+  it("Limpiar cancela un precio tipeado que todavía no se había commiteado", () => {
+    // La carrera fina de este panel: los filtros se aplican EN VIVO, así que
+    // "limpiar" es avisar `""` al padre. Pero si el precio venía vacío, ese
+    // aviso no cambia ninguna prop y el `CampoPrecio` no se entera — su
+    // temporizador pendiente seguía vivo y commiteaba el valor tipeado
+    // DESPUÉS de limpiar, con el panel ya cerrado: un filtro apareciendo de
+    // la nada. Se resuelve remontando los campos (cambio de `key`), que es
+    // lo que cancela el temporizador en el cleanup del efecto.
+    const { onChangeMinPrecio } = renderFiltros();
+    abrirPanel();
+
+    tipear(screen.getAllByLabelText("Precio min.")[0], "150000");
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /limpiar/i }));
+    });
+    avanzarPastLaPausa();
+
+    expect(onChangeMinPrecio).not.toHaveBeenCalledWith("150000");
+  });
+});
+
+describe("FiltrosCatalogo — acciones del panel", () => {
+  it("Aplicar cierra el panel", () => {
+    // Los filtros ya viajaron al padre mientras se tocaban (aplicación en
+    // vivo): este botón confirma y cierra, no dispara el filtrado.
+    renderFiltros();
+    abrirPanel();
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /aplicar/i }));
+    });
+
+    expect(botonFiltros()).toHaveAttribute("aria-expanded", "false");
+    expect(panelEstaCerrado()).toBe(true);
+  });
+
+  it("Limpiar delega en UNA sola operación del padre y cierra", () => {
+    // Deliberadamente NO llama a los tres `onChange…` por separado. Cada uno
+    // escribe en el router, y `setSearchParams` no encola actualizaciones
+    // funcionales como `useState`: las tres parten del mismo snapshot del
+    // render y gana la última, así que borrar tres claves aplicaba una sola.
+    // Verificado en el navegador: la URL quedaba idéntica tras "Limpiar".
+    const { onLimpiarFiltros, onChangeCategoria, onChangeMinPrecio, onChangeMaxPrecio } = renderFiltros({
+      categoria: "2",
+      minPrecio: "1000",
+      maxPrecio: "5000",
+    });
+    abrirPanel();
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /limpiar/i }));
+    });
+
+    expect(onLimpiarFiltros).toHaveBeenCalledTimes(1);
+    expect(onChangeCategoria).not.toHaveBeenCalled();
+    expect(onChangeMinPrecio).not.toHaveBeenCalled();
+    expect(onChangeMaxPrecio).not.toHaveBeenCalled();
+    expect(panelEstaCerrado()).toBe(true);
+  });
+
+  it("Limpiar NO toca la búsqueda libre", () => {
+    // El buscador vive afuera del panel y no entra en el contador del botón:
+    // borrarlo desde acá haría desaparecer texto que la persona está viendo
+    // en otro control, sin haberlo pedido.
+    const { onChangeSearch } = renderFiltros({ search: "reloj", categoria: "2" });
+    abrirPanel();
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /limpiar/i }));
+    });
+
+    expect(onChangeSearch).not.toHaveBeenCalled();
+  });
+});
+
+describe("FiltrosCatalogo — chips de filtros aplicados", () => {
+  function listaChips() {
+    return screen.queryByRole("list", { name: /filtros aplicados/i });
+  }
+
+  it("no renderiza la barra de chips cuando no hay filtros de panel", () => {
+    // La búsqueda libre no cuenta: ya se ve escrita en su propio input, y un
+    // chip sería el mismo dato dos veces en la misma barra.
+    renderFiltros({ search: "reloj" });
+
+    expect(listaChips()).not.toBeInTheDocument();
+  });
+
+  it("muestra un chip por filtro, con el NOMBRE de la categoría y no su id", () => {
+    renderFiltros({ categoria: "2", minPrecio: "1000", maxPrecio: "5000" });
+
+    const chips = screen.getAllByRole("listitem");
+
+    expect(chips).toHaveLength(3);
+    expect(listaChips()).toHaveTextContent("Bolsos");
+    expect(listaChips()).toHaveTextContent("Desde $ 1.000");
+    expect(listaChips()).toHaveTextContent("Hasta $ 5.000");
+  });
+
+  it("una categoría que todavía no cargó no rompe el chip", () => {
+    // `categorias` llega por fetch: entre el mount y su respuesta, el id de la
+    // URL no resuelve a ningún nombre. El chip tiene que seguir siendo
+    // removible en vez de renderizar "undefined".
+    renderFiltros({ categorias: [], categoria: "99" });
+
+    expect(listaChips()).toBeInTheDocument();
+    expect(listaChips()).not.toHaveTextContent("undefined");
+  });
+
+  it("quitar un chip avisa SOLO ese filtro", () => {
+    const { onChangeMinPrecio, onChangeCategoria, onChangeMaxPrecio } = renderFiltros({
+      categoria: "2",
+      minPrecio: "1000",
+      maxPrecio: "5000",
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /quitar filtro: desde/i }));
+    });
+
+    expect(onChangeMinPrecio).toHaveBeenCalledWith("");
+    expect(onChangeCategoria).not.toHaveBeenCalled();
+    expect(onChangeMaxPrecio).not.toHaveBeenCalled();
+  });
+
+  it("los chips se ven con el panel cerrado", () => {
+    // Son el resumen de lo que está filtrando la grilla: si sólo se vieran
+    // con el panel abierto no informarían nada que el panel no muestre ya.
+    renderFiltros({ categoria: "2" });
+
+    expect(botonFiltros()).toHaveAttribute("aria-expanded", "false");
+    expect(listaChips()).toBeInTheDocument();
+    expect(listaChips().closest("[inert]")).toBeNull();
   });
 });

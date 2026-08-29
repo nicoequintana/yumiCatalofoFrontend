@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
@@ -554,5 +554,120 @@ describe("Coleccion - paginador", () => {
     await waitFor(() => {
       expect(productsApi.getProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 4 }));
     });
+  });
+});
+
+describe("Coleccion - limpiar filtros", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    llamadasSetSearchParams.length = 0;
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+    categoriasApi.getCategorias.mockResolvedValue(CATEGORIAS);
+  });
+
+  /**
+   * Regresión con causa raíz verificada en navegador: "Limpiar" no borraba
+   * NADA. El panel llamaba a los tres `onChange…` en el mismo tick, y
+   * `setSearchParams` de react-router NO encola actualizaciones funcionales
+   * como `useState` — cada llamada parte del mismo snapshot del render y gana
+   * la última. Borrar `minPrecio` se perdía cuando la llamada siguiente
+   * recalculaba desde ese snapshot viejo, y el `navigate` de la categoría
+   * quedaba pisado. La URL terminaba idéntica a como estaba.
+   *
+   * Por eso el limpiado vive en el padre como UNA sola escritura al router, y
+   * este test afirma sobre el fetch resultante (que es lo que la persona ve),
+   * no sobre cuántas veces se llamó a un handler.
+   */
+  it("borra TODOS los filtros del panel de una vez, no sólo el último", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+
+    await screen.findByLabelText("Categoría");
+    await user.click(screen.getByRole("button", { name: /^filtros/i }));
+
+    await user.type(screen.getByLabelText("Precio min."), "1000");
+    await user.type(screen.getByLabelText("Precio máx."), "5000");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ minPrecio: "1000", maxPrecio: "5000" }),
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: /limpiar/i }));
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ categoria: "", minPrecio: "", maxPrecio: "" }),
+      );
+    });
+  });
+
+  it("limpiar conserva la búsqueda libre en la ruta plana", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+
+    await screen.findByLabelText("Categoría");
+    await user.type(screen.getByLabelText("Buscar"), "reloj");
+    await user.click(screen.getByRole("button", { name: /^filtros/i }));
+    await user.type(screen.getByLabelText("Precio min."), "1000");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: "reloj", minPrecio: "1000" }),
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: /limpiar/i }));
+
+    // El buscador está afuera del panel y sigue mostrando "reloj": borrarlo
+    // haría desaparecer texto que la persona tiene a la vista.
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: "reloj", minPrecio: "" }),
+      );
+    });
+  });
+});
+
+describe("Coleccion - escrituras de filtro en el mismo tick", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    llamadasSetSearchParams.length = 0;
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+    categoriasApi.getCategorias.mockResolvedValue(CATEGORIAS);
+  });
+
+  /**
+   * Regresión verificada en navegador, ANTERIOR a la barra de filtros nueva:
+   * cargar precio mínimo y máximo casi a la vez dejaba la URL en
+   * `?maxPrecio=50000` — el mínimo desaparecía sin ningún error y el catálogo
+   * quedaba filtrado por la mitad de lo que la persona pidió.
+   *
+   * Causa: `setSearchParams` NO encola actualizaciones funcionales como el
+   * `setState` de React. Los dos campos de precio tienen debounces
+   * independientes de 350 ms; si se completan casi juntos, los dos
+   * temporizadores caen en el mismo lote, las dos llamadas reciben el MISMO
+   * `prev` y gana la última.
+   */
+  it("no pierde un filtro cuando dos se commitean juntos", async () => {
+    renderPagina();
+    await screen.findByLabelText("Categoría");
+
+    fireEvent.click(screen.getByRole("button", { name: /^filtros/i }));
+
+    // Los dos cambios ocurren en el mismo tick a propósito: es la condición
+    // exacta que dispara el pisoteo.
+    fireEvent.change(screen.getByLabelText("Precio min."), { target: { value: "1000" } });
+    fireEvent.change(screen.getByLabelText("Precio máx."), { target: { value: "50000" } });
+
+    await waitFor(
+      () => {
+        expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+          expect.objectContaining({ minPrecio: "1000", maxPrecio: "50000" }),
+        );
+      },
+      { timeout: 3000 },
+    );
   });
 });

@@ -20,7 +20,14 @@ const DEBOUNCE_SEARCH_MS = 350;
  * la página sí tiene que sobrevivir — un link a la página 3 debe abrir la
  * página 3, y volver desde una ficha debe devolver a donde se estaba.
  */
-const CLAVES_FILTRO = ["categoria", "search", "minPrecio", "maxPrecio"];
+/**
+ * Los filtros que viven DENTRO del panel de `FiltrosCatalogo` — los que su
+ * botón "Limpiar" borra y los que cuenta su badge. La búsqueda libre queda
+ * afuera a propósito: tiene su propio input siempre visible en la barra.
+ */
+const CLAVES_FILTRO_PANEL = ["categoria", "minPrecio", "maxPrecio"];
+
+const CLAVES_FILTRO = [...CLAVES_FILTRO_PANEL, "search"];
 
 /**
  * `/coleccion` — catálogo completo con filtros, separado de la home
@@ -206,24 +213,87 @@ function Coleccion() {
     navigate((elegida && rutaCategoria(elegida)) || "/coleccion");
   }
 
+  /**
+   * Última querystring escrita en este tick, o `null` si no se escribió
+   * ninguna todavía.
+   *
+   * Existe porque `setSearchParams` de react-router **NO encola
+   * actualizaciones funcionales** como el `setState` de React: dos llamadas
+   * del mismo tick reciben las dos el MISMO `prev` (el del render vigente) y
+   * gana la última, así que la primera se pierde entera. Es alcanzable de
+   * verdad: los dos campos de precio tienen debounces independientes de
+   * 350 ms, y si se completan casi a la vez los dos temporizadores caen en el
+   * mismo lote de React — verificado en el navegador, `minPrecio` desaparecía
+   * sin ningún error y el catálogo quedaba filtrado por la mitad de lo que la
+   * persona había pedido.
+   *
+   * Guardando acá lo último escrito, la segunda escritura del tick COMPONE
+   * sobre esa versión en lugar de pisarla.
+   */
+  const paramsPendientes = useRef(null);
+
+  // Cuando la escritura ya llegó al router, la base vuelve a ser la URL real.
+  // Sin este reseteo, una acción posterior compondría sobre un snapshot viejo.
+  useEffect(() => {
+    paramsPendientes.current = null;
+  }, [searchParams]);
+
   // { replace: true }: react-router-dom v7's useSearchParams pushes a new
   // history entry by default. A filter change is a refinement of the same
   // view, not a new page to visit — without replace, every categoria/precio
   // tweak (and each debounced search commit) stacks its own "atrás" entry,
   // so a user who filters and then hits back needs one click per filter
   // change before actually leaving the page.
+  function escribirParams(mutar) {
+    const base = paramsPendientes.current ?? searchParams;
+    const next = new URLSearchParams(base);
+    mutar(next);
+    paramsPendientes.current = next;
+    setSearchParams(next, { replace: true });
+  }
   function actualizarFiltro(clave, valor) {
+    escribirParams((next) => {
+      if (valor) {
+        next.set(clave, valor);
+      } else {
+        next.delete(clave);
+      }
+      // Cambiar un filtro vuelve a la página 1: la página 4 del resultado
+      // anterior no tiene por qué existir en el resultado nuevo, y quedarse
+      // ahí mostraría una grilla vacía como si el filtro no encontrara nada.
+      next.delete("page");
+    });
+  }
+
+  /**
+   * "Limpiar" del panel de filtros: UNA sola escritura al router para los
+   * tres filtros a la vez.
+   *
+   * NO se implementa llamando a `irACategoria("")` + dos `actualizarFiltro`,
+   * que es lo natural y estaba roto: `setSearchParams` de react-router NO
+   * encola actualizaciones funcionales como el `setState` de React. Las tres
+   * llamadas del mismo tick parten del MISMO snapshot de `searchParams` y
+   * gana la última, así que de tres claves borradas se aplicaba una sola — y
+   * el `navigate` de la categoría quedaba pisado encima. Verificado en el
+   * navegador: la URL quedaba idéntica después de tocar "Limpiar".
+   */
+  function limpiarFiltrosDePanel() {
+    // En una ruta de categoría ese filtro no vive en la querystring sino en
+    // la URL, así que la única forma de sacarlo es salir de la ruta. Esa
+    // navegación remonta `Coleccion` y el blanqueo de filtros heredados se
+    // lleva puesta también la búsqueda libre: es la misma limitación ya
+    // documentada para el selector de categoría, no una nueva.
+    if (slugCategoria) {
+      navigate("/coleccion", { replace: true });
+      return;
+    }
+
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        if (valor) {
-          next.set(clave, valor);
-        } else {
-          next.delete(clave);
-        }
-        // Cambiar un filtro vuelve a la página 1: la página 4 del resultado
-        // anterior no tiene por qué existir en el resultado nuevo, y quedarse
-        // ahí mostraría una grilla vacía como si el filtro no encontrara nada.
+        for (const clave of CLAVES_FILTRO_PANEL) next.delete(clave);
+        // Mismo motivo que en `actualizarFiltro`: la página del resultado
+        // anterior no tiene por qué existir en el resultado sin filtrar.
         next.delete("page");
         return next;
       },
@@ -372,11 +442,22 @@ function Coleccion() {
           breakpoints: esta página no tiene ese header, así que ocultarlo en
           mobile dejaría sin salida justo donde el gesto de "atrás" del sistema
           es menos evidente dentro de una SPA. */}
-      <div className="mx-auto w-full max-w-container-max px-margin-mobile pt-6 md:px-margin-desktop md:pt-8">
-        <BotonVolver />
+      {/* Va en `surface-container-low`, el MISMO fondo que la barra de filtros
+          y la sección de la grilla. Quedó en `background` (el crema del hero)
+          hasta el 29/08/2026 y era la única franja de la página en ese tono:
+          se leía como un corte horizontal justo debajo del navbar. Todo lo
+          que está por debajo del navbar en esta página es una sola capa. */}
+      <div className="w-full bg-surface-container-low">
+        <div className="mx-auto w-full max-w-container-max px-margin-mobile pb-3 pt-6 md:px-margin-desktop md:pt-8">
+          <BotonVolver />
+        </div>
       </div>
 
+      {/* El `<h1>` de la página vive DENTRO de esta barra, no arriba de la
+          grilla: es lo que queda pegado al navbar al scrollear, junto al
+          botón de filtros. */}
       <FiltrosCatalogo
+        titulo={encabezado}
         categorias={categorias}
         categoria={categoriaActiva}
         onChangeCategoria={irACategoria}
@@ -386,6 +467,7 @@ function Coleccion() {
         onChangeMinPrecio={(valor) => actualizarFiltro("minPrecio", valor)}
         maxPrecio={maxPrecio}
         onChangeMaxPrecio={(valor) => actualizarFiltro("maxPrecio", valor)}
+        onLimpiarFiltros={limpiarFiltrosDePanel}
       />
 
       {/* Collection Grid — section header from home.html L132-136, card grid idiom from catalogo.html.
@@ -395,22 +477,11 @@ function Coleccion() {
           más contraste sobre ella. */}
       <section className="w-full bg-surface-container-low">
         <div className="mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-12">
-          {/* La página venía sin `<h1>` propio — el "Productos" de acá abajo
-              es un `<h2>` decorativo, no el encabezado de nivel 1 de la
-              página. Se agrega arriba de la grilla, per brief. */}
-          <h1 className="font-headline-lg text-headline-lg-mobile lg:text-headline-lg mb-6 text-on-background">
-            {encabezado}
-          </h1>
-
-          <div className="mb-8 flex flex-col items-center">
-            <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
-              Nuestra Colección
-            </span>
-            <h2 className="font-headline-md text-headline-md text-primary md:text-[28px]">
-              Productos
-            </h2>
-          </div>
-
+          {/* Acá había el `<h1>` de la página más un bloque decorativo
+              centrado («NUESTRA COLECCIÓN / Productos»). Los dos se sacaron:
+              el `<h1>` se mudó a la barra sticky (`FiltrosCatalogo`), y con
+              el título ya visible ahí arriba el bloque quedaba diciendo lo
+              mismo dos veces y empujaba la grilla ~120px hacia abajo. */}
           {cargando ? (
             <EstadoVacio icono="hourglass_empty" mensaje="Cargando productos…" />
           ) : errorCarga ? (

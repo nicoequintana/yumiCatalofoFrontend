@@ -55,7 +55,20 @@ export default {
         "margin-desktop": "64px",
         gutter: "24px",
         "margin-mobile": "20px",
-        "navbar-height": "88px",
+        // Alto EXACTO de la barra del `Navbar`, por breakpoint. Son la misma
+        // medida en dos usos que tienen que coincidir sí o sí: el `h-…` de la
+        // barra en `Navbar.jsx` y el `top-…` de la barra sticky de
+        // `FiltrosCatalogo.jsx`. Manejarlos con el mismo token es lo que hace
+        // imposible que se desincronicen.
+        //
+        // Antes había UN solo `navbar-height: 88px` mientras el navbar no
+        // tenía alto fijo (crecía de su contenido: 76px en móvil, 84px en
+        // escritorio). La barra de filtros se clavaba 12px/4px más abajo de
+        // donde el navbar terminaba, y por ese hueco se veía pasar la grilla
+        // al scrollear. Un único valor no puede ser correcto para los dos
+        // breakpoints: por eso son dos.
+        "navbar-height": "76px",
+        "navbar-height-md": "84px",
       },
       // Sin serifas en todo el sitio, a propósito: "Libre Caslon Text" (la
       // serif de titulares del mockup original) se sacó por completo — los

@@ -90,7 +90,15 @@ function Navbar() {
           sticky un elemento posicionado se pinta por encima de uno estático.
           Sin esto, el velo taparía la propia barra y el botón "Cerrar menú"
           dejaría de ser clickeable. */}
-      <div className="relative z-50 mx-auto flex w-full max-w-container-max items-center justify-between gap-4 bg-background px-margin-mobile py-4 md:grid md:grid-cols-[1fr_auto_1fr] md:px-margin-desktop md:py-5">
+      {/* Alto FIJO (`h-navbar-height`), no derivado del padding. Es la mitad
+          de un contrato: `FiltrosCatalogo.jsx` se pega debajo con
+          `top-navbar-height`, el MISMO token. Mientras el alto salía del
+          contenido (`py-4`/`py-5`), la barra sticky del catálogo se clavaba
+          más abajo de donde este header terminaba y quedaba un hueco por el
+          que se veía pasar la grilla. Si esta barra necesita más aire, se
+          sube el token — nunca se vuelve a un padding, que reabre el hueco
+          sin que nada falle. */}
+      <div className="relative z-50 mx-auto flex h-navbar-height w-full max-w-container-max items-center justify-between gap-4 bg-background px-margin-mobile md:grid md:h-navbar-height-md md:grid-cols-[1fr_auto_1fr] md:px-margin-desktop">
         <Link to="/" className="shrink-0 transition-opacity hover:opacity-80">
           <LogoYima className="h-7 md:h-8" />
         </Link>

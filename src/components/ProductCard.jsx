@@ -55,7 +55,7 @@ function ProductCard({ producto }) {
 
   return (
     <Link to={href} className={shell}>
-      <div className="relative aspect-square w-full bg-surface-container-low">
+      <div className="relative aspect-square w-full bg-surface-container-lowest">
         <BotonFavorito productoId={producto.id} className="absolute top-2 right-2 z-10 rounded-full bg-surface-container-lowest/90 shadow-sm" />
         {foto ? (
           // `absolute inset-0`, NO `h-full w-full` en flujo normal: un <img> con

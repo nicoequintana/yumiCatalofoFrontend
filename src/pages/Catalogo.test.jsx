@@ -42,6 +42,12 @@ describe("Catalogo - home editorial", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+    // La home monta `CategoriasDestacadas`, que pide las categorías. Sin este
+    // default el auto-mock devuelve `undefined` y el hook revienta con un
+    // `undefined.then(...)` síncrono dentro del efecto — un artefacto de la
+    // harness, no del producto: la API real siempre devuelve una promesa.
+    // Cada test que necesite categorías concretas pisa este valor.
+    categoriasApi.getCategorias.mockResolvedValue([]);
   });
 
   it("muestra el hero con el copy de marca", () => {
@@ -127,7 +133,7 @@ describe("Catalogo - home editorial", () => {
 
     // Contenido propio de /coleccion, que la home ya no renderiza.
     expect(await screen.findByLabelText("Buscar")).toBeInTheDocument();
-    expect(screen.getByText("Nuestra Colección")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Todos los productos" })).toBeInTheDocument();
     expect(screen.queryByText("El Manifiesto YIMA")).not.toBeInTheDocument();
   });
 
@@ -146,7 +152,7 @@ describe("Catalogo - home editorial", () => {
 
     expect(screen.queryByLabelText("Categoría")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Buscar")).not.toBeInTheDocument();
-    expect(screen.queryByText("Nuestra Colección")).not.toBeInTheDocument();
+    expect(screen.queryByText("Todos los productos")).not.toBeInTheDocument();
   });
 
   it("el carrusel pide los destacados filtrados en el backend", async () => {
