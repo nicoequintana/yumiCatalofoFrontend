@@ -545,16 +545,15 @@ function AdminPrecios() {
                       className="size-4 accent-primary"
                     />
                   </td>
+                  {/* SKU y nombre son SOLO identificación, sin link. Esta
+                      pantalla se trabaja de corrido, tabulando entre celdas de
+                      costo y coeficiente: un enlace en el medio de la fila se
+                      lleva el foco y saca de la tabla a mitad de la carga. */}
                   <td className={claseCelda}>
-                    <Link
-                      to={`/catalogo/admin/productos/${fila.id}`}
-                      className="block text-on-surface hover:text-primary"
-                    >
-                      <span className="block font-mono text-[11px] uppercase text-on-surface-variant">
-                        {fila.sku}
-                      </span>
-                      {fila.nombre}
-                    </Link>
+                    <span className="block font-mono text-[11px] uppercase text-on-surface-variant">
+                      {fila.sku}
+                    </span>
+                    <span className="text-on-surface">{fila.nombre}</span>
                   </td>
                   <td className={claseNumero}>
                     <CeldaEditable
