@@ -17,6 +17,8 @@ import {
 /**
  * `/catalogo/admin/productos/precios` — costos, coeficiente y precio de venta.
  *
+ * El precio se calcula como `costo × coeficiente`, redondeado al peso.
+ *
  * El modelo de la pantalla, en una línea: **el precio se calcula pero se
  * ESCRIBE cuando el admin aplica**. Cambiar un costo no mueve el precio
  * publicado; queda marcado como "Difiere" hasta que alguien lo aplique. Eso es
@@ -356,8 +358,8 @@ function AdminPrecios() {
           </span>
           <h1 className="font-headline-lg text-headline-lg text-primary">Costos y precios</h1>
           <p className="font-body-md text-body-md mt-2 max-w-prose text-on-surface-variant">
-            El precio de venta se calcula como costo × coeficiente, redondeado a la centena hacia
-            arriba. Se publica recién cuando lo aplicás.
+            El precio de venta se calcula como costo × coeficiente, redondeado al peso. Se publica
+            recién cuando lo aplicás.
           </p>
         </div>
         <Link

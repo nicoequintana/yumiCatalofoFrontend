@@ -1,7 +1,7 @@
 /**
  * Cálculo del precio de venta a partir del costo de adquisición.
  *
- *     precio = redondearACentenaArriba(costo × coeficiente)
+ *     precio = redondearAEntero(costo × coeficiente)
  *
  * **`coeficiente` es un MULTIPLICADOR, no un porcentaje.** Un 2,05 significa
  * "×2,05" — el aumento real es del 105 %.
@@ -14,11 +14,10 @@
  * warning y sin nada que lo delate hasta que alguien compare a mano.
  *
  * **Acá NO hay `Decimal`, así que la cuenta va en aritmética ENTERA.** No es
- * una optimización, es corrección: `14504 * 2.05` en punto flotante da
- * `29733.200000000004`, y el día que un producto caiga justo sobre un múltiplo
- * de 100 esa basura lo empuja a la centena siguiente y la pantalla anuncia $100
- * de más. El coeficiente se lleva a centésimos (un entero) y todo el resto se
- * resuelve con enteros y un módulo exacto.
+ * una optimización, es corrección: `3150 * 2.05` en punto flotante puede dar
+ * `6457.499999…`, y un valor que cae sobre el medio peso exacto redondea para
+ * el lado equivocado. El coeficiente se lleva a centésimos (un entero) y el
+ * redondeo se resuelve con un módulo exacto, sin ninguna división flotante.
  */
 
 /** Estados posibles de un producto respecto de su precio calculado. */
@@ -48,34 +47,33 @@ function aNumeroPositivo(valor) {
 }
 
 /**
- * Redondea hacia arriba al múltiplo de 100 más cercano.
+ * Redondea al peso más cercano, con el medio peso exacto hacia arriba.
  *
- * **Hacia arriba y no al más cercano**: a la centena más cercana, un
- * coeficiente de 2,05 se convierte en un 2,0494 efectivo (`16.810 → 16.800`
- * pierde $10 por unidad) sin que nadie lo note.
- *
- * Un valor que YA es múltiplo de 100 se queda donde está.
+ * Espejo de `redondearAEntero` del backend. Hasta el 29/08/2026 esto redondeaba
+ * a la centena hacia arriba; se cambió porque `3.075 × 2,05 = 6.303,75` se
+ * mostraba como `6.400`, casi cien pesos por encima de la cuenta.
  *
  * @param {number} valorEnCentesimos el precio exacto, expresado en centésimos
  * @returns {number} el precio redondeado, en pesos enteros
  */
-function centenaArribaDesdeCentesimos(valorEnCentesimos) {
-  // 10000 centésimos = $100. El módulo sobre enteros es exacto, así que no hay
-  // ninguna división en punto flotante en el camino.
-  const resto = valorEnCentesimos % 10000;
-  const centenasEnteras = (valorEnCentesimos - resto) / 10000;
-  return (resto > 0 ? centenasEnteras + 1 : centenasEnteras) * 100;
+function enteroDesdeCentesimos(valorEnCentesimos) {
+  // Medio peso son 50 centésimos: sumarlos antes de truncar es un
+  // ROUND_HALF_UP exacto sobre enteros, sin una sola división en punto
+  // flotante en el camino.
+  const conMedioPeso = valorEnCentesimos + 50;
+  const resto = conMedioPeso % 100;
+  return (conMedioPeso - resto) / 100;
 }
 
 /**
- * Redondea un precio en pesos hacia arriba al múltiplo de 100.
- * Espejo de `redondearACentenaArriba` del backend.
+ * Redondea un precio en pesos al entero más cercano.
+ * Espejo de `redondearAEntero` del backend.
  *
  * @param {number} pesos
  * @returns {number}
  */
-export function redondearACentenaArriba(pesos) {
-  return centenaArribaDesdeCentesimos(Math.round(pesos * 100));
+export function redondearAEntero(pesos) {
+  return enteroDesdeCentesimos(Math.round(pesos * 100));
 }
 
 /**
@@ -103,7 +101,7 @@ export function calcularPrecio(costo, coeficiente) {
   // No es alcanzable con datos reales; devolver null es preferible a mentir.
   if (!Number.isSafeInteger(productoEnCentesimos)) return null;
 
-  return centenaArribaDesdeCentesimos(productoEnCentesimos);
+  return enteroDesdeCentesimos(productoEnCentesimos);
 }
 
 /**
