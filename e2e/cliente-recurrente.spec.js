@@ -99,7 +99,11 @@ test.describe("Cliente recurrente — dos órdenes, mismo dni, un solo Cliente",
     await expect(linkProducto).toBeVisible();
     await linkProducto.click();
 
-    await expect(page).toHaveURL(new RegExp(`/producto/${producto.id}$`));
+    // `(-|$)`: las URLs de producto son `/producto/{id}-{slug}` desde el
+    // 24/08/2026 (`feat(seo): usar URLs con slug en los links de producto`).
+    // El `$` anclado al id venía fallando desde entonces. El borde importa:
+    // sin él, `/producto/52` matchearía también `/producto/5289`.
+    await expect(page).toHaveURL(new RegExp(`/producto/${producto.id}(-|$)`));
     await page.getByRole("button", { name: /agregar al carrito/i }).click();
     await expect(page.getByRole("button", { name: /agregado/i })).toBeVisible();
 

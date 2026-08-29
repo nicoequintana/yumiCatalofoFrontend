@@ -77,6 +77,11 @@ test.describe("Producto agotado — visible pero no comprable", () => {
         dni: "00999888", // dni sintético de test (no necesita limpieza: la request falla antes de escribir nada)
         nombre: "E2E-TEST-Cliente Defensa Backend",
         telefono: "1100000000",
+        // El email es OBLIGATORIO desde la feature de notificaciones
+        // (26/08/2026). Sin él la request moría en esa validación y este test
+        // afirmaba sobre el mensaje equivocado — dejando el rechazo por stock,
+        // que es lo que viene a cubrir, sin ninguna prueba real.
+        email: "e2e-defensa@test.local",
         items: [{ productId: producto.id, cantidad: 1 }],
       },
     });

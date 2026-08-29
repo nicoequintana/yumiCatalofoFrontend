@@ -87,7 +87,11 @@ test.describe("Flujo feliz — checkout de invitado", () => {
     await expect(linkProducto).toBeVisible();
     await linkProducto.click();
 
-    await expect(page).toHaveURL(new RegExp(`/producto/${producto.id}$`));
+    // `(-|$)`: las URLs de producto son `/producto/{id}-{slug}` desde el
+    // 24/08/2026 (`feat(seo): usar URLs con slug en los links de producto`).
+    // El `$` anclado al id venía fallando desde entonces. El borde importa:
+    // sin él, `/producto/52` matchearía también `/producto/5289`.
+    await expect(page).toHaveURL(new RegExp(`/producto/${producto.id}(-|$)`));
     await expect(page.getByRole("heading", { name: "E2E-TEST-Producto Flujo Feliz" })).toBeVisible();
 
     // 2. Detalle: subir la cantidad a 2 con el SelectorCantidad y agregar al
