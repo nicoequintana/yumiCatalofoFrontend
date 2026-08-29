@@ -3,6 +3,7 @@ import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import CarruselDestacados from "../components/CarruselDestacados.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import useDestacados from "../hooks/useDestacados.js";
+import CategoriasDestacadas from "../components/CategoriasDestacadas.jsx";
 import { SENALES_CONFIANZA } from "../constants/hero.js";
 import { urlAbsoluta } from "../constants/seo.js";
 import heroImg from "../assets/hero.jpg";
@@ -248,6 +249,12 @@ function Catalogo() {
       </section>
 
       <CarruselDestacados productos={destacados} />
+
+      {/* Puertas de entrada al catálogo por categoría. Va DESPUÉS del carrusel
+          y antes del manifiesto: primero la vidriera (productos concretos),
+          después el mapa (por dónde seguir mirando), y recién al final el
+          cierre editorial de marca. */}
+      <CategoriasDestacadas />
 
       {/* Manifiesto de marca — cierre editorial antes del footer.
           Sin botón CTA: no existe una página "Sobre nosotros" en el
