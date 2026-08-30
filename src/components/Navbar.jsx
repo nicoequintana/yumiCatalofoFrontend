@@ -83,8 +83,44 @@ function Navbar() {
   const claseAccion =
     "relative inline-flex h-11 w-11 items-center justify-center rounded-full text-on-surface transition-colors hover:bg-surface-container-high";
 
+  // Fondo TRANSLÚCIDO + `backdrop-blur`: la barra queda pegada al tope y el
+  // contenido pasa desenfocado por detrás en vez de chocar contra un bloque
+  // opaco. Es lo mismo que ya hace el panel de vidrio de `CarruselDestacados`,
+  // y funciona por el mismo motivo: los tokens de color viven en CANALES
+  // (`rgb(var(--color-background) / <alpha-value>)`), así que Tailwind puede
+  // componerles alfa. Con un hex adentro de la variable, `bg-background/70`
+  // no emitiría NINGUNA regla y el header quedaría transparente del todo.
+  //
+  // `backdrop-blur-[10px]` emite además `-webkit-backdrop-filter` por su
+  // cuenta (Tailwind 3 lo incluye en la utilidad), que es lo que necesita
+  // Safari — no hace falta declararlo a mano ni desde autoprefixer.
+  //
+  // El alfa es `/70` y NO `/50`, y es una cota de contraste, no una
+  // preferencia: el desenfoque difumina el fondo pero no lo aclara, así que
+  // el peor caso sigue siendo una foto oscura pareja pasando por detrás.
+  // Sobre negro, el crema al 50% da `#7f7c7a` y `text-on-surface` (#1d1b1a)
+  // queda en 4,14:1 — debajo del 4,5:1 que pide WCAG AA. Al 70% da `#b2aeab`
+  // y sube a 7,78:1. Bajar este número vuelve a romper la barra sobre el
+  // hero de la home y sobre la galería de la ficha, que son justo las dos
+  // pantallas donde una foto grande scrollea por abajo.
+  //
+  // `vidrio-header` (en `index.css`) es el fallback: donde no hay
+  // `backdrop-filter`, el fondo pasa a opaco. Sin esa regla, un cliente sin
+  // soporte no se pierde el efecto — se queda con una barra semitransparente
+  // y el contenido NÍTIDO por detrás, que es peor que no haber intentado nada.
+  //
+  // El VELO del panel móvil se renderiza como HERMANO del `<header>`, no
+  // adentro, y eso es obligatorio desde que existe este vidrio: un elemento
+  // con `backdrop-filter` se vuelve el bloque contenedor de sus descendientes
+  // `fixed`, así que un velo hijo del header queda preso de la caja del
+  // header en vez de cubrir la ventana. Medido en Chromium con el menú
+  // abierto: iba de 114px a 307px, o sea exactamente el rango del panel que
+  // se pinta encima — invisible, y sin capturar un solo click, con lo cual
+  // "tocar afuera para cerrar" no funcionaba. Como hermano recupera el
+  // viewport y vuelve a velar la página entera.
   return (
-    <header className="sticky top-0 z-50 w-full bg-background shadow">
+    <>
+    <header className="vidrio-header sticky top-0 z-50 w-full bg-background/70 shadow backdrop-blur-[10px]">
       {/* `relative z-50` no es decorativo: el velo del panel móvil es `fixed`
           con z-index, y dentro del contexto de apilado que crea el header
           sticky un elemento posicionado se pinta por encima de uno estático.
@@ -98,7 +134,11 @@ function Navbar() {
           que se veía pasar la grilla. Si esta barra necesita más aire, se
           sube el token — nunca se vuelve a un padding, que reabre el hueco
           sin que nada falle. */}
-      <div className="relative z-50 mx-auto flex h-navbar-height w-full max-w-container-max items-center justify-between gap-4 bg-background px-margin-mobile md:grid md:h-navbar-height-md md:grid-cols-[1fr_auto_1fr] md:px-margin-desktop">
+      {/* SIN `bg-background`: el fondo lo pone el `<header>`, que es el que
+          lleva la opacidad y el desenfoque. Un fondo sólido acá tapa ese
+          vidrio en toda la franja del contenido — el blur se aplicaría igual,
+          detrás de una capa opaca, y no se vería nada. */}
+      <div className="relative z-50 mx-auto flex h-navbar-height w-full max-w-container-max items-center justify-between gap-4 px-margin-mobile md:grid md:h-navbar-height-md md:grid-cols-[1fr_auto_1fr] md:px-margin-desktop">
         <Link to="/" className="shrink-0 transition-opacity hover:opacity-80">
           <LogoYima className="h-7 md:h-8" />
         </Link>
@@ -181,19 +221,6 @@ function Navbar() {
           destinos en el DOM: con las dos copias montadas, cualquier consulta
           por rol o texto encontraría dos nodos para el mismo link. */}
       {menuAbierto && !esAdmin ? (
-        <>
-          <div
-            // `bg-inverse-surface opacity-20` y NO `bg-inverse-surface/20`: los
-            // colores del proyecto son `var(--color-x)` con un hex adentro, y
-            // Tailwind 3 no puede componerles alfa — descarta la utilidad y no
-            // emite ninguna regla, así que el velo quedaría invisible. Bajar la
-            // opacidad del elemento entero es seguro justamente acá porque el
-            // velo no tiene contenido; en la tarjeta del hero, que sí lo tiene,
-            // la salida es un fondo sólido.
-            className="fixed inset-0 z-40 bg-inverse-surface opacity-20 md:hidden"
-            onClick={() => setMenuAbierto(false)}
-            aria-hidden="true"
-          />
           <div
             ref={panelRef}
             role="dialog"
@@ -216,9 +243,32 @@ function Navbar() {
               ))}
             </ul>
           </div>
-        </>
       ) : null}
     </header>
+
+    {/* Velo del panel móvil — HERMANO del `<header>`, ver el comentario de
+        arriba: adentro quedaría preso del bloque contenedor que crea el
+        `backdrop-filter` y no velaría nada. Acá `inset-0` vuelve a ser la
+        ventana, así que oscurece la página y captura el click de cerrar en
+        toda el área libre.
+
+        Se pinta DEBAJO del header (`z-40` contra `z-50`), que es lo que deja
+        la barra legible con el menú abierto: lo poco que se cuela por el 30%
+        translúcido del header es un velo al 20% —mucho más claro que el fondo
+        negro contra el que se calculó el contraste—, así que no mueve la cota.
+
+        `opacity-20` sobre el nodo entero y no `bg-inverse-surface/20` es
+        indistinto desde que los tokens están en canales (23/08); se conserva
+        porque el velo no tiene contenido y bajarle la opacidad no arrastra
+        nada más. */}
+    {menuAbierto && !esAdmin ? (
+      <div
+        className="fixed inset-0 z-40 bg-inverse-surface opacity-20 md:hidden"
+        onClick={() => setMenuAbierto(false)}
+        aria-hidden="true"
+      />
+    ) : null}
+    </>
   );
 }
 

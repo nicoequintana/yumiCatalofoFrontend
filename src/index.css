@@ -321,3 +321,30 @@ h6 {
     );
   }
 }
+
+/*
+  Fallback del header de vidrio (`Navbar.jsx`).
+
+  La barra es `bg-background/70` + `backdrop-blur-[10px]`: el 70% de alfa es el
+  piso que mantiene `text-on-surface` sobre 4,5:1 contra el peor fondo posible
+  (una foto oscura pareja), y el desenfoque es lo que vuelve legible el borde
+  entre la barra y lo que pasa por detrás.
+
+  Donde `backdrop-filter` no está disponible —Firefox con
+  `layout.css.backdrop-filter.enabled=false`, configuraciones sin GPU, algunos
+  entornos corporativos— el alfa se aplica igual pero el desenfoque no: queda
+  una barra semitransparente con el contenido NÍTIDO por detrás, texto contra
+  texto. Eso es peor que no haber intentado el efecto, así que ahí el fondo
+  vuelve a ser opaco y la barra se comporta como antes de la feature.
+
+  Se declara con `@supports not` y no con una utilidad de Tailwind porque
+  Tailwind 3 no genera variantes de feature query. El `or` cubre Safari, que
+  soporta el efecto solo bajo el prefijo `-webkit-`: sin esa mitad, la regla se
+  aplicaría en Safari y le sacaría el vidrio a un navegador que sí puede
+  dibujarlo.
+*/
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .vidrio-header {
+    background-color: rgb(var(--color-background));
+  }
+}
