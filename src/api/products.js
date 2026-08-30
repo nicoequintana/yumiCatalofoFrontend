@@ -245,6 +245,29 @@ export async function getProductsResumen() {
 }
 
 /**
+ * Catalog health: how complete and how exposed the catalog is, as counts.
+ *
+ * Answers a different question from the analytics endpoints. Those measure
+ * OUTCOME (revenue, conversion) and need traffic volume to mean anything; this
+ * measures COMPLETENESS and EXPOSURE, so it is useful from day one.
+ *
+ * Every key is always present, including the ones at zero — a zero is the
+ * answer ("you have no products without photos"), not a missing answer.
+ *
+ * @returns {Promise<{
+ *   total: number, publicados: number, ocultos: number,
+ *   agotados: number, agotadosConVistas: number,
+ *   sinFotos: number, publicadosSinFotos: number, menosDeDosFotos: number,
+ *   sinCategoria: number, sinCosto: number,
+ *   sinVistas: number, publicadosSinVistas: number,
+ *   destacadosPublicados: number,
+ * }>}
+ */
+export async function getSaludCatalogo() {
+  return pedirAutenticado(`${BASE}/products/salud`);
+}
+
+/**
  * Trae exactamente los productos de `ids`, en tandas de `MAX_IDS_POR_CONSULTA`.
  *
  * Existe para carrito, checkout y favoritos: los tres tienen una lista de ids

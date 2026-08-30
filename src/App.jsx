@@ -27,6 +27,7 @@ const AdminProductoForm = lazy(() => import("./pages/admin/AdminProductoForm.jsx
 const AdminImportarProductos = lazy(() => import("./pages/admin/AdminImportarProductos.jsx"));
 const AdminActualizarProductos = lazy(() => import("./pages/admin/AdminActualizarProductos.jsx"));
 const AdminPrecios = lazy(() => import("./pages/admin/AdminPrecios.jsx"));
+const AdminSaludCatalogo = lazy(() => import("./pages/admin/AdminSaludCatalogo.jsx"));
 const AdminCategorias = lazy(() => import("./pages/admin/AdminCategorias.jsx"));
 const AdminAnuncios = lazy(() => import("./pages/admin/AdminAnuncios.jsx"));
 const AdminMetricas = lazy(() => import("./pages/admin/AdminMetricas.jsx"));
@@ -92,6 +93,7 @@ function App() {
           <Route path="/catalogo/admin/productos/actualizar-masivo" element={<AdminActualizarProductos />} />
           {/* Antes de `/productos/:id`: si no, "precios" se matchea como un id. */}
           <Route path="/catalogo/admin/productos/precios" element={<AdminPrecios />} />
+          <Route path="/catalogo/admin/productos/salud" element={<AdminSaludCatalogo />} />
           <Route path="/catalogo/admin/productos/:id/editar" element={<AdminProductoForm />} />
           <Route path="/catalogo/admin/ordenes" element={<AdminOrdenes />} />
           {/* Segmento literal dentro de `/ordenes/`: convive con `/:id` de
