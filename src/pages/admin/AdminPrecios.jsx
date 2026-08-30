@@ -50,6 +50,23 @@ const CLASE_CHIP = {
   [ESTADOS_PRECIO.SIN_COSTO]: "bg-surface-container-high text-on-surface-variant",
 };
 
+/**
+ * Mensaje de respaldo cuando el error no trae `message`.
+ *
+ * No es cosmético: el panel de informe decide qué rama renderizar por la
+ * verdad de `informe.error`. Con un `throw` que no es `Error` —un string, un
+ * objeto suelto— `err.message` queda `undefined`, la rama de error se lee como
+ * falsa y la pantalla anuncia un éxito que no ocurrió: *"Se actualizaron
+ * undefined precios."*
+ */
+const MENSAJE_ERROR_GUARDADO =
+  "No se pudo guardar el costo. Revisá tu conexión e intentá de nuevo.";
+
+/** El `message` del error, o el genérico si no hay ninguno utilizable. */
+function mensajeDeError(err) {
+  return err?.message || MENSAJE_ERROR_GUARDADO;
+}
+
 const claseEncabezado =
   "px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest";
 const claseCelda = "px-2 py-2 align-middle xl:px-3 xl:py-3";
@@ -249,36 +266,57 @@ function AdminPrecios() {
     });
   }
 
+  /** Descarta el borrador de una fila: lo que se ve pasa a ser lo del servidor. */
+  function descartarBorrador(id) {
+    setBorradores(({ [id]: _descartado, ...resto }) => resto);
+  }
+
   /**
    * Persiste el borrador de una fila al salir del campo.
    *
    * Guardar el costo NO mueve el precio publicado — eso es un paso aparte. Por
    * eso la fila queda en "Difiere" después de guardar, que es exactamente lo
    * que tiene que pasar: el dato está, el precio todavía no se aplicó.
+   *
+   * **Un blur, un PATCH. No hay encadenado ni escrituras derivadas.** Hubo una
+   * versión que, al resolver, releía el borrador vigente y mandaba otra vuelta
+   * si había cambiado. Leía el borrador VIVO —el que se mueve con cada tecla—
+   * sin ninguna prueba de que ese valor hubiera pasado por un blur, así que
+   * borrar el coeficiente para retipearlo mientras el PATCH viajaba mandaba
+   * `coeficiente: ""`; el backend mapea la cadena vacía a `null`
+   * (`validarCostoYCoeficiente`), y el producto caía a "Sin costo" sin un solo
+   * error. Es exactamente lo que el contrato de `CeldaEditable` prohíbe nueve
+   * líneas más arriba: nunca se guarda un valor a medio tipear.
    */
   async function guardarCosteo(id) {
+    // Un blur con el PATCH anterior todavía en vuelo NO dispara un segundo por
+    // el mismo campo. Lo que se haya tipeado mientras tanto queda como borrador
+    // a la vista —marcado "sin guardar"— y se escribe en el próximo blur; hasta
+    // entonces `abrirConfirmacion` lo cuenta como pendiente y no previsualiza.
+    if (guardando.has(id)) return;
+
     const borrador = borradores[id];
-    if (!borrador || guardando.has(id)) return;
+    if (!borrador) return;
 
     const original = productos.find((producto) => producto.id === id);
+    const costo = String(borrador.costo ?? "");
+    const coeficiente = String(borrador.coeficiente ?? "");
     const sinCambios =
-      String(borrador.costo ?? "") === String(original?.costo ?? "") &&
-      String(borrador.coeficiente ?? "") === String(original?.coeficiente ?? "");
+      costo === String(original?.costo ?? "") &&
+      coeficiente === String(original?.coeficiente ?? "");
     if (sinCambios) {
       // El campo se tocó y volvió a su valor: se descarta el borrador en vez de
-      // mandar un PATCH que no cambia nada.
-      setBorradores(({ [id]: _descartado, ...resto }) => resto);
+      // mandar un PATCH que no cambia nada. La fila queda sincronizada con el
+      // backend y deja de bloquear la confirmación.
+      descartarBorrador(id);
       return;
     }
 
     setGuardando((actual) => new Set(actual).add(id));
     try {
-      const actualizado = await updateCosteo(id, {
-        costo: borrador.costo ?? "",
-        coeficiente: borrador.coeficiente ?? "",
-      });
-      // La fila se reemplaza por la respuesta del servidor y el borrador
-      // desaparece: así lo que se ve es lo guardado, no lo tipeado.
+      const actualizado = await updateCosteo(id, { costo, coeficiente });
+      // La fila se reemplaza por la respuesta del servidor: así lo de abajo del
+      // borrador es lo guardado, no lo tipeado.
       setProductos((actuales) =>
         actuales.map((producto) =>
           producto.id === id
@@ -286,11 +324,31 @@ function AdminPrecios() {
             : producto,
         ),
       );
-      setBorradores(({ [id]: _guardado, ...resto }) => resto);
+
+      // El borrador se descarta SOLO si sigue siendo el que se acaba de
+      // persistir. Se lee por el actualizador de `setBorradores` y no del
+      // closure porque este código corre después del await y el closure trae el
+      // borrador del render que disparó el PATCH. Un descarte ciego se llevaría
+      // puesto lo que se tipeó mientras el pedido viajaba —sin error y sin
+      // aviso—; conservándolo, el valor sigue a la vista como "sin guardar" y
+      // el próximo blur lo escribe.
+      setBorradores((actual) => {
+        const vigente = actual[id];
+        if (!vigente) return actual;
+        const esElPersistido =
+          String(vigente.costo ?? "") === costo &&
+          String(vigente.coeficiente ?? "") === coeficiente;
+        if (!esElPersistido) return actual;
+        const { [id]: _persistido, ...resto } = actual;
+        return resto;
+      });
     } catch (err) {
       // El borrador se conserva: perder lo tipeado por un error de red sería
-      // peor que dejarlo a la vista para reintentar.
-      setInforme({ error: err.message });
+      // peor que dejarlo a la vista para reintentar. Y mientras siga ahí, la
+      // fila cuenta como pendiente y la confirmación no se abre — que es
+      // justamente lo que hay que impedir, porque el backend tiene el costo
+      // viejo y la previsualización mostraría un precio que no se va a escribir.
+      setInforme({ error: mensajeDeError(err) });
     } finally {
       setGuardando((actual) => {
         const siguiente = new Set(actual);
@@ -304,9 +362,51 @@ function AdminPrecios() {
    * Arma la vista previa antes → después. Es un paso obligatorio y no una
    * cortesía: cambiar 40 precios del catálogo público sin ver qué pasa es la
    * diferencia entre una herramienta y un accidente.
+   *
+   * **No abre nada mientras una fila seleccionada tenga un costo que el backend
+   * NO tenga**, y esa guarda es la que sostiene el contrato del módulo ("lo que
+   * se muestra acá es exactamente lo que se va a escribir al aplicar"). La
+   * previsualización se arma con `filas`, que ya llevan los borradores
+   * aplicados; el backend, en cambio, recalcula desde el `costo`/`coeficiente`
+   * PERSISTIDOS, porque `precios-masivo` solo recibe `{ids, coeficiente}`. Con
+   * un borrador en el medio esos dos números son distintos y el admin aprueba
+   * un precio que el sistema no va a escribir.
+   *
+   * **Es SÍNCRONA y bloquea; no espera ningún guardado.** Tiene un costo
+   * conocido y aceptado: `CeldaEditable` guarda al salir del campo, así que el
+   * click en "Actualizar precios" ES ese blur, y el primer click del flujo
+   * normal se rechaza —cartel y segundo click— porque cuando corre este handler
+   * el PATCH recién sale. Se probó la alternativa (esperar las promesas en
+   * vuelo) y el precio fue peor: para saber qué esperar hacía falta leer el
+   * borrador vivo desde una promesa ya en curso, y por ahí se coló un
+   * `coeficiente: ""` que nulea la columna. Fricción a cambio de que ningún
+   * valor a medio tipear llegue nunca al catálogo.
    */
   function abrirConfirmacion() {
     const seleccionadas = filas.filter((fila) => seleccionados.has(fila.id));
+
+    // `fila.editado` cubre el borrador sin escribir —incluido el que quedó de un
+    // PATCH que falló, que a propósito no se descarta— y `guardando` cubre el
+    // que se está escribiendo ahora mismo. Con las dos en cero, para toda fila
+    // seleccionada `filas` no tiene borrador aplicado y sus números son
+    // exactamente los que devolvió el servidor.
+    const pendientes = seleccionadas.filter((fila) => fila.editado || guardando.has(fila.id));
+    // Se nombra qué quedó afuera: un "hay cambios sin guardar" a secas obliga a
+    // barrer la tabla a mano para encontrarlos.
+    if (pendientes.length > 0) {
+      setInforme({
+        error: `Hay costos sin guardar en la selección (${pendientes
+          .map((fila) => fila.nombre)
+          .join(", ")}). Se guardan al salir del campo: esperá a que terminen y volvé a intentar.`,
+      });
+      return;
+    }
+
+    // El informe anterior queda tapado por el diálogo: dejarlo en pantalla
+    // haría que el aviso de un intento bloqueado siga leyéndose como vigente
+    // cuando ya se resolvió.
+    setInforme(null);
+
     const coeficienteOverride = coeficienteMasivo.trim();
 
     const lineas = seleccionadas.map((fila) => {
@@ -327,9 +427,10 @@ function AdminPrecios() {
   }
 
   async function confirmar() {
+    const aplicados = [...seleccionados];
     setAplicando(true);
     try {
-      const respuesta = await aplicarPreciosMasivo([...seleccionados], {
+      const respuesta = await aplicarPreciosMasivo(aplicados, {
         coeficiente: confirmacion.coeficiente || undefined,
       });
       setInforme(respuesta);
@@ -339,7 +440,13 @@ function AdminPrecios() {
       setCoeficienteMasivo("");
       setReintento((n) => n + 1);
     } catch (err) {
-      setInforme({ error: err.message });
+      // Por `mensajeDeError` y no por `err.message` pelado, por dos razones a la
+      // vez: un throw que no es `Error` deja `informe.error` en `undefined` y el
+      // panel renderiza la rama de ÉXITO ("Se actualizaron undefined precios."),
+      // y si además `err` es nulo, leerle `.message` lanza DENTRO del catch —
+      // el rechazo escapa de un `onClick` async, que nadie atrapa, y el diálogo
+      // se queda abierto con "Confirmar" vivo y sin una sola señal en pantalla.
+      setInforme({ error: mensajeDeError(err) });
       setConfirmacion(null);
     } finally {
       setAplicando(false);
