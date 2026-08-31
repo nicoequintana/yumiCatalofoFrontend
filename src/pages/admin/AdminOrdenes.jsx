@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import { getOrdenes } from "../../api/ordenes.js";
@@ -26,6 +27,12 @@ function AdminOrdenes() {
   const [dni, setDni] = useState(dniInicial);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  /**
+   * Contador que dispara un refetch al incrementarse — mismo patrón que
+   * `AdminMetricas` y `AdminPrecios`. Lo usa el botón Actualizar: es la pantalla
+   * donde más rinde, porque las órdenes entran solas mientras se la mira.
+   */
+  const [refresco, setRefresco] = useState(0);
 
   useEffect(() => {
     let activo = true;
@@ -51,7 +58,7 @@ function AdminOrdenes() {
       activo = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [estado, dni, page]);
+  }, [estado, dni, page, refresco]);
 
   function handleCambiarEstado(event) {
     setEstado(event.target.value);
@@ -82,6 +89,13 @@ function AdminOrdenes() {
         </div>
 
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+          {/* La pantalla donde más rinde: los pedidos entran mientras se la
+              mira. Conserva el filtro de estado, el DNI y la página — que es lo
+              único que este botón agrega sobre recargar con F5. */}
+          <BotonActualizar
+            onActualizar={() => setRefresco((n) => n + 1)}
+            actualizando={cargando}
+          />
           <Link
             to="/catalogo/admin/ordenes/productos-solicitados"
             className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"

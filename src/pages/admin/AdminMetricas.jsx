@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
@@ -90,11 +91,23 @@ function AdminMetricas() {
         <BotonVolver fallback="/catalogo/admin/productos" />
       </div>
 
-      <div className="mb-10">
-        <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
-          Panel de administración
-        </span>
-        <h1 className="font-headline-lg text-headline-lg text-primary">Métricas</h1>
+      <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
+            Panel de administración
+          </span>
+          <h1 className="font-headline-lg text-headline-lg text-primary">Métricas</h1>
+        </div>
+
+        {/* Vistas y compartidos se mueven solos mientras se mira la pantalla:
+            los incrementa cada visitante del catálogo público. Reutiliza el
+            contador `reintento` que ya dispara el refetch — un segundo
+            contador para lo mismo serían dos formas de recargar la misma
+            tabla. */}
+        <BotonActualizar
+          onActualizar={() => setReintento((actual) => actual + 1)}
+          actualizando={cargando}
+        />
       </div>
 
       {error ? (

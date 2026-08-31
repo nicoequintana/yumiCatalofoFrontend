@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
@@ -136,6 +137,13 @@ function AdminLogs() {
   const [entidad, setEntidad] = useState("");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  /**
+   * Contador que dispara un refetch al incrementarse — mismo patrón que
+   * `AdminMetricas`, `AdminPrecios` y `AdminOrdenes`. Acá los registros entran
+   * por su cuenta: un error técnico lo escribe el error handler de Express, y
+   * una entrada de auditoría, cualquier mutación del panel.
+   */
+  const [refresco, setRefresco] = useState(0);
 
   useEffect(() => {
     let activo = true;
@@ -166,7 +174,7 @@ function AdminLogs() {
       activo = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pestana, entidad, page]);
+  }, [pestana, entidad, page, refresco]);
 
   function handleCambiarPestana(nueva) {
     if (nueva === pestana) return;
@@ -206,21 +214,31 @@ function AdminLogs() {
           <h1 className="font-headline-lg text-headline-lg text-primary">Logs</h1>
         </div>
 
-        {esAuditoria ? (
-          <select
-            value={entidad}
-            onChange={handleCambiarEntidad}
-            aria-label="Filtrar por entidad"
-            className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none sm:w-auto"
-          >
-            <option value="">Todas las entidades</option>
-            {ENTIDADES.map((valor) => (
-              <option key={valor} value={valor}>
-                {valor}
-              </option>
-            ))}
-          </select>
-        ) : null}
+        {/* El filtro de entidad solo aplica a Auditoría, pero el botón va
+            AFUERA de ese ternario: los errores técnicos también entran solos y
+            la pestaña de Errores necesita refrescarse igual. */}
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+          {esAuditoria ? (
+            <select
+              value={entidad}
+              onChange={handleCambiarEntidad}
+              aria-label="Filtrar por entidad"
+              className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none sm:w-auto"
+            >
+              <option value="">Todas las entidades</option>
+              {ENTIDADES.map((valor) => (
+                <option key={valor} value={valor}>
+                  {valor}
+                </option>
+              ))}
+            </select>
+          ) : null}
+
+          <BotonActualizar
+            onActualizar={() => setRefresco((n) => n + 1)}
+            actualizando={cargando}
+          />
+        </div>
       </div>
 
       {/*
