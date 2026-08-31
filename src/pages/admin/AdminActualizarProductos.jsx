@@ -8,10 +8,16 @@ import { actualizarProductosMasivo, exportarProductos } from "../../api/importPr
 /**
  * Actualización masiva del catálogo por planilla `.xlsx`, matcheada por SKU.
  *
- * La planilla tiene CUATRO columnas — `sku`, `nombre`, `precio`, `stock` — y
- * eso es literalmente todo lo que la subida puede modificar. Descripción,
- * categoría, etiqueta, contenido comercial, fotos, video y visibilidad quedan
- * intactos porque no viajan en el archivo.
+ * La planilla tiene CINCO columnas — `sku`, `nombre`, `costo`, `coeficiente`,
+ * `stock` — y eso es literalmente todo lo que la subida puede modificar.
+ * Descripción, categoría, etiqueta, contenido comercial, fotos, video y
+ * visibilidad quedan intactos porque no viajan en el archivo.
+ *
+ * **La columna `precio` se fue el 31/08/2026**, cuando el precio de venta pasó a
+ * derivarse de `costo × coeficiente`. Consecuencia directa: **esta pantalla ya
+ * no publica precios.** Sube costos, y los productos quedan en `Difiere` hasta
+ * que alguien aplique desde Costos y precios — con su tabla antes→después de por
+ * medio, que es justamente la revisión que un cambio masivo más necesita.
  *
  * **Este flujo no crea productos.** Hasta el 25/08/2026 una fila con SKU vacío
  * daba de alta un producto; dejó de poder hacerlo cuando la planilla se
@@ -79,14 +85,23 @@ function AdminActualizarProductos() {
 
       <div className="mb-8 max-w-2xl rounded-lg bg-surface-container px-4 py-4">
         <p className="font-body-md text-body-md mb-2 text-on-surface">
-          Descargá el catálogo, editá lo que necesites y volvé a subirlo. La planilla trae cuatro
-          columnas: <strong>SKU</strong>, <strong>nombre</strong>, <strong>precio</strong> y{" "}
-          <strong>stock</strong>.
+          Descargá el catálogo, editá lo que necesites y volvé a subirlo. La planilla trae cinco
+          columnas: <strong>SKU</strong>, <strong>nombre</strong>, <strong>costo</strong>,{" "}
+          <strong>coeficiente</strong> y <strong>stock</strong>.
         </p>
         <ul className="font-body-md text-body-md list-disc pl-5 text-on-surface-variant">
           <li>
-            Solo se modifican nombre, precio y stock. La descripción, la categoría, las fotos y el
-            resto del contenido quedan como están.
+            Solo se modifican nombre, costo, coeficiente y stock. La descripción, la categoría, las
+            fotos y el resto del contenido quedan como están.
+          </li>
+          <li>
+            <strong>El precio de venta no se sube por acá</strong>: se calcula como costo ×
+            coeficiente. Después de subir la planilla, los productos quedan en «Difiere» hasta que
+            apliques los precios desde Costos y precios.
+          </li>
+          <li>
+            El coeficiente multiplica al costo (2,05 = ×2,05). Si dejás la celda vacía, se usa 1 y
+            el precio queda igual al costo.
           </li>
           <li>No borres ni cambies la columna SKU — es la que identifica a cada producto.</li>
           <li>

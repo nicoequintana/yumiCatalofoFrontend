@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { createProduct, deletePhoto, getProductById, updateProduct } from "../api/products.js";
+import {
+  createProduct,
+  deletePhoto,
+  deleteProduct,
+  getProductById,
+  updateProduct,
+} from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
-import { formatearPrecioInput, formatearPrecioParaEdicion } from "../utils/formato.js";
+import { formatearPrecioParaEdicion } from "../utils/formato.js";
+import { calcularPrecio, estadoDePrecio } from "../utils/precios.js";
 import { nuevoIdTemporal } from "../utils/idTemporal.js";
 import useGuardaSalida from "./useGuardaSalida.js";
 
@@ -24,13 +31,19 @@ const VALORES_INICIALES = {
   id: null,
   nombre: "",
   descripcion: "",
-  precio: "",
-  precioVisual: "",
-  // Costo de adquisición y coeficiente. El precio NO se deriva de ellos acá:
-  // se calculan y se aplican desde `/catalogo/admin/productos/precios`. Este
-  // formulario solo los guarda, igual que cualquier otro campo del producto.
+  // El precio de venta NO vive en este estado: se DERIVA de costo y coeficiente
+  // (`calcularPrecio`) y el campo del formulario es de solo lectura. Guardarlo
+  // acá sería una segunda fuente de verdad para el mismo número, y la que se
+  // desincroniza es siempre la copia.
+  //
+  // `precioPublicado` sí, pero es otra cosa: es el precio que el catálogo está
+  // mostrando AHORA, que en edición puede diferir del calculado hasta que
+  // alguien aplique desde Costos y precios. No se edita ni se envía.
+  precioPublicado: "",
   costo: "",
-  coeficiente: "",
+  // El neutro: sin tocarlo, el precio queda igual al costo. Nunca un margen
+  // que nadie eligió. Espejo de `COEFICIENTE_POR_DEFECTO` del backend.
+  coeficiente: "1",
   etiqueta: "",
   categoriaId: "",
   stock: "0",
@@ -61,18 +74,19 @@ function reducirValores(valores, accion) {
   switch (accion.tipo) {
     case "cargar": {
       const { producto } = accion;
-      const { crudo, formateado } = producto.precio
-        ? formatearPrecioParaEdicion(String(producto.precio))
-        : { crudo: "", formateado: "" };
 
       return {
         id: producto.id,
         nombre: producto.nombre,
         descripcion: producto.descripcion ?? "",
-        precio: crudo,
-        precioVisual: formateado,
+        // Lo que el catálogo muestra hoy, solo para comparar contra el
+        // calculado. `formatearPrecioParaEdicion` y no `formatearPrecioInput`
+        // por el bug de 100x que documenta `utils/formato.js`.
+        precioPublicado: producto.precio
+          ? formatearPrecioParaEdicion(String(producto.precio)).crudo
+          : "",
         costo: producto.costo ?? "",
-        coeficiente: producto.coeficiente ?? "",
+        coeficiente: producto.coeficiente ?? "1",
         etiqueta: producto.etiqueta ?? "",
         categoriaId: producto.categoria?.id ? String(producto.categoria.id) : "",
         stock: String(producto.stock ?? 0),
@@ -96,11 +110,6 @@ function reducirValores(valores, accion) {
     case "campo":
       return { ...valores, [accion.campo]: accion.valor };
 
-    // Precio y precio visual son dos vistas del mismo dato y siempre se
-    // escriben juntos: separarlos deja el formateado desfasado del crudo.
-    case "precio":
-      return { ...valores, precio: accion.crudo, precioVisual: accion.formateado };
-
     case "agregarItem":
       return { ...valores, [accion.campo]: [...valores[accion.campo], accion.item] };
 
@@ -113,6 +122,19 @@ function reducirValores(valores, accion) {
     default:
       return valores;
   }
+}
+
+/**
+ * El precio de venta que corresponde al costo y coeficiente en edición, como
+ * string, o `null` si todavía no se puede calcular.
+ *
+ * Sale de `utils/precios.js` —espejo manual del módulo del backend— y no de una
+ * cuenta escrita acá: lo que muestra esta pantalla tiene que ser exactamente lo
+ * que el backend va a escribir al guardar.
+ */
+function precioCalculadoDe(valores) {
+  const calculado = calcularPrecio(valores.costo, valores.coeficiente);
+  return calculado === null ? null : String(calculado);
 }
 
 /**
@@ -129,7 +151,10 @@ function construirProductoPreview(valores) {
     id: valores.id,
     nombre: valores.nombre,
     descripcion: valores.descripcion,
-    precio: valores.precio,
+    // El calculado, no el publicado: la vista previa muestra cómo va a quedar
+    // la ficha con lo que se está editando. `FichaProducto` espera un string,
+    // y `calcularPrecio` devuelve `null` cuando falta el costo.
+    precio: precioCalculadoDe(valores) ?? "",
     etiqueta: valores.etiqueta.trim() === "" ? null : valores.etiqueta.trim(),
     stock: valores.stock === "" ? 0 : Number(valores.stock),
     fraseComercial: valores.fraseComercial.trim() === "" ? null : valores.fraseComercial.trim(),
@@ -153,9 +178,9 @@ function construirPayload(valores) {
   return {
     nombre: valores.nombre,
     descripcion: valores.descripcion,
-    precio: valores.precio,
-    // Se mandan siempre, incluso vacíos: `""` le dice al backend que BORRE la
-    // columna. Omitirlos dejaría un costo cargado por error pegado para siempre.
+    // `precio` NO viaja: el backend lo deriva de este par. Mandarlo sería una
+    // segunda fuente de verdad para el mismo número, y de las dos copias la que
+    // se desincroniza es siempre la que se calculó de más.
     costo: valores.costo,
     coeficiente: valores.coeficiente,
     categoriaId: valores.categoriaId === "" ? null : valores.categoriaId,
@@ -289,6 +314,11 @@ export default function useProductoForm() {
   // diferencia de `error` (fallo al guardar, con el form ya cargado).
   const [errorCarga, setErrorCarga] = useState(null);
   const [sucio, setSucio] = useState(false);
+  // Estado propio del borrado, separado de `guardando`/`error`: son dos
+  // operaciones distintas y un mensaje compartido dejaría el fallo de una
+  // pintado en el lugar de la otra.
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState(null);
   const confirmarSalida = useGuardaSalida(sucio);
 
   const [valores, despachar] = useReducer(reducirValores, VALORES_INICIALES);
@@ -424,14 +454,30 @@ export default function useProductoForm() {
     };
   }
 
-  /** El precio se escribe formateado y se guarda crudo: siempre van juntos. */
-  function editarPrecio(entrada) {
-    const { formateado, crudo } = formatearPrecioInput(entrada);
-    setSucio(true);
-    despachar({ tipo: "precio", crudo, formateado });
-  }
-
   const productoPreview = useMemo(() => construirProductoPreview(valores), [valores]);
+
+  /**
+   * El precio de venta que corresponde a lo que hay tipeado, con el estado
+   * respecto del publicado.
+   *
+   * `estado` solo tiene sentido en EDICIÓN: en un alta no hay precio publicado
+   * contra el cual comparar, y el calculado es sencillamente el que se va a
+   * escribir. Mostrar "Difiere" ahí compararía contra un precio que no existe.
+   */
+  const precio = useMemo(() => {
+    const calculado = precioCalculadoDe(valores);
+    return {
+      calculado,
+      publicado: valores.precioPublicado,
+      estado: esEdicion
+        ? estadoDePrecio({
+            precio: valores.precioPublicado,
+            costo: valores.costo,
+            coeficiente: valores.coeficiente,
+          })
+        : null,
+    };
+  }, [valores, esEdicion]);
 
   function agregarCaracteristica() {
     const texto = nuevaCaracteristica.trim();
@@ -539,6 +585,33 @@ export default function useProductoForm() {
     }
   }
 
+  /**
+   * Borra el producto y vuelve al listado.
+   *
+   * **`setSucio(false)` ANTES de navegar, igual que `handleSubmit`.** No es una
+   * limpieza cosmética: es lo que hace que `useGuardaSalida` no intercepte esta
+   * salida. Preguntar "tenés cambios sin guardar, ¿salir igual?" sobre un
+   * producto que acaba de dejar de existir ofrece una decisión que ya no
+   * significa nada — y responder "no" dejaría al admin encerrado en el editor
+   * de algo borrado.
+   *
+   * Un fallo NO navega ni limpia nada: el diálogo queda abierto con el motivo,
+   * porque "no se pudo borrar" y "se borró" tienen que ser distinguibles.
+   */
+  async function eliminarProducto() {
+    if (!esEdicion || eliminando) return;
+    setErrorEliminar(null);
+    setEliminando(true);
+    try {
+      await deleteProduct(valores.id);
+      setSucio(false);
+      navigate("/catalogo/admin/productos");
+    } catch (err) {
+      setErrorEliminar(err.message ?? "No se pudo eliminar el producto.");
+      setEliminando(false);
+    }
+  }
+
   return {
     esEdicion,
     cargando,
@@ -549,6 +622,7 @@ export default function useProductoForm() {
     errorCategorias,
     sucio,
     valores,
+    precio,
     categorias,
     productoPreview,
     // Agrupados: los tres campos "agregar" son un mismo tipo de estado y
@@ -562,7 +636,6 @@ export default function useProductoForm() {
       setNuevaSpecValor,
     },
     editar,
-    editarPrecio,
     agregarCaracteristica,
     eliminarCaracteristica,
     agregarEspecificacion,
@@ -572,5 +645,8 @@ export default function useProductoForm() {
     confirmarSalida,
     salirDelEditor,
     refrescarFotos,
+    eliminando,
+    errorEliminar,
+    eliminarProducto,
   };
 }

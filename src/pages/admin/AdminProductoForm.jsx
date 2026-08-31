@@ -7,6 +7,7 @@ import EditorTabs from "../../components/admin/producto/EditorTabs.jsx";
 import PanelPreview from "../../components/admin/producto/PanelPreview.jsx";
 import SolapaImagenes from "../../components/admin/producto/SolapaImagenes.jsx";
 import useProductoForm from "../../hooks/useProductoForm.js";
+import useDialogo from "../../hooks/useDialogo.js";
 
 /**
  * Shared create/edit editor.
@@ -47,7 +48,7 @@ function AdminProductoForm() {
     productoPreview,
     borradores,
     editar,
-    editarPrecio,
+    precio,
     agregarCaracteristica,
     eliminarCaracteristica,
     agregarEspecificacion,
@@ -57,7 +58,24 @@ function AdminProductoForm() {
     confirmarSalida,
     salirDelEditor,
     refrescarFotos,
+    eliminando,
+    errorEliminar,
+    eliminarProducto,
   } = useProductoForm();
+
+  // El borrado individual vive acá desde que se eliminó la columna "Acciones"
+  // del listado. Es destructivo e irreversible, así que su diálogo atrapa el
+  // foco y cierra con Escape (`useDialogo`), pero NO se deja cerrar mientras el
+  // pedido ya salió: cerrarlo ahí dejaría al admin sin saber si el producto se
+  // borró o no.
+  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
+  const dialogoBorradoRef = useDialogo({
+    abierto: confirmandoBorrado,
+    onCerrar: () => {
+      if (eliminando) return;
+      setConfirmandoBorrado(false);
+    },
+  });
 
   // Estado puramente visual: qué panel se ve, con qué ancho y en qué modo. No
   // es parte del producto, así que no entra al hook.
@@ -139,6 +157,7 @@ function AdminProductoForm() {
         confirmarSalida={confirmarSalida}
         onCancelar={salirDelEditor}
         onGuardar={handleClickGuardar}
+        onEliminar={() => setConfirmandoBorrado(true)}
       />
 
       <EditorTabs panelActivo={panelActivo} onCambiarPanel={setPanelActivo} />
@@ -158,7 +177,7 @@ function AdminProductoForm() {
             guardando={guardando}
             valores={valores}
             editar={editar}
-            editarPrecio={editarPrecio}
+            precio={precio}
             categorias={categorias}
             errorCategorias={errorCategorias}
             error={error}
@@ -190,6 +209,56 @@ function AdminProductoForm() {
           onCambiarAncho={setAnchoPreview}
         />
       </div>
+
+      {confirmandoBorrado ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-margin-mobile">
+          <div
+            ref={dialogoBorradoRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-eliminar-producto"
+            tabIndex={-1}
+            className="w-full max-w-sm rounded-xl bg-surface-container-lowest p-6 shadow-ambient outline-none"
+          >
+            <h2
+              id="titulo-eliminar-producto"
+              className="font-headline-md text-headline-md mb-2 text-on-background"
+            >
+              Eliminar producto
+            </h2>
+            <p className="font-body-md text-body-md mb-6 text-on-surface-variant">
+              ¿Seguro que querés eliminar{" "}
+              <strong className="text-on-surface">{valores.nombre}</strong>? Esta acción no se
+              puede deshacer. Si tiene ventas, las órdenes conservan su detalle pero dejan de estar
+              ligadas al producto.
+            </p>
+            {errorEliminar ? (
+              <p className="font-body-md text-body-md mb-4 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
+                {errorEliminar}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmandoBorrado(false)}
+                disabled={eliminando}
+                className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={eliminarProducto}
+                disabled={eliminando}
+                className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-error px-5 py-3 uppercase tracking-widest text-on-error disabled:opacity-60"
+              >
+                {eliminando ? <Spinner className="h-4 w-4 text-on-error" /> : null}
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

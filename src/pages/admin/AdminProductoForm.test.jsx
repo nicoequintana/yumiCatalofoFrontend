@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
 import AdminProductoForm from "./AdminProductoForm.jsx";
@@ -36,7 +37,7 @@ describe("AdminProductoForm — contenido comercial", () => {
 
     fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Lámpara" } });
     fireEvent.change(screen.getByLabelText("Descripción"), { target: { value: "Descripción" } });
-    fireEvent.change(screen.getByLabelText("Precio"), { target: { value: "1000" } });
+    fireEvent.change(screen.getByLabelText("Costo"), { target: { value: "1000" } });
     fireEvent.change(screen.getByLabelText("Frase comercial (opcional)"), {
       target: { value: "Iluminá donde quieras." },
     });
@@ -66,7 +67,7 @@ describe("AdminProductoForm — contenido comercial", () => {
 
     fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Lámpara" } });
     fireEvent.change(screen.getByLabelText("Descripción"), { target: { value: "Descripción" } });
-    fireEvent.change(screen.getByLabelText("Precio"), { target: { value: "1000" } });
+    fireEvent.change(screen.getByLabelText("Costo"), { target: { value: "1000" } });
 
     const seccionBeneficios = screen.getByText("Beneficios").closest("div");
     fireEvent.change(
@@ -92,6 +93,8 @@ describe("AdminProductoForm — contenido comercial", () => {
       nombre: "Lámpara",
       descripcion: "Descripción",
       precio: "1000",
+      costo: "1000",
+      coeficiente: "1",
       etiqueta: null,
       categoria: null,
       stock: 5,
@@ -124,7 +127,7 @@ describe("AdminProductoForm — contenido comercial", () => {
 
     fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Lámpara" } });
     fireEvent.change(screen.getByLabelText("Descripción"), { target: { value: "Descripción" } });
-    fireEvent.change(screen.getByLabelText("Precio"), { target: { value: "1000" } });
+    fireEvent.change(screen.getByLabelText("Costo"), { target: { value: "1000" } });
 
     fireEvent.change(screen.getByPlaceholderText("Nombre (ej: Material)"), {
       target: { value: "Material" },
@@ -168,10 +171,10 @@ describe("AdminProductoForm — vista previa en vivo", () => {
     expect(productsApi.updateProduct).not.toHaveBeenCalled();
   });
 
-  it("refleja el precio formateado en la vista previa", () => {
+  it("refleja el precio calculado en la vista previa", () => {
     renderForm();
 
-    fireEvent.change(screen.getByLabelText("Precio"), { target: { value: "48900" } });
+    fireEvent.change(screen.getByLabelText("Costo"), { target: { value: "48900" } });
 
     const preview = screen.getByTestId("preview-ficha");
     expect(within(preview).getAllByText("$ 48.900").length).toBeGreaterThan(0);
@@ -361,7 +364,7 @@ describe("AdminProductoForm — configuración del catálogo", () => {
 
     fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Lámpara" } });
     fireEvent.change(screen.getByLabelText("Descripción"), { target: { value: "Descripción" } });
-    fireEvent.change(screen.getByLabelText("Precio"), { target: { value: "1000" } });
+    fireEvent.change(screen.getByLabelText("Costo"), { target: { value: "1000" } });
     fireEvent.change(screen.getByLabelText("Categoría (opcional)"), { target: { value: "3" } });
     fireEvent.change(screen.getByLabelText("Stock"), { target: { value: "12" } });
 
@@ -551,7 +554,7 @@ describe("AdminProductoForm — doble submit", () => {
   function completarRequeridos() {
     fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Lámpara" } });
     fireEvent.change(screen.getByLabelText("Descripción"), { target: { value: "Descripción" } });
-    fireEvent.change(screen.getByLabelText("Precio"), { target: { value: "1000" } });
+    fireEvent.change(screen.getByLabelText("Costo"), { target: { value: "1000" } });
   }
 
   it("un segundo submit con el primero en vuelo no dispara otro POST", async () => {
@@ -711,6 +714,8 @@ describe("AdminProductoForm — reemplazo de fotos ya guardadas", () => {
       nombre: "Lámpara",
       descripcion: "Descripción",
       precio: "1000",
+      costo: "1000",
+      coeficiente: "1",
       etiqueta: null,
       categoria: null,
       stock: 5,
@@ -816,6 +821,8 @@ describe("AdminProductoForm — refrescar fotos al adoptar imágenes generadas",
       nombre: "Lámpara",
       descripcion: "Descripción",
       precio: "1000",
+      costo: "1000",
+      coeficiente: "1",
       etiqueta: null,
       categoria: null,
       stock: 5,
@@ -1008,5 +1015,252 @@ describe("AdminProductoForm — refrescar fotos al adoptar imágenes generadas",
     // montado, ya no estaría en el documento.
     expect(screen.getByLabelText("Nombre")).toBeInTheDocument();
     expect(screen.queryByText("Cargando producto…")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * El borrado individual vive acá desde que se eliminó la columna "Acciones" del
+ * listado. Los tests de accesibilidad del diálogo se mudaron con él desde
+ * `AdminProductos.test.jsx`: el diálogo es el mismo y sus garantías también.
+ *
+ * Lo específico de esta pantalla es el guard de salida. `useGuardaSalida`
+ * intercepta las cuatro vías de salida del editor, y borrar el producto NO es
+ * una de ellas: preguntar "¿salir sin guardar?" sobre un producto que acaba de
+ * dejar de existir ofrece una decisión que ya no significa nada.
+ */
+describe("AdminProductoForm — borrar el producto", () => {
+  const PRODUCTO_EDITABLE = {
+    id: 1,
+    nombre: "Lámpara",
+    descripcion: "Descripción",
+    precio: "1000",
+    sku: "YIM-ILU-0042",
+    etiqueta: null,
+    categoria: null,
+    stock: 5,
+    fraseComercial: null,
+    porQueLoVasAQuerer: null,
+    tePasaEsto: null,
+    beneficios: [],
+    usos: [],
+    idealPara: [],
+    incluye: [],
+    especificaciones: [],
+    caracteristicas: [],
+    fotos: [],
+    video: null,
+    visibleEnCatalogo: true,
+    destacado: false,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    categoriasApi.getCategorias.mockResolvedValue([]);
+    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_EDITABLE });
+  });
+
+  /**
+   * Abre el diálogo con `userEvent` y no con `fireEvent`, y la diferencia
+   * importa: `fireEvent.click` despacha el evento pero NO enfoca el botón, así
+   * que `useDialogo` guarda el `<body>` como origen y al cerrar devuelve el
+   * foco ahí. El test de restauración de foco medía entonces un gesto que
+   * ningún usuario hace.
+   */
+  async function abrirDialogo() {
+    const user = userEvent.setup();
+    renderForm("/catalogo/admin/productos/1/editar");
+    const disparador = await screen.findByRole("button", { name: "Eliminar producto" });
+    await user.click(disparador);
+    return { user, disparador };
+  }
+
+  it("no ofrece eliminar un producto que todavía no existe", async () => {
+    renderForm();
+
+    await screen.findByLabelText("Nombre");
+    expect(screen.queryByRole("button", { name: "Eliminar producto" })).not.toBeInTheDocument();
+  });
+
+  it("se anuncia como diálogo modal, con el título como nombre accesible", async () => {
+    await abrirDialogo();
+
+    const dialogo = screen.getByRole("dialog");
+    expect(dialogo).toHaveAttribute("aria-modal", "true");
+    expect(dialogo).toHaveAccessibleName("Eliminar producto");
+  });
+
+  it("mueve el foco adentro al abrirse", async () => {
+    await abrirDialogo();
+
+    expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true);
+  });
+
+  it("cierra con Escape sin borrar nada, y devuelve el foco al botón que lo abrió", async () => {
+    const { user, disparador } = await abrirDialogo();
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(productsApi.deleteProduct).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(disparador);
+  });
+
+  it("borra y vuelve al listado", async () => {
+    productsApi.deleteProduct.mockResolvedValue({});
+    await abrirDialogo();
+
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Eliminar" }));
+
+    await waitFor(() => expect(productsApi.deleteProduct).toHaveBeenCalledWith(1));
+    expect(await screen.findByText("Listado (mock)")).toBeInTheDocument();
+  });
+
+  it("con cambios sin guardar, borrar NO pregunta por esos cambios", async () => {
+    productsApi.deleteProduct.mockResolvedValue({});
+    const confirmar = vi.spyOn(window, "confirm").mockReturnValue(true);
+    await abrirDialogo();
+
+    // Se ensucia el formulario DESPUÉS de abrir el diálogo, para que el guard
+    // esté activo justo cuando corre la navegación posterior al borrado.
+    fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Lámpara nueva" } });
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Eliminar" }));
+
+    await waitFor(() => expect(screen.getByText("Listado (mock)")).toBeInTheDocument());
+    // El producto ya no existe: preguntar por sus cambios sin guardar ofrece
+    // una decisión que no significa nada.
+    expect(confirmar).not.toHaveBeenCalled();
+    confirmar.mockRestore();
+  });
+
+  it("un fallo deja el diálogo abierto con el motivo a la vista", async () => {
+    productsApi.deleteProduct.mockRejectedValue(new Error("No se pudo eliminar el producto."));
+    await abrirDialogo();
+
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Eliminar" }));
+
+    const dialogo = await screen.findByRole("dialog");
+    await waitFor(() => expect(dialogo).toHaveTextContent(/No se pudo eliminar el producto/));
+    expect(screen.queryByText("Listado (mock)")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * El precio de venta ya no se tipea: se calcula de `costo × coeficiente` y el
+ * campo es de solo lectura (31/08/2026).
+ *
+ * En el ALTA ese número es el que se va a publicar. En la EDICIÓN no: guardar
+ * escribe el costo pero no el precio, así que el producto queda en `Difiere`
+ * hasta que alguien aplique desde Costos y precios. La pantalla tiene que
+ * mostrar esa diferencia, porque es lo único que separa "esto ya está
+ * publicado" de "esto es lo que se va a publicar cuando lo apliques".
+ */
+describe("AdminProductoForm — el precio se calcula, no se escribe", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    categoriasApi.getCategorias.mockResolvedValue([]);
+  });
+
+  it("el campo de precio es de solo lectura", async () => {
+    renderForm();
+
+    const precio = await screen.findByLabelText(/precio de venta/i);
+    expect(precio).toHaveAttribute("readonly");
+  });
+
+  it("el coeficiente arranca en 1, el neutro", async () => {
+    renderForm();
+
+    expect(await screen.findByLabelText("Coeficiente")).toHaveValue("1");
+  });
+
+  it("recalcula el precio en vivo al tipear el costo", async () => {
+    renderForm();
+
+    fireEvent.change(await screen.findByLabelText("Costo"), { target: { value: "3075" } });
+    fireEvent.change(screen.getByLabelText("Coeficiente"), { target: { value: "2,05" } });
+
+    // 3075 × 2,05 = 6303,75 → 6304 (medio peso hacia arriba).
+    expect(screen.getByLabelText(/precio de venta/i)).toHaveValue("6.304");
+  });
+
+  it("con el coeficiente neutro el precio es el costo", async () => {
+    renderForm();
+
+    fireEvent.change(await screen.findByLabelText("Costo"), { target: { value: "1000" } });
+
+    expect(screen.getByLabelText(/precio de venta/i)).toHaveValue("1.000");
+  });
+
+  it("el submit manda costo y coeficiente, y NO manda precio", async () => {
+    productsApi.createProduct.mockResolvedValue({ id: 1 });
+    renderForm();
+
+    fireEvent.change(screen.getByLabelText("Nombre"), { target: { value: "Termo" } });
+    fireEvent.change(screen.getByLabelText("Descripción"), { target: { value: "Un termo" } });
+    fireEvent.change(screen.getByLabelText("Costo"), { target: { value: "3075" } });
+    fireEvent.change(screen.getByLabelText("Coeficiente"), { target: { value: "2,05" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() => expect(productsApi.createProduct).toHaveBeenCalled());
+    const enviado = productsApi.createProduct.mock.calls[0][0];
+    expect(enviado.costo).toBe("3075");
+    expect(enviado.coeficiente).toBe("2,05");
+    // El backend lo deriva. Mandarlo desde acá sería una segunda fuente de
+    // verdad para el mismo número.
+    expect(enviado).not.toHaveProperty("precio");
+  });
+
+  it("la vista previa muestra el precio calculado", async () => {
+    renderForm();
+
+    fireEvent.change(await screen.findByLabelText("Costo"), { target: { value: "3075" } });
+    fireEvent.change(screen.getByLabelText("Coeficiente"), { target: { value: "2,05" } });
+
+    const preview = screen.getByTestId("preview-ficha");
+    expect(within(preview).getAllByText("$ 6.304").length).toBeGreaterThan(0);
+  });
+
+  it("en edición avisa que el precio publicado difiere hasta que se aplique", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      id: 1,
+      nombre: "Termo",
+      descripcion: "Un termo",
+      precio: "3075",
+      costo: "1500",
+      coeficiente: "2.05",
+      sku: "YIMA-TER-1",
+      etiqueta: null,
+      categoria: null,
+      stock: 5,
+      fraseComercial: null,
+      porQueLoVasAQuerer: null,
+      tePasaEsto: null,
+      beneficios: [],
+      usos: [],
+      idealPara: [],
+      incluye: [],
+      especificaciones: [],
+      caracteristicas: [],
+      fotos: [],
+      video: null,
+      visibleEnCatalogo: true,
+      destacado: false,
+    });
+
+    renderForm("/catalogo/admin/productos/1/editar");
+
+    // 1500 × 2,05 = 3075: al día, sin aviso.
+    await waitFor(() => expect(screen.getByLabelText(/precio de venta/i)).toHaveValue("3.075"));
+    expect(screen.queryByText(/difiere/i)).not.toBeInTheDocument();
+
+    // Se sube el costo: el precio publicado sigue siendo 3.075 hasta aplicar.
+    fireEvent.change(screen.getByLabelText("Costo"), { target: { value: "2000" } });
+
+    expect(screen.getByLabelText(/precio de venta/i)).toHaveValue("4.100");
+    expect(screen.getByText(/difiere/i)).toBeInTheDocument();
+    // El número que el cliente sigue viendo tiene que estar a la vista: sin él,
+    // la pantalla afirma un precio que todavía no es el publicado.
+    expect(screen.getByText("$ 3.075")).toBeInTheDocument();
   });
 });

@@ -38,25 +38,37 @@ describe("AdminActualizarProductos", () => {
     expect(screen.getByRole("button", { name: /^actualizar$/i })).toBeInTheDocument();
   });
 
-  it("nombra las cuatro columnas del archivo", () => {
+  it("nombra las cinco columnas del archivo", () => {
     renderizar();
 
     expect(screen.getAllByText(/sku/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/^nombre$/i)).toBeInTheDocument();
-    expect(screen.getByText(/^precio$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^costo$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^coeficiente$/i)).toBeInTheDocument();
     expect(screen.getByText(/^stock$/i)).toBeInTheDocument();
+    // `precio` salió del archivo: se deriva del costo.
+    expect(screen.queryByText(/^precio$/i)).not.toBeInTheDocument();
   });
 
   // El aviso importa más que el resto del copy: es lo único que le dice al
   // admin que subir este archivo NO le vacía la descripción ni el contenido
   // comercial de todo el catálogo, que es lo que haría la versión anterior de
   // `dataDeActualizacion` con una planilla de cuatro columnas.
-  it("aclara que solo se tocan nombre, precio y stock", () => {
+  it("aclara que solo se tocan nombre, costeo y stock", () => {
     renderizar();
 
     expect(
-      screen.getByText(/solo se modifican nombre, precio y stock/i),
+      screen.getByText(/solo se modifican nombre, costo, coeficiente y stock/i),
     ).toBeInTheDocument();
+  });
+
+  // Sin esta línea, quien sube la planilla se queda esperando que los precios
+  // cambien solos. Cambian recién al aplicarlos.
+  it("avisa que el precio no se publica con la subida", () => {
+    renderizar();
+
+    expect(screen.getByText(/El precio de venta no se sube por acá/i)).toBeInTheDocument();
+    expect(screen.getByText(/queda[n]? en «Difiere»/i)).toBeInTheDocument();
   });
 
   it("manda a la pantalla de importación para dar de alta productos nuevos", () => {

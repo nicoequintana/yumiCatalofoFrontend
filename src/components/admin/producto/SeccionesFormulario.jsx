@@ -1,6 +1,12 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import ListaDinamica from "../../ListaDinamica.jsx";
+import {
+  formatPrecio,
+  formatearPrecioInput,
+  formatearPrecioParaEdicion,
+} from "../../../utils/formato.js";
+import { ESTADOS_PRECIO } from "../../../utils/precios.js";
 
 const SUGERENCIAS_ETIQUETA = ["Exclusivo", "Nuevo", "Best Seller", "Trending", "Popular"];
 
@@ -28,7 +34,7 @@ function SeccionesFormulario({
   guardando,
   valores,
   editar,
-  editarPrecio,
+  precio,
   categorias,
   errorCategorias,
   error,
@@ -109,45 +115,28 @@ function SeccionesFormulario({
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <div>
-            <label htmlFor="precio" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">
-              Precio
-            </label>
-            {/* `inputMode="numeric"` y no `"decimal"`: los precios son enteros
-                (`Product.precio` es `Decimal(10, 0)`) y `formatearPrecioInput`
-                descarta todo lo que no sea dígito, así que un teclado de
-                celular que ofrezca la coma solo invita a tipear algo que el
-                campo va a ignorar. */}
-            <div className="flex items-center rounded-lg border border-outline-variant bg-surface px-4 focus-within:border-primary">
-              <span className="font-body-md text-body-md text-on-surface-variant">$</span>
-              <input
-                id="precio"
-                type="text"
-                inputMode="numeric"
-                required
-                value={valores.precioVisual}
-                onChange={(e) => editarPrecio(e.target.value)}
-                className="font-body-md text-body-md w-full bg-transparent px-2 py-3 text-on-surface focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Costo y coeficiente son OPCIONALES y no mueven el precio de acá
-              arriba: el cálculo se aplica desde la pantalla de precios, a
-              pedido. Cargarlos en el editor es la vía cómoda al dar de alta un
-              producto; retocarlos en lote es lo que hace esa otra pantalla. */}
+          {/* Costo y coeficiente son OBLIGATORIOS: de este par sale el precio
+              de venta, que ya no se tipea en ninguna pantalla. El costo va
+              primero porque es el número que se carga; el precio, abajo, es su
+              consecuencia. */}
           <div>
             <label htmlFor="costo" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">
-              Costo (opcional)
+              Costo
             </label>
+            {/* `inputMode="numeric"` y no `"decimal"`: el costo es entero
+                (`Product.costo` es `Decimal(10, 0)`) y `formatearPrecioInput`
+                descarta todo lo que no sea dígito, así que un teclado de celular
+                que ofrezca la coma solo invita a tipear algo que el campo va a
+                ignorar. */}
             <div className="flex items-center rounded-lg border border-outline-variant bg-surface px-4 focus-within:border-primary">
               <span className="font-body-md text-body-md text-on-surface-variant">$</span>
               <input
                 id="costo"
                 type="text"
                 inputMode="numeric"
-                value={valores.costo}
-                onChange={(e) => editar("costo")(e.target.value)}
+                required
+                value={formatearPrecioInput(valores.costo).formateado}
+                onChange={(e) => editar("costo")(formatearPrecioInput(e.target.value).crudo)}
                 className="font-body-md text-body-md w-full bg-transparent px-2 py-3 text-on-surface focus:outline-none"
               />
             </div>
@@ -155,26 +144,67 @@ function SeccionesFormulario({
 
           <div>
             <label htmlFor="coeficiente" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">
-              Coeficiente (opcional)
+              Coeficiente
             </label>
-            {/* `inputMode="decimal"` acá SÍ, al revés que el precio: es el único
+            {/* `inputMode="decimal"` acá SÍ, al revés que el costo: es el único
                 campo del sistema que lleva decimales (2,05 = ×2,05). */}
             <input
               id="coeficiente"
               type="text"
               inputMode="decimal"
+              required
               placeholder="2,05"
               value={valores.coeficiente}
               onChange={(e) => editar("coeficiente")(e.target.value)}
               className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
             />
             <p className="font-body-md text-body-md mt-2 text-on-surface-variant">
-              Multiplicador sobre el costo. El precio de venta se calcula y se aplica desde{" "}
-              <Link to="/catalogo/admin/productos/precios" className="text-primary hover:underline">
-                Costos y precios
-              </Link>
-              .
+              Multiplica al costo. En 1 el precio queda igual al costo.
             </p>
+          </div>
+
+          {/* El precio de venta es CALCULADO y de solo lectura: sale de
+              `costo × coeficiente`, redondeado al peso. No se puede tipear en
+              ninguna pantalla del panel. */}
+          <div className="sm:col-span-2">
+            <label
+              htmlFor="precio-calculado"
+              className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface"
+            >
+              Precio de venta (calculado)
+            </label>
+            <div className="flex items-center rounded-lg border border-outline-variant bg-surface-container-low px-4">
+              <span className="font-body-md text-body-md text-on-surface-variant">$</span>
+              <input
+                id="precio-calculado"
+                type="text"
+                readOnly
+                tabIndex={-1}
+                value={
+                  precio.calculado === null
+                    ? ""
+                    : formatearPrecioParaEdicion(precio.calculado).formateado
+                }
+                placeholder="Cargá el costo"
+                className="font-body-md text-body-md w-full cursor-default bg-transparent px-2 py-3 text-on-surface focus:outline-none"
+              />
+            </div>
+
+            {/* En EDICIÓN el precio calculado no es el que ve el cliente hasta
+                que alguien lo aplique. Sin esta línea la pantalla afirmaría un
+                precio que todavía no está publicado. En un alta no hay contra
+                qué comparar, así que `estado` viene en `null` y no se muestra. */}
+            {precio.estado === ESTADOS_PRECIO.DIFIERE ? (
+              <p className="font-body-md text-body-md mt-2 text-on-surface-variant">
+                Difiere del publicado, que sigue siendo{" "}
+                <strong className="text-on-surface">{formatPrecio(precio.publicado)}</strong>.
+                Se actualiza al aplicarlo desde{" "}
+                <Link to="/catalogo/admin/productos/precios" className="text-primary hover:underline">
+                  Costos y precios
+                </Link>
+                .
+              </p>
+            ) : null}
           </div>
 
           <div>

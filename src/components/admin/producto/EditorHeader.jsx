@@ -9,8 +9,21 @@ import Spinner from "../../Spinner.jsx";
  * porque el formulario y el header están en columnas distintas del layout.
  * `onGuardar` corre antes del submit nativo y puede cancelarlo (ver
  * `handleClickGuardar` en `AdminProductoForm`).
+ *
+ * **Eliminar solo aparece en edición**, y separado del par Cancelar/Guardar por
+ * un margen propio. Dos motivos: un producto que todavía no existe no se puede
+ * borrar, y una acción destructiva pegada a la acción principal se clickea sola
+ * — el separador es lo que hace que el gesto tenga que ser deliberado.
  */
-function EditorHeader({ esEdicion, sucio, guardando, confirmarSalida, onCancelar, onGuardar }) {
+function EditorHeader({
+  esEdicion,
+  sucio,
+  guardando,
+  confirmarSalida,
+  onCancelar,
+  onGuardar,
+  onEliminar,
+}) {
   return (
     <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant bg-surface px-4 py-4 md:px-8 lg:static">
       <div className="min-w-0">
@@ -31,6 +44,18 @@ function EditorHeader({ esEdicion, sucio, guardando, confirmarSalida, onCancelar
             <span className="material-symbols-outlined text-[18px]">edit_note</span>
             Cambios sin guardar
           </span>
+        ) : null}
+        {esEdicion ? (
+          <button
+            type="button"
+            onClick={onEliminar}
+            className="font-label-md text-label-md mr-3 inline-flex items-center justify-center gap-2 rounded-lg border border-error px-5 py-3 uppercase tracking-widest text-error hover:bg-error-container"
+          >
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+              delete
+            </span>
+            Eliminar producto
+          </button>
         ) : null}
         <button
           type="button"
