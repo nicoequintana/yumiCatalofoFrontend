@@ -84,73 +84,63 @@ describe("AdminProductos - destacado", () => {
 
 });
 
-describe("AdminProductos — diálogo de confirmación de borrado", () => {
+/**
+ * La columna "Acciones" se eliminó: para entrar a la ficha se clickea el
+ * producto, y el borrado individual vive adentro del editor.
+ *
+ * **El borrado en lote por checkbox NO se fue.** Es una acción distinta, con su
+ * propia confirmación y su propio informe de rechazados; lo que se quitó es el
+ * botón por fila. Hay un test más abajo que lo fija, porque "se sacó el
+ * eliminar" es exactamente la lectura que llevaría a barrer los dos.
+ */
+describe("AdminProductos — el producto se abre clickeándolo", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+    productsApi.getProducts.mockResolvedValue(
+      pagina([
+        {
+          ...PRODUCTO,
+          fotos: [{ id: 9, url: "https://cdn/portada.jpg", orden: 0 }],
+          cantidadFotos: 1,
+        },
+      ]),
+    );
   });
 
-  async function abrirDialogo() {
+  it("el nombre es un link a la ficha", async () => {
+    renderPagina();
+
+    const link = await screen.findByRole("link", { name: "Reloj Clásico" });
+    expect(link).toHaveAttribute("href", "/catalogo/admin/productos/1/editar");
+  });
+
+  it("la foto también lleva a la ficha, con nombre accesible propio", async () => {
+    renderPagina();
+
+    const link = await screen.findByRole("link", { name: "Editar Reloj Clásico" });
+    expect(link).toHaveAttribute("href", "/catalogo/admin/productos/1/editar");
+  });
+
+  it("ya no hay columna Acciones ni botón de borrado por fila", async () => {
+    renderPagina();
+
+    await screen.findByText("Reloj Clásico");
+    expect(screen.queryByRole("columnheader", { name: "Acciones" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Eliminar Reloj Clásico" }),
+    ).not.toBeInTheDocument();
+    // El link de edición existe, pero como link sobre el producto — no como el
+    // ícono suelto de la columna que se fue.
+    expect(screen.queryByRole("link", { name: "Editar" })).not.toBeInTheDocument();
+  });
+
+  it("el borrado en lote por checkbox sigue existiendo", async () => {
     const user = userEvent.setup();
     renderPagina();
-    const disparador = await screen.findByRole("button", { name: "Eliminar Reloj Clásico" });
-    await user.click(disparador);
-    return { user, disparador };
-  }
 
-  it("se anuncia como diálogo modal, con el título como nombre accesible", async () => {
-    await abrirDialogo();
+    await user.click(await screen.findByLabelText("Seleccionar Reloj Clásico"));
 
-    const dialogo = screen.getByRole("dialog");
-    expect(dialogo).toHaveAttribute("aria-modal", "true");
-    expect(dialogo).toHaveAccessibleName("Eliminar producto");
-  });
-
-  it("mueve el foco adentro al abrirse", async () => {
-    await abrirDialogo();
-
-    expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true);
-  });
-
-  it("atrapa el tabulado adentro del diálogo", async () => {
-    const { user } = await abrirDialogo();
-    const dialogo = screen.getByRole("dialog");
-
-    for (let indice = 0; indice < 5; indice += 1) {
-      await user.tab();
-      expect(dialogo.contains(document.activeElement)).toBe(true);
-    }
-  });
-
-  it("cierra con Escape sin borrar nada, y devuelve el foco al botón que lo abrió", async () => {
-    const { user, disparador } = await abrirDialogo();
-
-    await user.keyboard("{Escape}");
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(productsApi.deleteProduct).not.toHaveBeenCalled();
-    expect(document.activeElement).toBe(disparador);
-  });
-
-  it("no se deja cerrar con Escape mientras el borrado está en vuelo", async () => {
-    let resolverBorrado;
-    productsApi.deleteProduct.mockReturnValueOnce(
-      new Promise((resolve) => {
-        resolverBorrado = resolve;
-      }),
-    );
-
-    const { user } = await abrirDialogo();
-    await user.click(screen.getByRole("button", { name: "Eliminar", exact: true }));
-    await waitFor(() => expect(productsApi.deleteProduct).toHaveBeenCalledWith(1));
-
-    await user.keyboard("{Escape}");
-
-    // El pedido ya salió: cerrar acá dejaría al admin sin saber si el producto
-    // se borró o no.
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-
-    resolverBorrado({});
+    expect(screen.getByRole("button", { name: "Eliminar seleccionados" })).toBeInTheDocument();
   });
 });
 

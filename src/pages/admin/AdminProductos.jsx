@@ -5,8 +5,8 @@ import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import Paginador from "../../components/Paginador.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
+import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
 import {
-  deleteProduct,
   deleteProductsMasivo,
   getProducts,
   getProductsResumen,
@@ -183,8 +183,6 @@ function AdminProductos() {
   // de arriba contradiciendo a la tabla de abajo, sin ningún aviso.
   const [versionResumen, setVersionResumen] = useState(0);
   const [cargando, setCargando] = useState(true);
-  const [productoAEliminar, setProductoAEliminar] = useState(null);
-  const [eliminandoId, setEliminandoId] = useState(null);
   const [error, setError] = useState(null);
   const [actualizandoVisibilidadId, setActualizandoVisibilidadId] = useState(null);
   const [actualizandoDestacadoId, setActualizandoDestacadoId] = useState(null);
@@ -223,21 +221,11 @@ function AdminProductos() {
     setSeleccionados(todosSeleccionados ? new Set() : new Set(productos.map((p) => p.id)));
   }
 
-  // El borrado es destructivo e irreversible: el diálogo tiene que atrapar el
-  // foco y cerrarse con Escape como cualquier modal, y no dejarse cerrar por
-  // teclado mientras el borrado ya salió al backend.
-  const eliminandoEnCurso =
-    productoAEliminar !== null && eliminandoId === productoAEliminar.id;
-  const dialogoRef = useDialogo({
-    abierto: productoAEliminar !== null,
-    onCerrar: () => {
-      if (eliminandoEnCurso) return;
-      setProductoAEliminar(null);
-    },
-  });
-
-  // Mismo tratamiento de diálogo que el borrado individual: trampa de foco,
-  // Escape, y sin dejarse cerrar mientras el borrado ya salió al backend.
+  // El borrado individual vive en el editor del producto (`EditorHeader`), no
+  // acá: esta tabla solo lleva a la ficha. Lo que queda es el borrado EN LOTE,
+  // que es otra acción — destructiva e irreversible, así que su diálogo atrapa
+  // el foco, cierra con Escape, y no se deja cerrar por teclado mientras el
+  // pedido ya salió al backend.
   const dialogoMasivoRef = useDialogo({
     abierto: confirmandoBorradoMasivo,
     onCerrar: () => {
@@ -411,21 +399,6 @@ function AdminProductos() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargando, pagina, totalPaginas]);
 
-  async function handleEliminar(id) {
-    setError(null);
-    setEliminandoId(id);
-    try {
-      await deleteProduct(id);
-      setProductoAEliminar(null);
-      refrescarResumen();
-      await cargarProductos();
-    } catch (err) {
-      setError(err.message ?? "No se pudo eliminar el producto.");
-    } finally {
-      setEliminandoId(null);
-    }
-  }
-
   async function handleVisibilidadMasiva(visible) {
     setError(null);
     setResultadoMasivo(null);
@@ -508,6 +481,18 @@ function AdminProductos() {
         </div>
 
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+          {/* La skill de alta desde MercadoLibre carga productos por API
+              mientras esta pantalla está abierta; hasta ahora la única forma de
+              verlos era F5, que además perdía la página y el filtro.
+              `cargarProductos` respeta ambos, y `refrescarResumen` mantiene los
+              contadores de arriba en línea con la tabla de abajo. */}
+          <BotonActualizar
+            onActualizar={() => {
+              refrescarResumen();
+              cargarProductos();
+            }}
+            actualizando={cargando}
+          />
           <Link
             to="/catalogo/admin/productos/importar"
             className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
@@ -770,9 +755,6 @@ function AdminProductos() {
                 <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                   Destacado
                 </th>
-                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                  Acciones
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -792,23 +774,43 @@ function AdminProductos() {
                       className="size-4 accent-primary"
                     />
                   </td>
+                  {/* Foto y nombre son la puerta a la ficha: la columna
+                      "Acciones" con su ícono de lápiz se eliminó. Son dos links
+                      al mismo destino y por eso llevan nombres accesibles
+                      distintos — dos enlaces con el mismo texto en la misma
+                      fila se leen como dos destinos y obligan a probar cuál es
+                      cuál. El de la foto declara la acción ("Editar X") porque
+                      una imagen no tiene texto propio; el del nombre ya ES el
+                      nombre del producto. */}
                   <td className="px-2 py-2 xl:px-3 xl:py-3">
-                    {producto.fotos?.[0]?.url ? (
-                      <img
-                        src={producto.fotos[0].url}
-                        alt={producto.nombre}
-                        className="h-9 w-9 rounded-lg object-cover xl:h-12 xl:w-12"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant xl:h-12 xl:w-12">
-                        <span className="material-symbols-outlined text-[16px] xl:text-[20px]">image</span>
-                      </div>
-                    )}
+                    <Link
+                      to={`/catalogo/admin/productos/${producto.id}/editar`}
+                      aria-label={`Editar ${producto.nombre}`}
+                      className="block w-fit rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      {producto.fotos?.[0]?.url ? (
+                        <img
+                          src={producto.fotos[0].url}
+                          alt=""
+                          className="h-9 w-9 rounded-lg object-cover xl:h-12 xl:w-12"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant xl:h-12 xl:w-12">
+                          <span className="material-symbols-outlined text-[16px] xl:text-[20px]">image</span>
+                        </div>
+                      )}
+                    </Link>
                   </td>
-                  <td className="max-w-[160px] truncate px-2 py-2 font-body-md text-on-surface xl:max-w-[220px] xl:px-3 xl:py-3" title={producto.nombre}>
-                    {producto.nombre}
+                  <td className="max-w-[160px] px-2 py-2 xl:max-w-[220px] xl:px-3 xl:py-3">
+                    <Link
+                      to={`/catalogo/admin/productos/${producto.id}/editar`}
+                      title={producto.nombre}
+                      className="block truncate font-body-md text-on-surface hover:text-primary hover:underline"
+                    >
+                      {producto.nombre}
+                    </Link>
                   </td>
                   <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
                     {producto.sku}
@@ -891,28 +893,6 @@ function AdminProductos() {
                       ) : null}
                     </div>
                   </td>
-                  <td className="px-2 py-2 xl:px-3 xl:py-3">
-                    <div className="flex items-center gap-2 xl:gap-4">
-                      <Link
-                        to={`/catalogo/admin/productos/${producto.id}/editar`}
-                        aria-label={`Editar ${producto.nombre}`}
-                        title="Editar"
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-secondary hover:bg-surface-container-high xl:h-9 xl:w-9"
-                      >
-                        <span className="material-symbols-outlined text-[16px] xl:text-[20px]">edit</span>
-                      </Link>
-
-                      <button
-                        type="button"
-                        onClick={() => setProductoAEliminar(producto)}
-                        aria-label={`Eliminar ${producto.nombre}`}
-                        title="Eliminar"
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-error hover:bg-error-container xl:h-9 xl:w-9"
-                      >
-                        <span className="material-symbols-outlined text-[16px] xl:text-[20px]">delete</span>
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -927,54 +907,6 @@ function AdminProductos() {
           onCambiar={irAPagina}
           etiqueta="Paginación de productos"
         />
-      ) : null}
-
-      {productoAEliminar ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-margin-mobile">
-          <div
-            ref={dialogoRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="titulo-eliminar-producto"
-            tabIndex={-1}
-            className="w-full max-w-sm rounded-xl bg-surface-container-lowest p-6 shadow-ambient outline-none"
-          >
-            <h2
-              id="titulo-eliminar-producto"
-              className="font-headline-md text-headline-md mb-2 text-on-background"
-            >
-              Eliminar producto
-            </h2>
-            <p className="font-body-md text-body-md mb-6 text-on-surface-variant">
-              ¿Seguro que querés eliminar <strong className="text-on-surface">{productoAEliminar.nombre}</strong>?
-              Esta acción no se puede deshacer.
-            </p>
-            {error ? (
-              <p className="font-body-md text-body-md mb-4 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
-                {error}
-              </p>
-            ) : null}
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setProductoAEliminar(null)}
-                disabled={eliminandoId === productoAEliminar.id}
-                className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => handleEliminar(productoAEliminar.id)}
-                disabled={eliminandoId === productoAEliminar.id}
-                className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-error px-5 py-3 uppercase tracking-widest text-on-error disabled:opacity-60"
-              >
-                {eliminandoId === productoAEliminar.id ? <Spinner className="h-4 w-4 text-on-error" /> : null}
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
       ) : null}
 
       {confirmandoBorradoMasivo ? (

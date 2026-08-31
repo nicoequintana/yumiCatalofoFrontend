@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useSearchParams } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminPrecios from "./AdminPrecios.jsx";
 import * as productsApi from "../../api/products.js";
@@ -52,6 +52,21 @@ function renderPagina() {
   );
 }
 
+/** Expone la querystring vigente, para afirmar sobre lo que se escribió en la URL. */
+function EspiaUrl() {
+  const [params] = useSearchParams();
+  return <span data-testid="url">{params.toString()}</span>;
+}
+
+function renderConUrl(inicial = "/") {
+  return render(
+    <MemoryRouter initialEntries={[inicial]}>
+      <AdminPrecios />
+      <EspiaUrl />
+    </MemoryRouter>,
+  );
+}
+
 function botonAplicar() {
   return screen.getByRole("button", { name: /actualizar precios/i });
 }
@@ -75,6 +90,122 @@ beforeEach(() => {
   productsApi.getProducts.mockResolvedValue(pagina([TERMO]));
   productsApi.updateCosteo.mockResolvedValue({ costo: "2000", coeficiente: "2.05" });
   productsApi.aplicarPreciosMasivo.mockResolvedValue({ actualizados: 1, rechazados: [] });
+});
+
+/**
+ * El costo se muestra con punto de miles y se GUARDA pelado.
+ *
+ * Las dos mitades importan y por motivos distintos. Sin la primera, `$ 1000` y
+ * `$ 10000` se distinguen contando dígitos, que es justo lo que un separador de
+ * miles existe para evitar en una columna de plata.
+ *
+ * Sin la segunda, el bug es peor y es mudo: `guardarCosteo` decide si mandar el
+ * PATCH comparando el borrador contra lo que devolvió el servidor. Si el
+ * borrador guardara el texto formateado (`"1.500"`) y el servidor manda
+ * `"1500"`, esa comparación da siempre distinto — cada blur dispararía una
+ * escritura que no cambia nada, llenando `AuditLog` de cambios que no son
+ * cambios. Por eso el borrador lleva crudo y visual por separado, igual que
+ * `precio`/`precioVisual` en `useProductoForm`.
+ *
+ * El COEFICIENTE queda afuera a propósito: es el único campo con decimales del
+ * sistema y `formatearPrecioInput` descarta todo lo que no sea dígito, así que
+ * un `2,05` formateado como precio se convertiría en `205`.
+ */
+/**
+ * La portada de cada producto. El backend ya la manda: `LIST_SELECT` trae
+ * `fotos` con `take: 1` y `mapProductoListado` la emite, así que esta columna
+ * no cuesta ni una consulta más.
+ *
+ * El fallback importa tanto como la foto: un producto sin portada tiene que
+ * mostrar el placeholder, no un `<img>` con `src` vacío — que en un navegador
+ * real pinta el ícono de imagen rota.
+ */
+describe("AdminPrecios — portada del producto", () => {
+  it("muestra la foto cuando el producto tiene una", async () => {
+    productsApi.getProducts.mockResolvedValue(
+      pagina([{ ...TERMO, fotos: [{ id: 9, url: "https://cdn/termo.webp", orden: 0 }], cantidadFotos: 1 }]),
+    );
+    renderPagina();
+
+    const foto = await screen.findByRole("img", { name: "Termo" });
+    expect(foto).toHaveAttribute("src", "https://cdn/termo.webp");
+  });
+
+  it("cae al placeholder sin renderizar una imagen rota", async () => {
+    renderPagina();
+
+    await screen.findByText("Termo");
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByTestId("sin-foto-1")).toBeInTheDocument();
+  });
+});
+
+describe("AdminPrecios — el costo se ve con punto de miles y viaja pelado", () => {
+  it("precarga el costo del servidor ya formateado", async () => {
+    renderPagina();
+
+    expect(await screen.findByLabelText("Costo de Termo")).toHaveValue("1.500");
+  });
+
+  it("formatea mientras se tipea, sin tocar el coeficiente", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+
+    await screen.findByText("Termo");
+    const campoCosto = screen.getByLabelText("Costo de Termo");
+    await usuario.clear(campoCosto);
+    await usuario.type(campoCosto, "25000");
+
+    expect(campoCosto).toHaveValue("25.000");
+    // El coeficiente conserva su coma: formatearlo como precio lo volvería 205.
+    expect(screen.getByLabelText("Coeficiente de Termo")).toHaveValue("2.05");
+  });
+
+  it("el PATCH manda el costo SIN puntos", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+
+    await tipearCostoNuevo(usuario);
+    await usuario.tab();
+
+    await waitFor(() => expect(productsApi.updateCosteo).toHaveBeenCalledTimes(1));
+    expect(productsApi.updateCosteo).toHaveBeenCalledWith(1, {
+      costo: "2000",
+      coeficiente: "2.05",
+    });
+  });
+
+  it("retipear el mismo costo con formato NO dispara un PATCH", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+
+    await screen.findByText("Termo");
+    const campoCosto = screen.getByLabelText("Costo de Termo");
+    // Se borra y se retipea el mismo número: en pantalla vuelve a "1.500" y el
+    // crudo vuelve a "1500". Comparar el formateado contra lo que devolvió el
+    // servidor daría distinto y escribiría un cambio que nadie hizo.
+    await usuario.clear(campoCosto);
+    await usuario.type(campoCosto, "1500");
+    await usuario.tab();
+
+    expect(campoCosto).toHaveValue("1.500");
+    expect(productsApi.updateCosteo).not.toHaveBeenCalled();
+  });
+
+  it("el precio calculado sale del crudo, no del texto con puntos", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+
+    await screen.findByText("Termo");
+    const campoCosto = screen.getByLabelText("Costo de Termo");
+    await usuario.clear(campoCosto);
+    await usuario.type(campoCosto, "10000");
+
+    // 10000 × 2,05 = 20500. Calcular sobre "10.000" daría null (o 10, según cómo
+    // parsee), y la columna mostraría un guion sobre un costo perfectamente
+    // válido.
+    expect(await screen.findByText("$ 20.500")).toBeInTheDocument();
+  });
 });
 
 describe("AdminPrecios — un costo sin escribir bloquea la previsualización", () => {
@@ -174,7 +305,7 @@ describe("AdminPrecios — un costeo que falló sigue bloqueando, y se destraba 
     // Perder lo tipeado por un error de red sería peor que dejarlo para
     // reintentar — y ese borrador es, sin ninguna maquinaria extra, lo que
     // sigue bloqueando la previsualización.
-    expect(screen.getByLabelText("Costo de Termo")).toHaveValue("2000");
+    expect(screen.getByLabelText("Costo de Termo")).toHaveValue("2.000");
     expect(screen.getByText("sin guardar")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -274,7 +405,7 @@ describe("AdminPrecios — un costeo que falló sigue bloqueando, y se destraba 
     // pantalla es lo que contestó el servidor.
     await usuario.click(screen.getByRole("button", { name: "Página 2" }));
     await usuario.click(await screen.findByRole("button", { name: "Página 1" }));
-    await waitFor(() => expect(screen.getByLabelText("Costo de Termo")).toHaveValue("1500"));
+    await waitFor(() => expect(screen.getByLabelText("Costo de Termo")).toHaveValue("1.500"));
 
     await usuario.click(screen.getByLabelText("Seleccionar Termo"));
     await usuario.click(botonAplicar());
@@ -442,5 +573,236 @@ describe("AdminPrecios — un rechazo sin `message` nunca se lee como un éxito"
     expect(aviso).not.toHaveTextContent(/undefined/);
     expect(aviso).not.toHaveTextContent(/Se actualizaron/);
     expect(aviso).toHaveTextContent(/No se pudo guardar el costo/);
+  });
+});
+
+/**
+ * Buscador y orden, con el mismo patrón que `AdminProductos`: los dos viven en
+ * la URL, no en estado local. Un listado filtrado se comparte y se recarga.
+ *
+ * El ORDEN lo resuelve la base, no un `sort()` sobre las cien filas cargadas:
+ * la tabla está paginada, así que reordenar en memoria reordenaría la página y
+ * no el catálogo — que es justo la pregunta ("¿cuáles son los de mayor costo?").
+ */
+describe("AdminPrecios — buscador y orden", () => {
+  it("arranca pidiendo el catálogo por nombre", async () => {
+    renderPagina();
+
+    await screen.findByText("Termo");
+    expect(productsApi.getProducts).toHaveBeenCalledWith(
+      expect.objectContaining({ admin: true, orden: "nombre" }),
+    );
+  });
+
+  it("escribe la búsqueda en la URL y la manda al backend", async () => {
+    const usuario = userEvent.setup();
+    renderConUrl();
+
+    await screen.findByText("Termo");
+    await usuario.type(screen.getByLabelText(/buscar/i), "termo");
+
+    await waitFor(() => expect(screen.getByTestId("url")).toHaveTextContent("search=termo"));
+    await waitFor(() =>
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: "termo" }),
+      ),
+    );
+  });
+
+  it("precarga el input desde la URL: una caja vacía sobre una tabla filtrada se lee como un bug", async () => {
+    renderConUrl("/?search=termo");
+
+    expect(await screen.findByLabelText(/buscar/i)).toHaveValue("termo");
+  });
+
+  it("ordenar por costo baja el criterio al backend", async () => {
+    const usuario = userEvent.setup();
+    renderConUrl();
+
+    await screen.findByText("Termo");
+    await usuario.selectOptions(screen.getByLabelText(/ordenar por/i), "costo-desc");
+
+    await waitFor(() => expect(screen.getByTestId("url")).toHaveTextContent("orden=costo-desc"));
+    await waitFor(() =>
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ orden: "costo-desc" }),
+      ),
+    );
+  });
+
+  it("buscar vuelve a la página 1", async () => {
+    const usuario = userEvent.setup();
+    renderConUrl("/?page=3");
+
+    await screen.findByText("Termo");
+    await usuario.type(screen.getByLabelText(/buscar/i), "termo");
+
+    await waitFor(() => expect(screen.getByTestId("url")).toHaveTextContent("search=termo"));
+    // La página 3 del listado completo puede no existir en el resultado
+    // filtrado, y quedarse ahí mostraría una tabla vacía como si la búsqueda no
+    // encontrara nada.
+    expect(screen.getByTestId("url")).not.toHaveTextContent("page=3");
+  });
+
+  it("una búsqueda sin resultados NO se lee como un catálogo vacío", async () => {
+    productsApi.getProducts.mockResolvedValue(pagina([]));
+    renderConUrl("/?search=nohay");
+
+    expect(await screen.findByText(/Sin resultados/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Todavía no hay productos/i)).not.toBeInTheDocument();
+  });
+
+  it("limpia la selección y los borradores al buscar", async () => {
+    // El PATCH queda colgado a propósito. Tipear en el buscador BLUREA el campo
+    // de costo, y ese blur dispara el guardado: con un mock que resuelve, el
+    // borrador podía desaparecer por el PATCH o por la limpieza del refetch —
+    // dos causas para el mismo efecto, ganando cualquiera según el timing. Así
+    // la única vía posible es la que el test quiere medir.
+    productsApi.updateCosteo.mockImplementation(() => new Promise(() => {}));
+
+    const usuario = userEvent.setup();
+    renderConUrl();
+
+    await tipearCostoNuevo(usuario);
+    expect(screen.getByText("sin guardar")).toBeInTheDocument();
+
+    await usuario.type(screen.getByLabelText(/buscar/i), "otro");
+    await waitFor(() => expect(screen.getByTestId("url")).toHaveTextContent("search=otro"));
+
+    // Las filas cambian bajo los pies: aplicar sobre lo que ya no se ve es el
+    // accidente que esta limpieza existe para evitar.
+    await waitFor(() => expect(screen.queryByText("sin guardar")).not.toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /actualizar precios/i })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * El coeficiente por defecto es 1, así que un producto recién cargado tiene
+ * `costo × 1 = costo` y su precio publicado COINCIDE con el calculado: figura
+ * `Al día`, correctamente según la definición del estado, sin tener todavía un
+ * precio real.
+ *
+ * Por eso la pregunta "¿a cuáles falta ponerles precio?" no la contesta el
+ * estado sino el coeficiente. El chip es un filtro sobre una columna y NO un
+ * cuarto valor de `ESTADOS_PRECIO`: meterlo en el enum obligaría a decidir qué
+ * gana cuando un producto es a la vez `AL_DIA` y coeficiente 1 — o sea siempre.
+ */
+describe("AdminPrecios — chip Sin precio real", () => {
+  const SIN_PRECIO_REAL = {
+    ...TERMO,
+    id: 2,
+    nombre: "Bidón",
+    sku: "YIMA-BID-2",
+    costo: "4000",
+    coeficiente: "1",
+    precio: "4000",
+  };
+
+  it("filtra los productos con coeficiente 1, que igual figuran Al día", async () => {
+    const usuario = userEvent.setup();
+    productsApi.getProducts.mockResolvedValue(pagina([TERMO, SIN_PRECIO_REAL]));
+    renderPagina();
+
+    await screen.findByText("Bidón");
+    // La trampa que este chip existe para desarmar: el producto sin precio real
+    // se muestra como "Al día".
+    expect(screen.getAllByText("Al día").length).toBeGreaterThan(0);
+
+    await usuario.click(screen.getByRole("button", { name: /sin precio real \(1\)/i }));
+
+    expect(screen.getByText("Bidón")).toBeInTheDocument();
+    expect(screen.queryByText("Termo")).not.toBeInTheDocument();
+  });
+
+  it("no cuenta a un producto sin costo como pendiente de precio", async () => {
+    productsApi.getProducts.mockResolvedValue(
+      pagina([{ ...TERMO, id: 3, nombre: "Vaso", costo: null, coeficiente: null }]),
+    );
+    renderPagina();
+
+    await screen.findByText("Vaso");
+    // Ese ya lo cubre "Sin costo": contarlo dos veces haría que los chips sumen
+    // más productos que los que hay en la tabla.
+    expect(screen.getByRole("button", { name: /sin precio real \(0\)/i })).toBeInTheDocument();
+  });
+});
+
+/**
+ * "Traer cambios" vuelve a pedir la tabla sin recargar la página, para ver lo
+ * que otro proceso escribió mientras tanto — la skill de alta desde MercadoLibre
+ * carga productos por API, y hasta ahora la única forma de verlos era F5.
+ *
+ * **Pero el refetch limpia los borradores**, porque el efecto de carga los
+ * descarta junto con la selección. En esta pantalla eso es caro: lo que se
+ * pierde es un costo a medio tipear. Así que el botón se comporta igual que
+ * "Actualizar precios" con costos sin guardar — se bloquea y NOMBRA las filas,
+ * en vez de pisar en silencio.
+ *
+ * Se llama "Traer cambios" y no "Actualizar" a propósito: en esta pantalla ya
+ * hay un "Actualizar precios" que publica al catálogo, y dos botones que
+ * empiezan igual se confunden. El que se toca por error no puede ser ese.
+ */
+describe("AdminPrecios — traer cambios sin pisar lo tipeado", () => {
+  function botonTraer() {
+    return screen.getByRole("button", { name: /traer cambios/i });
+  }
+
+  it("vuelve a pedir la tabla", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+
+    await screen.findByText("Termo");
+    expect(productsApi.getProducts).toHaveBeenCalledTimes(1);
+
+    await usuario.click(botonTraer());
+
+    await waitFor(() => expect(productsApi.getProducts).toHaveBeenCalledTimes(2));
+  });
+
+  it("trae lo que otro proceso escribió mientras tanto", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Termo");
+
+    productsApi.getProducts.mockResolvedValue(
+      pagina([TERMO, { ...TERMO, id: 9, nombre: "Producto nuevo", sku: "YIMA-NUE-9" }]),
+    );
+    await usuario.click(botonTraer());
+
+    expect(await screen.findByText("Producto nuevo")).toBeInTheDocument();
+  });
+
+  it("con un costo sin guardar NO refresca, y nombra la fila", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+
+    await tipearCostoNuevo(usuario);
+    expect(screen.getByText("sin guardar")).toBeInTheDocument();
+    const llamadasPrevias = productsApi.getProducts.mock.calls.length;
+
+    await usuario.click(botonTraer());
+
+    // Ni un pedido: refrescar habría descartado el borrador sin decir nada.
+    expect(productsApi.getProducts).toHaveBeenCalledTimes(llamadasPrevias);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /Hay costos sin guardar \(Termo\)/,
+    );
+    expect(screen.getByLabelText("Costo de Termo")).toHaveValue("2.000");
+  });
+
+  it("una vez guardado el costo, deja refrescar", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+
+    await tipearCostoNuevo(usuario);
+    await usuario.tab();
+    await waitFor(() => expect(screen.queryByText("sin guardar")).not.toBeInTheDocument());
+
+    const llamadasPrevias = productsApi.getProducts.mock.calls.length;
+    await usuario.click(botonTraer());
+
+    await waitFor(() =>
+      expect(productsApi.getProducts).toHaveBeenCalledTimes(llamadasPrevias + 1),
+    );
   });
 });
