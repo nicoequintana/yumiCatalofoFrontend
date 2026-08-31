@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import CampoPassword from "../../components/CampoPassword.jsx";
 import { login } from "../../api/auth.js";
 import { setToken } from "../../api/authClient.js";
 
@@ -66,17 +67,23 @@ function AdminLogin() {
             className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-md text-on-surface"
           />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-label-md text-on-surface-variant">Contraseña</span>
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-md text-on-surface"
-          />
-        </label>
+        {/* `current-password` y no `new-password`: acá se ingresa una que ya
+            existe, así que el gestor SÍ tiene que ofrecer la guardada. Es la
+            decisión opuesta a la del alta de usuarios, y por eso el componente
+            no tiene un default para este campo. */}
+        <CampoPassword
+          value={password}
+          onChange={setPassword}
+          etiqueta="Contraseña"
+          etiquetaVisible
+          etiquetaClassName="text-label-md text-on-surface-variant mb-1 block"
+          autoComplete="current-password"
+          required
+          // Conserva el estilo compacto de esta tarjeta, más chico que el del
+          // resto del panel. `pr-12` lo agrega el componente igual: es el hueco
+          // del ojito, no apariencia.
+          className="rounded border border-outline-variant bg-surface-container-lowest py-2 pl-3 text-body-md text-on-surface"
+        />
         {/*
           `role="alert"` para que el fallo de login se anuncie solo: el foco se
           queda en el botón "Ingresar" después del submit, así que sin esto el

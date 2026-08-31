@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import CampoPassword from "../../components/CampoPassword.jsx";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
@@ -141,20 +142,32 @@ function AdminUsuarios() {
         <h1 className="font-headline-lg text-headline-lg text-primary">Usuarios</h1>
       </div>
 
+      {/* Este NO es un formulario de ingreso, y hay que decírselo al navegador.
+          Un `type="email"` seguido de un `type="password"` sin declarar nada es
+          exactamente la forma de un login, así que Chrome lo rellenaba solo con
+          la credencial del admin que estaba en sesión: la pantalla abría con un
+          usuario ya escrito que nadie tipeó. `new-password` en la contraseña es
+          lo que desarma esa lectura. */}
       <form onSubmit={handleCrear} className="mb-8 flex flex-col gap-3 sm:flex-row">
+        <label htmlFor="email-nuevo-usuario" className="sr-only">
+          Email del nuevo usuario
+        </label>
         <input
+          id="email-nuevo-usuario"
           type="email"
           value={emailNuevo}
           onChange={(e) => setEmailNuevo(e.target.value)}
           placeholder="Email del nuevo usuario"
+          autoComplete="off"
           className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none sm:max-w-sm"
         />
-        <input
-          type="password"
+        <CampoPassword
           value={passwordNuevo}
-          onChange={(e) => setPasswordNuevo(e.target.value)}
+          onChange={setPasswordNuevo}
+          etiqueta="Contraseña del nuevo usuario"
           placeholder="Contraseña"
-          className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none sm:max-w-sm"
+          autoComplete="new-password"
+          contenedorClassName="w-full sm:max-w-sm"
         />
         <button
           type="submit"
@@ -205,18 +218,23 @@ function AdminUsuarios() {
                   <td className="font-body-md text-body-md px-4 py-3 text-on-surface">
                     {editandoId === usuario.id ? (
                       <div className="flex flex-col gap-2">
+                        {/* Mismo caso que el alta: editar un usuario tampoco es
+                            ingresar, así que se declara para que el navegador no
+                            lo autocomplete con la sesión abierta. */}
                         <input
                           type="email"
                           value={emailEditado}
                           onChange={(e) => setEmailEditado(e.target.value)}
+                          aria-label={`Email de ${usuario.email}`}
+                          autoComplete="off"
                           className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
                         />
-                        <input
-                          type="password"
+                        <CampoPassword
                           value={passwordEditado}
-                          onChange={(e) => setPasswordEditado(e.target.value)}
+                          onChange={setPasswordEditado}
+                          etiqueta={`Contraseña nueva de ${usuario.email}`}
                           placeholder="Dejar en blanco para no cambiar"
-                          className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
+                          autoComplete="new-password"
                         />
                       </div>
                     ) : (
