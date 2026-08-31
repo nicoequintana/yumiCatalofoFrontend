@@ -221,7 +221,7 @@ function AdminAnuncios() {
           disabled={creando}
           className="font-label-md text-label-md inline-flex h-max items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
         >
-          {creando ? <Spinner className="h-4 w-4 text-on-primary" /> : null}
+          {creando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
           Agregar
         </button>
       </form>
@@ -345,7 +345,7 @@ function AdminAnuncios() {
                             disabled={guardando}
                             className={`${claseAccion} text-secondary`}
                           >
-                            {guardando ? <Spinner className="h-3.5 w-3.5" /> : null}
+                            {guardando ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Guardar
                           </button>
                           <button
@@ -384,7 +384,7 @@ function AdminAnuncios() {
                             disabled={ocupadoId === anuncio.id}
                             className={`${claseAccion} text-error`}
                           >
-                            {ocupadoId === anuncio.id ? <Spinner className="h-3.5 w-3.5" /> : null}
+                            {ocupadoId === anuncio.id ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Sí
                           </button>
                           <button

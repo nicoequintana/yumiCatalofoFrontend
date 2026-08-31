@@ -262,7 +262,7 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas, visible
                 disabled={trabajando || excede || seleccion.length === 0}
                 className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 uppercase tracking-widest text-on-primary disabled:opacity-60"
               >
-                {trabajando ? <Spinner className="h-4 w-4 text-on-primary" /> : null}
+                {trabajando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
                 Agregar a la ficha
               </button>
             </div>

@@ -71,7 +71,7 @@ function EditorHeader({
           disabled={guardando}
           className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
         >
-          {guardando ? <Spinner className="h-4 w-4 text-on-primary" /> : null}
+          {guardando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
           {guardando ? "Guardando…" : "Guardar"}
         </button>
       </div>

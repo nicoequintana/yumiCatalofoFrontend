@@ -128,7 +128,7 @@ function AdminActualizarProductos() {
             className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
           >
             {exportando ? (
-              <Spinner className="h-4 w-4 text-on-surface-variant" />
+              <Spinner className="h-4 w-4 text-on-surface-variant" decorativo />
             ) : (
               <span className="material-symbols-outlined text-[18px]">download</span>
             )}
@@ -163,7 +163,7 @@ function AdminActualizarProductos() {
             disabled={!archivo || actualizando}
             className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
           >
-            {actualizando ? <Spinner className="h-4 w-4 text-on-primary" /> : null}
+            {actualizando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
             {actualizando ? "Actualizando…" : "Actualizar"}
           </button>
         </div>

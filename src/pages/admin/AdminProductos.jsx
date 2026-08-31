@@ -955,7 +955,7 @@ function AdminProductos() {
                 disabled={accionMasivaEnCurso}
                 className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-error px-5 py-3 uppercase tracking-widest text-on-error disabled:opacity-60"
               >
-                {accionMasivaEnCurso ? <Spinner className="h-4 w-4 text-on-error" /> : null}
+                {accionMasivaEnCurso ? <Spinner className="h-4 w-4 text-on-error" decorativo /> : null}
                 Eliminar
               </button>
             </div>

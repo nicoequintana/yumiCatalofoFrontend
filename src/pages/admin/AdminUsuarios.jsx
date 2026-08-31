@@ -174,7 +174,7 @@ function AdminUsuarios() {
           disabled={creando}
           className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
         >
-          {creando ? <Spinner className="h-4 w-4 text-on-primary" /> : null}
+          {creando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
           Agregar
         </button>
       </form>
@@ -254,7 +254,7 @@ function AdminUsuarios() {
                             disabled={guardandoEdicion || eliminandoId === usuario.id}
                             className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline disabled:opacity-60"
                           >
-                            {guardandoEdicion ? <Spinner className="h-3.5 w-3.5" /> : null}
+                            {guardandoEdicion ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Guardar
                           </button>
                           <button
@@ -285,7 +285,7 @@ function AdminUsuarios() {
                             disabled={eliminandoId === usuario.id || guardandoEdicion}
                             className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60"
                           >
-                            {eliminandoId === usuario.id ? <Spinner className="h-3.5 w-3.5" /> : null}
+                            {eliminandoId === usuario.id ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Sí
                           </button>
                           <button

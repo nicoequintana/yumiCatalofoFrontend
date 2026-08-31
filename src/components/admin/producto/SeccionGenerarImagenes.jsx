@@ -125,7 +125,7 @@ function SeccionGenerarImagenes({ productoId }) {
         disabled={enviando || excedido || archivos.length === 0}
         className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-3 uppercase tracking-widest text-on-primary hover:opacity-90 disabled:opacity-60"
       >
-        {enviando ? <Spinner className="h-4 w-4 text-on-primary" /> : null}
+        {enviando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
         {/* Dos textos distintos durante el envío: comprimir 4 imágenes toma
             un momento perceptible, y "Enviando…" durante esa espera sería
             mentira — todavía no salió nada al servidor. */}
