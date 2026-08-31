@@ -69,7 +69,11 @@ test.describe("Admin cambia el estado de una orden y persiste tras recargar", ()
     // 1. Login real por el formulario.
     await page.goto("/catalogo/admin/login");
     await page.getByLabel("Email").fill(usuarioAdmin.email);
-    await page.getByLabel("Contraseña").fill(usuarioAdmin.password);
+    // `exact: true`: el campo de contraseña convive con el botón "Mostrar
+    // contraseña" (el ojito de `CampoPassword`), cuyo nombre accesible contiene
+    // "contraseña". Sin `exact`, `getByLabel` matchea el input Y el botón y
+    // rompe por strict mode. El nombre del input es exactamente "Contraseña".
+    await page.getByLabel("Contraseña", { exact: true }).fill(usuarioAdmin.password);
     await page.getByRole("button", { name: "Ingresar" }).click();
 
     await expect(page).toHaveURL(/\/catalogo\/admin\/productos$/);
