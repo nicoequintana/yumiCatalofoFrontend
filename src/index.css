@@ -348,3 +348,54 @@ h6 {
     background-color: rgb(var(--color-background));
   }
 }
+
+/* Tabla apilada del panel admin (`.tabla-apilada`; contrato de atributos en
+   components/admin/clasesTabla.js). Va fuera de @layer y con un elemento de
+   más en cada selector: tiene que ganarle a utilidades de escritorio de las
+   mismas celdas (px-4, whitespace-nowrap, min-w-[…], truncate, last:border-b-0). */
+@media (max-width: 767.98px) {
+  table.tabla-apilada { display: block; min-width: 0; table-layout: auto; }
+
+  /* Equivalente a sr-only: los th siguen en el árbol de accesibilidad. */
+  .tabla-apilada > thead {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;
+  }
+
+  .tabla-apilada > tbody { display: flex; flex-direction: column; gap: 0.75rem; padding: 0.75rem; }
+
+  /* Tarjeta. `:last-child` repetido gana por especificidad a `last:border-b-0`.
+     Sin fondo propio: el `bg-error-container/40` de la fila sin stock tiene que
+     seguir viéndose; el fondo blanco lo pone el wrapper. */
+  .tabla-apilada > tbody > tr,
+  .tabla-apilada > tbody > tr:last-child {
+    display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.75rem;
+    padding: 0.25rem 1rem; border-width: 1px; border-style: solid;
+    @apply rounded-lg border-outline-variant;
+  }
+
+  .tabla-apilada > tbody > tr > td {
+    display: block; flex: 1 0 100%; padding: 0.5rem 0;
+    max-width: none; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere;
+  }
+
+  .tabla-apilada > tbody > tr > td[data-celda="identidad"] { order: -1; flex: 1 1 0%; min-width: 0; }
+  .tabla-apilada > tbody > tr > td[data-celda="control"]   { order: -1; flex: 0 0 auto; }
+
+  .tabla-apilada > tbody > tr > td[data-label] {
+    display: grid; grid-template-columns: minmax(6.5rem, 38%) minmax(0, 1fr);
+    column-gap: 0.75rem; align-items: center;
+    @apply border-t border-outline-variant;
+  }
+  .tabla-apilada > tbody > tr > td[data-label]::before {
+    content: attr(data-label);
+    @apply font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant;
+  }
+
+  .tabla-apilada > tbody > tr > td[data-celda="acciones"] {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; order: 1;
+    @apply border-t border-outline-variant;
+  }
+
+  .tabla-apilada [data-celda="secundaria"] { display: none; }
+}
