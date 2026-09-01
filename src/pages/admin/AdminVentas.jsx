@@ -11,6 +11,7 @@ import Advertencia from "../../components/admin/Advertencia.jsx";
 import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
 import { claseCelda, claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
+import { ETIQUETA_ESTADO, ESTILOS_ESTADO } from "../../constants/ordenes.js";
 
 /** Miles con separador local, para que "20000" se lea como "20.000". */
 const formatCantidad = new Intl.NumberFormat("es-AR").format;
@@ -29,8 +30,9 @@ function etiquetaDia(fecha) {
  * con un solo valor por día no justifica sumar un bundle entero.
  *
  * Las barras se escalan contra el máximo del período. Si todos los días son
- * cero (período sin ventas pero con pipeline), se evita la división por cero
- * y quedan todas en altura mínima en vez de romper el SVG con `NaN`.
+ * cero (período sin ingresos confirmados pero con órdenes en otros estados),
+ * se evita la división por cero y quedan todas en altura mínima en vez de
+ * romper el SVG con `NaN`.
  */
 function GraficoIngresos({ serie }) {
   const maximo = useMemo(
@@ -95,13 +97,63 @@ function GraficoIngresos({ serie }) {
 }
 
 /**
+ * Una tarjeta por estado de orden, con su venta y su costo.
+ *
+ * `CANCELADA` va sin montos por pedido explícito: una cancelada no es plata, y
+ * un monto al lado de tres tarjetas que sí lo son invita a sumarla
+ * mentalmente. La tasa de cancelación vive adentro de esa misma tarjeta, que
+ * es lo que califica.
+ *
+ * El chip usa `ESTILOS_ESTADO`, el mismo mapa que `BadgeEstado`: un estado
+ * tiene que verse igual acá que en el listado de órdenes.
+ */
+function TarjetaEstado({ estado, cantidadOrdenes, venta, costo, mostrarMontos, detalle }) {
+  return (
+    <div
+      data-testid={`estado-${estado}`}
+      className="flex flex-col gap-3 rounded-xl bg-surface-container-lowest p-5 shadow-ambient"
+    >
+      <span
+        className={`font-label-sm text-label-sm w-fit rounded-full px-3 py-1 uppercase tracking-widest ${ESTILOS_ESTADO[estado]}`}
+      >
+        {ETIQUETA_ESTADO[estado]}
+      </span>
+
+      {mostrarMontos ? (
+        <dl className="flex flex-col gap-1">
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="font-body-md text-body-md text-on-surface-variant">Venta</dt>
+            <dd className="font-headline-md text-headline-md break-words text-on-surface">
+              {formatPrecio(venta)}
+            </dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="font-body-md text-body-md text-on-surface-variant">Costo</dt>
+            <dd className="font-body-lg text-body-lg break-words text-on-surface-variant">
+              {formatPrecio(costo)}
+            </dd>
+          </div>
+        </dl>
+      ) : null}
+
+      <span className="font-body-md text-body-md text-on-surface-variant">
+        {cantidadOrdenes} {cantidadOrdenes === 1 ? "orden" : "órdenes"}
+        {detalle ? ` · ${detalle}` : ""}
+      </span>
+    </div>
+  );
+}
+
+/**
  * `/catalogo/admin/ventas` — dashboard de facturación del panel admin.
  *
- * Una venta cuenta desde EN_PREPARACION en adelante (EN_PREPARACION,
- * ENTREGADA), porque ese es el momento en que el backend descuenta stock. Las
- * órdenes PENDIENTE se muestran aparte como *pipeline* (ingreso potencial,
- * todavía no facturado) y nunca se mezclan con los ingresos — de ahí que el
- * pipeline viva en su propio bloque visual y no entre las tarjetas de arriba.
+ * "Resumen de facturación" cuenta ingresos solo desde EN_PREPARACION en
+ * adelante (EN_PREPARACION, ENTREGADA), porque ese es el momento en que el
+ * backend descuenta stock. Las cuatro tarjetas de "Órdenes por estado"
+ * muestran los CUATRO estados del flujo con su propia venta y costo — nunca
+ * se suman al resumen de arriba, así que lo pendiente no se confunde con
+ * ingreso ya facturado. `CANCELADA` es la única sin montos (ver
+ * `TarjetaEstado`); en su lugar muestra la tasa de cancelación del período.
  *
  * **El histórico tiene tope** (`MAX_ORDENES_HISTORICO` en el backend, mismo
  * mecanismo que `AdminClientes.jsx`). Cuando se alcanza, la respuesta llega
@@ -151,17 +203,26 @@ function AdminVentas() {
     };
   }, [dias]);
 
-  // "Sin ventas" es no haber facturado NI tener pipeline: si hay órdenes
-  // pendientes, hay algo que mostrar aunque los ingresos sean cero.
+  // "Sin datos" es no tener NINGUNA orden en ningún estado. Si hay canceladas
+  // y nada más, la pantalla tiene algo que decir y no puede contestar "no hubo
+  // ventas en este período".
   const sinDatos =
     resumen !== null &&
-    resumen.cantidadOrdenes === 0 &&
-    (resumen.pipeline?.cantidadOrdenes ?? 0) === 0;
+    (resumen.porEstado ?? []).every((fila) => fila.cantidadOrdenes === 0);
 
   // Se lee con `?.`: un backend anterior al tope no manda `historico`, y ahí
   // no hay nada que advertir.
   const mostrarAdvertenciaHistorico =
     resumen !== null && !sinDatos && resumen.historico?.recortado === true;
+
+  // La cobertura se mide en PLATA, no en cantidad de líneas: lo que importa es
+  // cuánta facturación quedó sin explicar, no cuántos renglones.
+  const cobertura = useMemo(() => {
+    const filas = resumen?.porEstado ?? [];
+    const venta = filas.reduce((suma, fila) => suma + Number(fila.venta), 0);
+    const conCosto = filas.reduce((suma, fila) => suma + Number(fila.ventaConCosto), 0);
+    return { venta, conCosto, completa: conCosto >= venta };
+  }, [resumen]);
 
   return (
     <main className="w-full px-4 py-6 md:px-8 md:py-8">
@@ -268,60 +329,45 @@ function AdminVentas() {
             </div>
           </SeccionAdmin>
 
-          {/*
-            Pipeline y cancelaciones: bloque visualmente separado de las
-            tarjetas de ingresos, con su propio fondo, para que el valor
-            pendiente no se lea nunca como plata ya facturada.
-          */}
-          <SeccionAdmin
-            titulo="Pipeline y cancelaciones"
-            etiqueta="Pipeline y cancelaciones"
-          >
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div
-                data-testid="pipeline"
-                className="flex flex-col gap-2 rounded-xl border border-dashed border-outline bg-surface-container p-5"
-              >
-                <div className="flex items-center gap-2 text-on-surface-variant">
-                  <span className="material-symbols-outlined text-[20px]">
-                    hourglass_top
-                  </span>
-                  <span className="font-label-sm text-label-sm uppercase tracking-widest">
-                    Pipeline · pendiente de confirmar
-                  </span>
-                </div>
-                <span className="font-headline-md text-headline-md break-words text-on-surface-variant">
-                  {formatPrecio(resumen.pipeline.valorTotal)}
-                </span>
-                <span className="font-body-md text-body-md text-on-surface-variant">
-                  {resumen.pipeline.cantidadOrdenes}{" "}
-                  {resumen.pipeline.cantidadOrdenes === 1
-                    ? "orden pendiente"
-                    : "órdenes pendientes"}{" "}
-                  — todavía no cuenta como ingreso.
-                </span>
-              </div>
+          {!cobertura.completa ? (
+            <Advertencia
+              testId="aviso-cobertura-costo"
+              titulo="El costo no cubre todas las ventas"
+            >
+              <p className="font-body-md text-body-md text-on-surface">
+                El costo se calculó sobre {formatPrecio(String(cobertura.conCosto))} de{" "}
+                {formatPrecio(String(cobertura.venta))} vendidos. La diferencia son
+                ventas sin costo registrado — órdenes anteriores a que existiera el
+                costeo, o productos sin costo cargado.
+              </p>
+              <p className="font-body-md text-body-md text-on-surface-variant">
+                Esas líneas quedan fuera del costo y no se cuentan como costo cero:
+                sumarlas en cero haría parecer que esa mercadería no costó nada.
+              </p>
+            </Advertencia>
+          ) : null}
 
-              <div className="flex flex-col gap-2 rounded-xl bg-surface-container-lowest p-5 shadow-ambient">
-                <div className="flex items-center gap-2 text-on-surface-variant">
-                  <span className="material-symbols-outlined text-[20px]">
-                    cancel
-                  </span>
-                  <span className="font-label-sm text-label-sm uppercase tracking-widest">
-                    Tasa de cancelación
-                  </span>
-                </div>
-                <span className="font-headline-md text-headline-md text-on-surface">
-                  {`${(resumen.tasaCancelacion * 100).toFixed(1)}%`}
-                </span>
-                <span className="font-body-md text-body-md text-on-surface-variant">
-                  {resumen.ordenesCanceladas}{" "}
-                  {resumen.ordenesCanceladas === 1
-                    ? "orden cancelada"
-                    : "órdenes canceladas"}{" "}
-                  en el período.
-                </span>
-              </div>
+          <SeccionAdmin
+            titulo="Órdenes por estado"
+            etiqueta="Órdenes por estado"
+            descripcion="Cuánto hay parado en cada estado ahora mismo. Los estados no se acumulan: una orden entregada ya no figura en preparación."
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {resumen.porEstado.map((fila) => (
+                <TarjetaEstado
+                  key={fila.estado}
+                  estado={fila.estado}
+                  cantidadOrdenes={fila.cantidadOrdenes}
+                  venta={fila.venta}
+                  costo={fila.costo}
+                  mostrarMontos={fila.estado !== "CANCELADA"}
+                  detalle={
+                    fila.estado === "CANCELADA"
+                      ? `${(resumen.tasaCancelacion * 100).toFixed(1)}% del período`
+                      : null
+                  }
+                />
+              ))}
             </div>
           </SeccionAdmin>
 

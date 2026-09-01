@@ -19,7 +19,16 @@ const RESUMEN = {
   ticketPromedio: "1750",
   unidadesVendidas: 4,
   productosPorOrden: 1.5,
-  pipeline: { cantidadOrdenes: 3, valorTotal: "1998" },
+  // EN_PREPARACION + ENTREGADA suman los mismos $3.500 de `ingresosTotales`
+  // (1200 + 2300) — mismo criterio que el resto de la suite, pero con montos
+  // que no coinciden con "$ 1.750" (ticketPromedio), que otro test ya busca
+  // sin scope.
+  porEstado: [
+    { estado: "PENDIENTE", cantidadOrdenes: 3, venta: "1998", costo: "1000", ventaConCosto: "1998" },
+    { estado: "EN_PREPARACION", cantidadOrdenes: 1, venta: "1200", costo: "600", ventaConCosto: "1200" },
+    { estado: "ENTREGADA", cantidadOrdenes: 1, venta: "2300", costo: "1150", ventaConCosto: "2300" },
+    { estado: "CANCELADA", cantidadOrdenes: 1, venta: "500", costo: "250", ventaConCosto: "500" },
+  ],
   ordenesCanceladas: 1,
   tasaCancelacion: 0.25,
   rankingProductos: [
@@ -50,7 +59,12 @@ const RESUMEN_VACIO = {
   ticketPromedio: "0",
   unidadesVendidas: 0,
   productosPorOrden: 0,
-  pipeline: { cantidadOrdenes: 0, valorTotal: "0" },
+  porEstado: [
+    { estado: "PENDIENTE", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+    { estado: "EN_PREPARACION", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+    { estado: "ENTREGADA", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+    { estado: "CANCELADA", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+  ],
   ordenesCanceladas: 0,
   tasaCancelacion: 0,
   rankingProductos: [],
@@ -63,6 +77,12 @@ function renderPagina() {
       <AdminVentas />
     </MemoryRouter>,
   );
+}
+
+/** Monta la pantalla con `RESUMEN` de base, pisado por lo que traiga `parcial`. */
+function renderConResumen(parcial = {}) {
+  adminVentasApi.getResumenVentas.mockResolvedValue({ ...RESUMEN, ...parcial });
+  return renderPagina();
 }
 
 describe("AdminVentas", () => {
@@ -88,18 +108,17 @@ describe("AdminVentas", () => {
     expect(within(resumen).getByText("1.5 productos por orden")).toBeInTheDocument();
   });
 
-  it("muestra el pipeline separado del ingreso y etiquetado como pendiente", async () => {
+  it("muestra la tarjeta de pendientes separada del resumen de ingresos", async () => {
     renderPagina();
 
-    const pipeline = await screen.findByTestId("pipeline");
+    const pendiente = await screen.findByTestId("estado-PENDIENTE");
 
-    // El valor del pipeline vive en su propia región, no entre las tarjetas
-    // de ingresos — no se puede leer como plata ya facturada.
-    expect(within(pipeline).getByText("$ 1.998")).toBeInTheDocument();
-    expect(within(pipeline).getByText(/pendiente de confirmar/i)).toBeInTheDocument();
-    expect(within(pipeline).getByText(/todavía no cuenta como ingreso/i)).toBeInTheDocument();
+    // El valor pendiente vive en su propia tarjeta, no entre las de ingresos
+    // — no se puede leer como plata ya facturada.
+    expect(within(pendiente).getByText("$ 1.998")).toBeInTheDocument();
+    expect(within(pendiente).getByText("3 órdenes")).toBeInTheDocument();
 
-    // Y sobre todo: el monto del pipeline NO está dentro del resumen de
+    // Y sobre todo: el monto pendiente NO está dentro del resumen de
     // ingresos, que es lo que lo haría confundible con plata ya facturada.
     const resumen = screen.getByLabelText("Resumen de facturación");
     expect(within(resumen).queryByText("$ 1.998")).not.toBeInTheDocument();
@@ -267,5 +286,67 @@ describe("AdminVentas", () => {
     renderPagina();
 
     expect(await screen.findByText("No autorizado.")).toBeInTheDocument();
+  });
+
+  describe("órdenes por estado", () => {
+    it("muestra venta y costo en los tres estados con plata", async () => {
+      renderConResumen({
+        porEstado: [
+          { estado: "PENDIENTE", cantidadOrdenes: 2, venta: "8000", costo: "3400", ventaConCosto: "8000" },
+          { estado: "EN_PREPARACION", cantidadOrdenes: 5, venta: "30000", costo: "15000", ventaConCosto: "30000" },
+          { estado: "ENTREGADA", cantidadOrdenes: 7, venta: "52000", costo: "26500", ventaConCosto: "52000" },
+          { estado: "CANCELADA", cantidadOrdenes: 1, venta: "4000", costo: "1700", ventaConCosto: "4000" },
+        ],
+      });
+
+      const preparacion = await screen.findByTestId("estado-EN_PREPARACION");
+      expect(preparacion).toHaveTextContent("$ 30.000");
+      expect(preparacion).toHaveTextContent("$ 15.000");
+      expect(preparacion).toHaveTextContent("5 órdenes");
+    });
+
+    it("la tarjeta de canceladas no muestra montos", async () => {
+      renderConResumen({
+        porEstado: [
+          { estado: "PENDIENTE", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+          { estado: "EN_PREPARACION", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+          { estado: "ENTREGADA", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+          { estado: "CANCELADA", cantidadOrdenes: 1, venta: "4000", costo: "1700", ventaConCosto: "4000" },
+        ],
+      });
+
+      const cancelada = await screen.findByTestId("estado-CANCELADA");
+      expect(cancelada).toHaveTextContent("1 orden");
+      expect(cancelada).not.toHaveTextContent("$ 4.000");
+    });
+
+    it("avisa cuando hay ventas sin costo registrado", async () => {
+      renderConResumen({
+        porEstado: [
+          { estado: "PENDIENTE", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+          { estado: "EN_PREPARACION", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+          { estado: "ENTREGADA", cantidadOrdenes: 7, venta: "52000", costo: "26500", ventaConCosto: "48000" },
+          { estado: "CANCELADA", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+        ],
+      });
+
+      const aviso = await screen.findByTestId("aviso-cobertura-costo");
+      expect(aviso).toHaveTextContent("$ 48.000");
+      expect(aviso).toHaveTextContent("$ 52.000");
+    });
+
+    it("no avisa nada cuando todas las ventas tienen costo", async () => {
+      renderConResumen({
+        porEstado: [
+          { estado: "PENDIENTE", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+          { estado: "EN_PREPARACION", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+          { estado: "ENTREGADA", cantidadOrdenes: 7, venta: "52000", costo: "26500", ventaConCosto: "52000" },
+          { estado: "CANCELADA", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+        ],
+      });
+
+      await screen.findByTestId("estado-ENTREGADA");
+      expect(screen.queryByTestId("aviso-cobertura-costo")).toBeNull();
+    });
   });
 });
