@@ -58,11 +58,11 @@ describe("AdminOrdenes", () => {
     ordenesApi.getOrdenes.mockResolvedValue({ data: [ORDEN], page: 1, pageSize: 20, total: 1 });
 
     const select = screen.getByLabelText("Filtrar por estado");
-    await user.selectOptions(select, "CONFIRMADA");
+    await user.selectOptions(select, "EN_PREPARACION");
 
     await waitFor(() => {
       expect(ordenesApi.getOrdenes).toHaveBeenCalledWith(
-        expect.objectContaining({ estado: "CONFIRMADA", page: 1 }),
+        expect.objectContaining({ estado: "EN_PREPARACION", page: 1 }),
       );
     });
   });

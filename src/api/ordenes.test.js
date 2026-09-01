@@ -141,26 +141,26 @@ describe("actualizarEstadoOrden", () => {
   });
 
   it("hace PATCH a /ordenes/:id/estado con el nuevo estado en JSON", async () => {
-    mockFetchAutenticadoOnce({ id: 5, estado: "CONFIRMADA" });
+    mockFetchAutenticadoOnce({ id: 5, estado: "EN_PREPARACION" });
 
-    await actualizarEstadoOrden(5, "CONFIRMADA");
+    await actualizarEstadoOrden(5, "EN_PREPARACION");
 
     expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/ordenes/5/estado`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estado: "CONFIRMADA", notificarCliente: false }),
+      body: JSON.stringify({ estado: "EN_PREPARACION", notificarCliente: false }),
     });
   });
 
   it("manda notificarCliente en true cuando se pide notificar", async () => {
-    mockFetchAutenticadoOnce({ id: 5, estado: "CONFIRMADA" });
+    mockFetchAutenticadoOnce({ id: 5, estado: "EN_PREPARACION" });
 
-    await actualizarEstadoOrden(5, "CONFIRMADA", true);
+    await actualizarEstadoOrden(5, "EN_PREPARACION", true);
 
     expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/ordenes/5/estado`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estado: "CONFIRMADA", notificarCliente: true }),
+      body: JSON.stringify({ estado: "EN_PREPARACION", notificarCliente: true }),
     });
   });
 

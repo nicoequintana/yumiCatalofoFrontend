@@ -22,7 +22,7 @@ const ORDEN = {
 };
 
 // Fixture de las tres pruebas preexistentes (info de cliente, link de DNI,
-// los 5 estados habilitados). Se mantiene aparte de ORDEN porque ejercita un
+// los 4 estados habilitados). Se mantiene aparte de ORDEN porque ejercita un
 // caso que ORDEN no cubre: la suma en centavos de dos precios que en floats
 // arrastran error (0.10 + 0.20).
 const ORDEN_ENTREGADA = {
@@ -51,7 +51,7 @@ beforeEach(() => {
   getOrdenById.mockReset();
   getOrdenById.mockResolvedValue(ORDEN);
   actualizarEstadoOrden.mockReset();
-  actualizarEstadoOrden.mockResolvedValue({ ...ORDEN, estado: "CONFIRMADA" });
+  actualizarEstadoOrden.mockResolvedValue({ ...ORDEN, estado: "EN_PREPARACION" });
 });
 
 describe("AdminOrdenDetalle — datos de la orden", () => {
@@ -84,7 +84,7 @@ describe("AdminOrdenDetalle — datos de la orden", () => {
     expect(linkDni).toHaveAttribute("href", "/catalogo/admin/ordenes?dni=12345678");
   });
 
-  it("una orden en ENTREGADA sigue teniendo todos los 5 estados habilitados en el select (sin restricción de transición)", async () => {
+  it("una orden en ENTREGADA sigue teniendo todos los 4 estados habilitados en el select (sin restricción de transición)", async () => {
     getOrdenById.mockResolvedValue(ORDEN_ENTREGADA);
     renderDetalle();
 
@@ -93,7 +93,7 @@ describe("AdminOrdenDetalle — datos de la orden", () => {
 
     const opciones = screen.getAllByRole("option");
     const valores = opciones.map((o) => o.value);
-    expect(valores).toEqual(["PENDIENTE", "CONFIRMADA", "EN_PREPARACION", "ENTREGADA", "CANCELADA"]);
+    expect(valores).toEqual(["PENDIENTE", "EN_PREPARACION", "ENTREGADA", "CANCELADA"]);
 
     for (const opcion of opciones) {
       expect(opcion).not.toBeDisabled();
@@ -116,7 +116,7 @@ describe("AdminOrdenDetalle — cambio de estado", () => {
     renderDetalle();
     const select = await screen.findByRole("combobox");
 
-    await usuario.selectOptions(select, "CONFIRMADA");
+    await usuario.selectOptions(select, "EN_PREPARACION");
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(actualizarEstadoOrden).not.toHaveBeenCalled();
@@ -127,7 +127,7 @@ describe("AdminOrdenDetalle — cambio de estado", () => {
     renderDetalle();
     const select = await screen.findByRole("combobox");
 
-    await usuario.selectOptions(select, "CONFIRMADA");
+    await usuario.selectOptions(select, "EN_PREPARACION");
     await usuario.click(await screen.findByRole("button", { name: "Cancelar" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -140,10 +140,10 @@ describe("AdminOrdenDetalle — cambio de estado", () => {
     renderDetalle();
     const select = await screen.findByRole("combobox");
 
-    await usuario.selectOptions(select, "CONFIRMADA");
+    await usuario.selectOptions(select, "EN_PREPARACION");
     await usuario.click(await screen.findByRole("button", { name: "Notificar y guardar" }));
 
-    await waitFor(() => expect(actualizarEstadoOrden).toHaveBeenCalledWith("42", "CONFIRMADA", true));
+    await waitFor(() => expect(actualizarEstadoOrden).toHaveBeenCalledWith("42", "EN_PREPARACION", true));
   });
 
   it("guardar sin notificar manda notificarCliente en false", async () => {
@@ -151,18 +151,18 @@ describe("AdminOrdenDetalle — cambio de estado", () => {
     renderDetalle();
     const select = await screen.findByRole("combobox");
 
-    await usuario.selectOptions(select, "CONFIRMADA");
+    await usuario.selectOptions(select, "EN_PREPARACION");
     await usuario.click(await screen.findByRole("button", { name: "Guardar sin notificar" }));
 
     await waitFor(() =>
-      expect(actualizarEstadoOrden).toHaveBeenCalledWith("42", "CONFIRMADA", false),
+      expect(actualizarEstadoOrden).toHaveBeenCalledWith("42", "EN_PREPARACION", false),
     );
   });
 
   it("avisa cuando el estado se guardó pero el mail no salió", async () => {
     actualizarEstadoOrden.mockResolvedValue({
       ...ORDEN,
-      estado: "CONFIRMADA",
+      estado: "EN_PREPARACION",
       notificacion: { intentada: true, enviada: false, error: "Invalid login" },
     });
 
@@ -170,17 +170,17 @@ describe("AdminOrdenDetalle — cambio de estado", () => {
     renderDetalle();
     const select = await screen.findByRole("combobox");
 
-    await usuario.selectOptions(select, "CONFIRMADA");
+    await usuario.selectOptions(select, "EN_PREPARACION");
     await usuario.click(await screen.findByRole("button", { name: "Notificar y guardar" }));
 
     expect(await screen.findByText(/no se pudo notificar al cliente/i)).toBeInTheDocument();
-    expect(select).toHaveValue("CONFIRMADA");
+    expect(select).toHaveValue("EN_PREPARACION");
   });
 
   it("no muestra el aviso cuando el mail salió bien", async () => {
     actualizarEstadoOrden.mockResolvedValue({
       ...ORDEN,
-      estado: "CONFIRMADA",
+      estado: "EN_PREPARACION",
       notificacion: { intentada: true, enviada: true },
     });
 
@@ -188,7 +188,7 @@ describe("AdminOrdenDetalle — cambio de estado", () => {
     renderDetalle();
     const select = await screen.findByRole("combobox");
 
-    await usuario.selectOptions(select, "CONFIRMADA");
+    await usuario.selectOptions(select, "EN_PREPARACION");
     await usuario.click(await screen.findByRole("button", { name: "Notificar y guardar" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -206,7 +206,7 @@ describe("AdminOrdenDetalle — cambio de estado", () => {
     renderDetalle();
     const select = await screen.findByRole("combobox");
 
-    await usuario.selectOptions(select, "CONFIRMADA");
+    await usuario.selectOptions(select, "EN_PREPARACION");
     await usuario.click(await screen.findByRole("button", { name: "Notificar y guardar" }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());

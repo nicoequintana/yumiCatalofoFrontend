@@ -134,7 +134,7 @@ export async function getOrdenById(id) {
  * correo falle.
  *
  * @param {number|string} id
- * @param {string} estado uno de: PENDIENTE, CONFIRMADA, EN_PREPARACION, ENTREGADA, CANCELADA
+ * @param {string} estado uno de: PENDIENTE, EN_PREPARACION, ENTREGADA, CANCELADA
  * @param {boolean} [notificarCliente=false]
  * @returns {Promise<Object>} la orden actualizada
  */

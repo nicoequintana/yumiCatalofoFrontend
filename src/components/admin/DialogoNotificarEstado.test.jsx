@@ -9,7 +9,7 @@ const onCancelar = vi.fn();
 const PROPS = {
   ordenId: 42,
   estadoAnterior: "PENDIENTE",
-  estadoNuevo: "CONFIRMADA",
+  estadoNuevo: "EN_PREPARACION",
   emailCliente: "juan@gmail.com",
   guardando: false,
   onConfirmar,
@@ -40,7 +40,7 @@ describe("DialogoNotificarEstado", () => {
     render(<DialogoNotificarEstado {...PROPS} />);
 
     expect(screen.getByText(/Pendiente/)).toBeInTheDocument();
-    expect(screen.getByText(/Confirmada/)).toBeInTheDocument();
+    expect(screen.getByText(/En preparación/)).toBeInTheDocument();
     expect(screen.getByText(/#42/)).toBeInTheDocument();
   });
 

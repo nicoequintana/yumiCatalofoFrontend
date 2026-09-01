@@ -14,7 +14,6 @@ const RESUMEN = {
   stockBajoMaximo: 3,
   ordenesPorEstado: {
     PENDIENTE: 2,
-    CONFIRMADA: 5,
     EN_PREPARACION: 1,
     ENTREGADA: 8,
     CANCELADA: 3,
@@ -31,14 +30,14 @@ const RESUMEN = {
       },
       {
         id: 4,
-        estado: "CONFIRMADA",
+        estado: "EN_PREPARACION",
         diasSinCambios: 5,
         clienteNombre: "Luis Paz",
         total: "50",
       },
     ],
   },
-  antiguedadPromedio: { PENDIENTE: 3, CONFIRMADA: 10, EN_PREPARACION: 0 },
+  antiguedadPromedio: { PENDIENTE: 3, EN_PREPARACION: 0 },
   quiebresConDemanda: [
     { productId: 2, nombre: "Perfume agotado", vistas: 40, stock: 0 },
     { productId: 3, nombre: "Jabón agotado", vistas: 9, stock: -1 },
@@ -55,13 +54,12 @@ const RESUMEN_TODO_EN_ORDEN = {
   stockBajoMaximo: 3,
   ordenesPorEstado: {
     PENDIENTE: 0,
-    CONFIRMADA: 2,
     EN_PREPARACION: 0,
     ENTREGADA: 0,
     CANCELADA: 1,
   },
   ordenesEstancadas: { total: 0, lista: [] },
-  antiguedadPromedio: { PENDIENTE: 0, CONFIRMADA: 0, EN_PREPARACION: 0 },
+  antiguedadPromedio: { PENDIENTE: 0, EN_PREPARACION: 0 },
   quiebresConDemanda: [],
   stockBajo: [],
 };
