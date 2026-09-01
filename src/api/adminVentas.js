@@ -41,8 +41,21 @@ function construirQuery(filtros) {
 }
 
 /**
- * Resumen de facturación del período (ingresos, pipeline, ranking y serie
- * diaria). Sin filtros, el backend usa los últimos 30 días.
+ * Resumen de facturación del período (ingresos, desglose por estado, ranking y
+ * serie diaria). Sin filtros, el backend usa los últimos 30 días.
+ *
+ * **`porEstado` reemplazó a la vieja clave `pipeline`**, que era este mismo
+ * dato calculado solo para PENDIENTE. Es un array con los CUATRO estados en
+ * orden de flujo —siempre los cuatro, también los que están en cero— y cada
+ * entrada trae `cantidadOrdenes` más TRES montos: `venta` (toda la
+ * facturación), `costo` (solo el de las líneas que tienen costo registrado) y
+ * `ventaConCosto` (la facturación de ESAS MISMAS líneas). Son tres y no dos
+ * porque `costoUnitario` es nullable: sin la tercera clave, la ganancia
+ * `ventaConCosto - costo` se calcularía contra facturación que nunca aportó
+ * ningún costo y saldría inflada.
+ *
+ * `CANCELADA` viaja con sus montos igual que el resto — el endpoint informa y
+ * la pantalla decide qué muestra (`AdminVentas.jsx` le oculta la plata).
  *
  * @param {{desde?: string, hasta?: string}} filtros - fechas en formato
  *   "YYYY-MM-DD".
