@@ -58,7 +58,7 @@ function PanelPreview({
                 aria-label="Vista escritorio"
                 aria-pressed={anchoPreview === "desktop"}
                 onClick={() => onCambiarAncho("desktop")}
-                className={`flex min-h-11 items-center rounded-md px-2 py-1 ${
+                className={`flex items-center rounded-md px-2 py-1 ${
                   anchoPreview === "desktop"
                     ? "bg-surface-container-lowest text-primary"
                     : "text-on-surface-variant"
@@ -71,7 +71,7 @@ function PanelPreview({
                 aria-label="Vista móvil"
                 aria-pressed={anchoPreview === "mobile"}
                 onClick={() => onCambiarAncho("mobile")}
-                className={`flex min-h-11 items-center rounded-md px-2 py-1 ${
+                className={`flex items-center rounded-md px-2 py-1 ${
                   anchoPreview === "mobile"
                     ? "bg-surface-container-lowest text-primary"
                     : "text-on-surface-variant"
