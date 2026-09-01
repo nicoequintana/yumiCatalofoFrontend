@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import useBloquearScroll from "../hooks/useBloquearScroll.js";
 import useCarrito from "../hooks/useCarrito.js";
 import useDialogo from "../hooks/useDialogo.js";
 import LogoYima from "./LogoYima.jsx";
@@ -71,14 +72,7 @@ function Navbar() {
 
   // Con el panel abierto la página de atrás no debe scrollear: está tapada, y
   // el gesto de scroll ahí mueve contenido que no se ve.
-  useEffect(() => {
-    if (!menuAbierto) return undefined;
-    const overflowPrevio = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = overflowPrevio;
-    };
-  }, [menuAbierto]);
+  useBloquearScroll(menuAbierto);
 
   const claseAccion =
     "relative inline-flex h-11 w-11 items-center justify-center rounded-full text-on-surface transition-colors hover:bg-surface-container-high";
