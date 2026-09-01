@@ -323,7 +323,7 @@ function SeccionesFormulario({
                     type="button"
                     onClick={() => eliminarCaracteristica(index)}
                     aria-label={`Eliminar característica ${caracteristica.texto}`}
-                    className="text-on-surface-variant hover:text-error"
+                    className="inline-flex items-center justify-center text-on-surface-variant hover:text-error max-md:min-h-11 max-md:min-w-11"
                   >
                     <span className="material-symbols-outlined text-[18px]">close</span>
                   </button>
@@ -371,7 +371,7 @@ function SeccionesFormulario({
                     type="button"
                     onClick={() => eliminarEspecificacion(index)}
                     aria-label={`Eliminar especificación ${spec.nombre}`}
-                    className="text-on-surface-variant hover:text-error"
+                    className="inline-flex items-center justify-center text-on-surface-variant hover:text-error max-md:min-h-11 max-md:min-w-11"
                   >
                     <span className="material-symbols-outlined text-[18px]">close</span>
                   </button>

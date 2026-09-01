@@ -895,18 +895,25 @@ function AdminPrecios() {
             <thead role="rowgroup">
               <tr role="row" className="border-b border-outline-variant">
                 <th role="columnheader" className="px-2 py-2 xl:px-3 xl:py-3">
-                  <input
-                    type="checkbox"
-                    aria-label="Seleccionar todos los productos de esta página"
-                    checked={todosSeleccionados}
-                    // `indeterminate` no existe como atributo HTML, solo como
-                    // propiedad del nodo: se setea por ref o no se ve nunca.
-                    ref={(nodo) => {
-                      if (nodo) nodo.indeterminate = haySeleccion && !todosSeleccionados;
-                    }}
-                    onChange={alternarTodos}
-                    className="size-4 accent-primary"
-                  />
+                  {/* El `<label>` amplía el área táctil a ~44px con un margen
+                      negativo que compensa su propio padding, sin mover el
+                      layout. Tiene que quedar SIN texto: si llevara contenido,
+                      el nombre accesible del checkbox dejaría de ser su
+                      `aria-label` y los tests por nombre se romperían. */}
+                  <label className="-m-3 inline-flex p-3">
+                    <input
+                      type="checkbox"
+                      aria-label="Seleccionar todos los productos de esta página"
+                      checked={todosSeleccionados}
+                      // `indeterminate` no existe como atributo HTML, solo como
+                      // propiedad del nodo: se setea por ref o no se ve nunca.
+                      ref={(nodo) => {
+                        if (nodo) nodo.indeterminate = haySeleccion && !todosSeleccionados;
+                      }}
+                      onChange={alternarTodos}
+                      className="size-5 accent-primary"
+                    />
+                  </label>
                 </th>
                 <th role="columnheader" className={claseEncabezado}>Foto</th>
                 <th role="columnheader" className={claseEncabezado}>SKU / Producto</th>
@@ -921,13 +928,17 @@ function AdminPrecios() {
               {filasVisibles.map((fila) => (
                 <tr key={fila.id} role="row" className="border-b border-outline-variant last:border-b-0">
                   <td role="cell" data-celda="control" className={claseCelda}>
-                    <input
-                      type="checkbox"
-                      aria-label={`Seleccionar ${fila.nombre}`}
-                      checked={seleccionados.has(fila.id)}
-                      onChange={() => alternarSeleccion(fila.id)}
-                      className="size-4 accent-primary"
-                    />
+                    {/* Ver el comentario del checkbox del encabezado: el
+                        `<label>` tiene que quedar sin texto. */}
+                    <label className="-m-3 inline-flex p-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`Seleccionar ${fila.nombre}`}
+                        checked={seleccionados.has(fila.id)}
+                        onChange={() => alternarSeleccion(fila.id)}
+                        className="size-5 accent-primary"
+                      />
+                    </label>
                   </td>
                   {/* La portada, para reconocer el producto sin leer el SKU.
                       Sin link, por lo mismo que el nombre de al lado. */}

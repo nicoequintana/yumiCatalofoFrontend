@@ -241,7 +241,7 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
                   type="button"
                   onClick={() => quitarEn(index + 2)}
                   aria-label={`Quitar foto ${index + 3} de la galería`}
-                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
+                  className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface max-md:size-11"
                 >
                   <span className="material-symbols-outlined text-[16px]">close</span>
                 </button>
@@ -251,7 +251,7 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
                       type="button"
                       onClick={() => moverEnGaleria(index, -1)}
                       aria-label={`Mover foto ${index + 3} de la galería hacia atrás`}
-                      className="flex h-6 w-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
+                      className="flex size-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface max-md:size-11"
                     >
                       <span className="material-symbols-outlined text-[16px]">chevron_left</span>
                     </button>
@@ -261,7 +261,7 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
                       type="button"
                       onClick={() => moverEnGaleria(index, 1)}
                       aria-label={`Mover foto ${index + 3} de la galería hacia adelante`}
-                      className="flex h-6 w-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
+                      className="flex size-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface max-md:size-11"
                     >
                       <span className="material-symbols-outlined text-[16px]">chevron_right</span>
                     </button>
@@ -309,7 +309,7 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
               type="button"
               onClick={eliminarVideo}
               aria-label="Eliminar video"
-              className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
+              className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface max-md:size-11"
             >
               <span className="material-symbols-outlined text-[16px]">close</span>
             </button>
@@ -374,7 +374,7 @@ function RanuraFoto({
             type="button"
             onClick={onQuitar}
             aria-label={etiquetaQuitar}
-            className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
+            className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface max-md:size-11"
           >
             <span className="material-symbols-outlined text-[16px]">close</span>
           </button>

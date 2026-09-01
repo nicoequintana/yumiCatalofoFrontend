@@ -159,7 +159,7 @@ function AdminOrdenDetalle() {
           <h1 className="font-headline-lg text-headline-lg text-primary">Orden #{orden.id}</h1>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <select
             value={orden.estado}
             onChange={handleCambiarEstado}
@@ -209,7 +209,7 @@ function AdminOrdenDetalle() {
             {orden.cliente.email ? (
               <div className="flex justify-between gap-4">
                 <dt className="font-body-md text-body-md text-on-surface-variant">Email</dt>
-                <dd className="font-body-md text-body-md text-on-surface">{orden.cliente.email}</dd>
+                <dd className="font-body-md text-body-md min-w-0 break-words text-on-surface">{orden.cliente.email}</dd>
               </div>
             ) : null}
             <div className="flex justify-between gap-4">

@@ -88,7 +88,7 @@ function AdminOrdenes() {
           <h1 className="font-headline-lg text-headline-lg text-primary">Órdenes</h1>
         </div>
 
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
           {/* La pantalla donde más rinde: los pedidos entran mientras se la
               mira. Conserva el filtro de estado, el DNI y la página — que es lo
               único que este botón agrega sobre recargar con F5. */}

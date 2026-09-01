@@ -51,7 +51,7 @@ function ListaDinamica({ items, onChange, placeholder }) {
                   type="button"
                   onClick={() => mover(index, -1)}
                   aria-label={`Mover ${item.texto} hacia arriba`}
-                  className="text-on-surface-variant hover:text-on-surface"
+                  className="inline-flex items-center justify-center text-on-surface-variant hover:text-on-surface max-md:min-h-11 max-md:min-w-11"
                 >
                   <span className="material-symbols-outlined text-[18px]">arrow_upward</span>
                 </button>
@@ -61,7 +61,7 @@ function ListaDinamica({ items, onChange, placeholder }) {
                   type="button"
                   onClick={() => mover(index, 1)}
                   aria-label={`Mover ${item.texto} hacia abajo`}
-                  className="text-on-surface-variant hover:text-on-surface"
+                  className="inline-flex items-center justify-center text-on-surface-variant hover:text-on-surface max-md:min-h-11 max-md:min-w-11"
                 >
                   <span className="material-symbols-outlined text-[18px]">arrow_downward</span>
                 </button>
@@ -70,7 +70,7 @@ function ListaDinamica({ items, onChange, placeholder }) {
                 type="button"
                 onClick={() => eliminar(index)}
                 aria-label={`Eliminar ${item.texto}`}
-                className="text-on-surface-variant hover:text-error"
+                className="inline-flex items-center justify-center text-on-surface-variant hover:text-error max-md:min-h-11 max-md:min-w-11"
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>

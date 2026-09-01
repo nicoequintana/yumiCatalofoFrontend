@@ -183,7 +183,7 @@ function AdminAnuncios() {
 
   const claseCelda = "px-4 py-3 align-middle";
   const claseAccion =
-    "font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest hover:underline disabled:opacity-60";
+    "font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest hover:underline disabled:opacity-60 max-md:min-h-11";
 
   return (
     <main className="w-full px-4 py-6 md:px-8 md:py-8">
@@ -292,7 +292,7 @@ function AdminAnuncios() {
                         onClick={() => handleMover(indice, -1)}
                         disabled={indice === 0 || ocupadoId !== null}
                         aria-label={`Subir "${anuncio.texto}"`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30"
+                        className="inline-flex size-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30 max-md:size-11"
                       >
                         <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
                           arrow_upward
@@ -303,7 +303,7 @@ function AdminAnuncios() {
                         onClick={() => handleMover(indice, 1)}
                         disabled={indice === anuncios.length - 1 || ocupadoId !== null}
                         aria-label={`Bajar "${anuncio.texto}"`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30"
+                        className="inline-flex size-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30 max-md:size-11"
                       >
                         <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
                           arrow_downward
@@ -356,7 +356,7 @@ function AdminAnuncios() {
                   </td>
 
                   <td role="cell" data-celda="acciones" className={claseCelda}>
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                       {editandoId === anuncio.id ? (
                         <>
                           <button

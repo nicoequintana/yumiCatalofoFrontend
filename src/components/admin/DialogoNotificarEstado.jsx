@@ -51,7 +51,7 @@ function DialogoNotificarEstado({
         role="dialog"
         aria-modal="true"
         aria-labelledby="titulo-notificar-estado"
-        className="w-full max-w-md rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl"
+        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-xl"
       >
         <h2
           id="titulo-notificar-estado"

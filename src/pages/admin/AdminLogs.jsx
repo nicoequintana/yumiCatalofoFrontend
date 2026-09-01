@@ -249,7 +249,7 @@ function AdminLogs() {
         panel, y que las flechas no hicieran nada. Un grupo de toggles con
         `aria-pressed` describe exactamente lo que estos dos botones hacen.
       */}
-      <div role="group" aria-label="Tipo de log" className="mb-8 flex gap-2">
+      <div role="group" aria-label="Tipo de log" className="mb-8 flex flex-wrap gap-2">
         <button
           type="button"
           aria-pressed={esAuditoria}

@@ -362,7 +362,7 @@ function AdminCategorias() {
                           disabled={ocupadaId === categoria.id}
                           aria-label={`${categoria.imagenUrl ? "Cambiar" : "Subir"} la foto de ${categoria.nombre}`}
                           title={categoria.imagenUrl ? "Cambiar foto" : "Subir foto"}
-                          className="text-secondary flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60"
+                          className="text-secondary flex size-8 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60 max-md:size-11"
                         >
                           <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                             upload
@@ -393,7 +393,7 @@ function AdminCategorias() {
                             disabled={ocupadaId === categoria.id}
                             aria-label={`Quitar la foto de ${categoria.nombre}`}
                             title="Quitar foto"
-                            className="text-error flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60"
+                            className="text-error flex size-8 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60 max-md:size-11"
                           >
                             {/* `hide_image`, no `delete`: en la misma fila hay un
                                 tacho que borra la CATEGORÍA entera, y dos íconos
@@ -424,15 +424,15 @@ function AdminCategorias() {
                         aria-label={`Mostrar ${categoria.nombre} en la home`}
                         onClick={() => handleToggleHome(categoria)}
                         disabled={ocupadaId === categoria.id}
-                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 xl:h-6 xl:w-11 ${
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 md:h-5 md:w-9 xl:h-6 xl:w-11 ${
                           categoria.destacadaEnHome ? "bg-secondary" : "bg-outline-variant"
                         }`}
                       >
                         <span
-                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface-container-lowest shadow transition-transform xl:h-4 xl:w-4 ${
+                          className={`inline-block size-4 transform rounded-full bg-surface-container-lowest shadow transition-transform md:size-3 xl:size-4 ${
                             categoria.destacadaEnHome
-                              ? "translate-x-5 xl:translate-x-6"
-                              : "translate-x-0.5 xl:translate-x-1"
+                              ? "translate-x-6 md:translate-x-5 xl:translate-x-6"
+                              : "translate-x-1"
                           }`}
                         />
                       </button>
@@ -458,14 +458,14 @@ function AdminCategorias() {
                   </td>
 
                   <td role="cell" data-celda="acciones" className="px-4 py-3">
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                       {editandoId === categoria.id ? (
                         <>
                           <button
                             type="button"
                             onClick={() => handleGuardarEdicion(categoria.id)}
                             disabled={guardandoEdicion || eliminandoId === categoria.id}
-                            className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline disabled:opacity-60"
+                            className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline disabled:opacity-60 max-md:min-h-11"
                           >
                             {guardandoEdicion ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Guardar
@@ -473,7 +473,7 @@ function AdminCategorias() {
                           <button
                             type="button"
                             onClick={() => setEditandoId(null)}
-                            className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant hover:underline"
+                            className="font-label-md text-label-md inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11"
                           >
                             Cancelar
                           </button>
@@ -484,7 +484,7 @@ function AdminCategorias() {
                           onClick={() => iniciarEdicion(categoria)}
                           aria-label={`Renombrar ${categoria.nombre}`}
                           title="Renombrar"
-                          className="text-secondary flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60"
+                          className="text-secondary flex size-8 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60 max-md:size-11"
                         >
                           <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                             edit
@@ -499,7 +499,7 @@ function AdminCategorias() {
                             type="button"
                             onClick={() => handleEliminar(categoria.id)}
                             disabled={eliminandoId === categoria.id || guardandoEdicion}
-                            className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60"
+                            className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60 max-md:min-h-11"
                           >
                             {eliminandoId === categoria.id ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Sí
@@ -507,7 +507,7 @@ function AdminCategorias() {
                           <button
                             type="button"
                             onClick={() => setConfirmandoId(null)}
-                            className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant hover:underline"
+                            className="font-label-md text-label-md inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11"
                           >
                             No
                           </button>
@@ -521,7 +521,7 @@ function AdminCategorias() {
                           }}
                           aria-label={`Eliminar la categoría ${categoria.nombre}`}
                           title="Eliminar categoría"
-                          className="text-error flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60"
+                          className="text-error flex size-8 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60 max-md:size-11"
                         >
                           <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                             delete

@@ -218,7 +218,7 @@ function AdminProductoForm() {
             aria-modal="true"
             aria-labelledby="titulo-eliminar-producto"
             tabIndex={-1}
-            className="w-full max-w-sm rounded-xl bg-surface-container-lowest p-6 shadow-ambient outline-none"
+            className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-xl bg-surface-container-lowest p-6 shadow-ambient outline-none"
           >
             <h2
               id="titulo-eliminar-producto"
@@ -237,7 +237,7 @@ function AdminProductoForm() {
                 {errorEliminar}
               </p>
             ) : null}
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => setConfirmandoBorrado(false)}

@@ -29,6 +29,13 @@ describe("DialogoNotificarEstado", () => {
     expect(dialogo).toHaveAttribute("aria-modal", "true");
   });
 
+  it("acota su alto y scrollea en vez de desbordar la pantalla", () => {
+    render(<DialogoNotificarEstado {...PROPS} />);
+
+    const dialogo = screen.getByRole("dialog");
+    expect(dialogo).toHaveClass("max-h-[85vh]", "overflow-y-auto");
+  });
+
   it("dice de qué estado a cuál pasa la orden", () => {
     render(<DialogoNotificarEstado {...PROPS} />);
 

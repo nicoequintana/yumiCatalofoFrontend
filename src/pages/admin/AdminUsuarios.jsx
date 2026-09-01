@@ -266,14 +266,14 @@ function AdminUsuarios() {
                     {formatearFecha(usuario.createdAt)}
                   </td>
                   <td role="cell" data-celda="acciones" className="px-4 py-3">
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                       {editandoId === usuario.id ? (
                         <>
                           <button
                             type="button"
                             onClick={() => handleGuardarEdicion(usuario.id)}
                             disabled={guardandoEdicion || eliminandoId === usuario.id}
-                            className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline disabled:opacity-60"
+                            className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline disabled:opacity-60 max-md:min-h-11"
                           >
                             {guardandoEdicion ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Guardar
@@ -281,7 +281,7 @@ function AdminUsuarios() {
                           <button
                             type="button"
                             onClick={() => setEditandoId(null)}
-                            className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant hover:underline"
+                            className="font-label-md text-label-md inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11"
                           >
                             Cancelar
                           </button>
@@ -290,7 +290,7 @@ function AdminUsuarios() {
                         <button
                           type="button"
                           onClick={() => iniciarEdicion(usuario)}
-                          className="flex items-center gap-1 font-label-md text-label-md uppercase tracking-widest text-secondary hover:underline"
+                          className="flex items-center gap-1 font-label-md text-label-md uppercase tracking-widest text-secondary hover:underline max-md:min-h-11"
                         >
                           <span className="material-symbols-outlined text-[18px]">edit</span>
                           Editar
@@ -304,7 +304,7 @@ function AdminUsuarios() {
                             type="button"
                             onClick={() => handleEliminar(usuario.id)}
                             disabled={eliminandoId === usuario.id || guardandoEdicion}
-                            className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60"
+                            className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60 max-md:min-h-11"
                           >
                             {eliminandoId === usuario.id ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Sí
@@ -312,7 +312,7 @@ function AdminUsuarios() {
                           <button
                             type="button"
                             onClick={() => setConfirmandoId(null)}
-                            className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant hover:underline"
+                            className="font-label-md text-label-md inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11"
                           >
                             No
                           </button>
@@ -324,7 +324,7 @@ function AdminUsuarios() {
                             setEditandoId(null);
                             setConfirmandoId(usuario.id);
                           }}
-                          className="flex items-center gap-1 font-label-md text-label-md uppercase tracking-widest text-error hover:underline"
+                          className="flex items-center gap-1 font-label-md text-label-md uppercase tracking-widest text-error hover:underline max-md:min-h-11"
                         >
                           <span className="material-symbols-outlined text-[18px]">delete</span>
                           Eliminar
