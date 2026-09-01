@@ -32,7 +32,7 @@ function Advertencia({ titulo, icono = "warning", testId, children }) {
     <div
       {...(testId ? { "data-testid": testId } : {})}
       role="status"
-      className="mb-8 flex flex-col gap-3 rounded-xl border border-outline bg-tertiary-container p-5"
+      className="mb-8 flex flex-col gap-3 rounded-xl border border-outline bg-tertiary-container p-4 md:p-5"
     >
       <div className="flex items-center gap-2 text-on-surface">
         <span className="material-symbols-outlined text-[20px]">{icono}</span>

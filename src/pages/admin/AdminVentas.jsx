@@ -50,8 +50,8 @@ function GraficoIngresos({ serie }) {
   const cadaCuantas = Math.ceil(serie.length / 7);
 
   return (
-    <div className="overflow-x-auto">
-      <div className="min-w-[320px]">
+    <div>
+      <div className="w-full">
         <svg
           data-testid="grafico-ingresos"
           viewBox="0 0 100 42"

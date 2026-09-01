@@ -110,7 +110,7 @@ function AdminImportarProductos() {
             type="file"
             accept=".xlsx"
             onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
-            className="font-body-md text-body-md w-full max-w-2xl rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
+            className="font-body-md text-body-md w-full min-w-0 max-w-2xl rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
           />
         </div>
 

@@ -33,7 +33,7 @@ function SeccionAdmin({
       {...(etiqueta
         ? { "aria-label": etiqueta }
         : { "aria-labelledby": tituloId })}
-      className={`mb-6 rounded-xl border border-outline-variant bg-surface-container-low p-5 md:p-6 ${className}`}
+      className={`mb-6 rounded-xl border border-outline-variant bg-surface-container-low p-4 md:p-6 ${className}`}
     >
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
