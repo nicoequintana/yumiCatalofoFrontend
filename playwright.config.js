@@ -44,10 +44,29 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
 
+  // Dos proyectos: `chromium` (1280x720, la suite de flujo de siempre) y
+  // `mobile` (Pixel 7 = 412x915, Chromium con `isMobile`/`hasTouch` — no
+  // exige instalar WebKit) para el layout responsive del admin (Sprint del
+  // panel admin full responsive, Task 5).
+  //
+  // El proyecto `mobile` corre UN SOLO spec (`admin-mobile.spec.js`), no la
+  // suite entera: los otros 6 specs existentes prueban FLUJO (checkout,
+  // login, cambio de estado de una orden) y ese flujo ya está cubierto contra
+  // escritorio — correrlos de nuevo a 412px no agrega cobertura de layout,
+  // solo duplica tiempo de corrida y rate limit (login 8/15min, órdenes
+  // 10/10min) sin ganar nada. Lo que SÍ es específico de mobile es el layout
+  // (desborde, tabla apilada, áreas táctiles, drawer), que es exactamente lo
+  // que prueba `admin-mobile.spec.js`.
   projects: [
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      testIgnore: ["**/admin-mobile.spec.js"],
+    },
+    {
+      name: "mobile",
+      use: { ...devices["Pixel 7"] },
+      testMatch: ["**/admin-mobile.spec.js"],
     },
   ],
 

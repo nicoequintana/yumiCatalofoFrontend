@@ -26,6 +26,65 @@ propios porque estos manejan el flujo completo browser -> frontend -> backend
    apaga al terminar. El backend **no** se auto-levanta — ver la próxima
    sección.
 
+   `npm run test:e2e` corre el proyecto `chromium` (la suite de flujo, ver
+   "Estructura" abajo). El proyecto `mobile` es aparte — ver la sección
+   siguiente.
+
+## Proyecto `mobile` (layout responsive del admin)
+
+`playwright.config.js` define **dos proyectos**, no uno: `chromium` (1280x720,
+`devices["Desktop Chrome"]`, la suite de flujo de siempre) y `mobile` (Pixel 7
+= 412x915, `devices["Pixel 7"]` — sigue siendo Chromium con `isMobile`/
+`hasTouch`, no exige instalar WebKit). Cada proyecto corre un subconjunto
+disjunto de specs (`testMatch`/`testIgnore` en la config): `mobile` corre
+**solo** `admin-mobile.spec.js`, `chromium` corre todo lo demás.
+
+```
+cd frontend
+npx playwright test --project=mobile
+```
+
+**Por qué `mobile` corre un único spec y no la suite entera**: los otros 7
+specs (6 de flujo público + `admin-desktop-layout.spec.js`) prueban
+*comportamiento* (checkout, login, cambio de estado de una orden, que la
+tabla siga siendo `display: table` en escritorio) — ese comportamiento ya
+está cubierto contra 1280px, y correrlo de nuevo a 412px no agrega cobertura
+nueva, solo duplica tiempo de corrida y gasta rate limit (login 8/15min,
+`POST /api/ordenes` 10/10min) sin verificar nada que el proyecto `chromium`
+no verifique ya. Lo que sí es específico de un viewport angosto es el
+**layout**: desborde horizontal, tabla apilada, áreas táctiles, el drawer —
+exactamente lo que prueba `admin-mobile.spec.js`.
+
+Qué verifica cada spec nuevo:
+
+- **`admin-mobile.spec.js`** (proyecto `mobile`): siembra un admin + un
+  producto + una orden de test en `beforeAll` (ver "Estrategia de datos de
+  test" abajo) y corre cuatro tests contra el admin logueado:
+  1. **Ninguna pantalla desborda ni tapa el título** — recorre diez rutas del
+     admin (listados, detalle de orden, editor de producto, pantallas de
+     configuración y analytics) y en cada una mide
+     `document.documentElement.scrollWidth` contra `window.innerWidth` **y**
+     el `getBoundingClientRect().right` de cada `<table>`/`<tr>` (el
+     `overflow-x-clip` del `<main>` del admin recorta el desborde sin
+     convertirlo en scroll de documento, así que el primer chequeo solo no
+     alcanza), más que el `<h1>` de cada pantalla no quede tapado por el
+     botón "Abrir menú" de la barra superior.
+  2. **Drawer**: abre con el botón de la barra superior, `Escape` lo cierra
+     (`inert` vuelve a `true`, sale de pantalla) y el foco vuelve al botón
+     que lo abrió.
+  3. **Tabla apilada conserva semántica**: en `/productos`, la tabla sigue
+     siendo `role="table"` con `display: block`, sus celdas siguen siendo
+     `role="cell"` con nombre accesible, y el `thead` (visualmente sr-only en
+     mobile) sigue en el árbol de accesibilidad.
+  4. **Áreas táctiles**: el primer switch "Catálogo" de la tabla mide al
+     menos 24×44 px, y el primer checkbox de selección tiene un área táctil
+     (su `<label>` envolvente) de al menos 44×44 px.
+- **`admin-desktop-layout.spec.js`** (proyecto `chromium`): guard de
+  no-regresión — a 1280x720 la tabla de `/productos` sigue siendo
+  `display: table` (no apilada), el botón "Abrir menú" sigue oculto, el
+  drawer sigue `inert` (nunca se abrió) y el link "Ventas" de la bottom nav
+  sigue visible en la franja inferior de la pantalla.
+
 ## Por qué el backend no se auto-levanta
 
 Playwright's `webServer` solo soporta arrancar un proceso directamente. Se
