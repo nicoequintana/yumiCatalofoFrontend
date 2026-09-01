@@ -50,13 +50,26 @@ export default defineConfig({
   // panel admin full responsive, Task 5).
   //
   // El proyecto `mobile` corre UN SOLO spec (`admin-mobile.spec.js`), no la
-  // suite entera: los otros 6 specs existentes prueban FLUJO (checkout,
-  // login, cambio de estado de una orden) y ese flujo ya está cubierto contra
-  // escritorio — correrlos de nuevo a 412px no agrega cobertura de layout,
-  // solo duplica tiempo de corrida y rate limit (login 8/15min, órdenes
-  // 10/10min) sin ganar nada. Lo que SÍ es específico de mobile es el layout
-  // (desborde, tabla apilada, áreas táctiles, drawer), que es exactamente lo
-  // que prueba `admin-mobile.spec.js`.
+  // suite entera: los otros 7 specs (6 de flujo público +
+  // `admin-desktop-layout.spec.js`) prueban FLUJO/no-regresión de escritorio
+  // (checkout, login, cambio de estado de una orden, que la tabla siga siendo
+  // `display: table` a 1280px) y eso ya está cubierto contra escritorio —
+  // correrlos de nuevo a 412px no agrega cobertura de layout, solo duplica
+  // tiempo de corrida y rate limit (login 8/15min, órdenes 10/10min) sin
+  // ganar nada. Lo que SÍ es específico de mobile es el layout (desborde,
+  // tabla apilada, áreas táctiles, drawer), que es exactamente lo que prueba
+  // `admin-mobile.spec.js`.
+  //
+  // Por eso Playwright NUNCA elige el proyecto solo — cuando hay varios
+  // `projects` configurados y no se pasa `--project`, corre TODOS, y con dos
+  // proyectos definidos eso incluiría `mobile` en cualquier corrida sin
+  // flag. Los dos scripts de `package.json` fijan el proyecto explícito:
+  // `npm run test:e2e` = `playwright test --project=chromium` (mismo
+  // comportamiento que tenía este comando antes de que existiera el proyecto
+  // `mobile`) y `npm run test:e2e:mobile` = `playwright test
+  // --project=mobile`. Un `npx playwright test` sin script ni `--project`
+  // sigue corriendo los dos proyectos — es el comportamiento por defecto de
+  // Playwright, no algo que este archivo pueda apagar por sí solo.
   projects: [
     {
       name: "chromium",

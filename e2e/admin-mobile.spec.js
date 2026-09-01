@@ -221,6 +221,11 @@ test.describe("Admin en mobile", () => {
     const cajaCelda = await celdaSwitch.boundingBox();
     expect(cajaCelda.height, "alto de la celda que contiene el switch").toBeGreaterThanOrEqual(44);
 
+    // `.first()` resuelve al checkbox "Seleccionar todos" del encabezado (va
+    // antes que `<tbody>` en el DOM y también matchea el regex) y no a uno de
+    // fila — es igual de válido para esta medición: el encabezado envuelve su
+    // checkbox en el mismo `<label className="-m-3 inline-flex p-3">` que
+    // cada fila, así que mide la misma área táctil.
     const checkbox = tabla.getByRole("checkbox", { name: /seleccionar/i }).first();
     const etiqueta = checkbox.locator("xpath=ancestor::label[1]");
     const cajaEtiqueta = await etiqueta.boundingBox();

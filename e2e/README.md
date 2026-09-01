@@ -26,9 +26,14 @@ propios porque estos manejan el flujo completo browser -> frontend -> backend
    apaga al terminar. El backend **no** se auto-levanta — ver la próxima
    sección.
 
-   `npm run test:e2e` corre el proyecto `chromium` (la suite de flujo, ver
-   "Estructura" abajo). El proyecto `mobile` es aparte — ver la sección
-   siguiente.
+   `npm run test:e2e` es `playwright test --project=chromium`
+   (`package.json`) — el proyecto `chromium` es la suite de flujo, ver
+   "Estructura" abajo. El `--project` es explícito a propósito: Playwright
+   corre TODOS los proyectos configurados cuando no se le pasa ninguno, así
+   que sin ese flag `npm run test:e2e` también dispararía el proyecto
+   `mobile` en cada corrida de rutina — sembrando sus fixtures y gastando un
+   login de más contra el rate limit de 8/15min sin que nadie lo pidiera. El
+   proyecto `mobile` tiene su propio script — ver la sección siguiente.
 
 ## Proyecto `mobile` (layout responsive del admin)
 
@@ -41,8 +46,15 @@ disjunto de specs (`testMatch`/`testIgnore` en la config): `mobile` corre
 
 ```
 cd frontend
-npx playwright test --project=mobile
+npm run test:e2e:mobile
 ```
+
+Equivalente a `playwright test --project=mobile` (`package.json`). Correr
+`npx playwright test` a mano, sin `--project` ni ninguno de los dos scripts
+de `package.json`, sigue disparando los DOS proyectos — es el comportamiento
+por defecto de Playwright con `projects` múltiples, no algo que la config
+pueda desactivar; los scripts de `package.json` son la forma de elegir uno
+solo sin tener que acordarse del flag.
 
 **Por qué `mobile` corre un único spec y no la suite entera**: los otros 7
 specs (6 de flujo público + `admin-desktop-layout.spec.js`) prueban
