@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminMetricas from "./AdminMetricas.jsx";
 import * as productsApi from "../../api/products.js";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/products.js");
 
@@ -113,5 +114,19 @@ describe("AdminMetricas", () => {
       });
     });
     expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
+  });
+
+  it("la tabla está apilable: cada celda declara su columna o su tipo", async () => {
+    productsApi.getProducts.mockResolvedValue({
+      data: [{ id: 1, nombre: "Reloj Clásico", sku: "YIMA-1", vistas: 7, compartidos: 2 }],
+      page: 1,
+      pageSize: 12,
+      total: 1,
+    });
+
+    renderPagina();
+
+    await screen.findByText("Reloj Clásico");
+    esperarTablaApilada(screen.getByRole("table"));
   });
 });

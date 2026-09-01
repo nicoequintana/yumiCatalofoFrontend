@@ -4,6 +4,7 @@ import { MemoryRouter, useSearchParams } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminPrecios from "./AdminPrecios.jsx";
 import * as productsApi from "../../api/products.js";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/products.js");
 
@@ -120,6 +121,15 @@ beforeEach(() => {
  * mostrar el placeholder, no un `<img>` con `src` vacío — que en un navegador
  * real pinta el ícono de imagen rota.
  */
+describe("AdminPrecios — tabla apilada en mobile", () => {
+  it("la tabla está apilable: cada celda declara su columna o su tipo", async () => {
+    renderPagina();
+
+    await screen.findByText("Termo");
+    esperarTablaApilada(screen.getByRole("table"));
+  });
+});
+
 describe("AdminPrecios — portada del producto", () => {
   it("muestra la foto cuando el producto tiene una", async () => {
     productsApi.getProducts.mockResolvedValue(

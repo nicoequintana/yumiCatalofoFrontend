@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminOrdenes from "./AdminOrdenes.jsx";
 import * as ordenesApi from "../../api/ordenes.js";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/ordenes.js");
 
@@ -95,5 +96,12 @@ describe("AdminOrdenes", () => {
     await waitFor(() => {
       expect(ordenesApi.getOrdenes).toHaveBeenCalledWith(expect.objectContaining({ dni: "12345678" }));
     });
+  });
+
+  it("la tabla está apilable: cada celda declara su columna o su tipo", async () => {
+    renderPagina();
+
+    await screen.findByText("#1");
+    esperarTablaApilada(screen.getByRole("table"));
   });
 });

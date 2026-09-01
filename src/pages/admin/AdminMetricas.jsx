@@ -6,6 +6,7 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Paginador from "../../components/Paginador.jsx";
 import { getProducts } from "../../api/products.js";
+import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 
 /**
  * `/catalogo/admin/metricas` — read-only table of view/share counts per
@@ -136,30 +137,30 @@ function AdminMetricas() {
         />
       ) : (
         <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-          <table className="w-full min-w-[600px] text-left">
-            <thead>
-              <tr className="border-b border-outline-variant">
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+          <table role="table" className={`${claseTablaApilada} w-full min-w-[600px] text-left`}>
+            <thead role="rowgroup">
+              <tr role="row" className="border-b border-outline-variant">
+                <th role="columnheader" className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   SKU
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th role="columnheader" className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Nombre
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th role="columnheader" className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Vistas
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th role="columnheader" className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
                   Compartidos
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup">
               {productos.map((producto) => (
-                <tr key={producto.id} className="border-b border-outline-variant last:border-b-0">
-                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">{producto.sku}</td>
-                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface">{producto.nombre}</td>
-                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">{producto.vistas}</td>
-                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
+                <tr key={producto.id} role="row" className="border-b border-outline-variant last:border-b-0">
+                  <td role="cell" data-label="SKU" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">{producto.sku}</td>
+                  <td role="cell" data-celda="identidad" className="font-body-md text-body-md px-4 py-3 text-on-surface">{producto.nombre}</td>
+                  <td role="cell" data-label="Vistas" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">{producto.vistas}</td>
+                  <td role="cell" data-label="Compartidos" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
                     {producto.compartidos}
                   </td>
                 </tr>

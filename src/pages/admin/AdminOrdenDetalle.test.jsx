@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import AdminOrdenDetalle from "./AdminOrdenDetalle.jsx";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/ordenes.js", () => ({
   getOrdenById: vi.fn(),
@@ -98,6 +99,14 @@ describe("AdminOrdenDetalle — datos de la orden", () => {
       expect(opcion).not.toBeDisabled();
     }
     expect(select).not.toBeDisabled();
+  });
+
+  it("la tabla de items está apilable: cada celda declara su columna o su tipo", async () => {
+    getOrdenById.mockResolvedValue(ORDEN_ENTREGADA);
+    renderDetalle();
+
+    await screen.findByText("Producto A");
+    esperarTablaApilada(screen.getByRole("table"));
   });
 });
 

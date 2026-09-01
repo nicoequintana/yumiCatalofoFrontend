@@ -5,6 +5,7 @@ import Spinner from "../../components/Spinner.jsx";
 import Paginador from "../../components/Paginador.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
 import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
+import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import useDialogo from "../../hooks/useDialogo.js";
 import { getProducts, aplicarPreciosMasivo, updateCosteo } from "../../api/products.js";
 import {
@@ -175,7 +176,7 @@ function ChipEstado({ estado }) {
  * pulsación castigaría la base por nada y dejaría el valor a medio tipear
  * guardado en el catálogo.
  */
-function CeldaEditable({ valor, onChange, onGuardar, etiqueta, ancho = "w-24" }) {
+function CeldaEditable({ valor, onChange, onGuardar, etiqueta, ancho = "w-24 max-md:w-full" }) {
   return (
     <label className="flex items-center justify-end gap-1">
       <span className="sr-only">{etiqueta}</span>
@@ -887,10 +888,13 @@ function AdminPrecios() {
         />
       ) : (
         <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-          <table className="w-full min-w-[980px] text-left text-[13px] xl:text-sm">
-            <thead>
-              <tr className="border-b border-outline-variant">
-                <th className="px-2 py-2 xl:px-3 xl:py-3">
+          <table
+            role="table"
+            className={`${claseTablaApilada} w-full min-w-[980px] text-left text-[13px] xl:text-sm`}
+          >
+            <thead role="rowgroup">
+              <tr role="row" className="border-b border-outline-variant">
+                <th role="columnheader" className="px-2 py-2 xl:px-3 xl:py-3">
                   <input
                     type="checkbox"
                     aria-label="Seleccionar todos los productos de esta página"
@@ -904,19 +908,19 @@ function AdminPrecios() {
                     className="size-4 accent-primary"
                   />
                 </th>
-                <th className={claseEncabezado}>Foto</th>
-                <th className={claseEncabezado}>SKU / Producto</th>
-                <th className={`${claseEncabezado} text-right`}>Costo</th>
-                <th className={`${claseEncabezado} text-right`}>Coef.</th>
-                <th className={`${claseEncabezado} text-right`}>Calculado</th>
-                <th className={`${claseEncabezado} text-right`}>Vigente</th>
-                <th className={claseEncabezado}>Estado</th>
+                <th role="columnheader" className={claseEncabezado}>Foto</th>
+                <th role="columnheader" className={claseEncabezado}>SKU / Producto</th>
+                <th role="columnheader" className={`${claseEncabezado} text-right`}>Costo</th>
+                <th role="columnheader" className={`${claseEncabezado} text-right`}>Coef.</th>
+                <th role="columnheader" className={`${claseEncabezado} text-right`}>Calculado</th>
+                <th role="columnheader" className={`${claseEncabezado} text-right`}>Vigente</th>
+                <th role="columnheader" className={claseEncabezado}>Estado</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup">
               {filasVisibles.map((fila) => (
-                <tr key={fila.id} className="border-b border-outline-variant last:border-b-0">
-                  <td className={claseCelda}>
+                <tr key={fila.id} role="row" className="border-b border-outline-variant last:border-b-0">
+                  <td role="cell" data-celda="control" className={claseCelda}>
                     <input
                       type="checkbox"
                       aria-label={`Seleccionar ${fila.nombre}`}
@@ -927,7 +931,7 @@ function AdminPrecios() {
                   </td>
                   {/* La portada, para reconocer el producto sin leer el SKU.
                       Sin link, por lo mismo que el nombre de al lado. */}
-                  <td className={claseCelda}>
+                  <td role="cell" data-celda="control" className={claseCelda}>
                     {fila.fotos?.[0]?.url ? (
                       <img
                         src={fila.fotos[0].url}
@@ -951,13 +955,13 @@ function AdminPrecios() {
                       pantalla se trabaja de corrido, tabulando entre celdas de
                       costo y coeficiente: un enlace en el medio de la fila se
                       lleva el foco y saca de la tabla a mitad de la carga. */}
-                  <td className={claseCelda}>
+                  <td role="cell" data-celda="identidad" className={claseCelda}>
                     <span className="block font-mono text-[11px] uppercase text-on-surface-variant">
                       {fila.sku}
                     </span>
                     <span className="text-on-surface">{fila.nombre}</span>
                   </td>
-                  <td className={claseNumero}>
+                  <td role="cell" data-label="Costo" className={claseNumero}>
                     {/* Se muestra formateado y se guarda pelado: `editar`
                         recibe el crudo que devuelve `formatearPrecioInput`.
                         El coeficiente de al lado NO pasa por acá — es el único
@@ -972,26 +976,26 @@ function AdminPrecios() {
                       etiqueta={`Costo de ${fila.nombre}`}
                     />
                   </td>
-                  <td className={claseNumero}>
+                  <td role="cell" data-label="Coef." className={claseNumero}>
                     <CeldaEditable
                       valor={fila.coeficiente}
                       onChange={(valor) => editar(fila.id, "coeficiente", valor)}
                       onGuardar={() => guardarCosteo(fila.id)}
                       etiqueta={`Coeficiente de ${fila.nombre}`}
-                      ancho="w-20"
+                      ancho="w-20 max-md:w-full"
                     />
                   </td>
-                  <td className={`${claseNumero} text-on-surface`}>
+                  <td role="cell" data-label="Calculado" className={`${claseNumero} text-on-surface`}>
                     {fila.calculado === null ? (
                       <span className="text-on-surface-variant">—</span>
                     ) : (
                       formatPrecio(String(fila.calculado))
                     )}
                   </td>
-                  <td className={`${claseNumero} text-on-surface-variant`}>
+                  <td role="cell" data-label="Vigente" className={`${claseNumero} text-on-surface-variant`}>
                     {formatPrecio(fila.precio)}
                   </td>
-                  <td className={claseCelda}>
+                  <td role="cell" data-label="Estado" className={claseCelda}>
                     <ChipEstado estado={fila.estado} />
                     {guardando.has(fila.id) ? (
                       <span className="font-label-sm text-label-sm mt-1 block text-on-surface-variant">

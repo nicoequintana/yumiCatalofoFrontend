@@ -6,7 +6,7 @@ import Spinner from "../../components/Spinner.jsx";
 import { getOrdenById, actualizarEstadoOrden } from "../../api/ordenes.js";
 import { formatFecha, formatPrecio, precioACentavos } from "../../utils/formato.js";
 import { ESTADOS_ORDEN, ETIQUETA_ESTADO } from "../../constants/ordenes.js";
-import { claseEncabezado } from "../../components/admin/clasesTabla.js";
+import { claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import Advertencia from "../../components/admin/Advertencia.jsx";
 import DialogoNotificarEstado from "../../components/admin/DialogoNotificarEstado.jsx";
 
@@ -228,32 +228,32 @@ function AdminOrdenDetalle() {
       </div>
 
       <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-        <table className="w-full min-w-[560px] text-left">
-          <thead>
-            <tr className="border-b border-outline-variant">
-              <th className={claseEncabezado}>
+        <table role="table" className={`${claseTablaApilada} w-full min-w-[560px] text-left`}>
+          <thead role="rowgroup">
+            <tr role="row" className="border-b border-outline-variant">
+              <th role="columnheader" className={claseEncabezado}>
                 Producto
               </th>
-              <th className={claseEncabezado}>
+              <th role="columnheader" className={claseEncabezado}>
                 Precio unitario
               </th>
-              <th className={claseEncabezado}>
+              <th role="columnheader" className={claseEncabezado}>
                 Cantidad
               </th>
-              <th className={claseEncabezado}>
+              <th role="columnheader" className={claseEncabezado}>
                 Subtotal
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {orden.items.map((item) => (
-              <tr key={item.id} className="border-b border-outline-variant last:border-b-0">
-                <td className="font-body-md text-body-md px-4 py-3 text-on-surface">{item.nombreProducto}</td>
-                <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
+              <tr key={item.id} role="row" className="border-b border-outline-variant last:border-b-0">
+                <td role="cell" data-celda="identidad" className="font-body-md text-body-md px-4 py-3 text-on-surface">{item.nombreProducto}</td>
+                <td role="cell" data-label="Precio unitario" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
                   {formatPrecio(item.precioUnitario)}
                 </td>
-                <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">{item.cantidad}</td>
-                <td className="font-body-md text-body-md px-4 py-3 text-on-surface">
+                <td role="cell" data-label="Cantidad" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">{item.cantidad}</td>
+                <td role="cell" data-label="Subtotal" className="font-body-md text-body-md px-4 py-3 text-on-surface">
                   {formatPrecio((precioACentavos(item.precioUnitario) * item.cantidad) / 100)}
                 </td>
               </tr>

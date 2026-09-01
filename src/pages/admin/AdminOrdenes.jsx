@@ -6,7 +6,7 @@ import Spinner from "../../components/Spinner.jsx";
 import { getOrdenes } from "../../api/ordenes.js";
 import { formatFecha } from "../../utils/formato.js";
 import BadgeEstado from "../../components/admin/BadgeEstado.jsx";
-import { claseEncabezado } from "../../components/admin/clasesTabla.js";
+import { claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import { ESTADOS_ORDEN, ETIQUETA_ESTADO } from "../../constants/ordenes.js";
 
 /**
@@ -154,50 +154,50 @@ function AdminOrdenes() {
       ) : (
         <>
           <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-            <table className="w-full min-w-[720px] text-left">
-              <thead>
-                <tr className="border-b border-outline-variant">
-                  <th className={claseEncabezado}>
+            <table role="table" className={`${claseTablaApilada} w-full min-w-[720px] text-left`}>
+              <thead role="rowgroup">
+                <tr role="row" className="border-b border-outline-variant">
+                  <th role="columnheader" className={claseEncabezado}>
                     Orden
                   </th>
-                  <th className={claseEncabezado}>
+                  <th role="columnheader" className={claseEncabezado}>
                     Cliente
                   </th>
-                  <th className={claseEncabezado}>
+                  <th role="columnheader" className={claseEncabezado}>
                     DNI
                   </th>
-                  <th className={claseEncabezado}>
+                  <th role="columnheader" className={claseEncabezado}>
                     Items
                   </th>
-                  <th className={claseEncabezado}>
+                  <th role="columnheader" className={claseEncabezado}>
                     Estado
                   </th>
-                  <th className={claseEncabezado}>
+                  <th role="columnheader" className={claseEncabezado}>
                     Fecha
                   </th>
-                  <th className={claseEncabezado}>
+                  <th role="columnheader" className={claseEncabezado}>
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody role="rowgroup">
                 {ordenes.map((orden) => (
-                  <tr key={orden.id} className="border-b border-outline-variant last:border-b-0">
-                    <td className="font-body-md text-body-md px-4 py-3 text-on-surface">#{orden.id}</td>
-                    <td className="font-body-md text-body-md px-4 py-3 text-on-surface">{orden.cliente?.nombre}</td>
-                    <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
+                  <tr key={orden.id} role="row" className="border-b border-outline-variant last:border-b-0">
+                    <td role="cell" data-celda="identidad" className="font-body-md text-body-md px-4 py-3 text-on-surface">#{orden.id}</td>
+                    <td role="cell" data-label="Cliente" className="font-body-md text-body-md px-4 py-3 text-on-surface">{orden.cliente?.nombre}</td>
+                    <td role="cell" data-label="DNI" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
                       {orden.cliente?.dni}
                     </td>
-                    <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
+                    <td role="cell" data-label="Items" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
                       {orden._count?.items ?? 0}
                     </td>
-                    <td className="px-4 py-3">
+                    <td role="cell" data-celda="control" className="px-4 py-3">
                       <BadgeEstado estado={orden.estado} />
                     </td>
-                    <td className="font-body-md text-body-md whitespace-nowrap px-4 py-3 text-on-surface-variant">
+                    <td role="cell" data-label="Fecha" className="font-body-md text-body-md whitespace-nowrap px-4 py-3 text-on-surface-variant">
                       {formatFecha(orden.createdAt)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td role="cell" data-celda="acciones" className="px-4 py-3">
                       <Link
                         to={`/catalogo/admin/ordenes/${orden.id}`}
                         className="font-label-md text-label-md uppercase tracking-widest text-secondary hover:underline"

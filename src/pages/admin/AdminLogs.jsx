@@ -5,7 +5,7 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { getAuditLogs, getErrorLogs } from "../../api/adminLogs.js";
 import { formatFechaHora } from "../../utils/formato.js";
-import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
+import { claseCelda, claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 
 const PESTANA_AUDITORIA = "auditoria";
 const PESTANA_ERRORES = "errores";
@@ -293,34 +293,34 @@ function AdminLogs() {
         <>
           <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
             {esAuditoria ? (
-              <table className="w-full min-w-[900px] text-left">
-                <thead>
-                  <tr className="border-b border-outline-variant">
-                    <th className={claseEncabezado}>Usuario</th>
-                    <th className={claseEncabezado}>Acción</th>
-                    <th className={claseEncabezado}>Entidad</th>
-                    <th className={claseEncabezado}>ID</th>
-                    <th className={claseEncabezado}>Detalle</th>
-                    <th className={claseEncabezado}>Fecha</th>
+              <table role="table" className={`${claseTablaApilada} w-full min-w-[900px] text-left`}>
+                <thead role="rowgroup">
+                  <tr role="row" className="border-b border-outline-variant">
+                    <th role="columnheader" className={claseEncabezado}>Usuario</th>
+                    <th role="columnheader" className={claseEncabezado}>Acción</th>
+                    <th role="columnheader" className={claseEncabezado}>Entidad</th>
+                    <th role="columnheader" className={claseEncabezado}>ID</th>
+                    <th role="columnheader" className={claseEncabezado}>Detalle</th>
+                    <th role="columnheader" className={claseEncabezado}>Fecha</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody role="rowgroup">
                   {registros.map((registro) => (
-                    <tr key={registro.id} className="border-b border-outline-variant last:border-b-0">
-                      <td className={`${claseCelda} text-on-surface`}>{registro.usuarioEmail}</td>
-                      <td className="px-4 py-3 align-top">
+                    <tr key={registro.id} role="row" className="border-b border-outline-variant last:border-b-0">
+                      <td role="cell" data-label="Usuario" className={`${claseCelda} text-on-surface`}>{registro.usuarioEmail}</td>
+                      <td role="cell" data-celda="control" className="px-4 py-3 align-top">
                         <BadgeAccion accion={registro.accion} />
                       </td>
-                      <td className={`${claseCelda} text-on-surface`}>{registro.entidad}</td>
-                      <td className={`${claseCelda} text-on-surface-variant`}>
+                      <td role="cell" data-label="Entidad" className={`${claseCelda} text-on-surface`}>{registro.entidad}</td>
+                      <td role="cell" data-label="ID" className={`${claseCelda} text-on-surface-variant`}>
                         {registro.entidadId === null || registro.entidadId === undefined
                           ? "—"
                           : `#${registro.entidadId}`}
                       </td>
-                      <td className={claseCelda}>
+                      <td role="cell" data-label="Detalle" className={claseCelda}>
                         <DetalleAuditoria detalle={registro.detalle} />
                       </td>
-                      <td className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}>
+                      <td role="cell" data-label="Fecha" className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}>
                         {formatFechaHora(registro.createdAt)}
                       </td>
                     </tr>
@@ -328,28 +328,28 @@ function AdminLogs() {
                 </tbody>
               </table>
             ) : (
-              <table className="w-full min-w-[900px] text-left">
-                <thead>
-                  <tr className="border-b border-outline-variant">
-                    <th className={claseEncabezado}>Mensaje</th>
-                    <th className={claseEncabezado}>Ruta</th>
-                    <th className={claseEncabezado}>Método</th>
-                    <th className={claseEncabezado}>Status</th>
-                    <th className={claseEncabezado}>Stack</th>
-                    <th className={claseEncabezado}>Fecha</th>
+              <table role="table" className={`${claseTablaApilada} w-full min-w-[900px] text-left`}>
+                <thead role="rowgroup">
+                  <tr role="row" className="border-b border-outline-variant">
+                    <th role="columnheader" className={claseEncabezado}>Mensaje</th>
+                    <th role="columnheader" className={claseEncabezado}>Ruta</th>
+                    <th role="columnheader" className={claseEncabezado}>Método</th>
+                    <th role="columnheader" className={claseEncabezado}>Status</th>
+                    <th role="columnheader" className={claseEncabezado}>Stack</th>
+                    <th role="columnheader" className={claseEncabezado}>Fecha</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody role="rowgroup">
                   {registros.map((registro) => (
-                    <tr key={registro.id} className="border-b border-outline-variant last:border-b-0">
-                      <td className={`${claseCelda} max-w-sm text-on-surface`}>{registro.mensaje}</td>
-                      <td className={`${claseCelda} text-on-surface-variant`}>{registro.ruta ?? "—"}</td>
-                      <td className={`${claseCelda} text-on-surface-variant`}>{registro.metodo ?? "—"}</td>
-                      <td className={`${claseCelda} text-on-surface-variant`}>{registro.status ?? "—"}</td>
-                      <td className={claseCelda}>
+                    <tr key={registro.id} role="row" className="border-b border-outline-variant last:border-b-0">
+                      <td role="cell" data-celda="identidad" className={`${claseCelda} max-w-sm text-on-surface`}>{registro.mensaje}</td>
+                      <td role="cell" data-label="Ruta" className={`${claseCelda} text-on-surface-variant`}>{registro.ruta ?? "—"}</td>
+                      <td role="cell" data-label="Método" className={`${claseCelda} text-on-surface-variant`}>{registro.metodo ?? "—"}</td>
+                      <td role="cell" data-label="Status" className={`${claseCelda} text-on-surface-variant`}>{registro.status ?? "—"}</td>
+                      <td role="cell" data-label="Stack" className={claseCelda}>
                         <StackColapsable stack={registro.stack} />
                       </td>
-                      <td className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}>
+                      <td role="cell" data-label="Fecha" className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}>
                         {formatFechaHora(registro.createdAt)}
                       </td>
                     </tr>

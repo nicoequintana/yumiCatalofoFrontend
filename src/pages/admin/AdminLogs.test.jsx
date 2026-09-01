@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminLogs from "./AdminLogs.jsx";
 import * as adminLogsApi from "../../api/adminLogs.js";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/adminLogs.js");
 
@@ -167,5 +168,23 @@ describe("AdminLogs", () => {
     renderPagina();
 
     expect(await screen.findByText("No autorizado.")).toBeInTheDocument();
+  });
+
+  it("la tabla de auditoría está apilable: cada celda declara su columna o su tipo", async () => {
+    renderPagina();
+
+    await screen.findByText("admin@yima.test");
+    esperarTablaApilada(screen.getByRole("table"));
+  });
+
+  it("la tabla de errores está apilable: cada celda declara su columna o su tipo", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+
+    await screen.findByText("admin@yima.test");
+    await user.click(screen.getByRole("button", { name: "Errores" }));
+    await screen.findByText("Error interno del servidor.");
+
+    esperarTablaApilada(screen.getByRole("table"));
   });
 });

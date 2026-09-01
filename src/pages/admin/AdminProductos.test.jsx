@@ -4,6 +4,7 @@ import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminProductos from "./AdminProductos.jsx";
 import * as productsApi from "../../api/products.js";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/products.js");
 
@@ -267,6 +268,20 @@ describe("AdminProductos — buscador", () => {
 
     expect(await screen.findByText("Todavía no hay productos")).toBeInTheDocument();
     expect(screen.queryByText("Sin resultados")).not.toBeInTheDocument();
+  });
+});
+
+describe("AdminProductos — tabla apilada en mobile", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+  });
+
+  it("la tabla está apilable: cada celda declara su columna o su tipo", async () => {
+    renderPagina();
+
+    await screen.findByText("Reloj Clásico");
+    esperarTablaApilada(screen.getByRole("table"));
   });
 });
 

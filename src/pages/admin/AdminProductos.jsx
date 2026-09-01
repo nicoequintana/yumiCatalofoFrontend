@@ -6,6 +6,7 @@ import Spinner from "../../components/Spinner.jsx";
 import Paginador from "../../components/Paginador.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
 import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
+import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import {
   deleteProductsMasivo,
   getProducts,
@@ -707,10 +708,13 @@ function AdminProductos() {
           ) : null}
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-[13px] xl:text-sm">
-              <thead>
-                <tr className="border-b border-outline-variant">
-                  <th className="px-2 py-2 xl:px-3 xl:py-3">
+            <table
+              role="table"
+              className={`${claseTablaApilada} w-full min-w-[820px] text-left text-[13px] xl:text-sm`}
+            >
+              <thead role="rowgroup">
+                <tr role="row" className="border-b border-outline-variant">
+                  <th role="columnheader" className="px-2 py-2 xl:px-3 xl:py-3">
                     <input
                       type="checkbox"
                       aria-label="Seleccionar todos los productos de esta página"
@@ -726,47 +730,48 @@ function AdminProductos() {
                       className="size-4 accent-primary"
                     />
                   </th>
-                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                     Foto
                   </th>
-                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                     Nombre
                   </th>
-                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                     SKU
                   </th>
-                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                  <th role="columnheader" data-celda="secundaria" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                     Etiqueta
                   </th>
-                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                  <th role="columnheader" data-celda="secundaria" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                     Categoría
                   </th>
-                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                     Precio
                   </th>
-                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                     Stock
                   </th>
-                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                  <th role="columnheader" data-celda="secundaria" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                     Fotos
                   </th>
-                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                     Catálogo
                   </th>
-                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                     Destacado
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody role="rowgroup">
                 {productos.map((producto) => (
                   <tr
                     key={producto.id}
+                    role="row"
                     className={`border-b border-outline-variant last:border-b-0 ${
                       producto.stock === 0 ? "bg-error-container/40" : ""
                     }`}
                   >
-                    <td className="px-2 py-2 xl:px-3 xl:py-3">
+                    <td role="cell" data-celda="control" className="px-2 py-2 xl:px-3 xl:py-3">
                       <input
                         type="checkbox"
                         aria-label={`Seleccionar ${producto.nombre}`}
@@ -783,7 +788,7 @@ function AdminProductos() {
                         cuál. El de la foto declara la acción ("Editar X") porque
                         una imagen no tiene texto propio; el del nombre ya ES el
                         nombre del producto. */}
-                    <td className="px-2 py-2 xl:px-3 xl:py-3">
+                    <td role="cell" data-celda="control" className="px-2 py-2 xl:px-3 xl:py-3">
                       <Link
                         to={`/catalogo/admin/productos/${producto.id}/editar`}
                         aria-label={`Editar ${producto.nombre}`}
@@ -804,28 +809,28 @@ function AdminProductos() {
                         )}
                       </Link>
                     </td>
-                    <td className="max-w-[160px] px-2 py-2 xl:max-w-[220px] xl:px-3 xl:py-3">
+                    <td role="cell" data-celda="identidad" className="max-w-[160px] px-2 py-2 xl:max-w-[220px] xl:px-3 xl:py-3">
                       <Link
                         to={`/catalogo/admin/productos/${producto.id}/editar`}
                         title={producto.nombre}
-                        className="block truncate font-body-md text-on-surface hover:text-primary hover:underline"
+                        className="block md:truncate font-body-md text-on-surface hover:text-primary hover:underline"
                       >
                         {producto.nombre}
                       </Link>
                     </td>
-                    <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
+                    <td role="cell" data-label="SKU" className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
                       {producto.sku}
                     </td>
-                    <td className="px-2 py-2 xl:px-3 xl:py-3">
+                    <td role="cell" data-celda="secundaria" className="px-2 py-2 xl:px-3 xl:py-3">
                       <Badge etiqueta={producto.etiqueta} />
                     </td>
-                    <td className="max-w-[120px] truncate px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3" title={producto.categoria?.nombre ?? undefined}>
+                    <td role="cell" data-celda="secundaria" className="max-w-[120px] truncate px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3" title={producto.categoria?.nombre ?? undefined}>
                       {producto.categoria?.nombre ?? "—"}
                     </td>
-                    <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface xl:px-3 xl:py-3">
+                    <td role="cell" data-label="Precio" className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface xl:px-3 xl:py-3">
                       {formatPrecio(producto.precio)}
                     </td>
-                    <td className="px-2 py-2 xl:px-3 xl:py-3">
+                    <td role="cell" data-label="Stock" className="px-2 py-2 xl:px-3 xl:py-3">
                       {producto.stock === 0 ? (
                         <span className="inline-block whitespace-nowrap rounded bg-error-container px-1.5 py-0.5 font-label-sm text-[11px] uppercase tracking-wide text-on-error-container xl:px-2 xl:py-1 xl:text-label-sm">
                           Sin stock
@@ -840,13 +845,13 @@ function AdminProductos() {
                         </span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
+                    <td role="cell" data-celda="secundaria" className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
                       {/* `cantidadFotos` y no `fotos.length`: el listado
                           liviano trae solo la portada, así que contar el array
                           mostraría "1/10" para cualquier producto con fotos. */}
                       {producto.cantidadFotos ?? 0}/10
                     </td>
-                    <td className="px-2 py-2 xl:px-3 xl:py-3">
+                    <td role="cell" data-label="Catálogo" className="px-2 py-2 xl:px-3 xl:py-3">
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
@@ -870,7 +875,7 @@ function AdminProductos() {
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-2 py-2 xl:px-3 xl:py-3">
+                    <td role="cell" data-label="Destacado" className="px-2 py-2 xl:px-3 xl:py-3">
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
