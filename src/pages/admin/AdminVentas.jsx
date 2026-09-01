@@ -205,10 +205,14 @@ function AdminVentas() {
 
   // "Sin datos" es no tener NINGUNA orden en ningún estado. Si hay canceladas
   // y nada más, la pantalla tiene algo que decir y no puede contestar "no hubo
-  // ventas en este período".
+  // ventas en este período". Se exige `porEstado` NO VACÍO: con un array
+  // vacío o ausente, `.every()` da `true` sobre cero elementos y una
+  // respuesta malformada se leería con confianza como "no hubo ventas".
+  const filasPorEstado = resumen?.porEstado ?? [];
   const sinDatos =
     resumen !== null &&
-    (resumen.porEstado ?? []).every((fila) => fila.cantidadOrdenes === 0);
+    filasPorEstado.length > 0 &&
+    filasPorEstado.every((fila) => fila.cantidadOrdenes === 0);
 
   // Se lee con `?.`: un backend anterior al tope no manda `historico`, y ahí
   // no hay nada que advertir.
@@ -216,9 +220,13 @@ function AdminVentas() {
     resumen !== null && !sinDatos && resumen.historico?.recortado === true;
 
   // La cobertura se mide en PLATA, no en cantidad de líneas: lo que importa es
-  // cuánta facturación quedó sin explicar, no cuántos renglones.
+  // cuánta facturación quedó sin explicar, no cuántos renglones. CANCELADA
+  // queda afuera de las dos sumas: el aviso solo puede hablar de plata que la
+  // pantalla efectivamente muestra, y la tarjeta de canceladas no muestra
+  // montos (ver `TarjetaEstado`) — sumarla nombraría un total que no aparece
+  // en ningún lado.
   const cobertura = useMemo(() => {
-    const filas = resumen?.porEstado ?? [];
+    const filas = (resumen?.porEstado ?? []).filter((fila) => fila.estado !== "CANCELADA");
     const venta = filas.reduce((suma, fila) => suma + Number(fila.venta), 0);
     const conCosto = filas.reduce((suma, fila) => suma + Number(fila.ventaConCosto), 0);
     return { venta, conCosto, completa: conCosto >= venta };
@@ -308,7 +316,7 @@ function AdminVentas() {
                 icono="payments"
                 etiqueta="Ingresos"
                 valor={formatPrecio(resumen.ingresosTotales)}
-                detalle="Órdenes confirmadas en adelante"
+                detalle="En preparación en adelante"
               />
               <TarjetaMetrica
                 icono="receipt_long"

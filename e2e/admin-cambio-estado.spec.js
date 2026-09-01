@@ -94,9 +94,9 @@ test.describe("Admin cambia el estado de una orden y persiste tras recargar", ()
     // ejercita la rama sin email. Recién tras ese click se manda el PATCH,
     // así que el valor final del select y el `enabled` se esperan después de
     // confirmar el diálogo, no después de `selectOption`.
-    await selectEstado.selectOption("CONFIRMADA");
+    await selectEstado.selectOption("EN_PREPARACION");
     await page.getByRole("button", { name: "Guardar sin notificar" }).click();
-    await expect(selectEstado).toHaveValue("CONFIRMADA");
+    await expect(selectEstado).toHaveValue("EN_PREPARACION");
     await expect(selectEstado).toBeEnabled();
 
     // 4. Reload real de página — cualquier estado optimista en memoria de
@@ -104,11 +104,11 @@ test.describe("Admin cambia el estado de una orden y persiste tras recargar", ()
     // es porque efectivamente se escribió en la DB y se releyó de ahí.
     await page.reload();
     await expect(page.getByRole("heading", { name: `Orden #${orden.id}` })).toBeVisible();
-    await expect(page.getByLabel("Cambiar estado de la orden")).toHaveValue("CONFIRMADA");
+    await expect(page.getByLabel("Cambiar estado de la orden")).toHaveValue("EN_PREPARACION");
 
     // 5. Verificación directa en la DB, no tautológica respecto de lo que la
     // UI acaba de mostrar tras el reload.
     const ordenEnDb = await prisma.orden.findUnique({ where: { id: orden.id } });
-    expect(ordenEnDb.estado).toBe("CONFIRMADA");
+    expect(ordenEnDb.estado).toBe("EN_PREPARACION");
   });
 });

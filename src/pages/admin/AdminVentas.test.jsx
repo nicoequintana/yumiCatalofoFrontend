@@ -348,5 +348,23 @@ describe("AdminVentas", () => {
       await screen.findByTestId("estado-ENTREGADA");
       expect(screen.queryByTestId("aviso-cobertura-costo")).toBeNull();
     });
+
+    it("no avisa por un faltante de costo que vive solo en CANCELADA, plata que la pantalla no muestra", async () => {
+      // ENTREGADA tiene cobertura perfecta (venta === ventaConCosto); el único
+      // faltante está en CANCELADA, una tarjeta sin montos por diseño. El
+      // aviso de cobertura no puede nombrar una plata que no aparece en
+      // ningún lado de la pantalla.
+      renderConResumen({
+        porEstado: [
+          { estado: "PENDIENTE", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+          { estado: "EN_PREPARACION", cantidadOrdenes: 0, venta: "0", costo: "0", ventaConCosto: "0" },
+          { estado: "ENTREGADA", cantidadOrdenes: 7, venta: "52000", costo: "26500", ventaConCosto: "52000" },
+          { estado: "CANCELADA", cantidadOrdenes: 1, venta: "4000", costo: "0", ventaConCosto: "0" },
+        ],
+      });
+
+      await screen.findByTestId("estado-ENTREGADA");
+      expect(screen.queryByTestId("aviso-cobertura-costo")).toBeNull();
+    });
   });
 });

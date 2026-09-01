@@ -177,7 +177,7 @@ export async function crearClienteDeTest(overrides = {}) {
  * un Product en vivo, para poder fijar valores exactos en el test.
  * @param {object} [opciones]
  * @param {number} [opciones.clienteId] cliente existente a reusar
- * @param {string} [opciones.estado] uno de PENDIENTE/CONFIRMADA/EN_PREPARACION/ENTREGADA/CANCELADA
+ * @param {string} [opciones.estado] uno de PENDIENTE/EN_PREPARACION/ENTREGADA/CANCELADA
  * @param {Array<{productId: number, nombreProducto: string, precioUnitario: string, cantidad: number}>} opciones.items
  * @returns {Promise<object>} la orden creada, con `cliente` e `items` incluidos
  */
