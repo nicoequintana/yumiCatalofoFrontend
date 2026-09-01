@@ -387,6 +387,13 @@ h6 {
     column-gap: 0.75rem; align-items: center;
     @apply border-t border-outline-variant;
   }
+
+  /* Las filas con un control (switch, input, botón) llegan al alto de ítem de
+     lista móvil (44 px). Solo esas: alargar también las filas de texto haría
+     crecer cada tarjeta sin mejorar nada táctil. `:has` no existe en
+     navegadores viejos; ahí la regla se ignora y la fila queda en ~41 px. */
+  .tabla-apilada > tbody > tr > td[data-label]:has(button, input, select) { min-height: 2.75rem; }
+
   .tabla-apilada > tbody > tr > td[data-label]::before {
     content: attr(data-label);
     @apply font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant;
