@@ -20,8 +20,10 @@ import useDialogo from "../../hooks/useDialogo.js";
  * sheet on the right, rendered by the very same `FichaProducto` the public
  * `/producto/:id` page uses. "Live" means live in local React state only —
  * nothing is persisted until submit, which still sends one `createProduct` /
- * `updateProduct` call exactly as before. Below `lg` the two panes become
- * Editar / Vista previa tabs, since they can't sit side by side.
+ * `updateProduct` call exactly as before. Below `lg` the two panes can't sit
+ * side by side, so `EditorTabs` turns them into three tabs — Editar /
+ * Imágenes / Vista previa — and the third one only exists there, since `lg`
+ * always shows the preview in its own column.
  *
  * Esta pantalla solo compone y decide qué panel se ve. El estado, la carga y
  * el guardado viven en `useProductoForm`; cada pieza visual, en
@@ -144,11 +146,13 @@ function AdminProductoForm() {
 
   return (
     // En `lg` el editor ocupa el alto del viewport (menos la bottom nav, el
-    // `md:pb-20` de AdminLayout) y cada columna scrollea sola. No se puede usar
-    // `position: sticky` acá: el `<main>` del layout lleva `overflow-x-auto`
-    // por las tablas anchas del admin, lo que lo convierte en el scrollport del
-    // sticky — pero quien scrollea es la ventana, así que el sticky nunca se
-    // activaba y el preview se perdía de vista al bajar por el formulario.
+    // `md:pb-20` de AdminLayout) y cada columna scrollea sola — por diseño,
+    // no por limitación: son dos scrolls independientes lado a lado
+    // (formulario/imágenes por un lado, preview por otro), así que ninguno de
+    // los dos necesita `position: sticky`. El `<main>` del layout ya no es el
+    // scroll container que rompía el sticky (Fase 0 del plan de responsive lo
+    // volvió `overflow-x-clip`); la pieza sticky del editor es `EditorTabs`,
+    // por debajo de `lg`.
     <div className="flex w-full flex-col lg:h-[calc(100vh-5rem)] lg:overflow-hidden">
       <EditorHeader
         esEdicion={esEdicion}
@@ -172,6 +176,7 @@ function AdminProductoForm() {
         <div className="lg:min-h-0 lg:overflow-y-auto">
           <SeccionesFormulario
             visible={panelActivo === "form"}
+            visibleEnEscritorio={panelActivo === "preview"}
             formRef={formRef}
             onSubmit={handleSubmit}
             guardando={guardando}

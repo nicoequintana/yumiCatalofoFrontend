@@ -21,7 +21,11 @@ const PANELES = [
 function EditorTabs({ panelActivo, onCambiarPanel }) {
   return (
     <div
-      className="sticky top-0 z-10 flex border-b border-outline-variant bg-surface px-4"
+      // Única pieza sticky del editor: queda pegada justo debajo de la barra
+      // superior del shell (`top-topbar-admin`, ver `AdminLayout.jsx`). En
+      // `lg` no hace falta — el editor no scrollea como página, cada columna
+      // scrollea por su cuenta.
+      className="sticky top-topbar-admin z-10 flex border-b border-outline-variant bg-surface px-4 lg:static"
       role="group"
       aria-label="Panel visible"
     >
@@ -31,7 +35,10 @@ function EditorTabs({ panelActivo, onCambiarPanel }) {
           type="button"
           aria-pressed={panelActivo === panel.id}
           onClick={() => onCambiarPanel(panel.id)}
-          className={`font-label-md text-label-md flex flex-1 items-center justify-center gap-2 border-b-2 px-3 py-3 uppercase tracking-widest ${
+          // Ícono arriba y etiqueta abajo por debajo de `md`: a 375px "VISTA
+          // PREVIA" con su ícono al lado no entra en el tercio del botón. En
+          // `md+` es idéntico a como era antes (ícono y texto en fila).
+          className={`flex flex-1 flex-col items-center justify-center gap-0.5 border-b-2 px-1 py-2 font-label-sm text-label-sm uppercase tracking-wide md:flex-row md:gap-2 md:px-3 md:py-3 md:font-label-md md:text-label-md md:tracking-widest ${
             panel.soloChico ? "lg:hidden" : ""
           } ${
             panelActivo === panel.id

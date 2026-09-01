@@ -29,6 +29,7 @@ const SUGERENCIAS_ETIQUETA = ["Exclusivo", "Nuevo", "Best Seller", "Trending", "
  */
 function SeccionesFormulario({
   visible,
+  visibleEnEscritorio = false,
   formRef,
   onSubmit,
   guardando,
@@ -60,16 +61,32 @@ function SeccionesFormulario({
 
   return (
     <div
-      // Sin `lg:block`: hasta el 27/08/2026 esta columna forzaba su propia
-      // visibilidad en `lg` (dos paneles fijos, formulario y preview, lado a
-      // lado) porque las pestañas solo existían debajo de `lg`. Ahora el
-      // formulario comparte la columna izquierda con la solapa Imágenes, y las
-      // pestañas son lo único que decide cuál se ve — en CUALQUIER tamaño. Un
-      // override de `lg` acá volvería a mostrar el formulario en escritorio
-      // aunque la solapa activa fuera Imágenes. El scroll de la columna ahora
-      // lo controla el `<div>` que envuelve a este componente y a
+      // Sin `lg:block` en general: hasta el 27/08/2026 esta columna forzaba
+      // su propia visibilidad en `lg` (dos paneles fijos, formulario y
+      // preview, lado a lado) porque las pestañas solo existían debajo de
+      // `lg`. Ahora el formulario comparte la columna izquierda con la
+      // solapa Imágenes, y las pestañas son lo único que decide cuál se ve —
+      // en CUALQUIER tamaño. Con la solapa Imágenes activa el formulario
+      // sigue oculto en todo tamaño: un override de `lg` acá lo mostraría en
+      // escritorio aunque Imágenes fuera la pestaña elegida.
+      //
+      // La ÚNICA excepción es `visibleEnEscritorio`, que llega en `true`
+      // cuando la pestaña activa es Vista previa: esa pestaña no tiene
+      // columna propia en `lg` (ahí el preview siempre está a la vista en su
+      // propia columna, sin pestañas), así que sin este `lg:block` rotar el
+      // dispositivo con "Vista previa" activa dejaba la columna izquierda
+      // vacía — ni el formulario ni la solapa Imágenes tenían ninguna razón
+      // para mostrarse. Residuo aceptado: en ese estado ninguna pestaña
+      // visible queda con `aria-pressed="true"`, porque el estado
+      // (`panelActivo`) no sabe en qué viewport está. La alternativa exacta
+      // sería enterarse del breakpoint con `matchMedia`, que se descartó a
+      // propósito para no meter el primer breakpoint resuelto en JS del
+      // proyecto — acá el fix es puramente CSS. El scroll de la columna lo
+      // controla el `<div>` que envuelve a este componente y a
       // `SolapaImagenes` en `AdminProductoForm.jsx`.
-      className={`px-4 py-6 md:px-8 ${visible ? "" : "hidden"}`}
+      className={`px-4 py-6 md:px-8 ${
+        visible ? "" : visibleEnEscritorio ? "hidden lg:block" : "hidden"
+      }`}
     >
       <form
         id="form-producto"
@@ -330,7 +347,7 @@ function SeccionesFormulario({
                 </div>
               ))}
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
                 value={nuevaCaracteristica}

@@ -19,7 +19,7 @@ import GaleriaGeneradas from "./GaleriaGeneradas.jsx";
  */
 function Bloque({ numero, titulo, ayuda, children }) {
   return (
-    <section className="rounded-xl border border-outline-variant bg-surface-container-low p-6">
+    <section className="rounded-xl border border-outline-variant bg-surface-container-low p-4 md:p-6">
       <h2 className="font-headline-md text-headline-md mb-1 flex items-center gap-3 text-on-surface">
         <span className="font-label-sm text-label-sm grid h-7 w-7 place-items-center rounded-full bg-primary text-on-primary">
           {numero}

@@ -25,7 +25,7 @@ function EditorHeader({
   onEliminar,
 }) {
   return (
-    <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant bg-surface px-4 py-4 md:px-8 lg:static">
+    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-outline-variant bg-surface px-4 py-4 md:px-8">
       <div className="min-w-0">
         <div className="mb-2">
           <BotonVolver fallback="/catalogo/admin/productos" puedeSalir={confirmarSalida} />
@@ -38,9 +38,9 @@ function EditorHeader({
         </h1>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
         {sucio ? (
-          <span className="font-body-md text-body-md inline-flex items-center gap-2 text-on-surface-variant">
+          <span className="font-body-md text-body-md inline-flex basis-full items-center gap-2 text-on-surface-variant sm:basis-auto">
             <span className="material-symbols-outlined text-[18px]">edit_note</span>
             Cambios sin guardar
           </span>

@@ -274,6 +274,27 @@ describe("AdminProductoForm — vista previa en vivo", () => {
     expect(tabPreview).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: /Editar/i })).toHaveAttribute("aria-pressed", "false");
   });
+
+  it("con la vista previa activa, el formulario queda visible en escritorio", () => {
+    // Bug al cruzar `lg`: en mobile, "Vista previa" es una pestaña sin
+    // columna propia, así que en `lg` (donde el preview siempre está a la
+    // vista en su propia columna) el formulario tiene que reaparecer — si no,
+    // rotar el dispositivo con esa pestaña activa deja la columna izquierda
+    // vacía.
+    renderForm();
+    const contenedorForm = () => screen.getByLabelText("Nombre").closest("form").parentElement;
+
+    fireEvent.click(screen.getByRole("button", { name: /Vista previa/i }));
+    expect(contenedorForm()).toHaveClass("hidden");
+    expect(contenedorForm()).toHaveClass("lg:block");
+
+    fireEvent.click(screen.getByRole("button", { name: /Imágenes/i }));
+    expect(contenedorForm()).toHaveClass("hidden");
+    expect(contenedorForm()).not.toHaveClass("lg:block");
+
+    fireEvent.click(screen.getByRole("button", { name: /Editar/i }));
+    expect(contenedorForm()).not.toHaveClass("hidden");
+  });
 });
 
 describe("AdminProductoForm — configuración del catálogo", () => {
