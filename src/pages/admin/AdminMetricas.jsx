@@ -135,7 +135,7 @@ function AdminMetricas() {
           mensaje="Las métricas van a aparecer acá una vez que tengas productos publicados."
         />
       ) : (
-        <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-ambient">
+        <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
           <table className="w-full min-w-[600px] text-left">
             <thead>
               <tr className="border-b border-outline-variant">

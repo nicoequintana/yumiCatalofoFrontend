@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { clearToken } from "../api/authClient.js";
+import useBloquearScroll from "../hooks/useBloquearScroll.js";
+import useDialogo from "../hooks/useDialogo.js";
 import LogoYima from "./LogoYima.jsx";
 import ToggleTemaAdmin from "./ToggleTemaAdmin.jsx";
 
@@ -46,9 +48,15 @@ const ITEMS_CONFIGURACION = [
  * Navegación del panel admin. Dos presentaciones completamente distintas
  * según el tamaño de pantalla — no es la misma barra reposicionada:
  *
- * - Mobile (< md): sidebar lateral fixed, colapsada por defecto, se abre
- *   con el botón hamburguesa de AdminLayout.jsx y flota con overlay.
- * - Desktop (md+): bottom nav horizontal fijo abajo (`fixed inset-x-0
+ * - Mobile/tablet (< lg): drawer lateral fixed, colapsado por defecto, se
+ *   abre con el botón de la barra superior de `AdminLayout.jsx` y flota con
+ *   overlay. Es un diálogo modal de verdad, no solo una superficie que
+ *   corre por CSS: `useDialogo` le da foco inicial, trampa de foco y cierre
+ *   por Escape, y `useBloquearScroll` bloquea el scroll de la página de
+ *   atrás mientras está abierto. El breakpoint es `lg` (no `md`) porque la
+ *   bottom nav de abajo no entra entre 768 y ~1100px — en ese rango (iPad
+ *   portrait, por ejemplo) hace falta seguir usando el drawer.
+ * - Desktop (lg+): bottom nav horizontal fijo abajo (`fixed inset-x-0
  *   bottom-0`), siempre visible, sin colapsar — logo a la izquierda,
  *   tabs ícono+label centradas, "Cerrar sesión" a la derecha.
  *
@@ -62,6 +70,10 @@ function AdminSidebar({ colapsada, onCerrar }) {
   const enConfiguracion = location.pathname.startsWith("/catalogo/admin/configuracion");
   const [configuracionAbierta, setConfiguracionAbierta] = useState(enConfiguracion);
   const [menuConfigDesktopAbierto, setMenuConfigDesktopAbierto] = useState(false);
+
+  const abierto = !colapsada;
+  const drawerRef = useDialogo({ abierto, onCerrar });
+  useBloquearScroll(abierto);
 
   useEffect(() => {
     if (enConfiguracion) {
@@ -78,25 +90,36 @@ function AdminSidebar({ colapsada, onCerrar }) {
 
   return (
     <>
-      {/* Mobile: sidebar lateral colapsable con overlay */}
+      {/* Mobile/tablet: overlay del drawer colapsable */}
       {!colapsada && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={onCerrar}
           aria-hidden="true"
         />
       )}
       {/*
-        La sidebar mobile no se desmonta al cerrarse: se corre fuera de pantalla
-        con `-translate-x-full` para que la transición se pueda animar. Pero
+        El drawer no se desmonta al cerrarse: se corre fuera de pantalla con
+        `-translate-x-full` para que la transición se pueda animar. Pero
         "fuera de la pantalla" no es "fuera de la página": sin `inert`, sus diez
         enlaces siguen en el orden de tabulado y quien navega por teclado tabula
         por un menú que no puede ver. `inert` los saca del foco y del árbol de
         accesibilidad sin tocar la animación.
+
+        `role="dialog"` + `aria-modal="true"` + `aria-label="Menú"` son la otra
+        mitad de que sea un diálogo modal de verdad y no una superficie que
+        solo se ve como tal: `tabIndex={-1}` es lo que le permite a `useDialogo`
+        darle foco al contenedor si algún día quedara sin ningún control
+        enfocable adentro.
       */}
       <aside
+        ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menú"
+        tabIndex={-1}
         inert={colapsada}
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col justify-between border-r border-outline-variant bg-surface-container-lowest px-4 py-6 shadow-ambient transition-transform md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col justify-between border-r border-outline-variant bg-surface-container-lowest px-4 py-6 shadow-ambient transition-transform lg:hidden ${
           colapsada ? "-translate-x-full" : "translate-x-0"
         }`}
       >
@@ -156,7 +179,7 @@ function AdminSidebar({ colapsada, onCerrar }) {
       </aside>
 
       {/* Desktop: bottom nav horizontal fijo, siempre visible */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-6 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:flex">
+      <nav className="fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-6 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:flex">
         <LogoYima className="h-6 shrink-0" />
 
         <div className="flex items-center gap-2">

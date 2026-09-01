@@ -1,8 +1,10 @@
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar.jsx";
 import LimiteDeError from "./LimiteDeError.jsx";
+import LogoYima from "./LogoYima.jsx";
 import Spinner from "./Spinner.jsx";
+import ToggleTemaAdmin from "./ToggleTemaAdmin.jsx";
 import MetaSeo from "./MetaSeo.jsx";
 import { urlAbsoluta } from "../constants/seo.js";
 
@@ -11,14 +13,29 @@ import { urlAbsoluta } from "../constants/seo.js";
  * público (ver docs/superpowers/specs/2026-08-16-admin-sidebar-design.md).
  *
  * La navegación tiene dos formas totalmente distintas según el tamaño de
- * pantalla (ver AdminSidebar.jsx): mobile usa un sidebar lateral colapsable
- * (el botón hamburguesa de acá solo existe para abrirlo, por eso es
- * `md:hidden`); desktop usa una bottom nav horizontal siempre visible, sin
- * necesidad de ningún botón para desplegarla. El `<main>` lleva `md:pb-20`
- * para que esa bottom nav fija (~73px de alto) nunca tape el final del
- * contenido al scrollear hasta abajo. El padding va SOLO en `md+`: la barra
- * inferior existe únicamente en desktop, en mobile la navegación es un
- * sidebar lateral y no hay nada abajo que pueda tapar.
+ * pantalla (ver AdminSidebar.jsx): por debajo de `lg` usa un drawer lateral
+ * colapsable, abierto por la barra superior EN FLUJO de acá abajo (`sticky
+ * top-0`, `h-topbar-admin`, `lg:hidden`) — ya no el botón `fixed` de antes,
+ * que tapaba el `<h1>` de cada pantalla en mobile. El drawer es un diálogo
+ * modal de verdad (`useDialogo` dentro de `AdminSidebar.jsx`: foco inicial,
+ * trampa de foco, Escape, bloqueo de scroll del body) y se cierra solo al
+ * cambiar de ruta —el `useEffect` de acá abajo, mismo patrón que el panel
+ * móvil de `Navbar.jsx`—, además de por el `onClick={onCerrar}` de cada
+ * `NavLink`. De `lg` en adelante la navegación es una bottom nav horizontal
+ * siempre visible, sin necesidad de ningún botón para desplegarla — el
+ * breakpoint del shell pasó de `md` a `lg` porque la bottom nav no entra
+ * entre 768 y ~1100px; en ese rango (iPad portrait, por ejemplo) sigue
+ * usándose el drawer. El `<main>` lleva `lg:pb-20` para que esa bottom nav
+ * fija (~73px de alto) nunca tape el final del contenido al scrollear hasta
+ * abajo; el padding va SOLO en `lg+` porque ahí es donde la bottom nav existe.
+ *
+ * `overflow-x-clip` en el `<main>` (reemplazó a `overflow-x-auto`) sigue
+ * cortando el desborde horizontal SIN convertirlo en scroll container: con
+ * el eje Y en su default `visible`, la spec de CSS Overflow 3 solo fuerza
+ * `auto` cuando el otro eje no es `visible` ni `clip`. Es lo que permite que
+ * cualquier `position: sticky` de las pantallas de adentro vuelva a
+ * funcionar — con `overflow-x-auto` el `<main>` era scroll container de alto
+ * no acotado y ningún sticky interno tenía contra qué anclarse.
  *
  * El `<Suspense>` alrededor del `<Outlet>` es la contraparte de los
  * `React.lazy` de App.jsx: las pantallas del admin llegan en chunks aparte, y
@@ -35,6 +52,15 @@ import { urlAbsoluta } from "../constants/seo.js";
 function AdminLayout() {
   const [sidebarColapsada, setSidebarColapsada] = useState(true);
   const { pathname } = useLocation();
+
+  // Cierra el drawer al navegar. El `onClick={onCerrar}` de cada `NavLink` ya
+  // cubre el click sobre un link del propio drawer, pero no una navegación
+  // programática (redirect, botón "Volver" de una pantalla) ni el link del
+  // outlet en sí — sin esto el drawer podía quedar abierto tapando la pantalla
+  // nueva.
+  useEffect(() => {
+    setSidebarColapsada(true);
+  }, [pathname]);
 
   return (
     <div className="relative min-h-screen bg-background">
@@ -69,18 +95,34 @@ function AdminLayout() {
         className="marca-agua-admin pointer-events-none fixed inset-0 z-0 overflow-hidden"
       />
 
-      <button
-        type="button"
-        onClick={() => setSidebarColapsada(false)}
-        className="fixed left-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-lg bg-surface-container-lowest text-on-surface shadow-ambient md:hidden"
-        aria-label="Abrir menú"
-      >
-        <span className="material-symbols-outlined">menu</span>
-      </button>
+      {/* Barra superior EN FLUJO, solo `< lg`: reemplaza al botón `fixed` que
+          tapaba el `<h1>` de cada pantalla. `sticky top-0` la deja pegada
+          arriba al scrollear; `z-30` queda por debajo del overlay (`z-40`) y
+          del drawer (`z-50`) del `AdminSidebar`, y por encima del `<main>`
+          (`z-10`). El botón conserva el mismo `aria-label` de antes y suma
+          `aria-expanded` porque ahora abre un diálogo modal de verdad. */}
+      <header className="sticky top-0 z-30 flex h-topbar-admin items-center justify-between gap-2 border-b border-outline-variant bg-surface-container-lowest px-margin-mobile lg:hidden">
+        <button
+          type="button"
+          aria-label="Abrir menú"
+          aria-expanded={!sidebarColapsada}
+          onClick={() => setSidebarColapsada(false)}
+          className="-ml-2 inline-flex size-11 items-center justify-center rounded-lg text-on-surface"
+        >
+          <span className="material-symbols-outlined">menu</span>
+        </button>
+        <span className="flex items-baseline gap-2">
+          <LogoYima className="h-6 self-center" />
+          <span className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant">
+            Admin
+          </span>
+        </span>
+        <ToggleTemaAdmin compacto />
+      </header>
 
       <AdminSidebar colapsada={sidebarColapsada} onCerrar={() => setSidebarColapsada(true)} />
 
-      <main className="relative z-10 w-full overflow-x-auto md:pb-20">
+      <main className="relative z-10 w-full overflow-x-clip lg:pb-20">
         <Suspense
           fallback={
             <div className="flex min-h-[60vh] items-center justify-center text-on-surface-variant">

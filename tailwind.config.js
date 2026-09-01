@@ -69,6 +69,14 @@ export default {
         // breakpoints: por eso son dos.
         "navbar-height": "76px",
         "navbar-height-md": "84px",
+        // Alto de la barra superior en flujo del admin (`AdminLayout.jsx`,
+        // visible solo por debajo de `lg`). Contrato de dos puntas, mismo
+        // criterio que `navbar-height` con `FiltrosCatalogo`: esta barra usa
+        // `h-topbar-admin`, y la Fase 3 del plan de responsive usará
+        // `top-topbar-admin` en `EditorTabs` para pegar sus pestañas justo
+        // debajo — un valor hardcodeado en cualquiera de los dos lados
+        // reabre el mismo hueco que ya se documentó para el navbar público.
+        "topbar-admin": "56px",
       },
       // Sin serifas en todo el sitio, a propósito: "Libre Caslon Text" (la
       // serif de titulares del mockup original) se sacó por completo — los

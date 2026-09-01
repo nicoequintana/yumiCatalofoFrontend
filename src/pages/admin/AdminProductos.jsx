@@ -706,197 +706,199 @@ function AdminProductos() {
             </div>
           ) : null}
 
-          <table className="w-full min-w-[820px] text-left text-[13px] xl:text-sm">
-            <thead>
-              <tr className="border-b border-outline-variant">
-                <th className="px-2 py-2 xl:px-3 xl:py-3">
-                  <input
-                    type="checkbox"
-                    aria-label="Seleccionar todos los productos de esta página"
-                    checked={todosSeleccionados}
-                    // `indeterminate` no existe como atributo HTML, solo como
-                    // propiedad del nodo: se setea por ref o no se ve nunca.
-                    ref={(nodo) => {
-                      if (nodo) {
-                        nodo.indeterminate = haySeleccion && !todosSeleccionados;
-                      }
-                    }}
-                    onChange={alternarTodos}
-                    className="size-4 accent-primary"
-                  />
-                </th>
-                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                  Foto
-                </th>
-                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                  Nombre
-                </th>
-                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                  SKU
-                </th>
-                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                  Etiqueta
-                </th>
-                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                  Categoría
-                </th>
-                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                  Precio
-                </th>
-                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                  Stock
-                </th>
-                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                  Fotos
-                </th>
-                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                  Catálogo
-                </th>
-                <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                  Destacado
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {productos.map((producto) => (
-                <tr
-                  key={producto.id}
-                  className={`border-b border-outline-variant last:border-b-0 ${
-                    producto.stock === 0 ? "bg-error-container/40" : ""
-                  }`}
-                >
-                  <td className="px-2 py-2 xl:px-3 xl:py-3">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] text-left text-[13px] xl:text-sm">
+              <thead>
+                <tr className="border-b border-outline-variant">
+                  <th className="px-2 py-2 xl:px-3 xl:py-3">
                     <input
                       type="checkbox"
-                      aria-label={`Seleccionar ${producto.nombre}`}
-                      checked={seleccionados.has(producto.id)}
-                      onChange={() => alternarSeleccion(producto.id)}
+                      aria-label="Seleccionar todos los productos de esta página"
+                      checked={todosSeleccionados}
+                      // `indeterminate` no existe como atributo HTML, solo como
+                      // propiedad del nodo: se setea por ref o no se ve nunca.
+                      ref={(nodo) => {
+                        if (nodo) {
+                          nodo.indeterminate = haySeleccion && !todosSeleccionados;
+                        }
+                      }}
+                      onChange={alternarTodos}
                       className="size-4 accent-primary"
                     />
-                  </td>
-                  {/* Foto y nombre son la puerta a la ficha: la columna
-                      "Acciones" con su ícono de lápiz se eliminó. Son dos links
-                      al mismo destino y por eso llevan nombres accesibles
-                      distintos — dos enlaces con el mismo texto en la misma
-                      fila se leen como dos destinos y obligan a probar cuál es
-                      cuál. El de la foto declara la acción ("Editar X") porque
-                      una imagen no tiene texto propio; el del nombre ya ES el
-                      nombre del producto. */}
-                  <td className="px-2 py-2 xl:px-3 xl:py-3">
-                    <Link
-                      to={`/catalogo/admin/productos/${producto.id}/editar`}
-                      aria-label={`Editar ${producto.nombre}`}
-                      className="block w-fit rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                    >
-                      {producto.fotos?.[0]?.url ? (
-                        <img
-                          src={producto.fotos[0].url}
-                          alt=""
-                          className="h-9 w-9 rounded-lg object-cover xl:h-12 xl:w-12"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant xl:h-12 xl:w-12">
-                          <span className="material-symbols-outlined text-[16px] xl:text-[20px]">image</span>
-                        </div>
-                      )}
-                    </Link>
-                  </td>
-                  <td className="max-w-[160px] px-2 py-2 xl:max-w-[220px] xl:px-3 xl:py-3">
-                    <Link
-                      to={`/catalogo/admin/productos/${producto.id}/editar`}
-                      title={producto.nombre}
-                      className="block truncate font-body-md text-on-surface hover:text-primary hover:underline"
-                    >
-                      {producto.nombre}
-                    </Link>
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
-                    {producto.sku}
-                  </td>
-                  <td className="px-2 py-2 xl:px-3 xl:py-3">
-                    <Badge etiqueta={producto.etiqueta} />
-                  </td>
-                  <td className="max-w-[120px] truncate px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3" title={producto.categoria?.nombre ?? undefined}>
-                    {producto.categoria?.nombre ?? "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface xl:px-3 xl:py-3">
-                    {formatPrecio(producto.precio)}
-                  </td>
-                  <td className="px-2 py-2 xl:px-3 xl:py-3">
-                    {producto.stock === 0 ? (
-                      <span className="inline-block whitespace-nowrap rounded bg-error-container px-1.5 py-0.5 font-label-sm text-[11px] uppercase tracking-wide text-on-error-container xl:px-2 xl:py-1 xl:text-label-sm">
-                        Sin stock
-                      </span>
-                    ) : (
-                      <span
-                        className={`font-body-md ${
-                          producto.stock <= 3 ? "font-semibold text-secondary" : "text-on-surface-variant"
-                        }`}
-                      >
-                        {producto.stock}
-                      </span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
-                    {/* `cantidadFotos` y no `fotos.length`: el listado
-                        liviano trae solo la portada, así que contar el array
-                        mostraría "1/10" para cualquier producto con fotos. */}
-                    {producto.cantidadFotos ?? 0}/10
-                  </td>
-                  <td className="px-2 py-2 xl:px-3 xl:py-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={producto.visibleEnCatalogo}
-                        aria-label={`Mostrar ${producto.nombre} en el catálogo`}
-                        onClick={() => handleToggleVisibilidad(producto)}
-                        disabled={actualizandoVisibilidadId === producto.id}
-                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 xl:h-6 xl:w-11 ${
-                          producto.visibleEnCatalogo ? "bg-secondary" : "bg-outline-variant"
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface-container-lowest shadow transition-transform xl:h-4 xl:w-4 ${
-                            producto.visibleEnCatalogo ? "translate-x-5 xl:translate-x-6" : "translate-x-0.5 xl:translate-x-1"
-                          }`}
-                        />
-                      </button>
-                      {actualizandoVisibilidadId === producto.id ? (
-                        <Spinner className="h-3.5 w-3.5 text-on-surface-variant" />
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="px-2 py-2 xl:px-3 xl:py-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={producto.destacado}
-                        aria-label={`Destacar ${producto.nombre}`}
-                        onClick={() => handleToggleDestacado(producto)}
-                        disabled={actualizandoDestacadoId === producto.id}
-                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 xl:h-6 xl:w-11 ${
-                          producto.destacado ? "bg-secondary" : "bg-outline-variant"
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface-container-lowest shadow transition-transform xl:h-4 xl:w-4 ${
-                            producto.destacado ? "translate-x-5 xl:translate-x-6" : "translate-x-0.5 xl:translate-x-1"
-                          }`}
-                        />
-                      </button>
-                      {actualizandoDestacadoId === producto.id ? (
-                        <Spinner className="h-3.5 w-3.5 text-on-surface-variant" />
-                      ) : null}
-                    </div>
-                  </td>
+                  </th>
+                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                    Foto
+                  </th>
+                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                    Nombre
+                  </th>
+                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                    SKU
+                  </th>
+                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                    Etiqueta
+                  </th>
+                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                    Categoría
+                  </th>
+                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                    Precio
+                  </th>
+                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                    Stock
+                  </th>
+                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                    Fotos
+                  </th>
+                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                    Catálogo
+                  </th>
+                  <th className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                    Destacado
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {productos.map((producto) => (
+                  <tr
+                    key={producto.id}
+                    className={`border-b border-outline-variant last:border-b-0 ${
+                      producto.stock === 0 ? "bg-error-container/40" : ""
+                    }`}
+                  >
+                    <td className="px-2 py-2 xl:px-3 xl:py-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`Seleccionar ${producto.nombre}`}
+                        checked={seleccionados.has(producto.id)}
+                        onChange={() => alternarSeleccion(producto.id)}
+                        className="size-4 accent-primary"
+                      />
+                    </td>
+                    {/* Foto y nombre son la puerta a la ficha: la columna
+                        "Acciones" con su ícono de lápiz se eliminó. Son dos links
+                        al mismo destino y por eso llevan nombres accesibles
+                        distintos — dos enlaces con el mismo texto en la misma
+                        fila se leen como dos destinos y obligan a probar cuál es
+                        cuál. El de la foto declara la acción ("Editar X") porque
+                        una imagen no tiene texto propio; el del nombre ya ES el
+                        nombre del producto. */}
+                    <td className="px-2 py-2 xl:px-3 xl:py-3">
+                      <Link
+                        to={`/catalogo/admin/productos/${producto.id}/editar`}
+                        aria-label={`Editar ${producto.nombre}`}
+                        className="block w-fit rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      >
+                        {producto.fotos?.[0]?.url ? (
+                          <img
+                            src={producto.fotos[0].url}
+                            alt=""
+                            className="h-9 w-9 rounded-lg object-cover xl:h-12 xl:w-12"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant xl:h-12 xl:w-12">
+                            <span className="material-symbols-outlined text-[16px] xl:text-[20px]">image</span>
+                          </div>
+                        )}
+                      </Link>
+                    </td>
+                    <td className="max-w-[160px] px-2 py-2 xl:max-w-[220px] xl:px-3 xl:py-3">
+                      <Link
+                        to={`/catalogo/admin/productos/${producto.id}/editar`}
+                        title={producto.nombre}
+                        className="block truncate font-body-md text-on-surface hover:text-primary hover:underline"
+                      >
+                        {producto.nombre}
+                      </Link>
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
+                      {producto.sku}
+                    </td>
+                    <td className="px-2 py-2 xl:px-3 xl:py-3">
+                      <Badge etiqueta={producto.etiqueta} />
+                    </td>
+                    <td className="max-w-[120px] truncate px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3" title={producto.categoria?.nombre ?? undefined}>
+                      {producto.categoria?.nombre ?? "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface xl:px-3 xl:py-3">
+                      {formatPrecio(producto.precio)}
+                    </td>
+                    <td className="px-2 py-2 xl:px-3 xl:py-3">
+                      {producto.stock === 0 ? (
+                        <span className="inline-block whitespace-nowrap rounded bg-error-container px-1.5 py-0.5 font-label-sm text-[11px] uppercase tracking-wide text-on-error-container xl:px-2 xl:py-1 xl:text-label-sm">
+                          Sin stock
+                        </span>
+                      ) : (
+                        <span
+                          className={`font-body-md ${
+                            producto.stock <= 3 ? "font-semibold text-secondary" : "text-on-surface-variant"
+                          }`}
+                        >
+                          {producto.stock}
+                        </span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
+                      {/* `cantidadFotos` y no `fotos.length`: el listado
+                          liviano trae solo la portada, así que contar el array
+                          mostraría "1/10" para cualquier producto con fotos. */}
+                      {producto.cantidadFotos ?? 0}/10
+                    </td>
+                    <td className="px-2 py-2 xl:px-3 xl:py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={producto.visibleEnCatalogo}
+                          aria-label={`Mostrar ${producto.nombre} en el catálogo`}
+                          onClick={() => handleToggleVisibilidad(producto)}
+                          disabled={actualizandoVisibilidadId === producto.id}
+                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 xl:h-6 xl:w-11 ${
+                            producto.visibleEnCatalogo ? "bg-secondary" : "bg-outline-variant"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface-container-lowest shadow transition-transform xl:h-4 xl:w-4 ${
+                              producto.visibleEnCatalogo ? "translate-x-5 xl:translate-x-6" : "translate-x-0.5 xl:translate-x-1"
+                            }`}
+                          />
+                        </button>
+                        {actualizandoVisibilidadId === producto.id ? (
+                          <Spinner className="h-3.5 w-3.5 text-on-surface-variant" />
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="px-2 py-2 xl:px-3 xl:py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={producto.destacado}
+                          aria-label={`Destacar ${producto.nombre}`}
+                          onClick={() => handleToggleDestacado(producto)}
+                          disabled={actualizandoDestacadoId === producto.id}
+                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 xl:h-6 xl:w-11 ${
+                            producto.destacado ? "bg-secondary" : "bg-outline-variant"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface-container-lowest shadow transition-transform xl:h-4 xl:w-4 ${
+                              producto.destacado ? "translate-x-5 xl:translate-x-6" : "translate-x-0.5 xl:translate-x-1"
+                            }`}
+                          />
+                        </button>
+                        {actualizandoDestacadoId === producto.id ? (
+                          <Spinner className="h-3.5 w-3.5 text-on-surface-variant" />
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

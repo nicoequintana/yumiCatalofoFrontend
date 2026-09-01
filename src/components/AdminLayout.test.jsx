@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AdminLayout from "./AdminLayout.jsx";
 
@@ -81,6 +82,59 @@ describe("AdminLayout", () => {
       // haber un nodo de imagen que un lector pueda llegar a anunciar.
       expect(container.querySelector(".marca-agua-admin").textContent).toBe("");
       expect(container.querySelector(".marca-agua-admin img")).toBeNull();
+    });
+  });
+
+  describe("barra superior en flujo (< lg)", () => {
+    it("muestra una barra superior con el botón Abrir menú", async () => {
+      const user = userEvent.setup();
+      renderAdmin(<p>listado de productos</p>);
+
+      const barra = screen.getByRole("banner");
+      const boton = within(barra).getByRole("button", { name: /abrir menú/i });
+      expect(boton).toHaveAttribute("aria-expanded", "false");
+
+      await user.click(boton);
+
+      expect(boton).toHaveAttribute("aria-expanded", "true");
+    });
+
+    it("el main no es un scroll container", () => {
+      // `overflow-x-auto` volvía al <main> un scroll container de alto no
+      // acotado, y con eso ningún `position: sticky` de las pantallas de
+      // adentro podía anclarse a nada. `overflow-x-clip` sigue cortando el
+      // desborde horizontal sin ese efecto: con el eje Y en su default
+      // `visible`, CSS Overflow 3 solo fuerza `auto` cuando el otro eje NO es
+      // `visible` ni `clip`.
+      const { container } = renderAdmin(<p>listado de productos</p>);
+      const main = container.querySelector("main");
+
+      expect(main).not.toHaveClass("overflow-x-auto");
+      expect(main).toHaveClass("overflow-x-clip");
+    });
+
+    it("cierra el drawer al cambiar de ruta", async () => {
+      const user = userEvent.setup();
+      const { container } = render(
+        <MemoryRouter initialEntries={["/catalogo/admin/productos"]}>
+          <Routes>
+            <Route path="/catalogo/admin" element={<AdminLayout />}>
+              <Route
+                path="productos"
+                element={<Link to="/catalogo/admin/ordenes">ir a órdenes</Link>}
+              />
+              <Route path="ordenes" element={<p>listado de órdenes</p>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await user.click(screen.getByRole("button", { name: /abrir menú/i }));
+      expect(container.querySelector("aside")).not.toHaveAttribute("inert");
+
+      await user.click(screen.getByRole("link", { name: /ir a órdenes/i }));
+
+      expect(container.querySelector("aside")).toHaveAttribute("inert");
     });
   });
 });

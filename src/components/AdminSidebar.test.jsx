@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import AdminSidebar from "./AdminSidebar.jsx";
 
 function renderSidebar() {
@@ -79,5 +79,68 @@ describe("AdminSidebar — la sidebar mobile colapsada", () => {
     const { container } = renderConColapsada(false);
 
     expect(container.querySelector("aside")).not.toHaveAttribute("inert");
+  });
+});
+
+describe("AdminSidebar — drawer accesible (useDialogo + useBloquearScroll)", () => {
+  afterEach(() => {
+    document.body.style.overflow = "";
+  });
+
+  function renderDrawer(colapsada, onCerrar = () => {}) {
+    return render(
+      <MemoryRouter initialEntries={["/catalogo/admin/productos"]}>
+        <AdminSidebar colapsada={colapsada} onCerrar={onCerrar} />
+      </MemoryRouter>,
+    );
+  }
+
+  it("Escape cierra el drawer abierto", () => {
+    const onCerrar = vi.fn();
+    renderDrawer(false, onCerrar);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(onCerrar).toHaveBeenCalledTimes(1);
+  });
+
+  it("Escape no hace nada con el drawer cerrado", () => {
+    const onCerrar = vi.fn();
+    renderDrawer(true, onCerrar);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(onCerrar).not.toHaveBeenCalled();
+  });
+
+  it("el drawer es un diálogo modal con nombre", () => {
+    const { container } = renderDrawer(false);
+
+    expect(screen.getByRole("dialog", { name: "Menú" })).toBe(container.querySelector("aside"));
+  });
+
+  it("bloquea el scroll del body abierto y lo libera cerrado", () => {
+    const { rerender } = render(
+      <MemoryRouter initialEntries={["/catalogo/admin/productos"]}>
+        <AdminSidebar colapsada={false} onCerrar={() => {}} />
+      </MemoryRouter>,
+    );
+
+    expect(document.body.style.overflow).toBe("hidden");
+
+    rerender(
+      <MemoryRouter initialEntries={["/catalogo/admin/productos"]}>
+        <AdminSidebar colapsada={true} onCerrar={() => {}} />
+      </MemoryRouter>,
+    );
+
+    expect(document.body.style.overflow).not.toBe("hidden");
+  });
+
+  it("enfoca el primer enlace al abrir", () => {
+    const { container } = renderDrawer(false);
+    const aside = container.querySelector("aside");
+
+    expect(document.activeElement).toBe(within(aside).getByRole("link", { name: /productos/i }));
   });
 });

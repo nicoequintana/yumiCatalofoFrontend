@@ -227,7 +227,7 @@ function AdminOrdenDetalle() {
         ) : null}
       </div>
 
-      <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-ambient">
+      <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
         <table className="w-full min-w-[560px] text-left">
           <thead>
             <tr className="border-b border-outline-variant">

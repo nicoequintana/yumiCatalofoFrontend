@@ -256,7 +256,7 @@ function AdminCategorias() {
           mensaje="Agregá la primera categoría para poder asignarla a los productos."
         />
       ) : (
-        <div className="overflow-hidden rounded-xl bg-surface-container-lowest shadow-ambient">
+        <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
           {/* `table-fixed` con anchos declarados en los `<th>`: con el layout
               automático, el aviso rojo de "sin productos publicados" ensanchaba
               su columna y REACOMODABA toda la tabla al prenderse un switch —
