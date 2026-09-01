@@ -271,9 +271,18 @@ function FiltrosCatalogo({
     // continua. Con opacidad, este tramo se teñía apenas distinto del resto y
     // dejaba una costura horizontal visible bajo el título; el desenfoque
     // tampoco aportaba nada, porque lo que pasa por detrás es de ese color.
+    // `top` suma una TERCERA punta al contrato de `navbar-height` (ver el
+    // comentario del `<header>` en `Navbar.jsx`):
+    // `calc(var(--alto-cinta-ambiente) + theme(spacing.navbar-height))`, no
+    // `top-navbar-height` a secas. `--alto-cinta-ambiente` la declara
+    // `CintaAmbiente.jsx` (ver `index.css`) y vale `0px` en producción, así
+    // que ahí el cálculo da lo mismo que antes. En dev, el Navbar ya se corre
+    // debajo de la cinta (ver `Navbar.jsx`), y esta barra tiene que sumar la
+    // misma cinta a SU `top` para seguir pegada justo debajo del Navbar en
+    // vez de quedar tapada por la cinta.
     <div
       ref={contenedorRef}
-      className="sticky top-navbar-height z-40 w-full border-b border-outline-variant bg-surface-container-low px-margin-mobile py-3 md:top-navbar-height-md md:px-margin-desktop"
+      className="sticky top-[calc(var(--alto-cinta-ambiente)_+_theme(spacing.navbar-height))] z-40 w-full border-b border-outline-variant bg-surface-container-low px-margin-mobile py-3 md:top-[calc(var(--alto-cinta-ambiente)_+_theme(spacing.navbar-height-md))] md:px-margin-desktop"
     >
       {/* UNA sola fila: buscador + botón. El buscador ocupa todo el sobrante y
           el botón nunca se encoge. */}

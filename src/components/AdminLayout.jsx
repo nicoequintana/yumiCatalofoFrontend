@@ -125,14 +125,21 @@ function AdminLayout() {
           y main nunca compiten entre sí por espacio. */}
       <div className="relative z-10">
         {/* Barra superior EN FLUJO, solo `< lg`: reemplaza al botón `fixed` que
-            tapaba el `<h1>` de cada pantalla. `sticky top-0` la deja pegada
+            tapaba el `<h1>` de cada pantalla. `sticky` la deja pegada
             arriba al scrollear; `z-30` queda por debajo del overlay (`z-40`) y
             del drawer (`z-50`) del `AdminSidebar`, y por debajo también de los
             diálogos (`z-50`) de las pantallas, que comparten este contenedor.
             El botón conserva el mismo `aria-label` de antes y suma
             `aria-expanded` + `aria-haspopup="dialog"` porque ahora abre un
-            diálogo modal de verdad. */}
-        <header className="sticky top-0 z-30 flex h-topbar-admin items-center justify-between gap-2 border-b border-outline-variant bg-surface-container-lowest px-margin-mobile lg:hidden">
+            diálogo modal de verdad.
+
+            `top-[var(--alto-cinta-ambiente)]`, no `top-0`: esa variable la
+            declara `CintaAmbiente.jsx` (ver `index.css`) y vale el alto real
+            de la cinta de dev mientras existe en el DOM, `0px` en producción
+            — mismo valor que el `top-0` de antes, así que el resultado
+            publicado no cambia. Sin esto la cinta, `fixed` y sin empujar el
+            layout, se pintaba encima de la mitad superior de esta barra. */}
+        <header className="sticky top-[var(--alto-cinta-ambiente)] z-30 flex h-topbar-admin items-center justify-between gap-2 border-b border-outline-variant bg-surface-container-lowest px-margin-mobile lg:hidden">
           <button
             type="button"
             aria-label="Abrir menú"

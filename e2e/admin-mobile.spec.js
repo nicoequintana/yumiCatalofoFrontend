@@ -170,6 +170,56 @@ test.describe("Admin en mobile", () => {
     }
   });
 
+  /**
+   * La cinta de dev (`CintaAmbiente.jsx`) sale en este spec porque Playwright
+   * corre contra `npm run dev` (`import.meta.env.DEV` es `true`) — nunca
+   * aparece en un build de producción, ver CLAUDE.md. Es `fixed` y no empuja
+   * el layout: antes de este fix se pintaba encima de la mitad superior de la
+   * barra del admin, tapando la hamburguesa, el wordmark y el toggle de tema.
+   * El fix la hace declarar su alto en `--alto-cinta-ambiente`
+   * (`index.css`), que la barra lee en su `top`. `AdminLayout.test.jsx` ya
+   * fija la clase; esto mide en un navegador real que el acomodo ocurrió de
+   * verdad — jsdom no puede medir `getBoundingClientRect()`.
+   */
+  test("la cinta de ambiente de testing no tapa la barra superior del admin", async ({ page }) => {
+    await page.goto("/catalogo/admin/productos");
+    await esperarPantallaLista(page);
+
+    const cinta = page.getByTestId("cinta-ambiente");
+    await expect(cinta).toBeVisible();
+    const cajaCinta = await cinta.boundingBox();
+
+    const botonMenu = page.getByRole("button", { name: "Abrir menú" });
+    const cajaBoton = await botonMenu.boundingBox();
+
+    expect(cajaCinta, "boundingBox de la cinta de ambiente").not.toBeNull();
+    expect(cajaBoton, 'boundingBox del botón "Abrir menú"').not.toBeNull();
+    expect(
+      cajaBoton.y,
+      "el botón Abrir menú empieza por debajo del borde inferior de la cinta",
+    ).toBeGreaterThanOrEqual(cajaCinta.y + cajaCinta.height);
+
+    const punto = { x: cajaBoton.x + cajaBoton.width / 2, y: cajaBoton.y + cajaBoton.height / 2 };
+    const impacto = await page.evaluate(({ x, y }) => {
+      const elemento = document.elementFromPoint(x, y);
+      if (!elemento) return { hayElemento: false, esBotonDeMenu: false, dentroDeLaCinta: false };
+      return {
+        hayElemento: true,
+        esBotonDeMenu: Boolean(elemento.closest('button[aria-label="Abrir menú"]')),
+        dentroDeLaCinta: Boolean(elemento.closest('[data-testid="cinta-ambiente"]')),
+        // Para el reporte, si algo falla: qué recibe el toque en su lugar.
+        descripcion: `${elemento.tagName.toLowerCase()}.${String(elemento.className).trim()}`,
+      };
+    }, punto);
+
+    expect(impacto.hayElemento, "elementFromPoint sobre el centro del botón de menú").toBe(true);
+    expect(
+      impacto.esBotonDeMenu,
+      `el botón "Abrir menú" recibe el toque en su centro (impacto real: ${impacto.descripcion})`,
+    ).toBe(true);
+    expect(impacto.dentroDeLaCinta, "la cinta de ambiente no intercepta el toque").toBe(false);
+  });
+
   // El nombre dice exactamente lo que el test afirma. Se llamaba "abre con
   // foco atrapado…" y eso prometía algo que acá no se mide: la trampa de foco
   // (tabular en círculo dentro del drawer) vive en `hooks/useDialogo.js` y no

@@ -68,6 +68,20 @@ describe("Navbar - badge de carrito", () => {
   });
 });
 
+describe("Navbar - barra sticky", () => {
+  it("ancla su top a la variable de la cinta de ambiente, no a top-0", () => {
+    // Mismo contrato que AdminLayout: `--alto-cinta-ambiente` vale el alto
+    // real de la cinta de dev mientras esta existe en el DOM y `0px` en
+    // producción — así el navbar no queda tapado por la cinta sin cambiar
+    // nada del resultado final en el sitio publicado.
+    const { container } = renderNavbar();
+    const header = container.querySelector("header");
+
+    expect(header).toHaveClass("top-[var(--alto-cinta-ambiente)]");
+    expect(header).not.toHaveClass("top-0");
+  });
+});
+
 describe("Navbar - logo", () => {
   it("el logo YIMA es un link a la home", () => {
     renderNavbar();

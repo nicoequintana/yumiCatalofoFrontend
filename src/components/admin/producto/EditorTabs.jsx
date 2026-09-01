@@ -22,10 +22,19 @@ function EditorTabs({ panelActivo, onCambiarPanel }) {
   return (
     <div
       // Única pieza sticky del editor: queda pegada justo debajo de la barra
-      // superior del shell (`top-topbar-admin`, ver `AdminLayout.jsx`). En
+      // superior del shell (`topbar-admin`, ver `AdminLayout.jsx`). En
       // `lg` no hace falta — el editor no scrollea como página, cada columna
       // scrollea por su cuenta.
-      className="sticky top-topbar-admin z-10 flex border-b border-outline-variant bg-surface px-4 lg:static"
+      //
+      // El `top` suma una TERCERA punta al contrato de `topbar-admin`:
+      // `calc(var(--alto-cinta-ambiente) + theme(spacing.topbar-admin))`, no
+      // `top-topbar-admin` a secas. `--alto-cinta-ambiente` la declara
+      // `CintaAmbiente.jsx` (ver `index.css`) y vale `0px` en producción, así
+      // que ahí el cálculo da exactamente lo mismo que antes. En dev, sin
+      // sumarla, la barra del admin YA se corre debajo de la cinta (ver
+      // `AdminLayout.jsx`) pero esta pestaña seguía anclada al viejo
+      // `topbar-admin` a secas y quedaba tapada por la cinta igual.
+      className="sticky top-[calc(var(--alto-cinta-ambiente)_+_theme(spacing.topbar-admin))] z-10 flex border-b border-outline-variant bg-surface px-4 lg:static"
       role="group"
       aria-label="Panel visible"
     >

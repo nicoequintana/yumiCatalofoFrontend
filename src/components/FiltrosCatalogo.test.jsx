@@ -90,6 +90,25 @@ describe("FiltrosCatalogo — barra sticky", () => {
     expect(encabezado).toHaveClass("sr-only");
   });
 
+  it("ancla su top a navbar-height MÁS la variable de la cinta de ambiente", () => {
+    // `navbar-height`/`navbar-height-md` ya eran un contrato de dos puntas con
+    // el Navbar; la cinta de dev (`CintaAmbiente.jsx`) suma una tercera:
+    // `--alto-cinta-ambiente` vale su alto real mientras existe en el DOM y
+    // `0px` en producción, así que sumarla al cálculo no mueve nada en el
+    // sitio publicado.
+    const { container } = renderFiltros();
+    const barra = container.querySelector(".sticky");
+
+    expect(barra).toHaveClass(
+      "top-[calc(var(--alto-cinta-ambiente)_+_theme(spacing.navbar-height))]",
+    );
+    expect(barra).toHaveClass(
+      "md:top-[calc(var(--alto-cinta-ambiente)_+_theme(spacing.navbar-height-md))]",
+    );
+    expect(barra).not.toHaveClass("top-navbar-height");
+    expect(barra).not.toHaveClass("md:top-navbar-height-md");
+  });
+
   it("deja el buscador SIEMPRE afuera del panel", () => {
     renderFiltros();
 

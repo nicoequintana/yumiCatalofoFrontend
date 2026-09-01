@@ -140,8 +140,14 @@ function ProductoDetalle() {
         jsonLd={bloquesJsonLd}
       />
 
-      {/* Mobile header — the one page-specific mobile-nav exception. */}
-      <header className="sticky top-0 z-40 flex w-full items-center justify-between bg-background px-margin-mobile py-4 md:hidden">
+      {/* Mobile header — the one page-specific mobile-nav exception.
+          `top-[var(--alto-cinta-ambiente)]`, no `top-0`: la variable la
+          declara `CintaAmbiente.jsx` (ver `index.css`) y vale el alto real de
+          la cinta de dev mientras existe en el DOM, `0px` en producción — el
+          mismo `top-0` de antes, así que el sitio publicado no cambia. Sin
+          esto la cinta (`fixed`, no empuja el layout) se pintaba encima de
+          este header. */}
+      <header className="sticky top-[var(--alto-cinta-ambiente)] z-40 flex w-full items-center justify-between bg-background px-margin-mobile py-4 md:hidden">
         <button type="button" className="p-2 text-on-surface" onClick={volver}>
           <span className="material-symbols-outlined">arrow_back</span>
         </button>

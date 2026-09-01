@@ -114,7 +114,13 @@ function Navbar() {
   // viewport y vuelve a velar la página entera.
   return (
     <>
-    <header className="vidrio-header sticky top-0 z-50 w-full bg-background/70 shadow backdrop-blur-[10px]">
+    {/* `top-[var(--alto-cinta-ambiente)]`, no `top-0`: la variable la declara
+        `CintaAmbiente.jsx` (ver `index.css`) y vale el alto real de la cinta
+        de dev mientras existe en el DOM, `0px` en producción — el mismo
+        `top-0` de siempre, así que el sitio publicado no cambia. Sin esto la
+        cinta, `fixed` y sin empujar el layout, tapaba la mitad superior del
+        header. */}
+    <header className="vidrio-header sticky top-[var(--alto-cinta-ambiente)] z-50 w-full bg-background/70 shadow backdrop-blur-[10px]">
       {/* `relative z-50` no es decorativo: el velo del panel móvil es `fixed`
           con z-index, y dentro del contexto de apilado que crea el header
           sticky un elemento posicionado se pinta por encima de uno estático.
@@ -127,7 +133,10 @@ function Navbar() {
           más abajo de donde este header terminaba y quedaba un hueco por el
           que se veía pasar la grilla. Si esta barra necesita más aire, se
           sube el token — nunca se vuelve a un padding, que reabre el hueco
-          sin que nada falle. */}
+          sin que nada falle. Desde la cinta de dev, el contrato ganó una
+          TERCERA punta: `FiltrosCatalogo.jsx` no se pega solo a
+          `navbar-height`, sino a `navbar-height` MÁS `--alto-cinta-ambiente`
+          (ver el `top` de este header, arriba). */}
       {/* SIN `bg-background`: el fondo lo pone el `<header>`, que es el que
           lleva la opacidad y el desenfoque. Un fondo sólido acá tapa ese
           vidrio en toda la franja del contenido — el blur se aplicaría igual,

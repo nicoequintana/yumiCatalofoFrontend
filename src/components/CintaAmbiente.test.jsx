@@ -48,6 +48,22 @@ describe("CintaAmbiente", () => {
     expect(cinta.className).toContain("z-[200]");
   });
 
+  it("declara su alto en --alto-cinta-ambiente, para que las barras sticky se corran debajo", () => {
+    // La cinta es `fixed` y no empuja el layout, así que las barras sticky
+    // (Navbar, la barra del admin, el header mobile de la ficha) no tienen
+    // forma de saber cuánto mide para anclarse debajo — salvo que ella misma
+    // publique su alto en una variable que las cinco lean en su `top`. La
+    // clase `cinta-ambiente` es el gancho de `:root:has(.cinta-ambiente)` en
+    // `index.css`, que le da valor a esa variable SOLO mientras la cinta
+    // existe en el DOM.
+    vi.stubEnv("DEV", true);
+    render(<CintaAmbiente />);
+
+    const cinta = screen.getByTestId("cinta-ambiente");
+    expect(cinta).toHaveClass("cinta-ambiente");
+    expect(cinta).toHaveClass("h-[var(--alto-cinta-ambiente)]");
+  });
+
   it("no se lleva el foco ni interrumpe al lector de pantalla", () => {
     // Es un rótulo de contexto, no una alerta: no hay nada que accionar ni una
     // novedad que anunciar. Un `role="alert"` acá interrumpiría la lectura de

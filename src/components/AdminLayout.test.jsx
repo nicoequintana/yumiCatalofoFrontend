@@ -148,6 +148,19 @@ describe("AdminLayout", () => {
       expect(cabecera.closest(".z-10")).toBe(contenedor);
     });
 
+    it("ancla su top a la variable de la cinta de ambiente, no a top-0", () => {
+      // `top-0` clavaba la barra debajo de la cinta de dev (`CintaAmbiente.jsx`)
+      // solo mientras esta valía `0px`. `--alto-cinta-ambiente` es la misma
+      // variable que la cinta declara: en dev vale su alto real y la barra se
+      // corre debajo; en producción, donde la cinta no existe, vuelve a `0px` y
+      // el resultado es idéntico al `top-0` de antes.
+      const { container } = renderAdmin(<p>listado de productos</p>);
+      const barra = container.querySelector("header");
+
+      expect(barra).toHaveClass("top-[var(--alto-cinta-ambiente)]");
+      expect(barra).not.toHaveClass("top-0");
+    });
+
     it("cierra el drawer al cambiar de ruta", async () => {
       const user = userEvent.setup();
       const { container } = render(

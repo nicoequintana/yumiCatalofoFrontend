@@ -65,6 +65,25 @@
   --color-moss-green: 96 108 56; /* #606c38 */
   --color-golden-sand: 233 196 106; /* #e9c46a */
   --color-cream-base: 255 248 245; /* #fff8f5 */
+
+  /* Alto de la cinta "Ambiente de testing" (CintaAmbiente.jsx). Vale 0 salvo
+     que la cinta exista en el DOM: así las barras sticky (Navbar, la barra
+     del admin, el header mobile de la ficha) se anclan debajo de ella en
+     desarrollo y quedan exactamente en top: 0 en producción, donde la cinta
+     no existe. Un solo origen: la cinta mide `var(--alto-cinta-ambiente)` y
+     las barras leen la MISMA variable en su `top` — mismo patrón de
+     contrato de dos puntas que `navbar-height`/`topbar-admin`
+     (tailwind.config.js). */
+  --alto-cinta-ambiente: 0px;
+}
+
+/* `:has()` ya es un requisito del proyecto (tabla apilada, más abajo). Donde
+   el navegador no lo soporte, la variable de arriba queda en `0px` y se
+   vuelve al solapamiento previo a este fix — degradación, no rotura: sigue
+   sin afectar producción, que de todos modos nunca tiene `.cinta-ambiente`
+   en el DOM. */
+:root:has(.cinta-ambiente) {
+  --alto-cinta-ambiente: 1.5rem;
 }
 
 /* Dark mode — admin panel only (`/catalogo/admin/*`), never the public

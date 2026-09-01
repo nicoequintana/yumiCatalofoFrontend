@@ -44,7 +44,21 @@ function CintaAmbiente() {
       // `pointer-events-none` para que no bloquee lo que tapa. La cinta es
       // finita, pero igual se superpone al borde superior del navbar sticky, y
       // un cartel de aviso no puede robarle un click a la navegación.
-      className="pointer-events-none fixed inset-x-0 top-0 z-[200] flex justify-center bg-error px-3 py-1 text-center"
+      //
+      // `cinta-ambiente` + `h-[var(--alto-cinta-ambiente)]`: sigue siendo
+      // `fixed` (no corre el layout a mano), pero ahora DECLARA su alto en una
+      // custom property en vez de solo ocuparlo. `index.css` le da valor a esa
+      // variable con `:root:has(.cinta-ambiente)` — la clase es el gancho de
+      // ese selector — y las barras sticky del sitio (Navbar, la barra del
+      // admin, el header mobile de la ficha, y por transitividad EditorTabs y
+      // FiltrosCatalogo) leen la MISMA variable en su `top`, así se anclan
+      // debajo de la cinta en vez de quedar tapadas por ella. Sin `:has()` (un
+      // navegador viejo) la variable queda en `0px` y se vuelve al
+      // solapamiento de antes de este fix: degradación, no rotura — y no
+      // afecta producción, que nunca tiene esta clase en el DOM. `py-1` se
+      // reemplaza por `items-center`: con el alto ahora fijo por la variable,
+      // un padding vertical fijo desalinearía el texto en vez de centrarlo.
+      className="cinta-ambiente pointer-events-none fixed inset-x-0 top-0 z-[200] flex h-[var(--alto-cinta-ambiente)] items-center justify-center bg-error px-3 text-center"
     >
       <span className="font-label-sm text-label-sm uppercase tracking-[0.2em] text-on-error">
         YIMA — Ambiente de testing
