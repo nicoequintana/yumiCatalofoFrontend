@@ -4,9 +4,11 @@ import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminProductos from "./AdminProductos.jsx";
 import * as productsApi from "../../api/products.js";
+import * as categoriasApi from "../../api/categorias.js";
 import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/products.js");
+vi.mock("../../api/categorias.js");
 
 describe("AdminProductos — fallos de red", () => {
   beforeEach(() => {
@@ -55,6 +57,103 @@ function renderPagina() {
     </MemoryRouter>,
   );
 }
+
+describe("AdminProductos - filtros de la tabla", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // total alto: los tests de "vuelve a página 1" necesitan que la página 3
+    // exista de verdad, o la corrección de página-fuera-de-rango se
+    // dispararía sola y el test afirmaría otra cosa.
+    productsApi.getProducts.mockResolvedValue(
+      pagina([{ ...PRODUCTO }], { total: 200, pageSize: 50 }),
+    );
+    productsApi.getEtiquetas.mockResolvedValue({ etiquetas: ["Nuevo", "Oferta"] });
+    categoriasApi.getCategorias.mockResolvedValue([
+      { id: 3, nombre: "Cocina" },
+      { id: 7, nombre: "Deco" },
+    ]);
+  });
+
+  function renderEnPagina3() {
+    return render(
+      <MemoryRouter initialEntries={["/catalogo/admin/productos?page=3"]}>
+        <AdminProductos />
+      </MemoryRouter>,
+    );
+  }
+
+  it("filtrar por stock manda el filtro al backend y vuelve a página 1", async () => {
+    const user = userEvent.setup();
+    renderEnPagina3();
+    await screen.findByText("Reloj Clásico");
+
+    await user.selectOptions(screen.getByLabelText("Stock"), "sin");
+
+    // El filtro recorre el catálogo entero en la base — nunca las 50 filas de
+    // la página — y la página 3 del resultado anterior no tiene por qué
+    // existir en el nuevo.
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ admin: true, stock: "sin", page: 1 }),
+      );
+    });
+  });
+
+  it("filtrar por categoría manda el id al backend", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    await user.selectOptions(await screen.findByLabelText("Categoría"), "3");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ admin: true, categoria: "3", page: 1 }),
+      );
+    });
+  });
+
+  it("el select de etiquetas se llena con las etiquetas EN USO, no con sugerencias", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    // "Oferta" no está en ninguna lista de sugeridas: solo puede venir del
+    // endpoint de etiquetas en uso.
+    await user.selectOptions(await screen.findByLabelText("Etiqueta"), "Oferta");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ admin: true, etiqueta: "Oferta", page: 1 }),
+      );
+    });
+  });
+
+  it("cambiar un filtro limpia la selección de checkboxes", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    const checkboxFila = screen.getByRole("checkbox", {
+      name: "Seleccionar Reloj Clásico",
+    });
+    await user.click(checkboxFila);
+    expect(checkboxFila).toBeChecked();
+
+    await user.selectOptions(screen.getByLabelText("Stock"), "bajo");
+
+    // Las filas cambian bajo los pies: aplicar una acción masiva sobre ids
+    // que ya no están en pantalla es el accidente que esta limpieza evita.
+    // Se re-consulta el checkbox adentro del waitFor: refiltrar desmonta la
+    // tabla (spinner) y la re-monta, así que la referencia de arriba queda
+    // apuntando a un nodo desconectado que conserva su `checked` viejo.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("checkbox", { name: "Seleccionar Reloj Clásico" }),
+      ).not.toBeChecked(),
+    );
+  });
+});
 
 describe("AdminProductos - destacado", () => {
   beforeEach(() => {

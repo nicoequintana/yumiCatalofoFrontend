@@ -9,12 +9,14 @@ import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
 import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import {
   deleteProductsMasivo,
+  getEtiquetas,
   getProducts,
   getProductsResumen,
   updateMerchandising,
   updateVisibilidad,
   updateVisibilidadMasiva,
 } from "../../api/products.js";
+import { getCategorias } from "../../api/categorias.js";
 import { formatPrecio } from "../../utils/formato.js";
 import useDialogo from "../../hooks/useDialogo.js";
 import { MIN_DESTACADOS } from "../../hooks/useDestacados.js";
@@ -145,6 +147,13 @@ function AdminProductos() {
   // comparte, se recarga, y volver de editar un producto devuelve al mismo
   // orden en vez de a la tabla por defecto.
   const orden = searchParams.get("orden") ?? "";
+  // Los tres filtros de la tabla, en la URL por lo mismo que `search` y
+  // `orden`: un listado filtrado se comparte, se recarga, y volver de editar
+  // devuelve al mismo filtro. El filtrado lo resuelve la BASE sobre el
+  // catálogo entero — nunca las 50 filas de esta página.
+  const categoria = searchParams.get("categoria") ?? "";
+  const etiqueta = searchParams.get("etiqueta") ?? "";
+  const stockFiltro = searchParams.get("stock") ?? "";
 
   // Estado local para que cada tecla no escriba en la URL (y no dispare un
   // request). Se inicializa desde la URL para que recargar con `?search=`
@@ -169,6 +178,12 @@ function AdminProductos() {
 
   const [productos, setProductos] = useState([]);
   const [totalPaginas, setTotalPaginas] = useState(1);
+
+  // Opciones de los selects de filtro. Las etiquetas salen de las EN USO
+  // (GET /products/etiquetas), no de las sugeridas del formulario: un select
+  // de constantes no puede ofrecer una etiqueta que existe solo en la base.
+  const [categorias, setCategorias] = useState([]);
+  const [etiquetas, setEtiquetas] = useState([]);
 
   // Conteos del catálogo ENTERO, independientes de la página y de la búsqueda.
   //
@@ -207,7 +222,7 @@ function AdminProductos() {
   useEffect(() => {
     setSeleccionados(new Set());
     setResultadoMasivo(null);
-  }, [pagina, busqueda, orden]);
+  }, [pagina, busqueda, orden, categoria, etiqueta, stockFiltro]);
 
   function alternarSeleccion(id) {
     setSeleccionados((actuales) => {
@@ -290,6 +305,31 @@ function AdminProductos() {
     );
   }
 
+  /**
+   * Commitea un filtro de la tabla (categoría, etiqueta o stock) a la URL.
+   *
+   * Mismo criterio que `cambiarOrden`: se borra `page` (la página 3 del
+   * resultado anterior puede no existir en el nuevo) y va con `replace`
+   * porque filtrar es seguir en la misma pantalla. El valor vacío quita el
+   * parámetro: una dirección sin el filtro y una con el valor vacío tienen
+   * que significar lo mismo.
+   */
+  function cambiarFiltro(clave, valor) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (valor) {
+          next.set(clave, valor);
+        } else {
+          next.delete(clave);
+        }
+        next.delete("page");
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
   function commitBusqueda(valor) {
     setSearchParams(
       (prev) => {
@@ -329,7 +369,7 @@ function AdminProductos() {
   async function cargarProductos() {
     setCargando(true);
     try {
-      aplicarPagina(await getProducts({ admin: true, page: pagina, search: busqueda, orden: orden || undefined, pageSize: PRODUCTOS_POR_PAGINA }));
+      aplicarPagina(await getProducts({ admin: true, page: pagina, search: busqueda, orden: orden || undefined, categoria: categoria || undefined, etiqueta: etiqueta || undefined, stock: stockFiltro || undefined, pageSize: PRODUCTOS_POR_PAGINA }));
     } catch {
       setError("No se pudieron cargar los productos. Revisá tu conexión e intentá de nuevo.");
     } finally {
@@ -344,7 +384,7 @@ function AdminProductos() {
 
     setCargando(true);
 
-    getProducts({ admin: true, page: pagina, search: busqueda, orden: orden || undefined, pageSize: PRODUCTOS_POR_PAGINA })
+    getProducts({ admin: true, page: pagina, search: busqueda, orden: orden || undefined, categoria: categoria || undefined, etiqueta: etiqueta || undefined, stock: stockFiltro || undefined, pageSize: PRODUCTOS_POR_PAGINA })
       .then((respuesta) => {
         if (!activo) return;
         aplicarPagina(respuesta);
@@ -361,7 +401,34 @@ function AdminProductos() {
     return () => {
       activo = false;
     };
-  }, [pagina, busqueda, orden]);
+  }, [pagina, busqueda, orden, categoria, etiqueta, stockFiltro]);
+
+  // Las opciones de los selects se piden una sola vez, al montar. Un fallo
+  // deja el select con "Todas" como única opción — filtrar sigue siendo
+  // posible por URL, y la tabla (lo que esta pantalla existe para mostrar) no
+  // se entera.
+  useEffect(() => {
+    let activo = true;
+
+    (async () => {
+      try {
+        const datos = await getCategorias();
+        if (activo) setCategorias(Array.isArray(datos) ? datos : []);
+      } catch {
+        if (activo) setCategorias([]);
+      }
+      try {
+        const datos = await getEtiquetas();
+        if (activo) setEtiquetas(datos?.etiquetas ?? []);
+      } catch {
+        if (activo) setEtiquetas([]);
+      }
+    })();
+
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   // Los contadores se piden aparte del listado: son globales, así que no
   // dependen de `pagina` ni de `busqueda`. Un fallo acá deja `resumen` en
@@ -608,6 +675,72 @@ function AdminProductos() {
             ))}
           </select>
         </div>
+
+        {/* Los tres filtros viajan al backend y recorren el catálogo entero —
+            ver el comentario donde se leen de la URL. Sin debounce: un
+            `<select>` emite una vez por selección. */}
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="filtro-categoria"
+            className="font-label-sm text-label-sm shrink-0 uppercase tracking-widest text-on-surface-variant"
+          >
+            Categoría
+          </label>
+          <select
+            id="filtro-categoria"
+            value={categoria}
+            onChange={(e) => cambiarFiltro("categoria", e.target.value)}
+            className="rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
+          >
+            <option value="">Todas</option>
+            {categorias.map((cat) => (
+              <option key={cat.id} value={String(cat.id)}>
+                {cat.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="filtro-etiqueta"
+            className="font-label-sm text-label-sm shrink-0 uppercase tracking-widest text-on-surface-variant"
+          >
+            Etiqueta
+          </label>
+          <select
+            id="filtro-etiqueta"
+            value={etiqueta}
+            onChange={(e) => cambiarFiltro("etiqueta", e.target.value)}
+            className="rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
+          >
+            <option value="">Todas</option>
+            {etiquetas.map((valor) => (
+              <option key={valor} value={valor}>
+                {valor}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="filtro-stock"
+            className="font-label-sm text-label-sm shrink-0 uppercase tracking-widest text-on-surface-variant"
+          >
+            Stock
+          </label>
+          <select
+            id="filtro-stock"
+            value={stockFiltro}
+            onChange={(e) => cambiarFiltro("stock", e.target.value)}
+            className="rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
+          >
+            <option value="">Todos</option>
+            <option value="sin">Sin stock</option>
+            <option value="bajo">Stock bajo (&lt;3)</option>
+          </select>
+        </div>
       </div>
 
       {error ? (
@@ -622,14 +755,18 @@ function AdminProductos() {
           <p className="font-body-md text-body-md text-on-surface-variant">Cargando productos…</p>
         </div>
       ) : productos.length === 0 ? (
-        // "Todavía no hay productos" sería falso con una búsqueda activa: los
-        // productos están, la búsqueda no los alcanza. Decir lo contrario
-        // manda al admin a cargar algo que ya tiene cargado.
-        busqueda ? (
+        // "Todavía no hay productos" sería falso con una búsqueda o un filtro
+        // activos: los productos están, el filtro no los alcanza. Decir lo
+        // contrario manda al admin a cargar algo que ya tiene cargado.
+        busqueda || categoria || etiqueta || stockFiltro ? (
           <EstadoVacio
             icono="search_off"
             titulo="Sin resultados"
-            mensaje={`Ningún producto coincide con "${busqueda}". Probá con otro nombre, SKU o categoría.`}
+            mensaje={
+              busqueda
+                ? `Ningún producto coincide con "${busqueda}". Probá con otro nombre, SKU o categoría.`
+                : "Ningún producto coincide con los filtros elegidos. Probá quitando alguno."
+            }
           />
         ) : (
           <EstadoVacio

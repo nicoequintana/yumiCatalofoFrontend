@@ -198,6 +198,8 @@ export async function getProducts({
   orden,
   page,
   pageSize,
+  etiqueta,
+  stock,
 } = {}) {
   const params = new URLSearchParams();
 
@@ -221,9 +223,28 @@ export async function getProducts({
   if (maxPrecio !== undefined && maxPrecio !== null && maxPrecio !== "") {
     params.set("maxPrecio", maxPrecio);
   }
+  if (etiqueta !== undefined && etiqueta !== null && etiqueta !== "") {
+    params.set("etiqueta", etiqueta);
+  }
+  // "sin" | "bajo" — any other value is treated by the backend as no filter.
+  if (stock !== undefined && stock !== null && stock !== "") {
+    params.set("stock", stock);
+  }
 
   const query = params.toString();
   return pedir(`${BASE}/products${query ? `?${query}` : ""}`, opcionesDeAdmin(admin));
+}
+
+/**
+ * Distinct labels currently in use across the catalog, for the admin list
+ * filter. `etiqueta` is free text (the form's suggestions are not a closed
+ * list), so the filter options must come from what actually exists — a select
+ * built from constants could not offer a label that exists only in the data.
+ *
+ * @returns {Promise<{etiquetas: string[]}>}
+ */
+export async function getEtiquetas() {
+  return pedirAutenticado(`${BASE}/products/etiquetas`);
 }
 
 /**
