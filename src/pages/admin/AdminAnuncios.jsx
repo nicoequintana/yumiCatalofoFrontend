@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
+import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import {
   createAnuncio,
   deleteAnuncio,
@@ -249,27 +250,42 @@ function AdminAnuncios() {
         />
       ) : anuncios.length === 0 ? null : (
         <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-          <table className="w-full min-w-[640px] text-left">
-            <thead>
-              <tr className="border-b border-outline-variant">
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+          <table
+            role="table"
+            className={`${claseTablaApilada} w-full min-w-[640px] text-left`}
+          >
+            <thead role="rowgroup">
+              <tr role="row" className="border-b border-outline-variant">
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
                   Orden
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
                   Texto
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
                   Activo
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup">
               {anuncios.map((anuncio, indice) => (
-                <tr key={anuncio.id} className="border-b border-outline-variant last:border-b-0">
-                  <td className={claseCelda}>
+                <tr key={anuncio.id} role="row" className="border-b border-outline-variant last:border-b-0">
+                  <td role="cell" data-celda="control" className={claseCelda}>
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
@@ -296,7 +312,11 @@ function AdminAnuncios() {
                     </div>
                   </td>
 
-                  <td className={`font-body-md text-body-md ${claseCelda} text-on-surface`}>
+                  <td
+                    role="cell"
+                    data-celda="identidad"
+                    className={`font-body-md text-body-md ${claseCelda} text-on-surface`}
+                  >
                     {editandoId === anuncio.id ? (
                       <input
                         type="text"
@@ -311,7 +331,7 @@ function AdminAnuncios() {
                     )}
                   </td>
 
-                  <td className={claseCelda}>
+                  <td role="cell" data-label="Activo" className={claseCelda}>
                     {/* `role="switch"` con `aria-checked`: un lector de pantalla
                         anuncia el estado, cosa que un botón con solo un ícono
                         no hace. */}
@@ -335,7 +355,7 @@ function AdminAnuncios() {
                     </button>
                   </td>
 
-                  <td className={claseCelda}>
+                  <td role="cell" data-celda="acciones" className={claseCelda}>
                     <div className="flex items-center gap-4">
                       {editandoId === anuncio.id ? (
                         <>

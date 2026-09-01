@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
+import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import {
   createCategoria,
   deleteCategoria,
@@ -263,30 +264,52 @@ function AdminCategorias() {
               las demás columnas se encogían y las acciones saltaban de lugar.
               Con anchos fijos el texto envuelve dentro de su columna y ninguna
               fila puede mover a las otras. */}
-          <table className="w-full min-w-[760px] table-fixed text-left">
-            <thead>
-              <tr className="border-b border-outline-variant">
-                <th className="font-label-sm text-label-sm w-[22%] px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+          <table
+            role="table"
+            className={`${claseTablaApilada} w-full min-w-[760px] table-fixed text-left`}
+          >
+            <thead role="rowgroup">
+              <tr role="row" className="border-b border-outline-variant">
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm w-[22%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
                   Nombre
                 </th>
-                <th className="font-label-sm text-label-sm w-[10%] px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm w-[10%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
                   Productos
                 </th>
-                <th className="font-label-sm text-label-sm w-[18%] px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm w-[18%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
                   Foto
                 </th>
-                <th className="font-label-sm text-label-sm w-[28%] px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm w-[28%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
                   En la home
                 </th>
-                <th className="font-label-sm text-label-sm w-[22%] px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm w-[22%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup">
               {categorias.map((categoria) => (
-                <tr key={categoria.id} className="border-b border-outline-variant last:border-b-0">
-                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface">
+                <tr key={categoria.id} role="row" className="border-b border-outline-variant last:border-b-0">
+                  <td
+                    role="cell"
+                    data-celda="identidad"
+                    className="font-body-md text-body-md px-4 py-3 text-on-surface"
+                  >
                     {editandoId === categoria.id ? (
                       <input
                         type="text"
@@ -298,11 +321,15 @@ function AdminCategorias() {
                       categoria.nombre
                     )}
                   </td>
-                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
+                  <td
+                    role="cell"
+                    data-label="Productos"
+                    className="font-body-md text-body-md px-4 py-3 text-on-surface-variant"
+                  >
                     {categoria.cantidadProductos}
                   </td>
 
-                  <td className="px-4 py-3">
+                  <td role="cell" data-label="Foto" className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-surface-container-low">
                         {categoria.imagenUrl ? (
@@ -383,7 +410,7 @@ function AdminCategorias() {
                     </div>
                   </td>
 
-                  <td className="px-4 py-3">
+                  <td role="cell" data-label="En la home" className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {/* Mismo switch que los toggles de `AdminProductos`
                           (`role="switch"` + `aria-checked` sobre un `<button>`,
@@ -430,7 +457,7 @@ function AdminCategorias() {
                     ) : null}
                   </td>
 
-                  <td className="px-4 py-3">
+                  <td role="cell" data-celda="acciones" className="px-4 py-3">
                     <div className="flex items-center gap-4">
                       {editandoId === categoria.id ? (
                         <>

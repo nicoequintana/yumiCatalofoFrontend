@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminOperacion from "./AdminOperacion.jsx";
 import * as adminOperacionApi from "../../api/adminOperacion.js";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/adminOperacion.js");
 
@@ -222,5 +223,26 @@ describe("AdminOperacion", () => {
     renderPagina();
 
     expect(await screen.findByText("No autorizado.")).toBeInTheDocument();
+  });
+
+  it("la tabla de órdenes estancadas está apilable: cada celda declara su columna o su tipo", async () => {
+    renderPagina();
+
+    const seccion = await screen.findByLabelText("Órdenes estancadas");
+    esperarTablaApilada(within(seccion).getByRole("table"));
+  });
+
+  it("la tabla de quiebres con demanda está apilable: cada celda declara su columna o su tipo", async () => {
+    renderPagina();
+
+    const seccion = await screen.findByLabelText("Quiebres de stock con demanda");
+    esperarTablaApilada(within(seccion).getByRole("table"));
+  });
+
+  it("la tabla de stock bajo está apilable: cada celda declara su columna o su tipo", async () => {
+    renderPagina();
+
+    const seccion = await screen.findByLabelText("Stock bajo");
+    esperarTablaApilada(within(seccion).getByRole("table"));
   });
 });

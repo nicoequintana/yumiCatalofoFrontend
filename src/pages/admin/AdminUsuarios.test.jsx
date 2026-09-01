@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminUsuarios from "./AdminUsuarios.jsx";
 import * as usuariosApi from "../../api/usuarios.js";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/usuarios.js");
 
@@ -36,5 +37,16 @@ describe("AdminUsuarios", () => {
 
     expect(await screen.findByText(/No se pudieron cargar los usuarios/i)).toBeInTheDocument();
     expect(screen.queryByText("Cargando usuarios…")).not.toBeInTheDocument();
+  });
+
+  it("la tabla está apilable: cada celda declara su columna o su tipo", async () => {
+    usuariosApi.getUsuarios.mockResolvedValue([
+      { id: 1, email: "admin@yima.test", createdAt: "2026-01-01T00:00:00.000Z" },
+    ]);
+
+    renderPagina();
+
+    await screen.findByText("admin@yima.test");
+    esperarTablaApilada(screen.getByRole("table"));
   });
 });

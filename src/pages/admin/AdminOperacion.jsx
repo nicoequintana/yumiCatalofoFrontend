@@ -10,7 +10,7 @@ import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
 import BadgeEstado from "../../components/admin/BadgeEstado.jsx";
-import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
+import { claseCelda, claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import {
   ESTADOS_ORDEN,
   ESTADOS_NO_TERMINALES,
@@ -174,23 +174,27 @@ function AdminOperacion() {
             {resumen.ordenesEstancadas?.lista?.length ? (
               <>
                 <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-                  <table className="w-full min-w-[640px] text-left">
-                    <thead>
-                      <tr className="border-b border-outline-variant">
-                        <th className={claseEncabezado}>Orden</th>
-                        <th className={claseEncabezado}>Cliente</th>
-                        <th className={claseEncabezado}>Estado</th>
-                        <th className={claseEncabezado}>Sin cambios</th>
-                        <th className={claseEncabezado}>Total</th>
+                  <table
+                    role="table"
+                    className={`${claseTablaApilada} w-full min-w-[640px] text-left`}
+                  >
+                    <thead role="rowgroup">
+                      <tr role="row" className="border-b border-outline-variant">
+                        <th role="columnheader" className={claseEncabezado}>Orden</th>
+                        <th role="columnheader" className={claseEncabezado}>Cliente</th>
+                        <th role="columnheader" className={claseEncabezado}>Estado</th>
+                        <th role="columnheader" className={claseEncabezado}>Sin cambios</th>
+                        <th role="columnheader" className={claseEncabezado}>Total</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody role="rowgroup">
                       {resumen.ordenesEstancadas.lista.map((orden) => (
                         <tr
                           key={orden.id}
+                          role="row"
                           className="border-b border-outline-variant last:border-b-0"
                         >
-                          <td className={claseCelda}>
+                          <td role="cell" data-celda="control" className={claseCelda}>
                             <Link
                               to={`/catalogo/admin/ordenes/${orden.id}`}
                               className="font-semibold text-primary underline-offset-4 hover:underline"
@@ -198,18 +202,26 @@ function AdminOperacion() {
                               #{orden.id}
                             </Link>
                           </td>
-                          <td className={`${claseCelda} text-on-surface`}>
+                          <td
+                            role="cell"
+                            data-celda="identidad"
+                            className={`${claseCelda} text-on-surface`}
+                          >
                             {orden.clienteNombre}
                           </td>
-                          <td className="px-4 py-3 align-top">
+                          <td role="cell" data-celda="control" className="px-4 py-3 align-top">
                             <BadgeEstado estado={orden.estado} />
                           </td>
                           <td
+                            role="cell"
+                            data-label="Sin cambios"
                             className={`${claseCelda} whitespace-nowrap text-on-surface`}
                           >
                             {textoDias(orden.diasSinCambios)}
                           </td>
                           <td
+                            role="cell"
+                            data-label="Total"
                             className={`${claseCelda} whitespace-nowrap text-on-surface`}
                           >
                             {formatPrecio(orden.total)}
@@ -265,31 +277,43 @@ function AdminOperacion() {
           >
             {resumen.quiebresConDemanda?.length ? (
               <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-                <table className="w-full min-w-[520px] text-left">
-                  <thead>
-                    <tr className="border-b border-outline-variant">
-                      <th className={claseEncabezado}>Producto</th>
-                      <th className={claseEncabezado}>Vistas</th>
-                      <th className={claseEncabezado}>Stock</th>
-                      <th className={claseEncabezado}></th>
+                <table
+                  role="table"
+                  className={`${claseTablaApilada} w-full min-w-[520px] text-left`}
+                >
+                  <thead role="rowgroup">
+                    <tr role="row" className="border-b border-outline-variant">
+                      <th role="columnheader" className={claseEncabezado}>Producto</th>
+                      <th role="columnheader" className={claseEncabezado}>Vistas</th>
+                      <th role="columnheader" className={claseEncabezado}>Stock</th>
+                      <th role="columnheader" className={claseEncabezado}></th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {resumen.quiebresConDemanda.map((producto) => (
                       <tr
                         key={producto.productId}
+                        role="row"
                         className="border-b border-outline-variant last:border-b-0"
                       >
-                        <td className={`${claseCelda} text-on-surface`}>
+                        <td
+                          role="cell"
+                          data-celda="identidad"
+                          className={`${claseCelda} text-on-surface`}
+                        >
                           {producto.nombre}
                         </td>
-                        <td className={`${claseCelda} text-on-surface`}>
+                        <td role="cell" data-label="Vistas" className={`${claseCelda} text-on-surface`}>
                           {producto.vistas}
                         </td>
-                        <td className={`${claseCelda} text-on-surface-variant`}>
+                        <td
+                          role="cell"
+                          data-label="Stock"
+                          className={`${claseCelda} text-on-surface-variant`}
+                        >
                           {producto.stock}
                         </td>
-                        <td className={claseCelda}>
+                        <td role="cell" data-celda="acciones" className={claseCelda}>
                           <Link
                             to={`/catalogo/admin/productos/${producto.productId}/editar`}
                             className="font-label-md text-label-md uppercase tracking-widest text-primary underline-offset-4 hover:underline"
@@ -316,27 +340,35 @@ function AdminOperacion() {
           >
             {resumen.stockBajo?.length ? (
               <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-                <table className="w-full min-w-[420px] text-left">
-                  <thead>
-                    <tr className="border-b border-outline-variant">
-                      <th className={claseEncabezado}>Producto</th>
-                      <th className={claseEncabezado}>Stock</th>
-                      <th className={claseEncabezado}></th>
+                <table
+                  role="table"
+                  className={`${claseTablaApilada} w-full min-w-[420px] text-left`}
+                >
+                  <thead role="rowgroup">
+                    <tr role="row" className="border-b border-outline-variant">
+                      <th role="columnheader" className={claseEncabezado}>Producto</th>
+                      <th role="columnheader" className={claseEncabezado}>Stock</th>
+                      <th role="columnheader" className={claseEncabezado}></th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {resumen.stockBajo.map((producto) => (
                       <tr
                         key={producto.productId}
+                        role="row"
                         className="border-b border-outline-variant last:border-b-0"
                       >
-                        <td className={`${claseCelda} text-on-surface`}>
+                        <td
+                          role="cell"
+                          data-celda="identidad"
+                          className={`${claseCelda} text-on-surface`}
+                        >
                           {producto.nombre}
                         </td>
-                        <td className={`${claseCelda} text-on-surface`}>
+                        <td role="cell" data-label="Stock" className={`${claseCelda} text-on-surface`}>
                           {producto.stock}
                         </td>
-                        <td className={claseCelda}>
+                        <td role="cell" data-celda="acciones" className={claseCelda}>
                           <Link
                             to={`/catalogo/admin/productos/${producto.productId}/editar`}
                             className="font-label-md text-label-md uppercase tracking-widest text-primary underline-offset-4 hover:underline"

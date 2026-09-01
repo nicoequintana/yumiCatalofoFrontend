@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
-import { claseEncabezado } from "../../components/admin/clasesTabla.js";
+import { claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import { getProductosSolicitados, descargarProductosSolicitados } from "../../api/ordenes.js";
 import { formatPrecio } from "../../utils/formato.js";
 
@@ -143,28 +143,40 @@ function AdminProductosSolicitados() {
       ) : (
         <>
           <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-            <table className="w-full min-w-[640px] text-left">
-              <thead>
-                <tr className="border-b border-outline-variant">
-                  <th className={claseEncabezado}>SKU</th>
-                  <th className={claseEncabezado}>Producto</th>
-                  <th className={claseEncabezado}>Unidades</th>
-                  <th className={claseEncabezado}>Órdenes</th>
-                  <th className={claseEncabezado}>Facturación</th>
+            <table
+              role="table"
+              className={`${claseTablaApilada} w-full min-w-[640px] text-left`}
+            >
+              <thead role="rowgroup">
+                <tr role="row" className="border-b border-outline-variant">
+                  <th role="columnheader" className={claseEncabezado}>SKU</th>
+                  <th role="columnheader" className={claseEncabezado}>Producto</th>
+                  <th role="columnheader" className={claseEncabezado}>Unidades</th>
+                  <th role="columnheader" className={claseEncabezado}>Órdenes</th>
+                  <th role="columnheader" className={claseEncabezado}>Facturación</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody role="rowgroup">
                 {productos.map((producto) => (
                   <tr
                     key={producto.productId ?? `borrado:${producto.nombre}`}
+                    role="row"
                     className="border-b border-outline-variant last:border-b-0"
                   >
-                    <td className="font-body-md text-body-md whitespace-nowrap px-4 py-3 text-on-surface-variant">
+                    <td
+                      role="cell"
+                      data-label="SKU"
+                      className="font-body-md text-body-md whitespace-nowrap px-4 py-3 text-on-surface-variant"
+                    >
                       {/* Un producto borrado ya no tiene SKU: la línea de la orden
                           sobrevive por su snapshot, el vínculo no. */}
                       {producto.sku ?? "—"}
                     </td>
-                    <td className="font-body-md text-body-md px-4 py-3 text-on-surface">
+                    <td
+                      role="cell"
+                      data-celda="identidad"
+                      className="font-body-md text-body-md px-4 py-3 text-on-surface"
+                    >
                       {producto.productId ? (
                         <Link
                           to={`/catalogo/admin/productos/${producto.productId}/editar`}
@@ -176,13 +188,25 @@ function AdminProductosSolicitados() {
                         producto.nombre
                       )}
                     </td>
-                    <td className="font-body-md text-body-md px-4 py-3 font-semibold text-on-surface">
+                    <td
+                      role="cell"
+                      data-label="Unidades"
+                      className="font-body-md text-body-md px-4 py-3 font-semibold text-on-surface"
+                    >
                       {producto.unidades}
                     </td>
-                    <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
+                    <td
+                      role="cell"
+                      data-label="Órdenes"
+                      className="font-body-md text-body-md px-4 py-3 text-on-surface-variant"
+                    >
                       {producto.ordenes}
                     </td>
-                    <td className="font-body-md text-body-md whitespace-nowrap px-4 py-3 text-on-surface-variant">
+                    <td
+                      role="cell"
+                      data-label="Facturación"
+                      className="font-body-md text-body-md whitespace-nowrap px-4 py-3 text-on-surface-variant"
+                    >
                       {formatPrecio(producto.facturacion)}
                     </td>
                   </tr>

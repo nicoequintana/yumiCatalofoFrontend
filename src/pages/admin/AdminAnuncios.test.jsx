@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminAnuncios from "./AdminAnuncios.jsx";
 import * as anunciosApi from "../../api/anuncios.js";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/anuncios.js");
 
@@ -127,6 +128,13 @@ describe("AdminAnuncios", () => {
     renderPantalla();
 
     expect(await screen.findByText(/todavía no hay anuncios/i)).toBeInTheDocument();
+  });
+
+  it("la tabla está apilable: cada celda declara su columna o su tipo", async () => {
+    renderPantalla();
+
+    await screen.findByText(ANUNCIOS[0].texto);
+    esperarTablaApilada(screen.getByRole("table"));
   });
 
   // Si la recarga posterior falla, la mutación YA se aplicó: decir "no se pudo

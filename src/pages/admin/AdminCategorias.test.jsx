@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminCategorias from "./AdminCategorias.jsx";
 import * as categoriasApi from "../../api/categorias.js";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/categorias.js");
 
@@ -36,6 +37,24 @@ describe("AdminCategorias", () => {
     renderPagina();
 
     expect(await screen.findByText("Todavía no hay categorías")).toBeInTheDocument();
+  });
+
+  it("la tabla está apilable: cada celda declara su columna o su tipo", async () => {
+    categoriasApi.getCategorias.mockResolvedValue([
+      {
+        id: 1,
+        nombre: "Iluminación",
+        cantidadProductos: 4,
+        cantidadPublicados: 4,
+        destacadaEnHome: false,
+        imagenUrl: null,
+      },
+    ]);
+
+    renderPagina();
+
+    await screen.findByText("Iluminación");
+    esperarTablaApilada(screen.getByRole("table"));
   });
 });
 

@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminEmbudo from "./AdminEmbudo.jsx";
 import * as adminEmbudoApi from "../../api/adminEmbudo.js";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/adminEmbudo.js");
 
@@ -230,6 +231,13 @@ describe("AdminEmbudo", () => {
     expect(within(fuentes).getByText("instagram.com")).toBeInTheDocument();
     expect(within(fuentes).getByText("Directo")).toBeInTheDocument();
     expect(within(fuentes).getByText("620")).toBeInTheDocument();
+  });
+
+  it("la tabla de fuentes de tráfico está apilable: cada celda declara su columna o su tipo", async () => {
+    renderPagina();
+
+    const seccion = await screen.findByLabelText("Fuentes de tráfico");
+    esperarTablaApilada(within(seccion).getByRole("table"));
   });
 
   it("el selector de período dispara un refetch con nuevas fechas", async () => {

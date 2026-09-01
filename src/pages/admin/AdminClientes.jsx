@@ -10,7 +10,7 @@ import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
 import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
-import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
+import { claseCelda, claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 
 /**
  * Barra de composición nuevos/recurrentes, en CSS puro.
@@ -290,37 +290,57 @@ function AdminClientes() {
               </p>
             ) : (
               <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-                <table className="w-full min-w-[520px] text-left">
-                  <thead>
-                    <tr className="border-b border-outline-variant">
-                      <th className={claseEncabezado}>#</th>
-                      <th className={claseEncabezado}>Cliente</th>
-                      <th className={claseEncabezado}>DNI</th>
-                      <th className={claseEncabezado}>Órdenes</th>
-                      <th className={claseEncabezado}>Facturación</th>
+                <table
+                  role="table"
+                  className={`${claseTablaApilada} w-full min-w-[520px] text-left`}
+                >
+                  <thead role="rowgroup">
+                    <tr role="row" className="border-b border-outline-variant">
+                      <th role="columnheader" className={claseEncabezado}>#</th>
+                      <th role="columnheader" className={claseEncabezado}>Cliente</th>
+                      <th role="columnheader" className={claseEncabezado}>DNI</th>
+                      <th role="columnheader" className={claseEncabezado}>Órdenes</th>
+                      <th role="columnheader" className={claseEncabezado}>Facturación</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {resumen.rankingClientes.map((cliente, indice) => (
                       <tr
                         key={cliente.dni}
+                        role="row"
                         className="border-b border-outline-variant last:border-b-0"
                       >
-                        <td className={`${claseCelda} text-on-surface-variant`}>
+                        <td
+                          role="cell"
+                          data-celda="control"
+                          className={`${claseCelda} text-on-surface-variant`}
+                        >
                           {indice + 1}
                         </td>
-                        <td className={`${claseCelda} text-on-surface`}>
+                        <td
+                          role="cell"
+                          data-celda="identidad"
+                          className={`${claseCelda} text-on-surface`}
+                        >
                           {cliente.nombre}
                         </td>
                         <td
+                          role="cell"
+                          data-label="DNI"
                           className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}
                         >
                           {cliente.dni}
                         </td>
-                        <td className={`${claseCelda} text-on-surface-variant`}>
+                        <td
+                          role="cell"
+                          data-label="Órdenes"
+                          className={`${claseCelda} text-on-surface-variant`}
+                        >
                           {cliente.cantidadOrdenes}
                         </td>
                         <td
+                          role="cell"
+                          data-label="Facturación"
                           className={`${claseCelda} whitespace-nowrap text-on-surface`}
                         >
                           {formatPrecio(cliente.facturacion)}

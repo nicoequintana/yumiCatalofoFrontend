@@ -3,6 +3,7 @@ import CampoPassword from "../../components/CampoPassword.jsx";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
+import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import { createUsuario, deleteUsuario, getUsuarios, updateUsuario } from "../../api/usuarios.js";
 
 /**
@@ -198,24 +199,40 @@ function AdminUsuarios() {
         />
       ) : (
         <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-          <table className="w-full min-w-[480px] text-left">
-            <thead>
-              <tr className="border-b border-outline-variant">
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+          <table
+            role="table"
+            className={`${claseTablaApilada} w-full min-w-[480px] text-left`}
+          >
+            <thead role="rowgroup">
+              <tr role="row" className="border-b border-outline-variant">
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
                   Email
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
                   Creado
                 </th>
-                <th className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup">
               {usuarios.map((usuario) => (
-                <tr key={usuario.id} className="border-b border-outline-variant last:border-b-0">
-                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface">
+                <tr key={usuario.id} role="row" className="border-b border-outline-variant last:border-b-0">
+                  <td
+                    role="cell"
+                    data-celda="identidad"
+                    className="font-body-md text-body-md px-4 py-3 text-on-surface"
+                  >
                     {editandoId === usuario.id ? (
                       <div className="flex flex-col gap-2">
                         {/* Mismo caso que el alta: editar un usuario tampoco es
@@ -241,10 +258,14 @@ function AdminUsuarios() {
                       usuario.email
                     )}
                   </td>
-                  <td className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
+                  <td
+                    role="cell"
+                    data-label="Creado"
+                    className="font-body-md text-body-md px-4 py-3 text-on-surface-variant"
+                  >
                     {formatearFecha(usuario.createdAt)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td role="cell" data-celda="acciones" className="px-4 py-3">
                     <div className="flex items-center gap-4">
                       {editandoId === usuario.id ? (
                         <>

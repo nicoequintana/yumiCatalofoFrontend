@@ -10,7 +10,7 @@ import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
 import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
-import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
+import { claseCelda, claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 
 /** Miles con separador local, para que "20000" se lea como "20.000". */
 const formatCantidad = new Intl.NumberFormat("es-AR").format;
@@ -340,31 +340,49 @@ function AdminVentas() {
               </p>
             ) : (
               <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-                <table className="w-full min-w-[520px] text-left">
-                  <thead>
-                    <tr className="border-b border-outline-variant">
-                      <th className={claseEncabezado}>#</th>
-                      <th className={claseEncabezado}>Producto</th>
-                      <th className={claseEncabezado}>Unidades</th>
-                      <th className={claseEncabezado}>Facturación</th>
+                <table
+                  role="table"
+                  className={`${claseTablaApilada} w-full min-w-[520px] text-left`}
+                >
+                  <thead role="rowgroup">
+                    <tr role="row" className="border-b border-outline-variant">
+                      <th role="columnheader" className={claseEncabezado}>#</th>
+                      <th role="columnheader" className={claseEncabezado}>Producto</th>
+                      <th role="columnheader" className={claseEncabezado}>Unidades</th>
+                      <th role="columnheader" className={claseEncabezado}>Facturación</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {resumen.rankingProductos.map((producto, indice) => (
                       <tr
                         key={producto.productId}
+                        role="row"
                         className="border-b border-outline-variant last:border-b-0"
                       >
-                        <td className={`${claseCelda} text-on-surface-variant`}>
+                        <td
+                          role="cell"
+                          data-celda="control"
+                          className={`${claseCelda} text-on-surface-variant`}
+                        >
                           {indice + 1}
                         </td>
-                        <td className={`${claseCelda} text-on-surface`}>
+                        <td
+                          role="cell"
+                          data-celda="identidad"
+                          className={`${claseCelda} text-on-surface`}
+                        >
                           {producto.nombre}
                         </td>
-                        <td className={`${claseCelda} text-on-surface-variant`}>
+                        <td
+                          role="cell"
+                          data-label="Unidades"
+                          className={`${claseCelda} text-on-surface-variant`}
+                        >
                           {producto.unidades}
                         </td>
                         <td
+                          role="cell"
+                          data-label="Facturación"
                           className={`${claseCelda} whitespace-nowrap text-on-surface`}
                         >
                           {formatPrecio(producto.facturacion)}

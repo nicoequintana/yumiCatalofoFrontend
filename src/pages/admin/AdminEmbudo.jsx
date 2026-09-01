@@ -9,7 +9,7 @@ import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
 import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
-import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
+import { claseCelda, claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 
 /** Ancho mínimo de barra, para que una etapa en cero siga siendo visible. */
 const ANCHO_MINIMO = 6;
@@ -288,25 +288,33 @@ function AdminEmbudo() {
               </p>
             ) : (
               <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-                <table className="w-full min-w-[320px] text-left">
-                  <thead>
-                    <tr className="border-b border-outline-variant">
-                      <th className={claseEncabezado}>Origen</th>
-                      <th className={claseEncabezado}>Eventos</th>
+                <table
+                  role="table"
+                  className={`${claseTablaApilada} w-full min-w-[320px] text-left`}
+                >
+                  <thead role="rowgroup">
+                    <tr role="row" className="border-b border-outline-variant">
+                      <th role="columnheader" className={claseEncabezado}>Origen</th>
+                      <th role="columnheader" className={claseEncabezado}>Eventos</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody role="rowgroup">
                     {embudo.fuentesTrafico.map((fuente) => (
                       <tr
                         key={fuente.fuente}
+                        role="row"
                         className="border-b border-outline-variant last:border-b-0"
                       >
                         <td
+                          role="cell"
+                          data-celda="identidad"
                           className={`${claseCelda} break-all text-on-surface`}
                         >
                           {fuente.fuente}
                         </td>
                         <td
+                          role="cell"
+                          data-label="Eventos"
                           className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}
                         >
                           {formatEntero(fuente.cantidad)}

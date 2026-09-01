@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminProductosSolicitados from "./AdminProductosSolicitados.jsx";
 import * as ordenesApi from "../../api/ordenes.js";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/ordenes.js");
 
@@ -129,6 +130,13 @@ describe("AdminProductosSolicitados", () => {
 
     await screen.findByText("Mate imperial");
     await waitFor(() => expect(ordenesApi.getProductosSolicitados).toHaveBeenCalledTimes(1));
+  });
+
+  it("la tabla está apilable: cada celda declara su columna o su tipo", async () => {
+    renderPagina();
+
+    await screen.findByText("Mate imperial");
+    esperarTablaApilada(screen.getByRole("table"));
   });
 });
 

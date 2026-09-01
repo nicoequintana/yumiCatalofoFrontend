@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminClientes from "./AdminClientes.jsx";
 import * as adminClientesApi from "../../api/adminClientes.js";
+import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/adminClientes.js");
 
@@ -142,6 +143,13 @@ describe("AdminClientes", () => {
     expect(within(filas[1]).getByText("Ana")).toBeInTheDocument();
     expect(within(filas[1]).getByText("$ 7.000")).toBeInTheDocument();
     expect(within(filas[2]).getByText("Beto")).toBeInTheDocument();
+  });
+
+  it("la tabla del ranking está apilable: cada celda declara su columna o su tipo", async () => {
+    renderPagina();
+
+    const seccion = await screen.findByLabelText("Ranking de clientes");
+    esperarTablaApilada(within(seccion).getByRole("table"));
   });
 
   it("muestra el DNI de cada cliente del ranking", async () => {
