@@ -9,9 +9,9 @@ import Spinner from "../Spinner.jsx";
  * productos donde el admin está en la página 3 con una categoría filtrada,
  * recargar cuesta reconstruir todo eso a mano.
  *
- * Va SOLO en las pantallas donde el dato cambia por afuera: Órdenes (entran
- * pedidos mientras se mira), Productos y Costos y precios (la skill de alta
- * desde MercadoLibre escribe por API), Logs y Métricas. En Categorías, Usuarios
+ * Va SOLO en las pantallas donde el dato cambia por afuera: Órdenes y Ventas
+ * (entran pedidos mientras se mira), Productos y Costos y precios (la skill de
+ * alta desde MercadoLibre escribe por API), Logs y Métricas. En Categorías, Usuarios
  * y Anuncios los cambios los hace una persona desde esa misma pantalla y la
  * grilla ya se recarga sola, así que ahí el botón sería un control de más.
  *

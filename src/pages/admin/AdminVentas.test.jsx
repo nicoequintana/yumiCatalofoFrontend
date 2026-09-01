@@ -91,6 +91,22 @@ describe("AdminVentas", () => {
     adminVentasApi.getResumenVentas.mockResolvedValue(RESUMEN);
   });
 
+  it("el botón Actualizar vuelve a pedir el resumen sin perder el período", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await screen.findByTestId("estado-PENDIENTE");
+    expect(adminVentasApi.getResumenVentas).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Actualizar" }));
+
+    // Un segundo fetch, con el MISMO rango: refrescar no es cambiar de período.
+    await waitFor(() =>
+      expect(adminVentasApi.getResumenVentas).toHaveBeenCalledTimes(2),
+    );
+    const [primera, segunda] = adminVentasApi.getResumenVentas.mock.calls;
+    expect(segunda).toEqual(primera);
+  });
+
   it("muestra loading y luego las tarjetas de métricas principales", async () => {
     renderPagina();
 

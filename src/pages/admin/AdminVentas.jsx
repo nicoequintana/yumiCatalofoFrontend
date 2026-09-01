@@ -7,6 +7,7 @@ import { formatPrecio } from "../../utils/formato.js";
 import { calcularRango } from "../../utils/periodo.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
+import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
 import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
@@ -180,6 +181,11 @@ function AdminVentas() {
   const [resumen, setResumen] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  // Contador del botón "Actualizar": incrementarlo re-dispara el efecto de
+  // carga sin tocar el período elegido. Mismo patrón que el `reintento` de
+  // AdminMetricas — acá el dato cambia por afuera (los pedidos entran solos
+  // desde el checkout mientras se mira el dashboard).
+  const [refresco, setRefresco] = useState(0);
 
   useEffect(() => {
     let activo = true;
@@ -201,7 +207,7 @@ function AdminVentas() {
     return () => {
       activo = false;
     };
-  }, [dias]);
+  }, [dias, refresco]);
 
   // "Sin datos" es no tener NINGUNA orden en ningún estado. Si hay canceladas
   // y nada más, la pantalla tiene algo que decir y no puede contestar "no hubo
@@ -248,7 +254,13 @@ function AdminVentas() {
           </h1>
         </div>
 
-        <SelectorPeriodo dias={dias} onCambiar={setDias} />
+        <div className="flex items-center gap-3">
+          <SelectorPeriodo dias={dias} onCambiar={setDias} />
+          <BotonActualizar
+            onActualizar={() => setRefresco((n) => n + 1)}
+            actualizando={cargando}
+          />
+        </div>
       </div>
 
       {error ? (
