@@ -137,6 +137,42 @@ describe("AdminSidebar — drawer accesible (useDialogo + useBloquearScroll)", (
     expect(document.body.style.overflow).not.toBe("hidden");
   });
 
+  /**
+   * Mitigación del drawer fantasma: abrir el drawer entre 768 y 1023px y
+   * rotar a `lg` esconde el `<aside>` (`lg:hidden`) sin que nada avise al
+   * estado de React, así que `useBloquearScroll` deja el body bloqueado y
+   * `useDialogo` sigue atrapando el foco en enlaces invisibles. Sin
+   * `matchMedia` (el plan prohíbe breakpoints en JS) no hay forma de
+   * detectar el cruce; lo que sí se puede es dejar una salida visible: la
+   * bottom nav de escritorio ya está en pantalla, y con `onCerrar` en sus
+   * ítems cualquier toque —incluida la pestaña ACTUAL, que no navega y por
+   * eso no dispara el cierre por cambio de ruta— libera el drawer.
+   */
+  it("un ítem de la bottom nav de escritorio cierra el drawer abierto", () => {
+    const onCerrar = vi.fn();
+    renderDrawer(false, onCerrar);
+
+    // El segundo "Ventas" es el de la bottom nav: `ITEMS_NAV` se mapea
+    // primero en el drawer y después en la nav de escritorio.
+    const [, ventasEscritorio] = screen.getAllByRole("link", { name: /ventas/i });
+    fireEvent.click(ventasEscritorio);
+
+    expect(onCerrar).toHaveBeenCalled();
+  });
+
+  it("el botón Configuración de escritorio también cierra el drawer", () => {
+    const onCerrar = vi.fn();
+    renderDrawer(false, onCerrar);
+
+    // El primer "Configuración" es el acordeón del drawer (que no debe
+    // cerrarlo: despliega su propio submenú); el segundo es el de la bottom
+    // nav de escritorio.
+    const [, configuracionEscritorio] = screen.getAllByRole("button", { name: /configuración/i });
+    fireEvent.click(configuracionEscritorio);
+
+    expect(onCerrar).toHaveBeenCalled();
+  });
+
   it("enfoca el primer enlace al abrir", () => {
     const { container } = renderDrawer(false);
     const aside = container.querySelector("aside");

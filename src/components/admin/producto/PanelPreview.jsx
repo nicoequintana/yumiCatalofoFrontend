@@ -34,7 +34,7 @@ function PanelPreview({
       }`}
     >
       <div className="flex flex-col lg:min-h-0 lg:flex-1">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant bg-surface-container-low px-4 py-3 lg:static">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant bg-surface-container-low px-4 py-3">
           <span className="font-label-sm text-label-sm inline-flex items-center gap-2 uppercase tracking-widest text-on-surface-variant">
             <span className="material-symbols-outlined text-[16px] text-secondary">
               {plantillaCompleta ? "dashboard_customize" : "visibility"}

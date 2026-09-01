@@ -77,7 +77,7 @@ test.describe("Admin en mobile", () => {
    * `<h1>` visible y ningún `Spinner` de carga (`role="status"`,
    * `aria-label="Cargando"`, ver `components/Spinner.jsx`) en pantalla.
    *
-   * Hace falta para las DIEZ rutas por igual: varias (el detalle de orden, el
+   * Hace falta para las DIECIOCHO rutas por igual: varias (el detalle de orden, el
    * editor de producto) ni siquiera montan su `<h1>` mientras cargan — el
    * `Spinner` ocupa toda la pantalla solo — así que esperar el `<h1>` ya
    * cubre ese caso, y el segundo `expect` cubre el resto (listados que sí
@@ -94,16 +94,27 @@ test.describe("Admin en mobile", () => {
   }
 
   test("ninguna pantalla desborda ni tapa el título", async ({ page }) => {
+    // Las dieciocho rutas del panel, en un único test: el login es el costo
+    // caro (rate limit de 8/15min en el backend) y `test.step` ya identifica
+    // cuál falló sin necesidad de un test por ruta.
     const rutas = [
       "/catalogo/admin/productos",
       "/catalogo/admin/ordenes",
       `/catalogo/admin/ordenes/${orden.id}`,
+      "/catalogo/admin/ordenes/productos-solicitados",
       "/catalogo/admin/productos/precios",
+      "/catalogo/admin/productos/salud",
+      "/catalogo/admin/productos/importar",
+      "/catalogo/admin/productos/actualizar-masivo",
       "/catalogo/admin/logs",
       "/catalogo/admin/configuracion/categorias",
       "/catalogo/admin/configuracion/usuarios",
       "/catalogo/admin/configuracion/anuncios",
       "/catalogo/admin/ventas",
+      "/catalogo/admin/embudo",
+      "/catalogo/admin/clientes",
+      "/catalogo/admin/operacion",
+      "/catalogo/admin/metricas",
       `/catalogo/admin/productos/${producto.id}/editar`,
     ];
 
@@ -159,7 +170,11 @@ test.describe("Admin en mobile", () => {
     }
   });
 
-  test("drawer: abre con foco atrapado, Escape cierra y devuelve el foco", async ({ page }) => {
+  // El nombre dice exactamente lo que el test afirma. Se llamaba "abre con
+  // foco atrapado…" y eso prometía algo que acá no se mide: la trampa de foco
+  // (tabular en círculo dentro del drawer) vive en `hooks/useDialogo.js` y no
+  // es una propiedad del layout, que es de lo que trata este spec.
+  test("drawer: Escape lo cierra y devuelve el foco al botón", async ({ page }) => {
     await page.goto("/catalogo/admin/productos");
     await esperarPantallaLista(page);
 
@@ -221,15 +236,70 @@ test.describe("Admin en mobile", () => {
     const cajaCelda = await celdaSwitch.boundingBox();
     expect(cajaCelda.height, "alto de la celda que contiene el switch").toBeGreaterThanOrEqual(44);
 
-    // `.first()` resuelve al checkbox "Seleccionar todos" del encabezado (va
-    // antes que `<tbody>` en el DOM y también matchea el regex) y no a uno de
-    // fila — es igual de válido para esta medición: el encabezado envuelve su
-    // checkbox en el mismo `<label className="-m-3 inline-flex p-3">` que
-    // cada fila, así que mide la misma área táctil.
-    const checkbox = tabla.getByRole("checkbox", { name: /seleccionar/i }).first();
+    // Se mide el checkbox de una FILA, no el "Seleccionar todos" del
+    // encabezado: ese quedó `max-md:hidden` porque debajo de `md` el `thead`
+    // es sr-only (1px) y el control era una parada de foco invisible e
+    // intocable. Acotar a `tbody` es lo que hace que este test mida el área
+    // táctil que una persona puede tocar de verdad en mobile.
+    const checkbox = tabla.locator("tbody").getByRole("checkbox", { name: /seleccionar/i }).first();
     const etiqueta = checkbox.locator("xpath=ancestor::label[1]");
     const cajaEtiqueta = await etiqueta.boundingBox();
     expect(cajaEtiqueta.width, "ancho del área táctil del checkbox").toBeGreaterThanOrEqual(44);
     expect(cajaEtiqueta.height, "alto del área táctil del checkbox").toBeGreaterThanOrEqual(44);
+  });
+
+  /**
+   * La garantía que jsdom NO puede dar: con un diálogo abierto, NADA de la
+   * barra superior queda alcanzable. Es la medición real del contexto de
+   * apilamiento de `AdminLayout` — con el `relative z-10` en el `<main>` (y
+   * no en el contenedor que envuelve barra + contenido), el `<header>` `z-30`
+   * se pintaba SOBRE el modal y dejaba una banda de 56px con hamburguesa y
+   * toggle de tema tocables por encima de un diálogo modal.
+   *
+   * `elementFromPoint` es lo que lo prueba y no un `toBeVisible()`: el header
+   * sigue estando visible y en su lugar en los dos casos — lo que cambia es
+   * QUIÉN recibe el toque en esas coordenadas.
+   */
+  test("con un diálogo abierto, la barra superior deja de ser alcanzable", async ({ page }) => {
+    await page.goto("/catalogo/admin/productos");
+    await esperarPantallaLista(page);
+
+    const tabla = page.getByRole("table").first();
+    await tabla.locator("tbody").getByRole("checkbox", { name: /seleccionar/i }).first().check();
+    await page.getByRole("button", { name: "Eliminar seleccionados" }).click();
+
+    const dialogo = page.getByRole("dialog", { name: "Eliminar productos" });
+    await expect(dialogo).toBeVisible();
+
+    const botonMenu = page.getByRole("button", { name: "Abrir menú" });
+    const cajaBoton = await botonMenu.boundingBox();
+    expect(cajaBoton, 'boundingBox del botón "Abrir menú"').not.toBeNull();
+
+    const punto = { x: cajaBoton.x + cajaBoton.width / 2, y: cajaBoton.y + cajaBoton.height / 2 };
+    const impacto = await page.evaluate(({ x, y }) => {
+      const elemento = document.elementFromPoint(x, y);
+      if (!elemento) return { hayElemento: false, esBotonDeMenu: false, dentroDelHeader: false };
+      return {
+        hayElemento: true,
+        esBotonDeMenu: Boolean(elemento.closest('button[aria-label="Abrir menú"]')),
+        dentroDelHeader: Boolean(elemento.closest("header")),
+        // Para el reporte: qué recibe el toque en vez de la barra.
+        descripcion: `${elemento.tagName.toLowerCase()}.${String(elemento.className).trim()}`,
+      };
+    }, punto);
+
+    expect(impacto.hayElemento, "elementFromPoint sobre el botón de menú").toBe(true);
+    expect(
+      impacto.esBotonDeMenu,
+      `el botón "Abrir menú" sigue recibiendo el toque con el diálogo abierto (impacto: ${impacto.descripcion})`,
+    ).toBe(false);
+    expect(
+      impacto.dentroDelHeader,
+      `la barra superior sigue recibiendo el toque con el diálogo abierto (impacto: ${impacto.descripcion})`,
+    ).toBe(false);
+
+    // Cancelar, no confirmar: este test mide layout, no borra nada.
+    await dialogo.getByRole("button", { name: "Cancelar" }).click();
+    await expect(dialogo).toBeHidden();
   });
 });

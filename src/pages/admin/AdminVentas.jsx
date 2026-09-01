@@ -50,47 +50,45 @@ function GraficoIngresos({ serie }) {
   const cadaCuantas = Math.ceil(serie.length / 7);
 
   return (
-    <div>
-      <div className="w-full">
-        <svg
-          data-testid="grafico-ingresos"
-          viewBox="0 0 100 42"
-          preserveAspectRatio="none"
-          role="img"
-          aria-label="Ingresos por día del período"
-          className="h-40 w-full"
-        >
-          {serie.map((punto, indice) => {
-            const valor = parseFloat(punto.ingresos) || 0;
-            // Altura útil de 36 sobre un viewBox de 42, dejando aire arriba.
-            const alto = maximo > 0 ? (valor / maximo) * 36 : 0;
-            return (
-              <rect
-                key={punto.fecha}
-                x={indice * anchoBarra + anchoBarra * 0.15}
-                y={38 - alto}
-                width={anchoBarra * 0.7}
-                height={Math.max(alto, 0.4)}
-                rx="0.4"
-                className={valor > 0 ? "fill-primary" : "fill-outline-variant"}
-              >
-                <title>{`${etiquetaDia(punto.fecha)}: ${formatPrecio(punto.ingresos)}`}</title>
-              </rect>
-            );
-          })}
-        </svg>
-
-        <div className="mt-2 flex">
-          {serie.map((punto, indice) => (
-            <span
+    <div className="w-full">
+      <svg
+        data-testid="grafico-ingresos"
+        viewBox="0 0 100 42"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Ingresos por día del período"
+        className="h-40 w-full"
+      >
+        {serie.map((punto, indice) => {
+          const valor = parseFloat(punto.ingresos) || 0;
+          // Altura útil de 36 sobre un viewBox de 42, dejando aire arriba.
+          const alto = maximo > 0 ? (valor / maximo) * 36 : 0;
+          return (
+            <rect
               key={punto.fecha}
-              style={{ width: `${anchoBarra}%` }}
-              className="font-label-sm text-label-sm shrink-0 text-center text-on-surface-variant"
+              x={indice * anchoBarra + anchoBarra * 0.15}
+              y={38 - alto}
+              width={anchoBarra * 0.7}
+              height={Math.max(alto, 0.4)}
+              rx="0.4"
+              className={valor > 0 ? "fill-primary" : "fill-outline-variant"}
             >
-              {indice % cadaCuantas === 0 ? etiquetaDia(punto.fecha) : ""}
-            </span>
-          ))}
-        </div>
+              <title>{`${etiquetaDia(punto.fecha)}: ${formatPrecio(punto.ingresos)}`}</title>
+            </rect>
+          );
+        })}
+      </svg>
+
+      <div className="mt-2 flex">
+        {serie.map((punto, indice) => (
+          <span
+            key={punto.fecha}
+            style={{ width: `${anchoBarra}%` }}
+            className="font-label-sm text-label-sm shrink-0 text-center text-on-surface-variant"
+          >
+            {indice % cadaCuantas === 0 ? etiquetaDia(punto.fecha) : ""}
+          </span>
+        ))}
       </div>
     </div>
   );

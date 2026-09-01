@@ -178,13 +178,26 @@ function AdminSidebar({ colapsada, onCerrar }) {
         </div>
       </aside>
 
-      {/* Desktop: bottom nav horizontal fijo, siempre visible */}
+      {/* Desktop: bottom nav horizontal fijo, siempre visible.
+          Sus ítems llaman a `onCerrar` aunque el drawer sea `lg:hidden`, y no
+          es redundante: abrir el drawer entre 768 y 1023px y cruzar a `lg`
+          (rotar una tablet, ensanchar la ventana) esconde el `<aside>` por CSS
+          sin que React se entere, así que `useBloquearScroll` deja el body
+          bloqueado y `useDialogo` sigue atrapando el foco en enlaces
+          invisibles. Detectar el cruce pediría `matchMedia` —el primer
+          breakpoint en JS del proyecto, que el plan del admin responsive
+          descarta a propósito—, así que la salida es esta: la bottom nav ya
+          está en pantalla y cualquier toque suyo libera el drawer fantasma,
+          incluida la pestaña ACTUAL, que no navega y por eso no dispara el
+          cierre por cambio de ruta de `AdminLayout`. Residuo asumido y
+          documentado en CLAUDE.md: hasta ese toque (o Escape, o navegar) el
+          scroll sigue bloqueado. */}
       <nav className="fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-6 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:flex">
         <LogoYima className="h-6 shrink-0" />
 
         <div className="flex items-center gap-2">
           {ITEMS_NAV.map((item) => (
-            <NavLink key={item.to} to={item.to} className={claseTab}>
+            <NavLink key={item.to} to={item.to} className={claseTab} onClick={onCerrar}>
               <span className="material-symbols-outlined text-[20px]">{item.icono}</span>
               {item.label}
             </NavLink>
@@ -193,7 +206,10 @@ function AdminSidebar({ colapsada, onCerrar }) {
           <div className="relative">
             <button
               type="button"
-              onClick={() => setMenuConfigDesktopAbierto((abierto) => !abierto)}
+              onClick={() => {
+                onCerrar();
+                setMenuConfigDesktopAbierto((abierto) => !abierto);
+              }}
               className={`${tabBase} ${enConfiguracion ? tabActivo : tabInactivo}`}
               aria-expanded={menuConfigDesktopAbierto}
             >

@@ -70,9 +70,17 @@ describe("AdminLayout", () => {
       const { container } = renderAdmin(<p>listado de productos</p>);
 
       expect(container.querySelector(".marca-agua-admin")).toHaveClass("z-0");
-      // La contraparte: sin apilar el <main> por encima, el orden del DOM
-      // pondría la marca adelante.
-      expect(container.querySelector("main")).toHaveClass("relative", "z-10");
+      // La contraparte: sin apilar el contenido por encima, el orden del DOM
+      // pondría la marca adelante. El `relative z-10` vive en el contenedor
+      // que envuelve al <header> y al <main> —no en el <main>—, para que los
+      // diálogos `fixed z-50` de las pantallas compartan contexto de
+      // apilamiento con la barra superior y puedan taparla (ver el test de
+      // más abajo).
+      const contenedor = container.querySelector(".z-10");
+      expect(contenedor).toHaveClass("relative", "z-10");
+      expect(contenedor).toContainElement(container.querySelector("header"));
+      expect(contenedor).toContainElement(container.querySelector("main"));
+      expect(container.querySelector("main")).not.toHaveClass("z-10");
     });
 
     it("no aporta contenido de texto", () => {
@@ -111,6 +119,33 @@ describe("AdminLayout", () => {
 
       expect(main).not.toHaveClass("overflow-x-auto");
       expect(main).toHaveClass("overflow-x-clip");
+    });
+
+    it("un diálogo de la pantalla comparte contexto de apilamiento con la barra", () => {
+      // Los cuatro diálogos del panel (borrado masivo, borrado del editor,
+      // confirmación de precios, notificar estado) son `fixed inset-0 z-50` y
+      // se renderizan DENTRO del outlet. Si el <main> creara su propio
+      // contexto de apilamiento (`relative z-10`), la capa efectiva del
+      // diálogo pasaría a ser la del <main> (10) y el <header> `z-30`,
+      // hermano de ese contexto, se pintaría encima: con un modal abierto
+      // quedaba una banda de 56px arriba, con hamburguesa y toggle de tema
+      // tocables. Compartiendo contenedor, dentro de él manda el z-index y
+      // 50 > 30. jsdom no compone capas, así que esto es lo más cerca que
+      // llega de la garantía; la medición real está en `admin-mobile.spec.js`
+      // (`document.elementFromPoint` sobre el botón "Abrir menú").
+      const { container } = renderAdmin(
+        <div role="dialog" aria-label="Eliminar productos" className="fixed inset-0 z-50">
+          ¿Seguro?
+        </div>,
+      );
+
+      const dialogo = screen.getByRole("dialog", { name: "Eliminar productos" });
+      const cabecera = container.querySelector("header");
+      const contenedor = container.querySelector(".z-10");
+
+      expect(contenedor).not.toBeNull();
+      expect(dialogo.closest(".z-10")).toBe(contenedor);
+      expect(cabecera.closest(".z-10")).toBe(contenedor);
     });
 
     it("cierra el drawer al cambiar de ruta", async () => {

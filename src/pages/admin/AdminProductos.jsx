@@ -719,8 +719,17 @@ function AdminProductos() {
                         negativo que compensa su propio padding, sin mover el
                         layout. Tiene que quedar SIN texto: si llevara contenido,
                         el nombre accesible del checkbox dejaría de ser su
-                        `aria-label` y los tests por nombre se romperían. */}
-                    <label className="-m-3 inline-flex p-3">
+                        `aria-label` y los tests por nombre se romperían.
+
+                        `max-md:hidden` porque debajo de `md` el `thead` es
+                        sr-only (recortado a 1px, ver "Tabla apilada del admin"):
+                        el checkbox seguía siendo un control real, así que el
+                        foco de teclado caía en un elemento de 1px invisible y
+                        el dedo no tenía dónde tocarlo. `hidden` lo saca del
+                        orden de tabulado y del árbol de accesibilidad, y solo en
+                        mobile — en escritorio el encabezado se ve y sigue igual.
+                        La selección masiva en mobile se hace fila por fila. */}
+                    <label className="-m-3 inline-flex p-3 max-md:hidden">
                       <input
                         type="checkbox"
                         aria-label="Seleccionar todos los productos de esta página"

@@ -83,10 +83,11 @@ function AdminLayout() {
           contiene el desenfoque, que si no se derrama fuera del viewport y
           agranda el área que el navegador tiene que componer.
 
-          `z-0` con el `<main>` en `z-10` es lo que la manda atrás: no alcanza
-          con un z-index negativo, porque quedaría por detrás del `bg-background`
-          de este mismo contenedor y no se vería nada. La sidebar ya vive en
-          `z-40`/`z-50` y el botón del menú en `z-30`, así que ninguno la pisa.
+          `z-0` con el contenedor de abajo (barra + contenido) en `z-10` es lo
+          que la manda atrás: no alcanza con un z-index negativo, porque
+          quedaría por detrás del `bg-background` de este mismo contenedor y no
+          se vería nada. La sidebar ya vive en `z-40`/`z-50` y la barra
+          superior en `z-30`, así que ninguno la pisa.
 
           El estilo (tamaño, opacidad, desenfoque y el desvanecido de los
           bordes) está en `.marca-agua-admin`, en `index.css`. */}
@@ -95,46 +96,76 @@ function AdminLayout() {
         className="marca-agua-admin pointer-events-none fixed inset-0 z-0 overflow-hidden"
       />
 
-      {/* Barra superior EN FLUJO, solo `< lg`: reemplaza al botón `fixed` que
-          tapaba el `<h1>` de cada pantalla. `sticky top-0` la deja pegada
-          arriba al scrollear; `z-30` queda por debajo del overlay (`z-40`) y
-          del drawer (`z-50`) del `AdminSidebar`, y por encima del `<main>`
-          (`z-10`). El botón conserva el mismo `aria-label` de antes y suma
-          `aria-expanded` porque ahora abre un diálogo modal de verdad. */}
-      <header className="sticky top-0 z-30 flex h-topbar-admin items-center justify-between gap-2 border-b border-outline-variant bg-surface-container-lowest px-margin-mobile lg:hidden">
-        <button
-          type="button"
-          aria-label="Abrir menú"
-          aria-expanded={!sidebarColapsada}
-          onClick={() => setSidebarColapsada(false)}
-          className="-ml-2 inline-flex size-11 items-center justify-center rounded-lg text-on-surface"
-        >
-          <span className="material-symbols-outlined">menu</span>
-        </button>
-        <span className="flex items-baseline gap-2">
-          <LogoYima className="h-6 self-center" />
-          <span className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant">
-            Admin
-          </span>
-        </span>
-        <ToggleTemaAdmin compacto />
-      </header>
-
+      {/* La navegación va FUERA del contenedor `z-10` de abajo (y por eso
+          quedó antes de la barra en el DOM, no entre barra y contenido como
+          estaba): sus tres capas `fixed` —overlay `z-40`, drawer `z-50`,
+          bottom nav de escritorio `z-40`— tienen que seguir comparándose
+          contra el contexto raíz, no contra el del contenido. Metiéndola
+          adentro, la bottom nav cambiaría de relación con los diálogos en
+          escritorio. Para el orden de lectura y de tabulado da igual: el
+          drawer es `inert` mientras está cerrado. */}
       <AdminSidebar colapsada={sidebarColapsada} onCerrar={() => setSidebarColapsada(true)} />
 
-      <main className="relative z-10 w-full overflow-x-clip lg:pb-20">
-        <Suspense
-          fallback={
-            <div className="flex min-h-[60vh] items-center justify-center text-on-surface-variant">
-              <Spinner className="h-8 w-8" />
-            </div>
-          }
-        >
-          <LimiteDeError claveDeReinicio={pathname} fallback={<ErrorDePantallaAdmin />}>
-            <Outlet />
-          </LimiteDeError>
-        </Suspense>
-      </main>
+      {/* Este contenedor —y NO el `<main>`— es el que se apila por encima de
+          la marca de agua, y de eso depende que los modales del panel se vean
+          enteros. Los cuatro diálogos (borrado masivo de `AdminProductos`,
+          borrado del editor, confirmación de `AdminPrecios`,
+          `DialogoNotificarEstado`) son `fixed inset-0 z-50` y se renderizan
+          DENTRO del outlet: con el `relative z-10` en el `<main>`, ese `<main>`
+          creaba su propio contexto de apilamiento y la capa efectiva del
+          diálogo pasaba a ser la del `<main>` (10), así que el `<header>`
+          `z-30` —hermano de ese contexto— se pintaba encima y dejaba una banda
+          de 56px arriba del modal, con hamburguesa y toggle de tema tocables.
+          Metiendo barra y contenido en el MISMO contexto, adentro manda el
+          z-index y 50 > 30. La bottom nav de escritorio (`z-40`) queda fuera de
+          este contenedor a propósito: así su relación con los diálogos es
+          exactamente la de antes de este cambio.
+
+          En escritorio no cambia nada: la marca de agua sigue debajo, y header
+          y main nunca compiten entre sí por espacio. */}
+      <div className="relative z-10">
+        {/* Barra superior EN FLUJO, solo `< lg`: reemplaza al botón `fixed` que
+            tapaba el `<h1>` de cada pantalla. `sticky top-0` la deja pegada
+            arriba al scrollear; `z-30` queda por debajo del overlay (`z-40`) y
+            del drawer (`z-50`) del `AdminSidebar`, y por debajo también de los
+            diálogos (`z-50`) de las pantallas, que comparten este contenedor.
+            El botón conserva el mismo `aria-label` de antes y suma
+            `aria-expanded` + `aria-haspopup="dialog"` porque ahora abre un
+            diálogo modal de verdad. */}
+        <header className="sticky top-0 z-30 flex h-topbar-admin items-center justify-between gap-2 border-b border-outline-variant bg-surface-container-lowest px-margin-mobile lg:hidden">
+          <button
+            type="button"
+            aria-label="Abrir menú"
+            aria-expanded={!sidebarColapsada}
+            aria-haspopup="dialog"
+            onClick={() => setSidebarColapsada(false)}
+            className="-ml-2 inline-flex size-11 items-center justify-center rounded-lg text-on-surface"
+          >
+            <span className="material-symbols-outlined">menu</span>
+          </button>
+          <span className="flex items-baseline gap-2">
+            <LogoYima className="h-6 self-center" />
+            <span className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant">
+              Admin
+            </span>
+          </span>
+          <ToggleTemaAdmin compacto />
+        </header>
+
+        <main className="relative w-full overflow-x-clip lg:pb-20">
+          <Suspense
+            fallback={
+              <div className="flex min-h-[60vh] items-center justify-center text-on-surface-variant">
+                <Spinner className="h-8 w-8" />
+              </div>
+            }
+          >
+            <LimiteDeError claveDeReinicio={pathname} fallback={<ErrorDePantallaAdmin />}>
+              <Outlet />
+            </LimiteDeError>
+          </Suspense>
+        </main>
+      </div>
     </div>
   );
 }
