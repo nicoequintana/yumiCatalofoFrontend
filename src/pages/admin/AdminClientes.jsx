@@ -72,7 +72,7 @@ const formatCantidad = new Intl.NumberFormat("es-AR").format;
 /**
  * `/catalogo/admin/clientes` — dashboard de clientes del panel admin.
  *
- * Un cliente "cuenta" desde que tiene una orden CONFIRMADA en adelante, el
+ * Un cliente "cuenta" desde que tiene una orden EN_PREPARACION en adelante, el
  * mismo umbral que usa el dashboard de ventas (es cuando el backend descuenta
  * stock). Las órdenes PENDIENTE o CANCELADA no convierten a nadie en cliente.
  *

@@ -97,7 +97,7 @@ function GraficoIngresos({ serie }) {
 /**
  * `/catalogo/admin/ventas` — dashboard de facturación del panel admin.
  *
- * Una venta cuenta desde CONFIRMADA en adelante (CONFIRMADA, EN_PREPARACION,
+ * Una venta cuenta desde EN_PREPARACION en adelante (EN_PREPARACION,
  * ENTREGADA), porque ese es el momento en que el backend descuenta stock. Las
  * órdenes PENDIENTE se muestran aparte como *pipeline* (ingreso potencial,
  * todavía no facturado) y nunca se mezclan con los ingresos — de ahí que el
