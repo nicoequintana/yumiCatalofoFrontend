@@ -132,7 +132,10 @@ function GraficoEmbudo({ etapas }) {
  *
  * Mismo patrón visual que `AdminVentas.jsx`: header con eyebrow + título,
  * selector de período, tablas dentro de un contenedor redondeado con
- * `overflow-x-auto` (mobile-first).
+ * `overflow-x-auto`. Ese scroll cubre de `md` para arriba, hasta que el
+ * `min-w` de la tabla entra en el ancho; por debajo de `md` la tabla APILA
+ * (`claseTablaApilada`, ver `clasesTabla.js`) y no hay nada que desplazar de
+ * costado.
  */
 function AdminEmbudo() {
   const [dias, setDias] = useState(30);

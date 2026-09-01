@@ -57,7 +57,8 @@ pueda desactivar; los scripts de `package.json` son la forma de elegir uno
 solo sin tener que acordarse del flag.
 
 **Por qué `mobile` corre un único spec y no la suite entera**: los otros 7
-specs (6 de flujo público + `admin-desktop-layout.spec.js`) prueban
+specs (6 de flujo — 5 públicos más `admin-cambio-estado.spec.js`, que es del
+panel — y `admin-desktop-layout.spec.js`) prueban
 *comportamiento* (checkout, login, cambio de estado de una orden, que la
 tabla siga siendo `display: table` en escritorio) — ese comportamiento ya
 está cubierto contra 1280px, y correrlo de nuevo a 412px no agrega cobertura
@@ -71,10 +72,11 @@ Qué verifica cada spec nuevo:
 
 - **`admin-mobile.spec.js`** (proyecto `mobile`): siembra un admin + un
   producto + una orden de test en `beforeAll` (ver "Estrategia de datos de
-  test" abajo) y corre cuatro tests contra el admin logueado:
-  1. **Ninguna pantalla desborda ni tapa el título** — recorre diez rutas del
-     admin (listados, detalle de orden, editor de producto, pantallas de
-     configuración y analytics) y en cada una mide
+  test" abajo) y corre cinco tests contra el admin logueado:
+  1. **Ninguna pantalla desborda ni tapa el título** — recorre las dieciocho
+     rutas del admin (listados, detalle de orden, editor de producto, importar
+     y actualizar por Excel, salud del catálogo, pantallas de configuración y
+     las cuatro de analytics) y en cada una mide
      `document.documentElement.scrollWidth` contra `window.innerWidth` **y**
      el `getBoundingClientRect().right` de cada `<table>`/`<tr>` (el
      `overflow-x-clip` del `<main>` del admin recorta el desborde sin
@@ -89,8 +91,14 @@ Qué verifica cada spec nuevo:
      `role="cell"` con nombre accesible, y el `thead` (visualmente sr-only en
      mobile) sigue en el árbol de accesibilidad.
   4. **Áreas táctiles**: el primer switch "Catálogo" de la tabla mide al
-     menos 24×44 px, y el primer checkbox de selección tiene un área táctil
-     (su `<label>` envolvente) de al menos 44×44 px.
+     menos 24×44 px, y el primer checkbox de selección **de una fila** (el
+     "Seleccionar todos" de cabecera es `max-md:hidden` en mobile) tiene un
+     área táctil (su `<label>` envolvente) de al menos 44×44 px.
+  5. **Un diálogo tapa la barra superior**: con el diálogo de borrado masivo
+     abierto en `/productos`, `document.elementFromPoint` sobre el centro del
+     botón "Abrir menú" devuelve el backdrop del diálogo y no un nodo del
+     `<header>`. Es la medición del contexto de apilamiento de `AdminLayout`
+     que jsdom no puede dar (ver "Tabla apilada del admin" en `CLAUDE.md`).
 - **`admin-desktop-layout.spec.js`** (proyecto `chromium`): guard de
   no-regresión — a 1280x720 la tabla de `/productos` sigue siendo
   `display: table` (no apilada), el botón "Abrir menú" sigue oculto, el

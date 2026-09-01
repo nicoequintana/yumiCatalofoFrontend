@@ -50,8 +50,9 @@ export default defineConfig({
   // panel admin full responsive, Task 5).
   //
   // El proyecto `mobile` corre UN SOLO spec (`admin-mobile.spec.js`), no la
-  // suite entera: los otros 7 specs (6 de flujo público +
-  // `admin-desktop-layout.spec.js`) prueban FLUJO/no-regresión de escritorio
+  // suite entera: los otros 7 specs (6 de flujo — 5 públicos más
+  // `admin-cambio-estado.spec.js` — y `admin-desktop-layout.spec.js`) prueban
+  // FLUJO/no-regresión de escritorio
   // (checkout, login, cambio de estado de una orden, que la tabla siga siendo
   // `display: table` a 1280px) y eso ya está cubierto contra escritorio —
   // correrlos de nuevo a 412px no agrega cobertura de layout, solo duplica

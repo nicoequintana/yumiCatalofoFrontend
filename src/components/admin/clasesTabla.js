@@ -1,12 +1,19 @@
 /**
  * Clases compartidas de las tablas del panel admin.
  *
- * A propósito NO hay un componente `<TablaAdmin>`: las doce pantallas con tabla
- * difieren en cada celda (toggles, spinners, inputs inline, links al detalle),
- * así que un componente genérico necesitaría render-props por columna y
- * terminaría siendo más difícil de leer que el `<table>` que reemplaza. Lo que
- * SÍ se comparte son estos dos strings de clases, y —desde el mecanismo de
- * tabla apilada en mobile— `claseTablaApilada` más su contrato de atributos.
+ * A propósito NO hay un componente `<TablaAdmin>`: las catorce pantallas con
+ * tabla, más el componente compartido `TablaErroresImportacion.jsx`, difieren
+ * en cada celda (toggles, spinners, inputs inline, links al detalle), así que
+ * un componente genérico necesitaría render-props por columna y terminaría
+ * siendo más difícil de leer que el `<table>` que reemplaza. Lo que SÍ se
+ * comparte son estos dos strings de clases, y —desde el mecanismo de tabla
+ * apilada en mobile— `claseTablaApilada` más su contrato de atributos.
+ *
+ * Son 18 las instancias de `<table>` que apilan (`AdminOperacion`, `AdminLogs`
+ * y `AdminPrecios` tienen más de una). La única que NO lleva
+ * `claseTablaApilada` es la tabla de previsualización dentro del diálogo de
+ * confirmación de `AdminPrecios`: ya vive en una caja angosta con su propio
+ * scroll, no es el contenido principal de una pantalla.
  *
  * `claseCelda` se compone con la clase de color de cada celda:
  * `` className={`${claseCelda} text-on-surface`} ``.

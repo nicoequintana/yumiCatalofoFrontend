@@ -125,8 +125,14 @@ function StackColapsable({ stack }) {
  *
  * Mismo patrón visual que `AdminOrdenes.jsx`/`AdminMetricas.jsx`: header con
  * eyebrow + título, tabla dentro de un contenedor redondeado con
- * `overflow-x-auto` (mobile-first: la tabla scrollea adentro de su caja en
- * vez de romper el layout de la página), y paginación Anterior/Siguiente.
+ * `overflow-x-auto`, y paginación Anterior/Siguiente.
+ *
+ * El `overflow-x-auto` cubre de `md` para arriba: entre ese breakpoint y el
+ * ancho en que el `min-w` de la tabla ya entra, la tabla scrollea adentro de
+ * su caja en vez de romper el layout. **Por debajo de `md` no hay scroll
+ * horizontal: la tabla APILA** (`claseTablaApilada`, ver `clasesTabla.js` y
+ * "Tabla apilada del admin" en CLAUDE.md), así que cada fila pasa a tarjeta y
+ * no hay nada que desplazar de costado.
  */
 function AdminLogs() {
   const [pestana, setPestana] = useState(PESTANA_AUDITORIA);

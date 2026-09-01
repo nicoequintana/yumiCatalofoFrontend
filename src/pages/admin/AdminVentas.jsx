@@ -117,8 +117,11 @@ function GraficoIngresos({ serie }) {
  *
  * Mismo patrón visual que `AdminLogs.jsx`/`AdminMetricas.jsx`: header con
  * eyebrow + título, tablas dentro de un contenedor redondeado con
- * `overflow-x-auto` (mobile-first: la tabla scrollea adentro de su caja en vez
- * de romper el layout de la página).
+ * `overflow-x-auto`. Ese scroll cubre de `md` para arriba, hasta que el
+ * `min-w` de la tabla entra en el ancho: ahí la tabla scrollea adentro de su
+ * caja en vez de romper el layout de la página. Por debajo de `md` la tabla
+ * APILA (`claseTablaApilada`, ver `clasesTabla.js`) y no hay nada que
+ * desplazar de costado.
  */
 function AdminVentas() {
   const [dias, setDias] = useState(30);

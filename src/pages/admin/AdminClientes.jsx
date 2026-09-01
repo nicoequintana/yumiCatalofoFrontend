@@ -99,8 +99,11 @@ const formatCantidad = new Intl.NumberFormat("es-AR").format;
  * `formatPrecio`, el mismo formateador que usa el resto de la app.
  *
  * Mismo patrón visual que `AdminVentas.jsx`: header con eyebrow + título,
- * tablas dentro de un contenedor redondeado con `overflow-x-auto` (mobile
- * first: la tabla scrollea adentro de su caja en vez de romper el layout).
+ * tablas dentro de un contenedor redondeado con `overflow-x-auto`. Ese scroll
+ * cubre de `md` para arriba, hasta que el `min-w` de la tabla entra en el
+ * ancho: ahí la tabla scrollea adentro de su caja en vez de romper el layout.
+ * Por debajo de `md` la tabla APILA (`claseTablaApilada`, ver
+ * `clasesTabla.js`) y no hay nada que desplazar de costado.
  */
 function AdminClientes() {
   const [dias, setDias] = useState(30);
