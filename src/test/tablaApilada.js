@@ -89,7 +89,12 @@ export function esperarTablaApilada(tabla) {
 
       if (dataLabel !== null) {
         expect(dataLabel.trim(), `${ubicacion}: data-label está vacío`).not.toBe("");
-        const textoEncabezado = th.textContent.trim();
+        // `data-titulo` es la extensión del contrato para encabezados
+        // INTERACTIVOS (los th ordenables del listado de productos): su
+        // textContent lleva el botón, la flecha y el fallback textual de
+        // mobile, así que el texto canónico de la columna se declara aparte.
+        // Un th sin control sigue comparándose por su texto, como siempre.
+        const textoEncabezado = (th.getAttribute("data-titulo") ?? th.textContent).trim();
         expect(
           dataLabel,
           `${ubicacion}: data-label ("${dataLabel}") no coincide con el texto del th ("${textoEncabezado}")`,

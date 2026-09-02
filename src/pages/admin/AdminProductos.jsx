@@ -69,6 +69,55 @@ const ORDENES = [
 ];
 
 /**
+ * Encabezado de columna clickeable: cicla asc → desc → vuelta al default
+ * ("Catálogo primero", el `""` de esta pantalla).
+ *
+ * Solo es un CONTROL de `md` para arriba. Debajo, el `thead` es sr-only
+ * (tabla apilada) y ordenar sigue siendo trabajo del select "Ordenar por",
+ * que quedó visible solo en mobile: el botón lleva `max-md:hidden` por lo
+ * mismo que el checkbox de "seleccionar todos" — un control real dentro de un
+ * thead recortado a 1px recibe foco invisible. El `<span md:hidden>` conserva
+ * el TEXTO del encabezado para el lector de pantalla en mobile.
+ *
+ * La flecha inactiva va con `opacity-0`, no desmontada: reserva su ancho para
+ * que activar una columna no corra el resto del encabezado.
+ */
+function ThOrdenable({ etiqueta, asc, desc, orden, onOrden, secundaria = false }) {
+  const activo = orden === asc ? "asc" : orden === desc ? "desc" : null;
+  const siguiente = activo === null ? asc : activo === "asc" ? desc : "";
+
+  return (
+    <th
+      role="columnheader"
+      aria-sort={activo === "asc" ? "ascending" : activo === "desc" ? "descending" : undefined}
+      data-celda={secundaria ? "secundaria" : undefined}
+      // El texto canónico de la columna, para el contrato de tabla apilada:
+      // el textContent de este th suma botón + flecha + fallback de mobile,
+      // y `esperarTablaApilada` compara data-label contra `data-titulo`
+      // cuando existe.
+      data-titulo={etiqueta}
+      className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest"
+    >
+      <button
+        type="button"
+        onClick={() => onOrden(siguiente)}
+        aria-label={`Ordenar por ${etiqueta}`}
+        title={`Ordenar por ${etiqueta}`}
+        className={`max-md:hidden inline-flex items-center gap-1 uppercase hover:text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+          activo ? "text-on-surface" : ""
+        }`}
+      >
+        {etiqueta}
+        <span aria-hidden="true" className={activo ? "text-primary" : "opacity-0"}>
+          {activo === "desc" ? "▼" : "▲"}
+        </span>
+      </button>
+      <span className="md:hidden">{etiqueta}</span>
+    </th>
+  );
+}
+
+/**
  * Valor de una tarjeta de contador.
  *
  * Se emite el número pelado, sin `toLocaleString`: la salida de `Intl` depende
@@ -632,7 +681,11 @@ function AdminProductos() {
       {/* Un solo campo para nombre, SKU y categoría: el admin no tiene por qué
           declarar en qué campo está tipeando — busca con lo que se acuerde del
           producto. El backend une los tres con OR. */}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+      {/* Dos filas con roles claros: el buscador solo arriba (la acción más
+          frecuente merece el ancho) y abajo la grilla de filtros con el label
+          ARRIBA de cada control — al costado comían ancho y se pisaban entre
+          sí en anchos medios. */}
+      <div className="mb-6 flex flex-col gap-3">
         <label htmlFor="buscar-productos" className="sr-only">
           Buscar productos por nombre, SKU o categoría
         </label>
@@ -653,96 +706,96 @@ function AdminProductos() {
           />
         </div>
 
-        {/* El orden lo resuelve el backend sobre el catálogo entero, no un
-            `sort()` sobre las 50 filas de esta página — ver `ORDENES`. Sin
-            debounce a propósito: un `<select>` emite una sola vez por
-            selección, mismo criterio que el selector de categoría de
-            `/coleccion`. */}
-        <div className="flex items-center gap-2 sm:ml-auto">
-          <label
-            htmlFor="orden-productos"
-            className="font-label-sm text-label-sm shrink-0 uppercase tracking-widest text-on-surface-variant"
-          >
-            Ordenar por
-          </label>
-          <select
-            id="orden-productos"
-            value={orden}
-            onChange={(e) => cambiarOrden(e.target.value)}
-            className="rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
-          >
-            {ORDENES.map((opcion) => (
-              <option key={opcion.valor || "default"} value={opcion.valor}>
-                {opcion.etiqueta}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Los tres filtros viajan al backend y recorren el catálogo entero —
+        {/* Filtros y orden viajan al backend y recorren el catálogo entero —
             ver el comentario donde se leen de la URL. Sin debounce: un
-            `<select>` emite una vez por selección. */}
-        <div className="flex items-center gap-2">
-          <label
-            htmlFor="filtro-categoria"
-            className="font-label-sm text-label-sm shrink-0 uppercase tracking-widest text-on-surface-variant"
-          >
-            Categoría
-          </label>
-          <select
-            id="filtro-categoria"
-            value={categoria}
-            onChange={(e) => cambiarFiltro("categoria", e.target.value)}
-            className="rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
-          >
-            <option value="">Todas</option>
-            {categorias.map((cat) => (
-              <option key={cat.id} value={String(cat.id)}>
-                {cat.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
+            `<select>` emite una vez por selección. El select "Ordenar por" es
+            SOLO de mobile (`md:hidden`): de `md` para arriba ordenan los
+            encabezados de la tabla (`ThOrdenable`), y debajo el thead es
+            sr-only, así que sin este select el teléfono no podría reordenar. */}
+        <div className="grid max-w-3xl grid-cols-2 gap-3 md:grid-cols-3">
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="filtro-categoria"
+              className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
+            >
+              Categoría
+            </label>
+            <select
+              id="filtro-categoria"
+              value={categoria}
+              onChange={(e) => cambiarFiltro("categoria", e.target.value)}
+              className="w-full rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
+            >
+              <option value="">Todas</option>
+              {categorias.map((cat) => (
+                <option key={cat.id} value={String(cat.id)}>
+                  {cat.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <label
-            htmlFor="filtro-etiqueta"
-            className="font-label-sm text-label-sm shrink-0 uppercase tracking-widest text-on-surface-variant"
-          >
-            Etiqueta
-          </label>
-          <select
-            id="filtro-etiqueta"
-            value={etiqueta}
-            onChange={(e) => cambiarFiltro("etiqueta", e.target.value)}
-            className="rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
-          >
-            <option value="">Todas</option>
-            {etiquetas.map((valor) => (
-              <option key={valor} value={valor}>
-                {valor}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="filtro-etiqueta"
+              className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
+            >
+              Etiqueta
+            </label>
+            <select
+              id="filtro-etiqueta"
+              value={etiqueta}
+              onChange={(e) => cambiarFiltro("etiqueta", e.target.value)}
+              className="w-full rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
+            >
+              <option value="">Todas</option>
+              {etiquetas.map((valor) => (
+                <option key={valor} value={valor}>
+                  {valor}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <label
-            htmlFor="filtro-stock"
-            className="font-label-sm text-label-sm shrink-0 uppercase tracking-widest text-on-surface-variant"
-          >
-            Stock
-          </label>
-          <select
-            id="filtro-stock"
-            value={stockFiltro}
-            onChange={(e) => cambiarFiltro("stock", e.target.value)}
-            className="rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
-          >
-            <option value="">Todos</option>
-            <option value="sin">Sin stock</option>
-            <option value="bajo">Stock bajo (&lt;3)</option>
-          </select>
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="filtro-stock"
+              className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
+            >
+              Stock
+            </label>
+            <select
+              id="filtro-stock"
+              value={stockFiltro}
+              onChange={(e) => cambiarFiltro("stock", e.target.value)}
+              className="w-full rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
+            >
+              <option value="">Todos</option>
+              <option value="sin">Sin stock</option>
+              <option value="bajo">Stock bajo (&lt;3)</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1 md:hidden">
+            <label
+              htmlFor="orden-productos"
+              className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
+            >
+              Ordenar por
+            </label>
+            <select
+              id="orden-productos"
+              value={orden}
+              onChange={(e) => cambiarOrden(e.target.value)}
+              className="w-full rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
+            >
+              {ORDENES.map((opcion) => (
+                <option key={opcion.valor || "default"} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -889,33 +942,15 @@ function AdminProductos() {
                   <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
                     Foto
                   </th>
-                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                    Nombre
-                  </th>
-                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                    SKU
-                  </th>
-                  <th role="columnheader" data-celda="secundaria" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                    Etiqueta
-                  </th>
-                  <th role="columnheader" data-celda="secundaria" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                    Categoría
-                  </th>
-                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                    Precio
-                  </th>
-                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                    Stock
-                  </th>
-                  <th role="columnheader" data-celda="secundaria" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                    Fotos
-                  </th>
-                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                    Catálogo
-                  </th>
-                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
-                    Destacado
-                  </th>
+                  <ThOrdenable etiqueta="Nombre" asc="nombre" desc="nombre-desc" orden={orden} onOrden={cambiarOrden} />
+                  <ThOrdenable etiqueta="SKU" asc="sku-asc" desc="sku-desc" orden={orden} onOrden={cambiarOrden} />
+                  <ThOrdenable etiqueta="Etiqueta" asc="etiqueta-asc" desc="etiqueta-desc" orden={orden} onOrden={cambiarOrden} secundaria />
+                  <ThOrdenable etiqueta="Categoría" asc="categoria-asc" desc="categoria-desc" orden={orden} onOrden={cambiarOrden} secundaria />
+                  <ThOrdenable etiqueta="Precio" asc="precio-asc" desc="precio-desc" orden={orden} onOrden={cambiarOrden} />
+                  <ThOrdenable etiqueta="Stock" asc="stock-asc" desc="stock-desc" orden={orden} onOrden={cambiarOrden} />
+                  <ThOrdenable etiqueta="Fotos" asc="fotos-asc" desc="fotos-desc" orden={orden} onOrden={cambiarOrden} secundaria />
+                  <ThOrdenable etiqueta="Catálogo" asc="visible-asc" desc="visible-desc" orden={orden} onOrden={cambiarOrden} />
+                  <ThOrdenable etiqueta="Destacado" asc="destacado-asc" desc="destacado-desc" orden={orden} onOrden={cambiarOrden} />
                 </tr>
               </thead>
               <tbody role="rowgroup">

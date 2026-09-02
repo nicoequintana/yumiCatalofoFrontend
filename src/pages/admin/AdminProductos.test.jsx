@@ -82,6 +82,50 @@ describe("AdminProductos - filtros de la tabla", () => {
     );
   }
 
+  it("click en un encabezado cicla asc → desc → default de catálogo", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    await user.click(screen.getByRole("button", { name: "Ordenar por Nombre" }));
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ orden: "nombre", page: 1 }),
+      );
+    });
+
+    // Se re-consulta el botón en cada paso: cada reorden desmonta la tabla
+    // (spinner) y la re-monta, y una referencia vieja apunta a un nodo
+    // desconectado.
+    await user.click(screen.getByRole("button", { name: "Ordenar por Nombre" }));
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ orden: "nombre-desc" }),
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "Ordenar por Nombre" }));
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ orden: "catalogo" }),
+      );
+    });
+  });
+
+  it("el encabezado activo declara aria-sort para lectores de pantalla", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    await user.click(screen.getByRole("button", { name: "Ordenar por Precio" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("columnheader", { name: /precio/i }),
+      ).toHaveAttribute("aria-sort", "ascending");
+    });
+  });
+
   it("el orden por defecto es catalogo, y Más recientes se manda explícito", async () => {
     const user = userEvent.setup();
     renderPagina();

@@ -80,7 +80,7 @@ describe("AdminProductos — selector de orden", () => {
   it("ofrece los criterios pedidos, incluido sin fotos primero", async () => {
     renderPagina();
 
-    const selector = await screen.findByLabelText(/ordenar/i);
+    const selector = await screen.findByLabelText("Ordenar por");
     const opciones = Array.from(selector.options).map((o) => o.textContent);
 
     expect(opciones).toEqual(
@@ -100,7 +100,7 @@ describe("AdminProductos — selector de orden", () => {
     const user = userEvent.setup();
     renderPagina();
 
-    const selector = await screen.findByLabelText(/ordenar/i);
+    const selector = await screen.findByLabelText("Ordenar por");
     await user.selectOptions(selector, "precio-desc");
 
     await waitFor(() => {
@@ -112,7 +112,7 @@ describe("AdminProductos — selector de orden", () => {
     const user = userEvent.setup();
     renderPagina();
 
-    await user.selectOptions(await screen.findByLabelText(/ordenar/i), "fotos-asc");
+    await user.selectOptions(await screen.findByLabelText("Ordenar por"), "fotos-asc");
 
     await waitFor(() => {
       expect(screen.getByTestId("url-search").textContent).toContain("orden=fotos-asc");
@@ -123,7 +123,7 @@ describe("AdminProductos — selector de orden", () => {
     const user = userEvent.setup();
     renderPagina("/catalogo/admin/productos?page=3");
 
-    await user.selectOptions(await screen.findByLabelText(/ordenar/i), "stock-asc");
+    await user.selectOptions(await screen.findByLabelText("Ordenar por"), "stock-asc");
 
     await waitFor(() => {
       expect(screen.getByTestId("url-search").textContent).not.toContain("page=3");
@@ -136,7 +136,7 @@ describe("AdminProductos — selector de orden", () => {
     await waitFor(() => {
       expect(ordenPedido()).toBe("nombre");
     });
-    expect(await screen.findByLabelText(/ordenar/i)).toHaveValue("nombre");
+    expect(await screen.findByLabelText("Ordenar por")).toHaveValue("nombre");
   });
 
   it("sin orden en la URL manda catalogo, el default de ESTA pantalla", async () => {
