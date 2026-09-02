@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { useTablaAdmin } from "../../hooks/useTablaAdmin.js";
 import Badge from "../../components/Badge.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
@@ -20,9 +21,6 @@ import { getCategorias } from "../../api/categorias.js";
 import { formatPrecio } from "../../utils/formato.js";
 import useDialogo from "../../hooks/useDialogo.js";
 import { MIN_DESTACADOS } from "../../hooks/useDestacados.js";
-
-/** Pausa antes de mandar lo tipeado a la URL (y por lo tanto al backend). */
-const DEBOUNCE_BUSQUEDA_MS = 350;
 
 /**
  * Filas por página de ESTA pantalla.
@@ -191,42 +189,35 @@ function AdminProductos() {
   // La búsqueda también: un listado filtrado se puede compartir o recargar, y
   // volver de editar un producto devuelve a la búsqueda que lo encontró en
   // vez de a la tabla completa.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const paginaUrl = Number(searchParams.get("page"));
-  const pagina = Number.isInteger(paginaUrl) && paginaUrl > 0 ? paginaUrl : 1;
-  const busqueda = searchParams.get("search") ?? "";
-  // Igual que `page` y `search`: vive en la URL, así un listado ordenado se
-  // comparte, se recarga, y volver de editar un producto devuelve al mismo
-  // orden en vez de a la tabla por defecto.
-  const orden = searchParams.get("orden") ?? "";
-  // Los tres filtros de la tabla, en la URL por lo mismo que `search` y
-  // `orden`: un listado filtrado se comparte, se recarga, y volver de editar
-  // devuelve al mismo filtro. El filtrado lo resuelve la BASE sobre el
-  // catálogo entero — nunca las 50 filas de esta página.
+  // El estado compartido de las tablas del panel —página, búsqueda con su
+  // debounce, orden y selección— vive en `useTablaAdmin`. Estaba escrito acá y
+  // en `AdminPrecios.jsx` por separado, `ultimoCommit` incluido: un arreglo en
+  // una pantalla no llegaba a la otra.
+  const {
+    pagina,
+    busqueda,
+    orden,
+    busquedaInput,
+    setBusquedaInput,
+    irAPagina: irAPaginaBase,
+    cambiarOrden,
+    seleccionados,
+    setSeleccionados,
+    searchParams,
+    setSearchParams,
+    // Sin `ordenPorDefecto`: esta pantalla deja `orden` en `""` y resuelve el
+  // default (`catalogo`) recién al pedirle al backend. El `<select>` y los
+  // `ThOrdenable` esperan `""` para dibujar el estado "sin orden explícito",
+  // así que llenarlo acá cambiaría lo que se ve.
+  } = useTablaAdmin();
+
+  // Los TRES filtros propios de esta pantalla se quedan acá: `AdminPrecios` no
+  // los tiene, así que subirlos al hook sería abstraer lo que no se comparte.
+  // Viven en la URL por lo mismo que `search` y `orden` — un listado filtrado
+  // se comparte, se recarga, y volver de editar devuelve al mismo filtro.
   const categoria = searchParams.get("categoria") ?? "";
   const etiqueta = searchParams.get("etiqueta") ?? "";
   const stockFiltro = searchParams.get("stock") ?? "";
-
-  // Estado local para que cada tecla no escriba en la URL (y no dispare un
-  // request). Se inicializa desde la URL para que recargar con `?search=`
-  // muestre el término en el input en vez de una caja vacía sobre una tabla
-  // filtrada, que se leería como un bug.
-  const [busquedaInput, setBusquedaInput] = useState(busqueda);
-
-  // Último valor que el input emitió o adoptó — mismo patrón que `CampoPrecio`
-  // en `FiltrosCatalogo.jsx`. Comparar contra él distingue "el admin está
-  // tipeando" de "la URL cambió por navegación" (el link Productos del
-  // sidebar, Atrás). Sin esa distinción, navegar a la ruta sin `?search=` no
-  // desmonta el componente: el input conservaba el término y el debounce lo
-  // volvía a escribir en la URL 350 ms después, resucitando el filtro.
-  const ultimoCommit = useRef(busqueda);
-
-  // La URL cambió por afuera del input: el input la adopta.
-  useEffect(() => {
-    if (busqueda === ultimoCommit.current) return;
-    ultimoCommit.current = busqueda;
-    setBusquedaInput(busqueda);
-  }, [busqueda]);
 
   const [productos, setProductos] = useState([]);
   const [totalPaginas, setTotalPaginas] = useState(1);
@@ -257,7 +248,6 @@ function AdminProductos() {
 
   // Ids tildados con los checkbox. Es un `Set` y no un array porque la
   // pregunta que se le hace en cada fila del render es "¿está este id?".
-  const [seleccionados, setSeleccionados] = useState(() => new Set());
   const [accionMasivaEnCurso, setAccionMasivaEnCurso] = useState(false);
   const [confirmandoBorradoMasivo, setConfirmandoBorradoMasivo] = useState(false);
   // Resultado del último borrado masivo, para poder informar lo que NO se
@@ -268,13 +258,18 @@ function AdminProductos() {
   const haySeleccion = idsSeleccionados.length > 0;
   const todosSeleccionados = productos.length > 0 && idsSeleccionados.length === productos.length;
 
-  // La selección NO sobrevive a un cambio de página ni de búsqueda: los ids
+  // La selección NO sobrevive a un cambio de las filas visibles: los ids
   // tildados dejarían de estar en pantalla, y ejecutar "eliminar" sobre cosas
   // que no se ven es exactamente el accidente que este checkbox podría causar.
+  //
+  // `useTablaAdmin` ya limpia la selección ante página, búsqueda y orden. Este
+  // efecto cubre lo que es PROPIO de esta pantalla: los tres filtros que el
+  // hook no conoce, más el informe de la última acción masiva, que dejaría de
+  // corresponderse con lo que se está viendo.
   useEffect(() => {
     setSeleccionados(new Set());
     setResultadoMasivo(null);
-  }, [pagina, busqueda, orden, categoria, etiqueta, stockFiltro]);
+  }, [categoria, etiqueta, stockFiltro, setSeleccionados]);
 
   function alternarSeleccion(id) {
     setSeleccionados((actuales) => {
@@ -302,79 +297,29 @@ function AdminProductos() {
     },
   });
 
-  function irAPagina(numero, { reemplazar = false } = {}) {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (numero <= 1) {
-          next.delete("page");
-        } else {
-          next.set("page", String(numero));
-        }
-        return next;
-      },
-      { replace: reemplazar },
-    );
-  }
+  /**
+   * `reemplazar` existe para la corrección de página fuera de rango: sin él,
+   * "atrás" volvería a la página inválida y la corrección se repetiría para
+   * siempre. El hook no lo expone porque es el único caso que lo necesita.
+   */
 
   /**
-   * Commitea el término de búsqueda a la URL.
+   * Commitea un filtro PROPIO de esta tabla (categoría, etiqueta o stock) a la
+   * URL. Búsqueda y orden los maneja `useTablaAdmin`; estos tres no, porque
+   * `AdminPrecios` no los tiene y subirlos al hook sería abstraer lo que no se
+   * comparte.
    *
-   * `replace`: refinar una búsqueda es seguir en el mismo lugar, no navegar a
-   * otro — sin esto cada tecla comiteada apila una entrada de historial y
-   * "atrás" necesitaría un click por letra para salir de la pantalla. Es el
-   * mismo criterio que usan los filtros de `/coleccion`.
-   *
-   * Se borra `page` porque la página 4 del resultado anterior puede no existir
-   * en el nuevo, y quedarse ahí mostraría una tabla vacía como si la búsqueda
-   * no encontrara nada.
-   */
-  /**
-   * Commitea el criterio de orden a la URL.
-   *
-   * Mismo criterio que `commitBusqueda`: se borra `page` (la página 3 del
-   * orden anterior no contiene lo mismo en el nuevo, y quedarse ahí muestra
-   * filas que nadie pidió) y va con `replace` porque reordenar es seguir en
-   * la misma pantalla, no navegar a otra.
-   *
-   * El default se quita de la URL en vez de escribirse como `orden=`: una
-   * dirección sin el parámetro y una con el valor vacío tienen que significar
-   * lo mismo.
-   */
-  function cambiarOrden(valor) {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (valor) {
-          next.set("orden", valor);
-        } else {
-          next.delete("orden");
-        }
-        next.delete("page");
-        return next;
-      },
-      { replace: true },
-    );
-  }
-
-  /**
-   * Commitea un filtro de la tabla (categoría, etiqueta o stock) a la URL.
-   *
-   * Mismo criterio que `cambiarOrden`: se borra `page` (la página 3 del
-   * resultado anterior puede no existir en el nuevo) y va con `replace`
-   * porque filtrar es seguir en la misma pantalla. El valor vacío quita el
-   * parámetro: una dirección sin el filtro y una con el valor vacío tienen
-   * que significar lo mismo.
+   * Se borra `page` (la página 3 del resultado anterior puede no existir en el
+   * nuevo) y va con `replace` porque filtrar es seguir en la misma pantalla. El
+   * valor vacío quita el parámetro: una dirección sin el filtro y una con el
+   * valor vacío tienen que significar lo mismo.
    */
   function cambiarFiltro(clave, valor) {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        if (valor) {
-          next.set(clave, valor);
-        } else {
-          next.delete(clave);
-        }
+        if (valor) next.set(clave, valor);
+        else next.delete(clave);
         next.delete("page");
         return next;
       },
@@ -382,36 +327,20 @@ function AdminProductos() {
     );
   }
 
-  function commitBusqueda(valor) {
+  function irAPagina(numero, { reemplazar = false } = {}) {
+    if (!reemplazar) return irAPaginaBase(numero);
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        if (valor) {
-          next.set("search", valor);
-        } else {
-          next.delete("search");
-        }
-        next.delete("page");
+        if (numero <= 1) next.delete("page");
+        else next.set("page", String(numero));
         return next;
       },
       { replace: true },
     );
   }
 
-  // Debounce: el término llega a la URL (y al efecto de fetch) recién cuando
-  // el admin deja de tipear. La guarda contra `ultimoCommit` evita el commit
-  // de más del montaje y el rebote de un valor recién adoptado desde la URL.
-  useEffect(() => {
-    if (busquedaInput === ultimoCommit.current) return;
 
-    const timeoutId = setTimeout(() => {
-      ultimoCommit.current = busquedaInput;
-      commitBusqueda(busquedaInput);
-    }, DEBOUNCE_BUSQUEDA_MS);
-
-    return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busquedaInput]);
 
   function aplicarPagina({ data, total, pageSize }) {
     setProductos(data);

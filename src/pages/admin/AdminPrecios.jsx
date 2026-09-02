@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { useTablaAdmin } from "../../hooks/useTablaAdmin.js";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import Paginador from "../../components/Paginador.jsx";
@@ -43,7 +44,6 @@ import {
 const PRODUCTOS_POR_PAGINA = 100;
 
 /** Pausa antes de mandar lo tipeado a la URL (y por lo tanto al backend). */
-const DEBOUNCE_BUSQUEDA_MS = 350;
 
 /**
  * Filtro de "todavía no tiene precio real": coeficiente en 1.
@@ -196,23 +196,25 @@ function CeldaEditable({ valor, onChange, onGuardar, etiqueta, ancho = "w-24 max
 }
 
 function AdminPrecios() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const paginaUrl = Number(searchParams.get("page"));
-  const pagina = Number.isInteger(paginaUrl) && paginaUrl > 0 ? paginaUrl : 1;
-  // Búsqueda y orden viven en la URL, igual que la página: un listado filtrado
-  // se puede compartir y recargar. Mismo patrón que `AdminProductos`.
-  const busqueda = searchParams.get("search") ?? "";
-  const orden = searchParams.get("orden") ?? ORDEN_POR_DEFECTO;
-
-  // Estado local para que cada tecla no escriba en la URL (y no dispare un
-  // request). Se inicializa desde la URL: una caja vacía sobre una tabla
-  // filtrada se lee como un bug.
-  const [busquedaInput, setBusquedaInput] = useState(busqueda);
-  // Último valor que el input emitió o adoptó. Comparar contra él distingue "el
-  // admin está tipeando" de "la URL cambió por navegación" — sin eso, volver a
-  // esta ruta sin `?search=` no desmonta el componente y el debounce reescribe
-  // el término 350 ms después, resucitando un filtro que se acababa de limpiar.
-  const ultimoCommit = useRef(busqueda);
+  // El estado compartido de las tablas del panel —página, búsqueda con su
+  // debounce, orden y selección— vive en `useTablaAdmin`. Estaba escrito acá y
+  // en `AdminProductos.jsx` por separado, con la guarda `ultimoCommit` incluida:
+  // un arreglo en una pantalla no llegaba a la otra.
+  //
+  // El orden por defecto de ESTA pantalla es `nombre` y no el `catalogo` del
+  // listado: acá se busca un producto conocido, no se revisan altas nuevas.
+  const {
+    pagina,
+    busqueda,
+    orden,
+    busquedaInput,
+    setBusquedaInput,
+    irAPagina: irAPaginaBase,
+    cambiarOrden,
+    seleccionados,
+    setSeleccionados,
+    setSearchParams,
+  } = useTablaAdmin({ ordenPorDefecto: ORDEN_POR_DEFECTO });
 
   const [productos, setProductos] = useState([]);
   const [totalPaginas, setTotalPaginas] = useState(1);
@@ -229,7 +231,6 @@ function AdminPrecios() {
    * descarta borradores sin tener que reconciliar nada.
    */
   const [borradores, setBorradores] = useState({});
-  const [seleccionados, setSeleccionados] = useState(() => new Set());
   const [filtro, setFiltro] = useState(null);
   const [coeficienteMasivo, setCoeficienteMasivo] = useState("");
   const [confirmacion, setConfirmacion] = useState(null);
@@ -245,7 +246,13 @@ function AdminPrecios() {
     onCerrar: () => setConfirmacion(null),
   });
 
+  /**
+   * `reemplazar` existe para la corrección de página fuera de rango: sin él,
+   * "atrás" volvería a la página inválida y la corrección se repetiría para
+   * siempre. El hook no lo expone porque es el único caso que lo necesita.
+   */
   function irAPagina(numero, { reemplazar = false } = {}) {
+    if (!reemplazar) return irAPaginaBase(numero);
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -253,53 +260,10 @@ function AdminPrecios() {
         else next.set("page", String(numero));
         return next;
       },
-      { replace: reemplazar },
-    );
-  }
-
-  /**
-   * Escribe búsqueda u orden en la URL.
-   *
-   * Se borra `page` porque la página 3 del listado anterior puede no existir en
-   * el nuevo, y quedarse ahí mostraría una tabla vacía como si el filtro no
-   * encontrara nada. Va con `replace`: refinar una búsqueda es seguir en el
-   * mismo lugar, no navegar a otro — sin eso, cada tecla comiteada apila una
-   * entrada de historial y "atrás" necesitaría un click por letra para salir.
-   */
-  function escribirFiltro(clave, valor) {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (valor) next.set(clave, valor);
-        else next.delete(clave);
-        next.delete("page");
-        return next;
-      },
       { replace: true },
     );
   }
 
-  // La URL cambió por afuera del input (navegación, Atrás): el input la adopta.
-  useEffect(() => {
-    if (busqueda === ultimoCommit.current) return;
-    ultimoCommit.current = busqueda;
-    setBusquedaInput(busqueda);
-  }, [busqueda]);
-
-  // Debounce: el término llega a la URL —y al efecto de fetch— recién cuando el
-  // admin deja de tipear. La guarda contra `ultimoCommit` evita el commit de
-  // más del montaje y el rebote de un valor recién adoptado desde la URL.
-  useEffect(() => {
-    if (busquedaInput === ultimoCommit.current) return;
-
-    const timeoutId = setTimeout(() => {
-      ultimoCommit.current = busquedaInput;
-      escribirFiltro("search", busquedaInput);
-    }, DEBOUNCE_BUSQUEDA_MS);
-
-    return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busquedaInput]);
 
   useEffect(() => {
     let activo = true;
@@ -336,7 +300,7 @@ function AdminPrecios() {
     return () => {
       activo = false;
     };
-  }, [pagina, busqueda, orden, reintento]);
+  }, [pagina, busqueda, orden, reintento, setSeleccionados]);
 
   // Una página fuera de rango se corrige a la última real, con `replace` para
   // que "atrás" no vuelva a ella y la corrección se repita para siempre.
@@ -769,7 +733,7 @@ function AdminPrecios() {
           <select
             id="orden-precios"
             value={orden}
-            onChange={(evento) => escribirFiltro("orden", evento.target.value)}
+            onChange={(evento) => cambiarOrden(evento.target.value)}
             className="font-body-md text-body-md rounded-lg border border-outline-variant bg-surface px-3 py-3 text-on-surface focus:border-primary focus:outline-none"
           >
             {ORDENES.map((opcion) => (
