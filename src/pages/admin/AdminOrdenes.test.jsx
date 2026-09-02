@@ -26,6 +26,12 @@ function renderPagina(ruta = "/catalogo/admin/ordenes") {
 
 describe("AdminOrdenes", () => {
   beforeEach(() => {
+  ordenesApi.getEstadosOrden.mockResolvedValue([
+    { valor: "PENDIENTE", etiqueta: "Pendiente", terminal: false },
+    { valor: "EN_PREPARACION", etiqueta: "En preparación", terminal: false },
+    { valor: "ENTREGADA", etiqueta: "Entregada", terminal: true },
+    { valor: "CANCELADA", etiqueta: "Cancelada", terminal: true },
+  ]);
     vi.clearAllMocks();
     ordenesApi.getOrdenes.mockResolvedValue({ data: [ORDEN], page: 1, pageSize: 20, total: 1 });
   });

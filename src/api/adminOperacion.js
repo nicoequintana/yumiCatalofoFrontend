@@ -49,6 +49,9 @@ function construirQuery(filtros) {
  * @returns {Promise<object>} resumen de operación
  */
 export async function getResumenOperacion(filtros = {}) {
-  const { desde, hasta } = filtros;
-  return pedirAutenticado(`${BASE}/admin/operacion${construirQuery({ desde, hasta })}`);
+  const { desde, hasta, dias } = filtros;
+  // `dias` es el contrato que usa la UI: manda la intención ("últimos 30 días")
+  // y el rango lo resuelve el backend, que es la única fuente del calendario
+  // argentino. `desde`/`hasta` siguen aceptados para pedidos armados a mano.
+  return pedirAutenticado(`${BASE}/admin/operacion${construirQuery({ desde, hasta, dias })}`);
 }

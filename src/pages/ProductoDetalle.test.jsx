@@ -362,3 +362,42 @@ describe("ProductoDetalle - fallo de red", () => {
     expect(screen.queryByText("Catálogo (mock)")).not.toBeInTheDocument();
   });
 });
+
+describe("ProductoDetalle — JSON-LD del backend", () => {
+  // Los bloques viajan EN la respuesta del detalle (los arma el backend con
+  // las mismas funciones que el HTML de crawler). Esta pantalla solo los
+  // inyecta — y este test fija ese cableado: si el campo cambiara de nombre,
+  // la ficha quedaría sin datos estructurados sin que nada falle.
+  //
+  // OJO: React 19 NO hoistea los <script type="application/ld+json"> al
+  // <head> — quedan donde los pone el componente. Se busca en `document`
+  // entero, nunca en `document.head` (gotcha ya documentado en MetaSeo.jsx).
+  it("inyecta los bloques jsonLd que trae la respuesta", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      relacionados: [],
+      jsonLd: [
+        { "@context": "https://schema.org", "@type": "Product", name: "Reloj Clásico" },
+        { "@context": "https://schema.org", "@type": "BreadcrumbList" },
+      ],
+    });
+
+    renderPagina("1-reloj-clasico");
+    await screen.findByRole("heading", { name: "Reloj Clásico" });
+
+    const bloques = [...document.querySelectorAll('script[type="application/ld+json"]')].map(
+      (nodo) => JSON.parse(nodo.textContent),
+    );
+    const tipos = bloques.map((b) => b["@type"]);
+    expect(tipos).toContain("Product");
+    expect(tipos).toContain("BreadcrumbList");
+  });
+
+  it("una respuesta vieja sin jsonLd no rompe la ficha", async () => {
+    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_BASE, relacionados: [] });
+
+    renderPagina("1-reloj-clasico");
+
+    expect(await screen.findByRole("heading", { name: "Reloj Clásico" })).toBeInTheDocument();
+  });
+});

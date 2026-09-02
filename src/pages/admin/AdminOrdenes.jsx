@@ -3,11 +3,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
-import { getOrdenes } from "../../api/ordenes.js";
+import { getOrdenes, getEstadosOrden } from "../../api/ordenes.js";
 import { formatFecha } from "../../utils/formato.js";
 import BadgeEstado from "../../components/admin/BadgeEstado.jsx";
 import { claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
-import { ESTADOS_ORDEN, ETIQUETA_ESTADO } from "../../constants/ordenes.js";
 
 /**
  * `/catalogo/admin/ordenes` — listado paginado de órdenes (Sprint 6, Task 2).
@@ -20,6 +19,21 @@ function AdminOrdenes() {
   const dniInicial = searchParams.get("dni") ?? "";
 
   const [ordenes, setOrdenes] = useState([]);
+  // Los estados con sus etiquetas vienen del BACKEND (cacheados por sesión en
+  // `api/ordenes.js`): el diccionario dejó de vivir en este repo. Si el fetch
+  // falla, el select queda solo con "Todos" — filtrar es un extra, la tabla es
+  // lo que importa y sigue andando.
+  const [estadosOrden, setEstadosOrden] = useState([]);
+
+  useEffect(() => {
+    let activo = true;
+    getEstadosOrden()
+      .then((lista) => activo && setEstadosOrden(lista))
+      .catch(() => {});
+    return () => {
+      activo = false;
+    };
+  }, []);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
@@ -125,9 +139,9 @@ function AdminOrdenes() {
             className="font-body-md text-body-md rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
           >
             <option value="">Todos</option>
-            {ESTADOS_ORDEN.map((e) => (
-              <option key={e} value={e}>
-                {ETIQUETA_ESTADO[e]}
+            {estadosOrden.map((e) => (
+              <option key={e.valor} value={e.valor}>
+                {e.etiqueta}
               </option>
             ))}
           </select>
@@ -192,7 +206,7 @@ function AdminOrdenes() {
                       {orden._count?.items ?? 0}
                     </td>
                     <td role="cell" data-celda="control" className="px-4 py-3">
-                      <BadgeEstado estado={orden.estado} />
+                      <BadgeEstado estado={orden.estado} etiqueta={orden.estadoEtiqueta} />
                     </td>
                     <td role="cell" data-label="Fecha" className="font-body-md text-body-md whitespace-nowrap px-4 py-3 text-on-surface-variant">
                       {formatFecha(orden.createdAt)}

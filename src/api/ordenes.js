@@ -145,3 +145,30 @@ export async function actualizarEstadoOrden(id, estado, notificarCliente = false
     body: JSON.stringify({ estado, notificarCliente }),
   });
 }
+
+/**
+ * Cache de módulo para la lista de estados: es una constante del deploy (no
+ * sale de la base), así que se pide UNA vez por sesión y las demás pantallas la
+ * reusan. Mismo criterio de "vive a nivel de módulo" que los hooks de
+ * carrito/favoritos.
+ */
+let estadosCacheados = null;
+
+/**
+ * Los cuatro estados de orden con su etiqueta legible y si son terminales, en
+ * orden de flujo: `[{valor, etiqueta, terminal}]`.
+ *
+ * Es LA fuente de las opciones de los selects de estado del panel — el
+ * diccionario dejó de vivir en el frontend.
+ */
+export async function getEstadosOrden() {
+  if (estadosCacheados) return estadosCacheados;
+  const body = await pedirAutenticado(`${BASE}/ordenes/estados`);
+  estadosCacheados = body?.estados ?? [];
+  return estadosCacheados;
+}
+
+/** Solo para tests: olvida el cache entre casos. */
+export function _limpiarCacheEstados() {
+  estadosCacheados = null;
+}

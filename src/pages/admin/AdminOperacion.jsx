@@ -5,16 +5,12 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { getResumenOperacion } from "../../api/adminOperacion.js";
 import { formatPrecio } from "../../utils/formato.js";
-import { calcularRango } from "../../utils/periodo.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
 import BadgeEstado from "../../components/admin/BadgeEstado.jsx";
 import { claseCelda, claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import {
-  ESTADOS_ORDEN,
-  ESTADOS_NO_TERMINALES,
-  ETIQUETA_ESTADO,
 } from "../../constants/ordenes.js";
 
 /** "12" -> "12 días" / "1" -> "1 día". */
@@ -74,7 +70,7 @@ function AdminOperacion() {
     setCargando(true);
     setError(null);
 
-    getResumenOperacion(calcularRango(dias))
+    getResumenOperacion({ dias })
       .then((resultado) => {
         if (!activo) return;
         setResumen(resultado);
@@ -145,13 +141,15 @@ function AdminOperacion() {
             descripcion="Órdenes creadas en el período seleccionado."
           >
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
-              {ESTADOS_ORDEN.map((estado) => (
+              {/* La lista viene EN la respuesta (`resumen.estados`, con valor,
+                  etiqueta y bandera terminal): el diccionario y la noción de
+                  "todavía requiere trabajo" dejaron de vivir en este repo. */}
+              {(resumen.estados ?? []).map(({ valor, etiqueta, terminal }) => (
                 <TarjetaEstado
-                  key={estado}
-                  etiqueta={ETIQUETA_ESTADO[estado]}
-                  cantidad={resumen.ordenesPorEstado?.[estado] ?? 0}
-                  // Los no terminales son los que todavía requieren trabajo.
-                  destacada={ESTADOS_NO_TERMINALES.includes(estado)}
+                  key={valor}
+                  etiqueta={etiqueta}
+                  cantidad={resumen.ordenesPorEstado?.[valor] ?? 0}
+                  destacada={!terminal}
                 />
               ))}
             </div>
@@ -213,7 +211,7 @@ function AdminOperacion() {
                             {orden.clienteNombre}
                           </td>
                           <td role="cell" data-celda="control" className="px-4 py-3 align-top">
-                            <BadgeEstado estado={orden.estado} />
+                            <BadgeEstado estado={orden.estado} etiqueta={orden.estadoEtiqueta} />
                           </td>
                           <td
                             role="cell"
@@ -257,16 +255,18 @@ function AdminOperacion() {
             descripcion="Promedio de días desde el último cambio registrado en cada orden abierta. No es el tiempo que llevan en su estado actual: las órdenes no guardan el historial de cuándo pasaron de un estado a otro."
           >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {ESTADOS_NO_TERMINALES.map((estado) => (
+              {(resumen.estados ?? [])
+                .filter((e) => !e.terminal)
+                .map(({ valor, etiqueta }) => (
                 <div
-                  key={estado}
+                  key={valor}
                   className="flex flex-col gap-1 rounded-xl bg-surface-container-lowest p-5 shadow-ambient"
                 >
                   <span className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
-                    {ETIQUETA_ESTADO[estado]}
+                    {etiqueta}
                   </span>
                   <span className="font-headline-md text-headline-md text-on-surface">
-                    {textoDias(resumen.antiguedadPromedio?.[estado] ?? 0)}
+                    {textoDias(resumen.antiguedadPromedio?.[valor] ?? 0)}
                   </span>
                 </div>
               ))}

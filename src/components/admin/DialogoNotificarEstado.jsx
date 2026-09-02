@@ -1,5 +1,4 @@
 import useDialogo from "../../hooks/useDialogo.js";
-import { ETIQUETA_ESTADO } from "../../constants/ordenes.js";
 
 /**
  * Diálogo que se interpone entre elegir un estado nuevo y guardarlo, para que
@@ -32,6 +31,8 @@ function DialogoNotificarEstado({
   ordenId,
   estadoAnterior,
   estadoNuevo,
+  etiquetaAnterior: etiquetaAnteriorProp,
+  etiquetaNueva: etiquetaNuevaProp,
   emailCliente,
   guardando,
   onConfirmar,
@@ -39,8 +40,12 @@ function DialogoNotificarEstado({
 }) {
   const contenedorRef = useDialogo({ abierto: true, onCerrar: onCancelar });
 
-  const etiquetaAnterior = ETIQUETA_ESTADO[estadoAnterior] ?? estadoAnterior;
-  const etiquetaNueva = ETIQUETA_ESTADO[estadoNuevo] ?? estadoNuevo;
+  // Las etiquetas llegan RESUELTAS desde quien abre el diálogo (la anterior
+  // viaja con la orden como `estadoEtiqueta`, la nueva sale de la lista de
+  // `getEstadosOrden`): el diccionario ya no vive en este repo. La clave cruda
+  // queda como respaldo legible.
+  const etiquetaAnterior = etiquetaAnteriorProp ?? estadoAnterior;
+  const etiquetaNueva = etiquetaNuevaProp ?? estadoNuevo;
   const puedeNotificar = Boolean(emailCliente);
 
   return (

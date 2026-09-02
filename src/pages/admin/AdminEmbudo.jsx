@@ -4,7 +4,6 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { getEmbudoConversion } from "../../api/adminEmbudo.js";
 import { formatFecha } from "../../utils/formato.js";
-import { calcularRango } from "../../utils/periodo.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
@@ -148,7 +147,7 @@ function AdminEmbudo() {
     setCargando(true);
     setError(null);
 
-    getEmbudoConversion(calcularRango(dias))
+    getEmbudoConversion({ dias })
       .then((resultado) => {
         if (!activo) return;
         setEmbudo(resultado);

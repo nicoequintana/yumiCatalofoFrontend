@@ -9,7 +9,12 @@ const onCancelar = vi.fn();
 const PROPS = {
   ordenId: 42,
   estadoAnterior: "PENDIENTE",
+  // Las etiquetas llegan RESUELTAS desde quien abre el diálogo (la anterior
+  // viaja con la orden, la nueva sale de getEstadosOrden): así lo monta
+  // AdminOrdenDetalle desde que el diccionario dejó de vivir en el frontend.
+  etiquetaAnterior: "Pendiente",
   estadoNuevo: "EN_PREPARACION",
+  etiquetaNueva: "En preparación",
   emailCliente: "juan@gmail.com",
   guardando: false,
   onConfirmar,

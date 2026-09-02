@@ -4,7 +4,6 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { getResumenClientes } from "../../api/adminClientes.js";
 import { formatPrecio } from "../../utils/formato.js";
-import { calcularRango } from "../../utils/periodo.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
@@ -116,7 +115,7 @@ function AdminClientes() {
     setCargando(true);
     setError(null);
 
-    getResumenClientes(calcularRango(dias))
+    getResumenClientes({ dias })
       .then((resultado) => {
         if (!activo) return;
         setResumen(resultado);

@@ -4,7 +4,6 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { getResumenVentas } from "../../api/adminVentas.js";
 import { formatPrecio } from "../../utils/formato.js";
-import { calcularRango } from "../../utils/periodo.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
@@ -12,7 +11,7 @@ import Advertencia from "../../components/admin/Advertencia.jsx";
 import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
 import { claseCelda, claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
-import { ETIQUETA_ESTADO, ESTILOS_ESTADO } from "../../constants/ordenes.js";
+import { ESTILOS_ESTADO } from "../../constants/ordenes.js";
 
 /** Miles con separador local, para que "20000" se lea como "20.000". */
 const formatCantidad = new Intl.NumberFormat("es-AR").format;
@@ -108,7 +107,7 @@ function GraficoIngresos({ serie }) {
  * El chip usa `ESTILOS_ESTADO`, el mismo mapa que `BadgeEstado`: un estado
  * tiene que verse igual acá que en el listado de órdenes.
  */
-function TarjetaEstado({ estado, cantidadOrdenes, venta, costo, mostrarMontos, detalle }) {
+function TarjetaEstado({ estado, etiqueta, cantidadOrdenes, venta, costo, mostrarMontos, detalle }) {
   return (
     <div
       data-testid={`estado-${estado}`}
@@ -117,7 +116,9 @@ function TarjetaEstado({ estado, cantidadOrdenes, venta, costo, mostrarMontos, d
       <span
         className={`font-label-sm text-label-sm w-fit rounded-full px-3 py-1 uppercase tracking-widest ${ESTILOS_ESTADO[estado]}`}
       >
-        {ETIQUETA_ESTADO[estado]}
+        {/* La etiqueta viaja EN la entrada de `porEstado`: el diccionario dejó
+            de vivir en este repo. La clave cruda queda de respaldo legible. */}
+        {etiqueta ?? estado}
       </span>
 
       {mostrarMontos ? (
@@ -192,7 +193,7 @@ function AdminVentas() {
     setCargando(true);
     setError(null);
 
-    getResumenVentas(calcularRango(dias))
+    getResumenVentas({ dias })
       .then((resultado) => {
         if (!activo) return;
         setResumen(resultado);
@@ -377,6 +378,7 @@ function AdminVentas() {
                 <TarjetaEstado
                   key={fila.estado}
                   estado={fila.estado}
+                  etiqueta={fila.etiqueta}
                   cantidadOrdenes={fila.cantidadOrdenes}
                   venta={fila.venta}
                   costo={fila.costo}

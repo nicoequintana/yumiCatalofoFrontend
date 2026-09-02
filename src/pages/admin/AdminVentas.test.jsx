@@ -171,7 +171,7 @@ describe("AdminVentas", () => {
     expect(screen.getByTestId("grafico-ingresos")).toBeInTheDocument();
   });
 
-  it("el selector de período dispara un refetch con nuevas fechas", async () => {
+  it("el selector de período dispara un refetch con los días elegidos — las fechas las calcula el backend", async () => {
     const user = userEvent.setup();
     renderPagina();
 
@@ -184,8 +184,9 @@ describe("AdminVentas", () => {
     await waitFor(() => {
       expect(adminVentasApi.getResumenVentas).toHaveBeenCalledWith(
         expect.objectContaining({
-          desde: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
-          hasta: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+          // La INTENCIÓN, no fechas: el rango lo calcula el backend, que es la
+          // única fuente del calendario argentino.
+          dias: 7,
         }),
       );
     });

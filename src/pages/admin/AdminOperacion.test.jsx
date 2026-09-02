@@ -9,6 +9,13 @@ import { esperarTablaApilada } from "../../test/tablaApilada.js";
 vi.mock("../../api/adminOperacion.js");
 
 const RESUMEN = {
+  // La lista que ahora emite el endpoint: las tarjetas se pintan iterándola.
+  estados: [
+    { valor: "PENDIENTE", etiqueta: "Pendiente", terminal: false },
+    { valor: "EN_PREPARACION", etiqueta: "En preparación", terminal: false },
+    { valor: "ENTREGADA", etiqueta: "Entregada", terminal: true },
+    { valor: "CANCELADA", etiqueta: "Cancelada", terminal: true },
+  ],
   periodo: { desde: "2026-07-21", hasta: "2026-08-19", recortado: false },
   umbralEstancamientoDias: 3,
   stockBajoMaximo: 3,
@@ -149,7 +156,7 @@ describe("AdminOperacion", () => {
     expect(within(seccion).getByText("Aceite")).toBeInTheDocument();
   });
 
-  it("el selector de período dispara un refetch con nuevas fechas", async () => {
+  it("el selector de período dispara un refetch con los días elegidos — las fechas las calcula el backend", async () => {
     const user = userEvent.setup();
     renderPagina();
 
@@ -162,8 +169,9 @@ describe("AdminOperacion", () => {
     await waitFor(() => {
       expect(adminOperacionApi.getResumenOperacion).toHaveBeenCalledWith(
         expect.objectContaining({
-          desde: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
-          hasta: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+          // La INTENCIÓN, no fechas: el rango lo calcula el backend, que es la
+          // única fuente del calendario argentino.
+          dias: 7,
         }),
       );
     });

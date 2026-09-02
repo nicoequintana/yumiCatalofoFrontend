@@ -8,6 +8,14 @@ import { esperarTablaApilada } from "../../test/tablaApilada.js";
 vi.mock("../../api/ordenes.js", () => ({
   getOrdenById: vi.fn(),
   actualizarEstadoOrden: vi.fn(),
+  // La lista real que sirve GET /ordenes/estados: los selects arman sus
+  // opciones con esto desde que el diccionario dejó de vivir en el frontend.
+  getEstadosOrden: vi.fn().mockResolvedValue([
+    { valor: "PENDIENTE", etiqueta: "Pendiente", terminal: false },
+    { valor: "EN_PREPARACION", etiqueta: "En preparación", terminal: false },
+    { valor: "ENTREGADA", etiqueta: "Entregada", terminal: true },
+    { valor: "CANCELADA", etiqueta: "Cancelada", terminal: true },
+  ]),
 }));
 
 const { getOrdenById, actualizarEstadoOrden } = await import("../../api/ordenes.js");

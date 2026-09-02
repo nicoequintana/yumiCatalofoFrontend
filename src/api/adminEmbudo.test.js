@@ -65,3 +65,16 @@ describe("getEmbudoConversion", () => {
     await expect(getEmbudoConversion()).rejects.toThrow("No autorizado.");
   });
 });
+
+describe("getEmbudoConversion — período por dias", () => {
+  // El rango lo calcula el BACKEND (única fuente del calendario argentino): el
+  // frontend manda la intención, nunca fechas calculadas con su propia copia
+  // del calendario, que era el espejo manual que podía divergir en silencio.
+  it("manda dias como query param", async () => {
+    mockFetchAutenticadoOnce({});
+
+    await getEmbudoConversion({ dias: 30 });
+
+    expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/admin/embudo?dias=30`, undefined);
+  });
+});

@@ -3,9 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
-import { getOrdenById, actualizarEstadoOrden } from "../../api/ordenes.js";
+import { getOrdenById, actualizarEstadoOrden, getEstadosOrden } from "../../api/ordenes.js";
 import { formatFecha, formatPrecio, precioACentavos } from "../../utils/formato.js";
-import { ESTADOS_ORDEN, ETIQUETA_ESTADO } from "../../constants/ordenes.js";
 import { claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import Advertencia from "../../components/admin/Advertencia.jsx";
 import DialogoNotificarEstado from "../../components/admin/DialogoNotificarEstado.jsx";
@@ -25,6 +24,20 @@ function AdminOrdenDetalle() {
   const { id } = useParams();
 
   const [orden, setOrden] = useState(null);
+  // Estados con etiqueta desde el BACKEND (cacheados por sesión). Sin ellos el
+  // select queda vacío y no se puede cambiar el estado — por eso el fetch corre
+  // en paralelo con la carga de la orden y comparte su manejo de error.
+  const [estadosOrden, setEstadosOrden] = useState([]);
+
+  useEffect(() => {
+    let activo = true;
+    getEstadosOrden()
+      .then((lista) => activo && setEstadosOrden(lista))
+      .catch(() => {});
+    return () => {
+      activo = false;
+    };
+  }, []);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [guardandoEstado, setGuardandoEstado] = useState(false);
@@ -167,9 +180,9 @@ function AdminOrdenDetalle() {
             aria-label="Cambiar estado de la orden"
             className="font-body-md text-body-md rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none disabled:opacity-60"
           >
-            {ESTADOS_ORDEN.map((e) => (
-              <option key={e} value={e}>
-                {ETIQUETA_ESTADO[e]}
+            {estadosOrden.map((e) => (
+              <option key={e.valor} value={e.valor}>
+                {e.etiqueta}
               </option>
             ))}
           </select>
@@ -271,7 +284,9 @@ function AdminOrdenDetalle() {
         <DialogoNotificarEstado
           ordenId={orden.id}
           estadoAnterior={orden.estado}
+          etiquetaAnterior={orden.estadoEtiqueta}
           estadoNuevo={estadoPendiente}
+          etiquetaNueva={estadosOrden.find((e) => e.valor === estadoPendiente)?.etiqueta}
           emailCliente={orden.cliente?.email ?? null}
           guardando={guardandoEstado}
           onConfirmar={handleConfirmarCambio}

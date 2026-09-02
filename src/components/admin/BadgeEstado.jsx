@@ -1,29 +1,31 @@
 import {
   ESTILOS_ESTADO,
   ESTILO_ESTADO_POR_DEFECTO,
-  ETIQUETA_ESTADO,
 } from "../../constants/ordenes.js";
 
 /**
  * Badge de estado de una orden. Es la única representación visual del estado en
- * las tablas de órdenes del admin: antes el listado lo mostraba con badge y el
- * tablero de operación como texto plano, así que el mismo dato se leía distinto
- * según la pantalla.
+ * las tablas de órdenes del admin.
  *
- * Un estado desconocido se muestra con su clave cruda y el estilo neutro, en vez
- * de quedar en blanco: si el backend agrega un estado antes que la UI, la fila
- * sigue siendo legible.
+ * LA ETIQUETA VIENE DEL DATO (`orden.estadoEtiqueta`, o `etiqueta` en los
+ * desgloses de analytics): el frontend ya no tiene su propia copia del
+ * diccionario de estados — era un espejo manual entre repos que había que tocar
+ * de a dos. `estado` sigue siendo la clave de los ESTILOS, que sí son
+ * presentación y por eso viven de este lado.
  *
- * @param {{estado: string}} props
+ * Sin etiqueta (un dato viejo, una respuesta cacheada) se muestra la clave
+ * cruda: fea pero legible. Un badge vacío sería un bug silencioso.
+ *
+ * @param {{estado: string, etiqueta?: string}} props
  */
-function BadgeEstado({ estado }) {
+function BadgeEstado({ estado, etiqueta }) {
   return (
     <span
       className={`font-label-sm text-label-sm inline-block rounded px-2 py-1 uppercase tracking-wide ${
         ESTILOS_ESTADO[estado] ?? ESTILO_ESTADO_POR_DEFECTO
       }`}
     >
-      {ETIQUETA_ESTADO[estado] ?? estado}
+      {etiqueta ?? estado}
     </span>
   );
 }
