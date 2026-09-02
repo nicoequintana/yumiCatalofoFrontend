@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
+import ScrollAlTope from "./components/ScrollAlTope.jsx";
 import AdminLayout from "./components/AdminLayout.jsx";
 import RequireAuth from "./components/RequireAuth.jsx";
 import Spinner from "./components/Spinner.jsx";
@@ -50,7 +51,11 @@ const AdminOperacion = lazy(() => import("./pages/admin/AdminOperacion.jsx"));
 // `RequireAuth`, excepto /catalogo/admin/login.
 function App() {
   return (
-    <Routes>
+    <>
+      {/* Fuera de `<Routes>` a propósito: tiene que correr en TODA navegación,
+          pública y de admin, sin depender de qué ruta matcheó. */}
+      <ScrollAlTope />
+      <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Catalogo />} />
         <Route path="/coleccion" element={<Coleccion />} />
@@ -115,7 +120,8 @@ function App() {
           <Route path="/catalogo/admin/configuracion/usuarios" element={<AdminUsuarios />} />
         </Route>
       </Route>
-    </Routes>
+      </Routes>
+    </>
   );
 }
 
