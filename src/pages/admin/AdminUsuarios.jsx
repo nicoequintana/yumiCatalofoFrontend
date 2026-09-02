@@ -18,11 +18,16 @@ function AdminUsuarios() {
 
   const [emailNuevo, setEmailNuevo] = useState("");
   const [passwordNuevo, setPasswordNuevo] = useState("");
+  // Arranca en `true` porque es el default de la columna y del backend:
+  // restringir el permiso es siempre una decisión explícita, nunca el camino
+  // por omisión.
+  const [puedeEliminarNuevo, setPuedeEliminarNuevo] = useState(true);
   const [creando, setCreando] = useState(false);
 
   const [editandoId, setEditandoId] = useState(null);
   const [emailEditado, setEmailEditado] = useState("");
   const [passwordEditado, setPasswordEditado] = useState("");
+  const [puedeEliminarEditado, setPuedeEliminarEditado] = useState(true);
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   const [confirmandoId, setConfirmandoId] = useState(null);
@@ -68,9 +73,10 @@ function AdminUsuarios() {
     setError(null);
     setCreando(true);
     try {
-      await createUsuario(email, password);
+      await createUsuario(email, password, { puedeEliminar: puedeEliminarNuevo });
       setEmailNuevo("");
       setPasswordNuevo("");
+      setPuedeEliminarNuevo(true);
       await cargarUsuarios();
     } catch (err) {
       setError(err.message ?? "No se pudo crear el usuario.");
@@ -83,6 +89,9 @@ function AdminUsuarios() {
     setConfirmandoId(null);
     setEditandoId(usuario.id);
     setEmailEditado(usuario.email);
+    // `!== false` y no `=== true`: una fila vieja sin el campo se muestra como
+    // "puede", que es el default de la columna.
+    setPuedeEliminarEditado(usuario.puedeEliminar !== false);
     setPasswordEditado("");
   }
 
@@ -93,7 +102,7 @@ function AdminUsuarios() {
     setError(null);
     setGuardandoEdicion(true);
     try {
-      const datos = { email };
+      const datos = { email, puedeEliminar: puedeEliminarEditado };
       if (passwordEditado.trim()) {
         datos.password = passwordEditado;
       }
@@ -170,6 +179,18 @@ function AdminUsuarios() {
           autoComplete="new-password"
           contenedorClassName="w-full sm:max-w-sm"
         />
+        {/* El permiso acota SOLO las acciones destructivas (borrar productos,
+            categorías, anuncios y usuarios). No es un rol ni limita el resto
+            del panel — ver `middlewares/permisoBorrado.middleware.js`. */}
+        <label className="font-body-md text-body-md flex items-center gap-2 text-on-surface">
+          <input
+            type="checkbox"
+            checked={puedeEliminarNuevo}
+            onChange={(e) => setPuedeEliminarNuevo(e.target.checked)}
+            className="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
+          />
+          Puede eliminar
+        </label>
         <button
           type="submit"
           disabled={creando}
@@ -210,6 +231,12 @@ function AdminUsuarios() {
                   className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant"
                 >
                   Email
+                </th>
+                <th
+                  role="columnheader"
+                  className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                >
+                  Puede eliminar
                 </th>
                 <th
                   role="columnheader"
@@ -256,6 +283,37 @@ function AdminUsuarios() {
                       </div>
                     ) : (
                       usuario.email
+                    )}
+                  </td>
+                  {/* `data-label` con el texto EXACTO del `th`: es lo que arma
+                      el rótulo cuando la tabla se apila en mobile (ver el
+                      contrato en CLAUDE.md, "Tabla apilada del admin"). */}
+                  <td
+                    role="cell"
+                    data-label="Puede eliminar"
+                    className="font-body-md text-body-md px-4 py-3 text-on-surface"
+                  >
+                    {editandoId === usuario.id ? (
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={puedeEliminarEditado}
+                          onChange={(e) => setPuedeEliminarEditado(e.target.checked)}
+                          aria-label={`Permiso de eliminar de ${usuario.email}`}
+                          className="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
+                        />
+                        <span className="text-on-surface-variant">Puede eliminar</span>
+                      </label>
+                    ) : (
+                      <span
+                        className={
+                          usuario.puedeEliminar === false
+                            ? "font-label-sm text-label-sm rounded-full bg-surface-container-high px-3 py-1 uppercase tracking-widest text-on-surface-variant"
+                            : "font-label-sm text-label-sm rounded-full bg-secondary-container px-3 py-1 uppercase tracking-widest text-on-surface"
+                        }
+                      >
+                        {usuario.puedeEliminar === false ? "No" : "Sí"}
+                      </span>
                     )}
                   </td>
                   <td
