@@ -53,14 +53,14 @@ describe("Coleccion", () => {
     expect(robots()).toBe(null);
   });
 
-  it("lleva noindex a partir de la página 2", async () => {
-    render(<MemoryRouter initialEntries={["/coleccion?page=2"]}><Coleccion /></MemoryRouter>);
+  it("lleva noindex a partir de la segunda tanda de Mostrar más", async () => {
+    render(<MemoryRouter initialEntries={["/coleccion?paginas=2"]}><Coleccion /></MemoryRouter>);
     await waitFor(() => expect(robots()).toBe("noindex, follow"));
   });
 
   it("canoniza siempre a /coleccion limpio, sin los filtros", async () => {
     render(
-      <MemoryRouter initialEntries={["/coleccion?page=2&minPrecio=100"]}><Coleccion /></MemoryRouter>,
+      <MemoryRouter initialEntries={["/coleccion?paginas=2&minPrecio=100"]}><Coleccion /></MemoryRouter>,
     );
     await waitFor(() => {
       const canonical = document.head.querySelector('link[rel="canonical"]')?.getAttribute("href");

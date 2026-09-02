@@ -110,6 +110,7 @@ describe("Coleccion - filtros y grid", () => {
         minPrecio: "",
         maxPrecio: "",
         page: 1,
+        pageSize: 12,
       });
     });
   });
@@ -331,6 +332,7 @@ describe("Coleccion - filtros y grid", () => {
       minPrecio: "",
       maxPrecio: "",
       page: 1,
+      pageSize: 12,
     });
 
     // Y el estado final tiene que quedar limpio: nada puede resucitar el
@@ -344,6 +346,7 @@ describe("Coleccion - filtros y grid", () => {
       minPrecio: "",
       maxPrecio: "",
       page: 1,
+      pageSize: 12,
     });
     expect(screen.getByLabelText("Categoría").value).toBe("");
   });
@@ -467,7 +470,7 @@ describe("Coleccion - filtros y grid", () => {
   });
 });
 
-describe("Coleccion - paginador", () => {
+describe("Coleccion - mostrar m\u00e1s", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     llamadasSetSearchParams.length = 0;
@@ -475,84 +478,101 @@ describe("Coleccion - paginador", () => {
     productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }], { total: 40, pageSize: 12 }));
   });
 
-  it("no muestra el paginador cuando entra todo en una p\u00e1gina", async () => {
+  it("no muestra ni bot\u00f3n ni contador cuando entra todo en la primera tanda", async () => {
     productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
 
     renderPagina();
 
     await screen.findByText("Reloj Cl\u00e1sico");
-    expect(screen.queryByRole("navigation", { name: /paginaci\u00f3n/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Mostrar m\u00e1s" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Viste/)).not.toBeInTheDocument();
   });
 
-  it("muestra el paginador con el total de p\u00e1ginas derivado de total/pageSize", async () => {
+  it("muestra el bot\u00f3n y el contador cuando hay m\u00e1s productos", async () => {
     renderPagina();
 
-    expect(
-      await screen.findByRole("navigation", { name: "Paginaci\u00f3n de la colecci\u00f3n" }),
-    ).toBeInTheDocument();
-    // 40 productos / 12 por p\u00e1gina = 4 p\u00e1ginas.
-    expect(screen.getByText("P\u00e1gina 1 de 4")).toBeInTheDocument();
+    await screen.findByText("Reloj Cl\u00e1sico");
+    expect(screen.getByText("Viste 1 de 40 productos")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mostrar m\u00e1s" })).toBeInTheDocument();
   });
 
-  it("respeta la p\u00e1gina que viene en la URL (un link a la p\u00e1gina 3 abre la p\u00e1gina 3)", async () => {
-    renderPagina("/coleccion?page=3");
+  it("Mostrar m\u00e1s pide la tanda siguiente, SUMA las cards y escribe ?paginas= con replace", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Reloj Cl\u00e1sico");
 
-    await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 3 }));
-    });
-    expect(await screen.findByText("P\u00e1gina 3 de 4")).toBeInTheDocument();
+    productsApi.getProducts.mockResolvedValue(
+      pagina([{ ...PRODUCTO, id: 2, nombre: "Reloj Deportivo" }], { total: 40 }),
+    );
+    llamadasSetSearchParams.length = 0;
+
+    await user.click(screen.getByRole("button", { name: "Mostrar m\u00e1s" }));
+
+    await screen.findByText("Reloj Deportivo");
+    // La tanda nueva se SUMA debajo: la primera card sigue en pantalla.
+    expect(screen.getByText("Reloj Cl\u00e1sico")).toBeInTheDocument();
+    expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 2, pageSize: 12 }),
+    );
+    // Cargar m\u00e1s no es navegar: la tanda viaja a la URL con replace, para que
+    // volver de una ficha restaure lo cargado sin apilar historial.
+    expect(llamadasSetSearchParams.at(-1)).toEqual({ replace: true });
   });
 
-  it("la p\u00e1gina heredada NO se blanquea junto con los filtros", async () => {
-    // Los filtros s\u00ed se resetean al entrar (decisi\u00f3n de producto), pero la
-    // p\u00e1gina tiene que sobrevivir o un link compartido a la p\u00e1gina 3 abrir\u00eda
-    // siempre la 1.
-    renderPagina("/coleccion?categoria=2&page=3");
+  it("al volver con ?paginas= en la URL restaura todas las tandas en UN pedido", async () => {
+    renderPagina("/coleccion?paginas=3");
 
     await waitFor(() => {
       expect(productsApi.getProducts).toHaveBeenCalledWith(
-        expect.objectContaining({ categoria: "", page: 3 }),
+        expect.objectContaining({ page: 1, pageSize: 36 }),
       );
     });
   });
 
-  it("cambiar de p\u00e1gina escribe ?page en la URL y refetch", async () => {
-    const user = userEvent.setup();
-    renderPagina();
-
-    await screen.findByText("P\u00e1gina 1 de 4");
-    productsApi.getProducts.mockClear();
-
-    await user.click(screen.getByRole("button", { name: "P\u00e1gina 2" }));
+  it("las tandas heredadas NO se blanquean junto con los filtros", async () => {
+    // Los filtros s\u00ed se resetean al entrar (decisi\u00f3n de producto), pero las
+    // tandas tienen que sobrevivir o volver de una ficha perder\u00eda lo cargado.
+    renderPagina("/coleccion?categoria=2&paginas=2");
 
     await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 2 }));
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ categoria: "", pageSize: 24 }),
+      );
     });
   });
 
-  it("cambiar un filtro vuelve a la p\u00e1gina 1", async () => {
+  it("cambiar un filtro vuelve a la primera tanda", async () => {
     const user = userEvent.setup();
-    renderPagina("/coleccion?page=3");
+    renderPagina("/coleccion?paginas=3");
 
-    await screen.findByText("P\u00e1gina 3 de 4");
+    await screen.findByText("Reloj Cl\u00e1sico");
     productsApi.getProducts.mockClear();
 
     await user.selectOptions(screen.getByLabelText("Categor\u00eda"), "1");
 
     await waitFor(() => {
       expect(productsApi.getProducts).toHaveBeenCalledWith(
-        expect.objectContaining({ categoria: "1", page: 1 }),
+        expect.objectContaining({ categoria: "1", pageSize: 12 }),
       );
     });
   });
 
-  it("corrige una p\u00e1gina fuera de rango a la \u00faltima que existe", async () => {
-    productsApi.getProducts.mockResolvedValue(pagina([], { total: 40, pageSize: 12 }));
+  it("unas tandas fuera de rango se corrigen a las que existen de verdad", async () => {
+    renderPagina("/coleccion?paginas=99");
 
-    renderPagina("/coleccion?page=99");
-
+    // 99 tandas pedir\u00edan 1188 productos: el fetch se topea en el m\u00e1ximo del
+    // backend (100)...
     await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith(expect.objectContaining({ page: 4 }));
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ pageSize: 100 }),
+      );
+    });
+    // ...y con total 40 la URL se corrige a las 4 tandas reales, que
+    // re-fetchean 48. Sin la correcci\u00f3n, "atr\u00e1s" volver\u00eda al 99 eterno.
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ pageSize: 48 }),
+      );
     });
   });
 });

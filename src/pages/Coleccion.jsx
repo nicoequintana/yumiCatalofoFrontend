@@ -5,7 +5,6 @@ import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import FiltrosCatalogo from "../components/FiltrosCatalogo.jsx";
-import Paginador from "../components/Paginador.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import { getProducts } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
@@ -28,6 +27,30 @@ const DEBOUNCE_SEARCH_MS = 350;
 const CLAVES_FILTRO_PANEL = ["categoria", "minPrecio", "maxPrecio"];
 
 const CLAVES_FILTRO = [...CLAVES_FILTRO_PANEL, "search"];
+
+/**
+ * Cuántos productos trae cada tanda de "Mostrar más". Sincronización manual
+ * con `PAGE_SIZE_CATALOGO = 12` del backend (los repos se publican por
+ * separado): si divergen no hay error, solo tandas de otro tamaño.
+ */
+const PRODUCTOS_POR_TANDA = 12;
+
+/**
+ * Tope de la RESTAURACIÓN (volver de una ficha con `?paginas=N` pide todo lo
+ * acumulado en un solo request). Es el `MAX_PAGE_SIZE` del backend — pedir
+ * más sería un 400. Más allá del tope se restauran 100 y el botón sigue
+ * sumando tandas de a 12; solo la restauración se topea.
+ */
+const MAX_RESTAURACION = 100;
+
+/**
+ * La combinación exacta de filtros + tandas que produce un fetch. Es función
+ * PURA a nivel de módulo (no un closure del componente) para poder usarse
+ * dentro del efecto de fetch sin entrar en sus dependencias.
+ */
+function claveDeFetch(categoria, search, minPrecio, maxPrecio, tandas) {
+  return `${categoria}|${search}|${minPrecio}|${maxPrecio}|${tandas}`;
+}
 
 /**
  * `/coleccion` — catálogo completo con filtros, separado de la home
@@ -101,10 +124,12 @@ function Coleccion() {
   const maxPrecio = filtrosUrl.get("maxPrecio") ?? "";
   const searchUrl = filtrosUrl.get("search") ?? "";
 
-  // `page` se lee de `searchParams` (no de `filtrosUrl`): no es un filtro y no
-  // se blanquea al entrar. Un valor basura cae a 1 en vez de romper la vista.
-  const paginaUrl = Number(searchParams.get("page"));
-  const pagina = Number.isInteger(paginaUrl) && paginaUrl > 0 ? paginaUrl : 1;
+  // `paginas` —las tandas acumuladas de "Mostrar más"— se lee de
+  // `searchParams` (no de `filtrosUrl`): no es un filtro y no se blanquea al
+  // entrar, porque volver de una ficha tiene que restaurar lo que ya estaba
+  // cargado. Un valor basura cae a 1 en vez de romper la vista.
+  const paginasUrl = Number(searchParams.get("paginas"));
+  const paginas = Number.isInteger(paginasUrl) && paginasUrl > 0 ? paginasUrl : 1;
 
   const [searchInput, setSearchInput] = useState("");
 
@@ -126,7 +151,17 @@ function Coleccion() {
   const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);
-  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalProductos, setTotalProductos] = useState(0);
+  // El append de "Mostrar más" tiene su propio spinner y su propio error: el
+  // `cargando` global reemplaza la grilla entera, y acá lo ya visto tiene que
+  // quedarse en pantalla mientras baja la tanda siguiente.
+  const [cargandoMas, setCargandoMas] = useState(false);
+  const [errorMas, setErrorMas] = useState(null);
+  // La última combinación filtros+tandas que YA está en pantalla. El efecto
+  // de fetch la compara para distinguir "la URL cambió porque el append la
+  // escribió" (nada que pedir) de "cambió por navegación o filtro" (fetch
+  // desde cero) — mismo patrón que `ultimoCommit` con la búsqueda.
+  const claveCargada = useRef(null);
 
   // La categoría de la RUTA (`/coleccion/categoria/:slugCategoria`) es la
   // IDENTIDAD de la página, no un filtro heredado: por eso no entra en
@@ -258,10 +293,9 @@ function Coleccion() {
       } else {
         next.delete(clave);
       }
-      // Cambiar un filtro vuelve a la página 1: la página 4 del resultado
-      // anterior no tiene por qué existir en el resultado nuevo, y quedarse
-      // ahí mostraría una grilla vacía como si el filtro no encontrara nada.
-      next.delete("page");
+      // Cambiar un filtro vuelve a la primera tanda: las tandas acumuladas
+      // del resultado anterior no tienen por qué existir en el nuevo.
+      next.delete("paginas");
     });
   }
 
@@ -292,32 +326,58 @@ function Coleccion() {
       (prev) => {
         const next = new URLSearchParams(prev);
         for (const clave of CLAVES_FILTRO_PANEL) next.delete(clave);
-        // Mismo motivo que en `actualizarFiltro`: la página del resultado
-        // anterior no tiene por qué existir en el resultado sin filtrar.
-        next.delete("page");
+        // Mismo motivo que en `actualizarFiltro`: las tandas del resultado
+        // anterior no tienen por qué existir en el resultado sin filtrar.
+        next.delete("paginas");
         return next;
       },
       { replace: true },
     );
   }
 
-  // La navegación entre páginas SÍ empuja una entrada de historial (a
-  // diferencia de los filtros, que van con `replace`): pasar de página es ir a
-  // otro lugar del catálogo, y "atrás" tiene que devolver a la página anterior.
-  function irAPagina(numero, { reemplazar = false } = {}) {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (numero <= 1) {
-          next.delete("page");
-        } else {
-          next.set("page", String(numero));
-        }
-        return next;
-      },
-      { replace: reemplazar },
-    );
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  // Las tandas van con `replace` (vía `escribirParams`, que ya lo impone):
+  // cargar más no es navegar a otro lado, es ver más de la misma vista — y en
+  // la URL para que volver de una ficha restaure lo cargado.
+  function escribirTandas(n) {
+    escribirParams((next) => {
+      if (n <= 1) {
+        next.delete("paginas");
+      } else {
+        next.set("paginas", String(n));
+      }
+    });
+  }
+
+  async function mostrarMas() {
+    const siguiente = paginas + 1;
+    setCargandoMas(true);
+    setErrorMas(null);
+    try {
+      const { data, total } = await getProducts({
+        categoria: categoriaActiva,
+        search: searchUrl,
+        minPrecio,
+        maxPrecio,
+        page: siguiente,
+        pageSize: PRODUCTOS_POR_TANDA,
+      });
+      // El catálogo pudo moverse entre tandas (un alta corre las páginas):
+      // un id que ya está en pantalla no se suma dos veces — dos keys
+      // iguales romperían la reconciliación de la grilla.
+      setProductos((prev) => {
+        const vistos = new Set(prev.map((p) => p.id));
+        return [...prev, ...data.filter((p) => !vistos.has(p.id))];
+      });
+      setTotalProductos(total);
+      claveCargada.current = claveDeFetch(categoriaActiva, searchUrl, minPrecio, maxPrecio, siguiente);
+      escribirTandas(siguiente);
+    } catch {
+      // El error del append NO vacía la grilla: lo ya visto se queda, el
+      // aviso va pegado al botón y el botón queda para reintentar.
+      setErrorMas("No se pudieron cargar más productos. Probá de nuevo.");
+    } finally {
+      setCargandoMas(false);
+    }
   }
 
   // Debounce: commit the free-text search into the URL (and therefore into
@@ -364,16 +424,34 @@ function Coleccion() {
     // de que aparezca la vista filtrada por categoría.
     if (!categoriasListas) return;
 
+    // Esta combinación exacta ya está en pantalla: el cambio de URL vino del
+    // append de "Mostrar más", que ya sumó la tanda y escribió `?paginas=`.
+    // Volver a pedir acá reemplazaría la grilla con un flash de spinner.
+    const clave = claveDeFetch(categoriaActiva, searchUrl, minPrecio, maxPrecio, paginas);
+    if (clave === claveCargada.current) return;
+
     let activo = true;
     setCargando(true);
 
-    getProducts({ categoria: categoriaActiva, search: searchUrl, minPrecio, maxPrecio, page: pagina })
-      .then(({ data, total, pageSize }) => {
+    getProducts({
+      categoria: categoriaActiva,
+      search: searchUrl,
+      minPrecio,
+      maxPrecio,
+      page: 1,
+      // La restauración trae TODO lo acumulado en un solo request (volver de
+      // una ficha con `?paginas=3` son 36 productos), topeado en el máximo
+      // del backend.
+      pageSize: Math.min(PRODUCTOS_POR_TANDA * paginas, MAX_RESTAURACION),
+    })
+      .then(({ data, total }) => {
         if (!activo) return;
+        claveCargada.current = clave;
         setProductos(data);
-        setTotalPaginas(Math.max(1, Math.ceil(total / pageSize)));
+        setTotalProductos(total);
         // Un fetch exitoso limpia cualquier error anterior: el backend volvió.
         setErrorCarga(null);
+        setErrorMas(null);
       })
       .catch(() => {
         // Con el backend caído el grid NO degrada a lista vacía: eso se leía
@@ -382,7 +460,7 @@ function Coleccion() {
         // el mismo patrón que Carrito/Favoritos/ProductoDetalle.
         if (!activo) return;
         setProductos([]);
-        setTotalPaginas(1);
+        setTotalProductos(0);
         setErrorCarga("Revisá tu conexión e intentá de nuevo.");
       })
       .finally(() => {
@@ -392,18 +470,18 @@ function Coleccion() {
     return () => {
       activo = false;
     };
-  }, [categoriaActiva, searchUrl, minPrecio, maxPrecio, pagina, categoriasListas]);
+  }, [categoriaActiva, searchUrl, minPrecio, maxPrecio, paginas, categoriasListas]);
 
-  // Un link viejo o un catálogo que se achicó pueden dejar la URL apuntando a
-  // una página que ya no existe. En vez de mostrar "Sin resultados" —que
-  // mentiría: los productos están, la página no— se corrige a la última real.
+  // Un link viejo o un catálogo que se achicó pueden dejar la URL pidiendo
+  // más tandas de las que existen. Se corrige a las reales (con `replace`,
+  // vía `escribirParams`): sin eso, "atrás" volvería a la URL inválida y la
+  // corrección se repetiría para siempre.
   useEffect(() => {
     if (cargando) return;
-    // `reemplazar`: la página inválida no debe quedar en el historial, o
-    // "atrás" volvería a ella y la corrección se repetiría para siempre.
-    if (pagina > totalPaginas) irAPagina(totalPaginas, { reemplazar: true });
+    const tandasReales = Math.max(1, Math.ceil(totalProductos / PRODUCTOS_POR_TANDA));
+    if (paginas > tandasReales) escribirTandas(tandasReales);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cargando, pagina, totalPaginas]);
+  }, [cargando, paginas, totalProductos]);
 
   // `categoriaActiva`, no `categoria`: en `/coleccion/categoria/:slug` el
   // filtro vive en la ruta, y `categoria` (derivado de la querystring) queda
@@ -431,7 +509,7 @@ function Coleccion() {
         // mismo contenido sin filtrar servido bajo una URL que no nombra
         // ninguna categoría real.
         canonical={urlAbsoluta(rutaCanonica)}
-        noindex={pagina > 1 || categoriaInvalida}
+        noindex={paginas > 1 || categoriaInvalida}
       />
 
       {/* Salida de la página, antes de cualquier contenido: `/coleccion` es un
@@ -516,13 +594,34 @@ function Coleccion() {
             </div>
           )}
 
-          {!cargando ? (
-            <Paginador
-              pagina={pagina}
-              totalPaginas={totalPaginas}
-              onCambiar={irAPagina}
-              etiqueta="Paginación de la colección"
-            />
+          {/* "Mostrar más" en vez de paginado (02/09/2026): explorar una
+              tienda es descubrimiento continuo, y las tandas se SUMAN debajo
+              sin tocar lo ya visto. El pie entero se omite cuando todo entra
+              en la primera tanda — un "Viste 8 de 8" no informa nada. */}
+          {!cargando && totalProductos > PRODUCTOS_POR_TANDA ? (
+            <div className="mt-10 flex flex-col items-center gap-3">
+              <p
+                aria-live="polite"
+                className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
+              >
+                Viste {productos.length} de {totalProductos} productos
+              </p>
+              {errorMas ? (
+                <p role="alert" className="font-body-md text-body-md text-error">
+                  {errorMas}
+                </p>
+              ) : null}
+              {productos.length < totalProductos ? (
+                <button
+                  type="button"
+                  onClick={mostrarMas}
+                  disabled={cargandoMas}
+                  className="rounded-full border border-outline px-8 py-3 font-label-md text-label-md uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+                >
+                  {cargandoMas ? "Cargando…" : "Mostrar más"}
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </section>
