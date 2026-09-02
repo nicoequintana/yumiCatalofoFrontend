@@ -139,14 +139,15 @@ describe("AdminProductos — selector de orden", () => {
     expect(await screen.findByLabelText(/ordenar/i)).toHaveValue("nombre");
   });
 
-  it("sin orden en la URL no fuerza ninguno: manda el default del backend", async () => {
+  it("sin orden en la URL manda catalogo, el default de ESTA pantalla", async () => {
     renderPagina();
 
     await waitFor(() => {
       expect(productsApi.getProducts).toHaveBeenCalled();
     });
-    // El default de merchandising lo decide el backend. Mandarlo explícito
-    // desde acá duplicaría esa decisión en dos lugares.
-    expect(ordenPedido()).toBeUndefined();
+    // El default del ENDPOINT sigue siendo `recientes` (el público no se
+    // toca); el de esta pantalla es `catalogo` —primero lo que el cliente
+    // ve— y por eso viaja explícito (decisión del 01/09/2026).
+    expect(ordenPedido()).toBe("catalogo");
   });
 });

@@ -82,6 +82,26 @@ describe("AdminProductos - filtros de la tabla", () => {
     );
   }
 
+  it("el orden por defecto es catalogo, y Más recientes se manda explícito", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    // URL limpia = orden "catalogo" hacia el backend (el default de ESTA
+    // pantalla, no el del endpoint, que sigue en recientes).
+    expect(productsApi.getProducts).toHaveBeenCalledWith(
+      expect.objectContaining({ admin: true, orden: "catalogo" }),
+    );
+
+    await user.selectOptions(screen.getByLabelText("Ordenar por"), "recientes");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ orden: "recientes", page: 1 }),
+      );
+    });
+  });
+
   it("filtrar por stock manda el filtro al backend y vuelve a página 1", async () => {
     const user = userEvent.setup();
     renderEnPagina3();
@@ -291,6 +311,7 @@ describe("AdminProductos — buscador", () => {
         admin: true,
         page: 1,
         search: "",
+        orden: "catalogo",
         pageSize: 50,
       });
     });
@@ -311,6 +332,7 @@ describe("AdminProductos — buscador", () => {
         admin: true,
         page: 1,
         search: "reloj",
+        orden: "catalogo",
         pageSize: 50,
       });
     });
@@ -338,6 +360,7 @@ describe("AdminProductos — buscador", () => {
         admin: true,
         page: 1,
         search: "YIMA-RELOJC-1",
+        orden: "catalogo",
         pageSize: 50,
       });
     });
@@ -404,6 +427,7 @@ describe("AdminProductos — la búsqueda vive en la URL", () => {
         admin: true,
         page: 1,
         search: "reloj",
+        orden: "catalogo",
         pageSize: 50,
       });
     });
@@ -458,6 +482,7 @@ describe("AdminProductos — la búsqueda vive en la URL", () => {
         admin: true,
         page: 1,
         search: "mesa",
+        orden: "catalogo",
         pageSize: 50,
       });
     });
@@ -485,6 +510,7 @@ describe("AdminProductos — la búsqueda vive en la URL", () => {
         admin: true,
         page: 1,
         search: "reloj",
+        orden: "catalogo",
         pageSize: 50,
       });
     });

@@ -44,15 +44,18 @@ const PRODUCTOS_POR_PAGINA = 50;
  * catálogo — el mismo error que ya obligó a bajar el ranking de vistas al
  * backend. Por eso cada valor viaja tal cual en `?orden=`.
  *
- * El default (`""`) NO manda el parámetro: el orden lo decide
- * el backend, y mandarlo explícito desde acá duplicaría esa decisión.
+ * El default (`""`) de ESTA pantalla es `catalogo` (decisión del 01/09/2026:
+ * primero lo que el cliente ve — destacados del catálogo, catálogo, sin
+ * stock, ocultos al final) y se manda explícito, porque el default del
+ * endpoint sigue siendo `recientes` para no tocar al público. "Más
+ * recientes" quedó como opción con su clave explícita.
  *
  * Es una sincronización manual entre repos, del mismo tipo que
  * `MAX_IDS_POR_CONSULTA` — un valor que no exista allá cae al default sin
  * error, así que un typo acá se ve como "el orden no hace nada".
  */
 const ORDENES = [
-  { valor: "", etiqueta: "Más recientes" },
+  { valor: "", etiqueta: "Catálogo primero" },
   { valor: "nombre", etiqueta: "Nombre: A → Z" },
   { valor: "nombre-desc", etiqueta: "Nombre: Z → A" },
   { valor: "precio-asc", etiqueta: "Precio: menor a mayor" },
@@ -61,7 +64,7 @@ const ORDENES = [
   { valor: "stock-desc", etiqueta: "Stock: más primero" },
   { valor: "fotos-asc", etiqueta: "Sin fotos primero" },
   { valor: "fotos-desc", etiqueta: "Con más fotos primero" },
-  { valor: "recientes", etiqueta: "Más recientes primero" },
+  { valor: "recientes", etiqueta: "Más recientes" },
   { valor: "vistas", etiqueta: "Más vistos primero" },
 ];
 
@@ -369,7 +372,7 @@ function AdminProductos() {
   async function cargarProductos() {
     setCargando(true);
     try {
-      aplicarPagina(await getProducts({ admin: true, page: pagina, search: busqueda, orden: orden || undefined, categoria: categoria || undefined, etiqueta: etiqueta || undefined, stock: stockFiltro || undefined, pageSize: PRODUCTOS_POR_PAGINA }));
+      aplicarPagina(await getProducts({ admin: true, page: pagina, search: busqueda, orden: orden || "catalogo", categoria: categoria || undefined, etiqueta: etiqueta || undefined, stock: stockFiltro || undefined, pageSize: PRODUCTOS_POR_PAGINA }));
     } catch {
       setError("No se pudieron cargar los productos. Revisá tu conexión e intentá de nuevo.");
     } finally {
@@ -384,7 +387,7 @@ function AdminProductos() {
 
     setCargando(true);
 
-    getProducts({ admin: true, page: pagina, search: busqueda, orden: orden || undefined, categoria: categoria || undefined, etiqueta: etiqueta || undefined, stock: stockFiltro || undefined, pageSize: PRODUCTOS_POR_PAGINA })
+    getProducts({ admin: true, page: pagina, search: busqueda, orden: orden || "catalogo", categoria: categoria || undefined, etiqueta: etiqueta || undefined, stock: stockFiltro || undefined, pageSize: PRODUCTOS_POR_PAGINA })
       .then((respuesta) => {
         if (!activo) return;
         aplicarPagina(respuesta);
