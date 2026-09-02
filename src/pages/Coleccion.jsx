@@ -596,31 +596,24 @@ function Coleccion() {
 
           {/* "Mostrar más" en vez de paginado (02/09/2026): explorar una
               tienda es descubrimiento continuo, y las tandas se SUMAN debajo
-              sin tocar lo ya visto. El pie entero se omite cuando todo entra
-              en la primera tanda — un "Viste 8 de 8" no informa nada. */}
-          {!cargando && totalProductos > PRODUCTOS_POR_TANDA ? (
+              sin tocar lo ya visto. Sin contador de avance por pedido
+              explícito (02/09/2026): cuando no queda nada por cargar, el
+              botón simplemente desaparece. */}
+          {!cargando && productos.length < totalProductos ? (
             <div className="mt-10 flex flex-col items-center gap-3">
-              <p
-                aria-live="polite"
-                className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
-              >
-                Viste {productos.length} de {totalProductos} productos
-              </p>
               {errorMas ? (
                 <p role="alert" className="font-body-md text-body-md text-error">
                   {errorMas}
                 </p>
               ) : null}
-              {productos.length < totalProductos ? (
-                <button
-                  type="button"
-                  onClick={mostrarMas}
-                  disabled={cargandoMas}
-                  className="rounded-full border border-outline px-8 py-3 font-label-md text-label-md uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
-                >
-                  {cargandoMas ? "Cargando…" : "Mostrar más"}
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={mostrarMas}
+                disabled={cargandoMas}
+                className="rounded-full border border-outline px-8 py-3 font-label-md text-label-md uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+              >
+                {cargandoMas ? "Cargando…" : "Mostrar más"}
+              </button>
             </div>
           ) : null}
         </div>

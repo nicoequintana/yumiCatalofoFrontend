@@ -478,22 +478,22 @@ describe("Coleccion - mostrar m\u00e1s", () => {
     productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }], { total: 40, pageSize: 12 }));
   });
 
-  it("no muestra ni bot\u00f3n ni contador cuando entra todo en la primera tanda", async () => {
+  it("no muestra el bot\u00f3n cuando entra todo en la primera tanda", async () => {
     productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
 
     renderPagina();
 
     await screen.findByText("Reloj Cl\u00e1sico");
     expect(screen.queryByRole("button", { name: "Mostrar m\u00e1s" })).not.toBeInTheDocument();
-    expect(screen.queryByText(/Viste/)).not.toBeInTheDocument();
   });
 
-  it("muestra el bot\u00f3n y el contador cuando hay m\u00e1s productos", async () => {
+  it("muestra el bot\u00f3n cuando hay m\u00e1s productos, sin contador de avance", async () => {
     renderPagina();
 
     await screen.findByText("Reloj Cl\u00e1sico");
-    expect(screen.getByText("Viste 1 de 40 productos")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Mostrar m\u00e1s" })).toBeInTheDocument();
+    // El contador "Viste X de Y" se quit\u00f3 por pedido expl\u00edcito (02/09/2026).
+    expect(screen.queryByText(/Viste \d+ de/)).not.toBeInTheDocument();
   });
 
   it("Mostrar m\u00e1s pide la tanda siguiente, SUMA las cards y escribe ?paginas= con replace", async () => {
