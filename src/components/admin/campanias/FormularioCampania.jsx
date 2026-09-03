@@ -39,6 +39,12 @@ function valoresIniciales(campania, diaElegido, opciones) {
     prioridad: String(campania?.prioridad ?? 0),
     doodleEnCatalogo: campania?.doodleEnCatalogo ?? true,
     doodleEnAdmin: campania?.doodleEnAdmin ?? false,
+    modalActivo: campania?.modalActivo ?? false,
+    modalTitulo: campania?.modalTitulo ?? "",
+    modalTexto: campania?.modalTexto ?? "",
+    modalCtaTexto: campania?.modalCtaTexto ?? "",
+    modalCtaDestino: campania?.modalCtaDestino ?? "",
+    modalFechaObjetivo: campania?.modalFechaObjetivo ?? "",
   };
 }
 
@@ -75,6 +81,15 @@ export default function FormularioCampania({
       prioridad: Number(valores.prioridad) || 0,
       doodleEnCatalogo: valores.doodleEnCatalogo,
       doodleEnAdmin: valores.doodleEnAdmin,
+      modalActivo: valores.modalActivo,
+      // Los vacíos van como null: el backend los trata como "sin valor", y
+      // mandar "" guardaría una cadena vacía que después hay que distinguir de
+      // no haber cargado nada.
+      modalTitulo: valores.modalTitulo.trim() || null,
+      modalTexto: valores.modalTexto.trim() || null,
+      modalCtaTexto: valores.modalCtaTexto.trim() || null,
+      modalCtaDestino: valores.modalCtaDestino.trim() || null,
+      modalFechaObjetivo: valores.modalFechaObjetivo || null,
     });
   }
 
@@ -255,6 +270,126 @@ export default function FormularioCampania({
           <p className="font-body-sm text-body-sm mt-2 text-on-surface-variant">
             Solo tiene efecto si la campaña está activa y tiene un Doodle cargado.
           </p>
+        </div>
+
+        <div>
+          <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface-variant">
+            Modal del catálogo
+          </h3>
+
+          <div className="flex flex-col gap-4">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={valores.modalActivo}
+              onClick={() => cambiar("modalActivo", !valores.modalActivo)}
+              className="flex items-center justify-between gap-4 rounded-lg border border-outline-variant px-4 py-3 text-left transition-colors hover:bg-surface-container"
+            >
+              <span className="font-body-md text-body-md text-on-surface">
+                Mostrar el modal mientras la campaña esté activa
+              </span>
+              <span
+                aria-hidden="true"
+                className={`flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors ${
+                  valores.modalActivo ? "bg-primary" : "bg-outline-variant"
+                }`}
+              >
+                <span
+                  className={`h-5 w-5 rounded-full bg-surface-container-lowest transition-transform ${
+                    valores.modalActivo ? "translate-x-5" : ""
+                  }`}
+                />
+              </span>
+            </button>
+
+            {/* Los campos se muestran siempre, no solo con el modal prendido:
+                se puede escribir el cartel con calma y prenderlo después. El
+                backend solo exige el título cuando está activo. */}
+            <div>
+              <label htmlFor="campania-modal-titulo" className={claseEtiqueta}>
+                Título
+              </label>
+              <input
+                id="campania-modal-titulo"
+                type="text"
+                maxLength={120}
+                value={valores.modalTitulo}
+                onChange={(e) => cambiar("modalTitulo", e.target.value)}
+                className={claseCampo}
+                placeholder="Llega la primavera"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="campania-modal-texto" className={claseEtiqueta}>
+                Texto
+              </label>
+              <textarea
+                id="campania-modal-texto"
+                rows={3}
+                maxLength={1000}
+                value={valores.modalTexto}
+                onChange={(e) => cambiar("modalTexto", e.target.value)}
+                className={claseCampo}
+                placeholder="Faltan {dias} días para la Primavera."
+              />
+              <p className="font-body-sm text-body-sm mt-2 text-on-surface-variant">
+                Escribí <code className="text-secondary">{"{dias}"}</code> donde quieras el contador.
+                El número lo calcula el sistema.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="campania-modal-objetivo" className={claseEtiqueta}>
+                Fecha del contador <span className="normal-case tracking-normal">(opcional)</span>
+              </label>
+              <input
+                id="campania-modal-objetivo"
+                type="date"
+                value={valores.modalFechaObjetivo}
+                onChange={(e) => cambiar("modalFechaObjetivo", e.target.value)}
+                className={claseCampo}
+              />
+              <p className="font-body-sm text-body-sm mt-2 text-on-surface-variant">
+                Hacia qué día cuenta. Puede ser distinta del fin de la campaña.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="campania-modal-cta" className={claseEtiqueta}>
+                  Texto del botón
+                </label>
+                <input
+                  id="campania-modal-cta"
+                  type="text"
+                  maxLength={60}
+                  value={valores.modalCtaTexto}
+                  onChange={(e) => cambiar("modalCtaTexto", e.target.value)}
+                  className={claseCampo}
+                  placeholder="Ver la selección"
+                />
+              </div>
+              <div>
+                <label htmlFor="campania-modal-destino" className={claseEtiqueta}>
+                  A dónde lleva
+                </label>
+                <input
+                  id="campania-modal-destino"
+                  type="text"
+                  maxLength={200}
+                  value={valores.modalCtaDestino}
+                  onChange={(e) => cambiar("modalCtaDestino", e.target.value)}
+                  className={claseCampo}
+                  placeholder="/coleccion?etiqueta=primavera"
+                />
+              </div>
+            </div>
+            <p className="font-body-sm text-body-sm text-on-surface-variant">
+              Tiene que ser una ruta del sitio. Por ejemplo <code>/coleccion</code>,{" "}
+              <code>/coleccion/categoria/hogar</code> o <code>/favoritos</code>.
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

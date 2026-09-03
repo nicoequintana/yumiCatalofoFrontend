@@ -33,7 +33,13 @@ import { getToken } from "../api/authClient.js";
  * `doodleAdmin` solo lo puebla una respuesta con sesión de admin: es el Doodle
  * que la campaña eligió mostrar puertas adentro, y para un anónimo no existe.
  */
-const CONTEXTO_VACIO = { doodle: null, doodleAdmin: null, claveDia: null, resuelto: false };
+const CONTEXTO_VACIO = {
+  doodle: null,
+  doodleAdmin: null,
+  modal: null,
+  claveDia: null,
+  resuelto: false,
+};
 
 let contextoActual = CONTEXTO_VACIO;
 let promesaEnVuelo = null;
@@ -80,6 +86,7 @@ function cargar() {
       notificar({
         doodle: contexto?.doodle ?? null,
         doodleAdmin: contexto?.doodleAdmin ?? null,
+        modal: contexto?.modal ?? null,
         claveDia: contexto?.claveDia ?? null,
         resuelto: true,
       });

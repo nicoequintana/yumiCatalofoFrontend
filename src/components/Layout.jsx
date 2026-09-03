@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import BarraAnuncios from "./BarraAnuncios.jsx";
+import CampaniaModalMontado from "./CampaniaModalMontado.jsx";
 import Navbar from "./Navbar.jsx";
 import Footer from "./Footer.jsx";
 
@@ -22,6 +23,11 @@ function Layout() {
         <Outlet />
       </main>
       <Footer />
+
+      {/* El cartel estacional. Se monta acá y no en la home para alcanzar a
+          quien entra directo a una ficha desde una búsqueda, que es por donde
+          llega buena parte del tráfico. Sin campaña activa no renderiza nada. */}
+      <CampaniaModalMontado />
     </div>
   );
 }
