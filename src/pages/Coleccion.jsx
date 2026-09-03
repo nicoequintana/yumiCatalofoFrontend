@@ -579,7 +579,7 @@ function Coleccion() {
               }
             />
           ) : (
-            // Grid uniforme: 1 columna en móvil, 2 en tablet, 4 en desktop.
+            // Grid uniforme: 2 columnas ya desde móvil, 4 desde `lg`.
             // Antes cada 4ª card se renderizaba ancha y horizontal (mezcla de
             // spans heredada del mockup), lo que rompía el ritmo de la grilla
             // en vez de darle asimetría editorial.

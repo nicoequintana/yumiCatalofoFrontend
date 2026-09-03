@@ -35,11 +35,12 @@ import { limpiarMetaEstaticos } from "../utils/metaEstaticos.js";
 /**
  * Serializa un objeto para meterlo dentro de un `<script type="application/ld+json">`.
  *
- * El `<` se reemplaza por su escape unicode `<`. Sin eso, un producto
- * llamado `Cuchillo </script><script>alert(1)</script>` cierra la etiqueta
- * antes de tiempo y el resto se ejecuta como script: es una inyección real,
- * no un detalle de estilo. `<` es JSON válido y `JSON.parse` lo resuelve
- * al mismo carácter, así que el dato que lee Google no cambia.
+ * El `<` se reemplaza por su escape unicode `\u003c` — la secuencia literal
+ * de seis caracteres, no el carácter. Sin eso, un producto llamado
+ * `Cuchillo </script><script>alert(1)</script>` cierra la etiqueta antes de
+ * tiempo y el resto se ejecuta como script: es una inyección real, no un
+ * detalle de estilo. `\u003c` es JSON válido y `JSON.parse` lo devuelve al
+ * carácter original, así que el dato que lee Google no cambia.
  *
  * Espeja `serializarJsonLd` de `backend/src/lib/htmlSeo.js` — misma
  * implementación, mismo razonamiento. Sync manual entre repos, como

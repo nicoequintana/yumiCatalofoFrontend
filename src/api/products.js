@@ -156,7 +156,7 @@ export function construirFormData(data) {
 
 /**
  * Tope de ids por request, en espejo con `MAX_IDS_LISTADO` de
- * `backend/src/controllers/products.controller.js`. El backend responde 400 si
+ * `backend/src/controllers/products.input.js`. El backend responde 400 si
  * se lo pasa (a propósito: truncar en silencio borraría líneas de un carrito),
  * así que `getProductsByIds` parte la lista en tandas de este tamaño.
  *
