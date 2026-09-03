@@ -1,0 +1,480 @@
+import { useEffect, useState } from "react";
+import BotonVolver from "../../components/BotonVolver.jsx";
+import EstadoVacio from "../../components/EstadoVacio.jsx";
+import Spinner from "../../components/Spinner.jsx";
+import SoloEscritorio from "../../components/admin/SoloEscritorio.jsx";
+import EditorPromocion from "../../components/admin/promociones/EditorPromocion.jsx";
+import TablaComercial from "../../components/admin/promociones/TablaComercial.jsx";
+import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
+import {
+  actualizarPromocion,
+  crearPromocion,
+  eliminarPromocion,
+  getListadoComercial,
+  getPromocion,
+  getPromociones,
+  guardarItemsPromocion,
+} from "../../api/promociones.js";
+
+/**
+ * ADMIN → Promociones: QUÉ productos tienen QUÉ descuento.
+ *
+ * SOLO ESCRITORIO: la tabla comercial tiene diez columnas y no hay forma
+ * honesta de mostrarla en un celular.
+ *
+ * ES UN MÓDULO APARTE DE CAMPAÑAS, y la separación no es de pantallas sino de
+ * ACCIONES: **acá no se programa nada.** No hay fechas, no hay un botón de
+ * "activar ahora", y el backend rechaza un body que traiga fechas. Una
+ * promoción define el descuento; el calendario define cuándo se aplica.
+ *
+ * LAYOUT: arriba las promociones con su editor, abajo el listado comercial —
+ * que es a la vez la pantalla de análisis del §14 y el lugar de donde se eligen
+ * los productos. Las dos mitades se hablan: seleccionar filas abajo y tocar
+ * "Agregar" las suma a la promoción abierta arriba.
+ */
+
+/** Descuento con el que entra un producto nuevo. El mínimo del rango. */
+const PORCENTAJE_INICIAL = 5;
+
+export default function AdminPromociones() {
+  const [promociones, setPromociones] = useState([]);
+  const [abierta, setAbierta] = useState(null);
+  const [comercial, setComercial] = useState({ data: [], page: 1, total: 0, pageSize: 20 });
+  const [seleccionados, setSeleccionados] = useState(new Set());
+  const [pagina, setPagina] = useState(1);
+
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState(null);
+  const [nombreNueva, setNombreNueva] = useState("");
+  const [confirmandoBorrado, setConfirmandoBorrado] = useState(null);
+
+  useEffect(() => {
+    let activo = true;
+    setCargando(true);
+    Promise.all([getPromociones(), getListadoComercial({ page: pagina })])
+      .then(([lista, listado]) => {
+        if (!activo) return;
+        setPromociones(lista);
+        setComercial(listado);
+        // Un fetch exitoso limpia el error anterior: si no, un problema de red
+        // ya resuelto seguiría en pantalla sobre datos frescos.
+        setError(null);
+      })
+      // Sin este catch, un backend caído deja la promesa rechazada sin manejar
+      // y el spinner girando para siempre.
+      .catch((err) => {
+        if (activo) setError(err.message);
+      })
+      .finally(() => {
+        if (activo) setCargando(false);
+      });
+    return () => {
+      activo = false;
+    };
+  }, [pagina]);
+
+  /**
+   * Ejecuta una mutación y refresca.
+   *
+   * **El refresco tiene su propio catch, con un mensaje DISTINTO.** Si la
+   * escritura anduvo y la relectura falla, dejar caer el error en el catch de
+   * arriba muestra el mensaje crudo de red —indistinguible de "no se guardó"—
+   * y el admin repite una operación ya hecha.
+   */
+  async function conGuardado(operacion) {
+    setGuardando(true);
+    setError(null);
+    try {
+      await operacion();
+    } catch (err) {
+      setError(err.message);
+      return false;
+    } finally {
+      setGuardando(false);
+    }
+
+    try {
+      const [lista, listado] = await Promise.all([
+        getPromociones(),
+        getListadoComercial({ page: pagina }),
+      ]);
+      setPromociones(lista);
+      setComercial(listado);
+    } catch {
+      setError(
+        "La operación se guardó, pero no se pudo actualizar la pantalla. Recargá la página para ver el estado actual.",
+      );
+    }
+    return true;
+  }
+
+  async function abrir(id) {
+    setError(null);
+    try {
+      setAbierta(await getPromocion(id));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function crear(evento) {
+    evento.preventDefault();
+    const nombre = nombreNueva.trim();
+    if (!nombre) return;
+
+    let creada = null;
+    const ok = await conGuardado(async () => {
+      creada = await crearPromocion({ nombre });
+    });
+    if (ok) {
+      setNombreNueva("");
+      setAbierta(creada);
+    }
+  }
+
+  async function guardarItems(items) {
+    await conGuardado(async () => {
+      setAbierta(await guardarItemsPromocion(abierta.id, items));
+    });
+  }
+
+  /**
+   * Suma los productos seleccionados a la promoción abierta.
+   *
+   * Entran con el descuento MÍNIMO y no con uno inventado: el paso siguiente es
+   * ponerles el que corresponde, y un default alto sería un descuento que nadie
+   * decidió esperando a que alguien se olvide de mirarlo.
+   */
+  async function agregarSeleccionados() {
+    const yaEstan = new Set(abierta.items.map((i) => i.productId));
+    const nuevos = [...seleccionados].filter((id) => !yaEstan.has(id));
+
+    const items = [
+      ...abierta.items.map((i) => ({ productId: i.productId, porcentaje: i.porcentaje })),
+      ...nuevos.map((productId) => ({ productId, porcentaje: PORCENTAJE_INICIAL })),
+    ];
+
+    const ok = await conGuardado(async () => {
+      setAbierta(await guardarItemsPromocion(abierta.id, items));
+    });
+    if (ok) setSeleccionados(new Set());
+  }
+
+  async function quitar(productId) {
+    await conGuardado(async () => {
+      const items = abierta.items
+        .filter((i) => i.productId !== productId)
+        .map((i) => ({ productId: i.productId, porcentaje: i.porcentaje }));
+      setAbierta(await guardarItemsPromocion(abierta.id, items));
+    });
+  }
+
+  async function alternarActiva(promocion) {
+    await conGuardado(async () => {
+      const actualizada = await actualizarPromocion(promocion.id, {
+        nombre: promocion.nombre,
+        descripcion: promocion.descripcion,
+        activa: !promocion.activa,
+      });
+      setAbierta((actual) => (actual?.id === promocion.id ? actualizada : actual));
+    });
+  }
+
+  async function eliminar(id) {
+    const ok = await conGuardado(() => eliminarPromocion(id));
+    if (ok) {
+      setConfirmandoBorrado(null);
+      if (abierta?.id === id) setAbierta(null);
+    }
+  }
+
+  function alternarSeleccion(id) {
+    setSeleccionados((actuales) => {
+      const siguiente = new Set(actuales);
+      if (siguiente.has(id)) siguiente.delete(id);
+      else siguiente.add(id);
+      return siguiente;
+    });
+  }
+
+  const totalPaginas = Math.max(1, Math.ceil(comercial.total / comercial.pageSize));
+
+  return (
+    <SoloEscritorio titulo="Promociones">
+      <main className="w-full px-4 py-6 md:px-8 md:py-8">
+        <div className="mb-6">
+          <BotonVolver fallback="/catalogo/admin/productos" />
+        </div>
+
+        <div className="mb-10">
+          <span className="font-label-sm text-label-sm mb-2 block uppercase tracking-[0.2em] text-secondary">
+            Panel de administración
+          </span>
+          <h1 className="font-headline-lg text-headline-lg text-primary">Promociones</h1>
+          <p className="font-body-md text-body-md mt-2 max-w-2xl text-on-surface-variant">
+            Qué productos tienen qué descuento. <strong>Acá no se programan fechas</strong>: una
+            promoción se aplica cuando la programás desde el calendario de Campañas.
+          </p>
+        </div>
+
+        {error ? (
+          <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
+            {error}
+          </p>
+        ) : null}
+
+        {cargando ? (
+          <div className="flex items-center justify-center gap-3 py-24">
+            <Spinner className="h-8 w-8 text-on-surface-variant" />
+            <span className="font-body-md text-body-md text-on-surface-variant">
+              Cargando promociones…
+            </span>
+          </div>
+        ) : (
+          <>
+            <section aria-labelledby="titulo-promociones" className="mb-10">
+              <h2
+                id="titulo-promociones"
+                className="font-headline-sm text-headline-sm mb-4 text-primary"
+              >
+                Promociones
+              </h2>
+
+              <form onSubmit={crear} className="mb-4 flex flex-wrap items-end gap-3">
+                <div>
+                  <label
+                    htmlFor="nombre-promocion"
+                    className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface"
+                  >
+                    Nueva promoción
+                  </label>
+                  <input
+                    id="nombre-promocion"
+                    type="text"
+                    maxLength={120}
+                    value={nombreNueva}
+                    onChange={(e) => setNombreNueva(e.target.value)}
+                    placeholder="Promo Hogar"
+                    className="w-72 rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={guardando || nombreNueva.trim() === ""}
+                  className="font-label-md text-label-md rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
+                >
+                  Crear
+                </button>
+              </form>
+
+              {promociones.length === 0 && !error ? (
+                <EstadoVacio
+                  icono="sell"
+                  titulo="Todavía no hay promociones"
+                  mensaje="Creá una arriba y después elegí sus productos de la tabla de abajo."
+                />
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-outline-variant bg-surface-container-lowest">
+                  <table role="table" className="w-full">
+                    <thead role="rowgroup">
+                      <tr
+                        role="row"
+                        className="border-b border-outline-variant bg-surface-container-low text-left"
+                      >
+                        <th role="columnheader" className={claseEncabezado}>Promoción</th>
+                        <th role="columnheader" className={`${claseEncabezado} text-right`}>Productos</th>
+                        <th role="columnheader" className={claseEncabezado}>Estado</th>
+                        <th role="columnheader" className={`${claseEncabezado} text-right`}>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody role="rowgroup">
+                      {promociones.map((promocion) => (
+                        <tr
+                          key={promocion.id}
+                          role="row"
+                          className={`border-b border-outline-variant last:border-b-0 ${
+                            abierta?.id === promocion.id ? "bg-surface-container" : ""
+                          }`}
+                        >
+                          <td role="cell" className={claseCelda}>
+                            <button
+                              type="button"
+                              onClick={() => abrir(promocion.id)}
+                              className="text-left text-primary hover:underline"
+                            >
+                              {promocion.nombre}
+                            </button>
+                          </td>
+                          <td role="cell" className={`${claseCelda} text-right text-on-surface-variant`}>
+                            {promocion.cantidadProductos}
+                          </td>
+                          <td role="cell" className={claseCelda}>
+                            {/* Las dos preguntas que importan mirando la lista:
+                                si está archivada, y si el calendario la está
+                                usando. Sin programación no le llega a nadie. */}
+                            <span className="flex flex-wrap gap-2">
+                              <span
+                                className={`font-label-sm text-label-sm rounded-full px-3 py-1 ${
+                                  promocion.activa
+                                    ? "bg-secondary-container text-on-secondary-container"
+                                    : "bg-surface-container text-on-surface-variant line-through"
+                                }`}
+                              >
+                                {promocion.activa ? "Activa" : "Archivada"}
+                              </span>
+                              <span
+                                className={`font-label-sm text-label-sm rounded-full px-3 py-1 ${
+                                  promocion.programada
+                                    ? "bg-primary text-on-primary"
+                                    : "bg-surface-container text-on-surface-variant"
+                                }`}
+                                title={
+                                  promocion.programada
+                                    ? "El calendario la está usando."
+                                    : "Sin programar no se aplica a nadie."
+                                }
+                              >
+                                {promocion.programada ? "Programada" : "Sin programar"}
+                              </span>
+                            </span>
+                          </td>
+                          <td role="cell" className={`${claseCelda} text-right`}>
+                            {confirmandoBorrado === promocion.id ? (
+                              <span className="flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  disabled={guardando}
+                                  onClick={() => eliminar(promocion.id)}
+                                  className="font-label-sm text-label-sm rounded-lg bg-error px-3 py-2 uppercase tracking-widest text-on-error disabled:opacity-60"
+                                >
+                                  Sí, eliminar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmandoBorrado(null)}
+                                  className="font-label-sm text-label-sm rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant"
+                                >
+                                  No
+                                </button>
+                              </span>
+                            ) : (
+                              <span className="flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  disabled={guardando}
+                                  onClick={() => alternarActiva(promocion)}
+                                  className="font-label-sm text-label-sm rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60"
+                                >
+                                  {promocion.activa ? "Archivar" : "Reactivar"}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={guardando}
+                                  onClick={() => setConfirmandoBorrado(promocion.id)}
+                                  className="font-label-sm text-label-sm rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60"
+                                >
+                                  Eliminar
+                                </button>
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {abierta ? (
+                <div className="mt-6 rounded-xl border border-outline-variant bg-surface-container-low p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h3 className="font-headline-sm text-headline-sm text-primary">
+                      {abierta.nombre}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setAbierta(null)}
+                      aria-label="Cerrar la promoción"
+                      className="rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container"
+                    >
+                      <span aria-hidden="true" className="material-symbols-outlined block text-[20px]">
+                        close
+                      </span>
+                    </button>
+                  </div>
+                  <EditorPromocion
+                    promocion={abierta}
+                    guardando={guardando}
+                    onGuardarItems={guardarItems}
+                    onQuitar={quitar}
+                  />
+                </div>
+              ) : null}
+            </section>
+
+            <section aria-labelledby="titulo-comercial">
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <h2
+                    id="titulo-comercial"
+                    className="font-headline-sm text-headline-sm text-primary"
+                  >
+                    Productos
+                  </h2>
+                  <p className="font-body-md text-body-md mt-1 text-on-surface-variant">
+                    Qué se mira, qué se vende y a qué precio. Ordenado por vistas.
+                  </p>
+                </div>
+
+                {/* La acción que une las dos mitades de la pantalla. */}
+                <button
+                  type="button"
+                  disabled={guardando || !abierta || seleccionados.size === 0}
+                  onClick={agregarSeleccionados}
+                  title={abierta ? undefined : "Abrí una promoción de arriba para poder agregar."}
+                  className="font-label-md text-label-md rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
+                >
+                  {abierta
+                    ? `Agregar ${seleccionados.size} a “${abierta.nombre}”`
+                    : "Agregar a una promoción"}
+                </button>
+              </div>
+
+              <TablaComercial
+                filas={comercial.data}
+                seleccionados={seleccionados}
+                onAlternar={alternarSeleccion}
+                guardando={guardando}
+              />
+
+              {totalPaginas > 1 ? (
+                <div className="mt-4 flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    disabled={pagina <= 1}
+                    onClick={() => setPagina((p) => p - 1)}
+                    className="font-label-md text-label-md rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40"
+                  >
+                    Anterior
+                  </button>
+                  <span className="font-body-md text-body-md text-on-surface-variant">
+                    Página {pagina} de {totalPaginas}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={pagina >= totalPaginas}
+                    onClick={() => setPagina((p) => p + 1)}
+                    className="font-label-md text-label-md rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              ) : null}
+            </section>
+          </>
+        )}
+      </main>
+    </SoloEscritorio>
+  );
+}

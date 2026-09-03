@@ -35,6 +35,7 @@ const AdminMetricas = lazy(() => import("./pages/admin/AdminMetricas.jsx"));
 const AdminUsuarios = lazy(() => import("./pages/admin/AdminUsuarios.jsx"));
 const AdminOrdenes = lazy(() => import("./pages/admin/AdminOrdenes.jsx"));
 const AdminCampanias = lazy(() => import("./pages/admin/AdminCampanias.jsx"));
+const AdminPromociones = lazy(() => import("./pages/admin/AdminPromociones.jsx"));
 const AdminOrdenDetalle = lazy(() => import("./pages/admin/AdminOrdenDetalle.jsx"));
 const AdminProductosSolicitados = lazy(
   () => import("./pages/admin/AdminProductosSolicitados.jsx"),
@@ -106,6 +107,9 @@ function App() {
               pantalla se guarda a sí misma con `SoloEscritorio`, para quien
               llegue por una URL pegada a mano. */}
           <Route path="/catalogo/admin/campanias" element={<AdminCampanias />} />
+          {/* Solo escritorio, igual que Campañas: la tabla comercial tiene diez
+              columnas. Es un módulo APARTE porque acá no se programa nada. */}
+          <Route path="/catalogo/admin/promociones" element={<AdminPromociones />} />
           {/* Segmento literal dentro de `/ordenes/`: convive con `/:id` de
               abajo porque react-router resuelve por especificidad, no por
               orden de declaración. Hay un test que lo fija. */}

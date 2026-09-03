@@ -46,6 +46,7 @@ const ITEMS_NAV = [
   { to: "/catalogo/admin/productos", icono: "inventory_2", label: "Productos" },
   { to: "/catalogo/admin/ordenes", icono: "receipt_long", label: "Órdenes" },
   { to: "/catalogo/admin/campanias", icono: "calendar_month", label: "Campañas", soloEscritorio: true },
+  { to: "/catalogo/admin/promociones", icono: "sell", label: "Promociones", soloEscritorio: true },
   { to: "/catalogo/admin/ventas", icono: "payments", label: "Ventas" },
   { to: "/catalogo/admin/embudo", icono: "filter_alt", label: "Embudo" },
   { to: "/catalogo/admin/clientes", icono: "group", label: "Clientes" },
