@@ -6,6 +6,7 @@ import {
   crearDniDeTest,
   prisma,
 } from "./helpers/db.js";
+import { neutralizarContextoComercial } from "./helpers/contextoComercial.js";
 
 const NOMBRE_CLIENTE_TEST = "E2E-TEST-Cliente Playwright";
 
@@ -24,6 +25,13 @@ const NOMBRE_CLIENTE_TEST = "E2E-TEST-Cliente Playwright";
  */
 
 test.describe("Flujo feliz — checkout de invitado", () => {
+  // El modal de campaña es `fixed inset-0` e intercepta el primer click de
+  // cualquier página. Se neutraliza el contexto comercial para que estos
+  // specs no dependan de si hay una campaña prendida en la base de dev.
+  test.beforeEach(async ({ page }) => {
+    await neutralizarContextoComercial(page);
+  });
+
   let producto;
   let dniTest;
 

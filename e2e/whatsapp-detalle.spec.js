@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { crearProductoDeTest, borrarProductoDeTest } from "./helpers/db.js";
+import { neutralizarContextoComercial } from "./helpers/contextoComercial.js";
 
 /**
  * Sprint 7, Task 2 — Escenario 4: click en WhatsApp desde el detalle de
@@ -22,6 +23,13 @@ import { crearProductoDeTest, borrarProductoDeTest } from "./helpers/db.js";
  *     escuchar antes de disparar la acción que la resuelve).
  */
 test.describe("Click en WhatsApp desde el detalle de producto", () => {
+  // El modal de campaña es `fixed inset-0` e intercepta el primer click de
+  // cualquier página. Se neutraliza el contexto comercial para que estos
+  // specs no dependan de si hay una campaña prendida en la base de dev.
+  test.beforeEach(async ({ page }) => {
+    await neutralizarContextoComercial(page);
+  });
+
   let producto;
 
   test.beforeEach(async () => {

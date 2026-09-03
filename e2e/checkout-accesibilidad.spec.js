@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { crearProductoDeTest, borrarProductoDeTest } from "./helpers/db.js";
+import { neutralizarContextoComercial } from "./helpers/contextoComercial.js";
 
 /**
  * Sprint 7, Task 2 — pasada rápida de accesibilidad sobre el checkout.
@@ -15,6 +16,13 @@ import { crearProductoDeTest, borrarProductoDeTest } from "./helpers/db.js";
  * `aria-describedby` apuntando a un elemento con el mensaje de error real.
  */
 test.describe("Checkout — accesibilidad básica del formulario", () => {
+  // El modal de campaña es `fixed inset-0` e intercepta el primer click de
+  // cualquier página. Se neutraliza el contexto comercial para que estos
+  // specs no dependan de si hay una campaña prendida en la base de dev.
+  test.beforeEach(async ({ page }) => {
+    await neutralizarContextoComercial(page);
+  });
+
   let producto;
 
   test.beforeEach(async ({ page }) => {
