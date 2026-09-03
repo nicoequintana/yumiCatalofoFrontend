@@ -5,11 +5,14 @@ import Spinner from "../../components/Spinner.jsx";
 import SoloEscritorio from "../../components/admin/SoloEscritorio.jsx";
 import EditorPromocion from "../../components/admin/promociones/EditorPromocion.jsx";
 import TablaComercial from "../../components/admin/promociones/TablaComercial.jsx";
+import AlertaConflictos from "../../components/admin/promociones/AlertaConflictos.jsx";
 import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
 import {
   actualizarPromocion,
   crearPromocion,
+  cambiarEstadoItem,
   eliminarPromocion,
+  getConflictos,
   getListadoComercial,
   getPromocion,
   getPromociones,
@@ -40,6 +43,7 @@ export default function AdminPromociones() {
   const [promociones, setPromociones] = useState([]);
   const [abierta, setAbierta] = useState(null);
   const [comercial, setComercial] = useState({ data: [], page: 1, total: 0, pageSize: 20 });
+  const [conflictos, setConflictos] = useState([]);
   const [seleccionados, setSeleccionados] = useState(new Set());
   const [pagina, setPagina] = useState(1);
 
@@ -52,11 +56,12 @@ export default function AdminPromociones() {
   useEffect(() => {
     let activo = true;
     setCargando(true);
-    Promise.all([getPromociones(), getListadoComercial({ page: pagina })])
-      .then(([lista, listado]) => {
+    Promise.all([getPromociones(), getListadoComercial({ page: pagina }), getConflictos()])
+      .then(([lista, listado, choques]) => {
         if (!activo) return;
         setPromociones(lista);
         setComercial(listado);
+        setConflictos(choques);
         // Un fetch exitoso limpia el error anterior: si no, un problema de red
         // ya resuelto seguiría en pantalla sobre datos frescos.
         setError(null);
@@ -95,12 +100,14 @@ export default function AdminPromociones() {
     }
 
     try {
-      const [lista, listado] = await Promise.all([
+      const [lista, listado, choques] = await Promise.all([
         getPromociones(),
         getListadoComercial({ page: pagina }),
+        getConflictos(),
       ]);
       setPromociones(lista);
       setComercial(listado);
+      setConflictos(choques);
     } catch {
       setError(
         "La operación se guardó, pero no se pudo actualizar la pantalla. Recargá la página para ver el estado actual.",
@@ -189,6 +196,24 @@ export default function AdminPromociones() {
     }
   }
 
+  /**
+   * Resuelve un conflicto: la elegida manda, las otras se apagan PARA ESE
+   * PRODUCTO y siguen funcionando para todos los demás.
+   *
+   * **No se reactivan solas** cuando la ganadora termina: volver atrás es un
+   * click explícito desde el editor de la promoción.
+   */
+  async function resolverConflicto(conflicto, ganadoraId) {
+    const perdedoras = conflicto.promociones.filter((p) => p.id !== ganadoraId);
+    await conGuardado(async () => {
+      for (const perdedora of perdedoras) {
+        await cambiarEstadoItem(perdedora.id, conflicto.productId, false);
+      }
+      // El editor abierto puede ser una de las que se acaba de apagar.
+      if (abierta) setAbierta(await getPromocion(abierta.id));
+    });
+  }
+
   function alternarSeleccion(id) {
     setSeleccionados((actuales) => {
       const siguiente = new Set(actuales);
@@ -233,6 +258,12 @@ export default function AdminPromociones() {
           </div>
         ) : (
           <>
+            <AlertaConflictos
+              conflictos={conflictos}
+              guardando={guardando}
+              onResolver={resolverConflicto}
+            />
+
             <section aria-labelledby="titulo-promociones" className="mb-10">
               <h2
                 id="titulo-promociones"

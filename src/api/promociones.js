@@ -119,3 +119,13 @@ export async function cambiarEstadoProgramacion(programacionId, habilitada) {
 export async function eliminarProgramacion(programacionId) {
   return pedir(`${BASE}/promociones/programaciones/${programacionId}`, { method: "DELETE" });
 }
+
+/**
+ * Dónde dos promociones se pisan el precio de un producto.
+ *
+ * Se calcula cada vez, no se guarda: un snapshot habría que invalidarlo ante
+ * cualquier cambio de items, de programación o de estado de campaña.
+ */
+export async function getConflictos() {
+  return pedir(`${BASE}/promociones/conflictos`);
+}
