@@ -46,6 +46,15 @@ function AdminOrdenDetalle() {
   const [estadoPendiente, setEstadoPendiente] = useState(null);
   // Resultado del último intento de notificación, para el aviso de la pantalla.
   const [avisoNotificacion, setAvisoNotificacion] = useState(null);
+  /**
+   * Faltantes de stock que informa el PATCH de estado.
+   *
+   * El backend los emite cuando el descuento se apoyo en cero: la orden pedia
+   * mas unidades de las que habia y se tomaron las que habia. Es un faltante
+   * real de deposito, y hasta ahora esta pantalla lo descartaba sin leerlo, asi
+   * que el unico rastro quedaba en el AuditLog.
+   */
+  const [advertencias, setAdvertencias] = useState([]);
 
   useEffect(() => {
     let activo = true;
@@ -94,11 +103,17 @@ function AdminOrdenDetalle() {
 
     setErrorEstado(null);
     setAvisoNotificacion(null);
+    setAdvertencias([]);
     setGuardandoEstado(true);
 
     try {
       const actualizado = await actualizarEstadoOrden(id, nuevoEstado, notificar);
       setOrden(actualizado);
+      // El backend avisa por aca cuando el descuento de stock se apoyo en cero:
+      // se tomaron MENOS unidades de las que el cliente pidio. Es un faltante
+      // real de deposito y hasta ahora solo quedaba en el AuditLog, porque esta
+      // pantalla descartaba el campo sin leerlo.
+      setAdvertencias(actualizado.advertencias ?? []);
       // Solo se avisa del fracaso: un envío exitoso no necesita anunciarse,
       // el admin ya sabe que lo pidió.
       if (actualizado.notificacion && actualizado.notificacion.enviada === false) {
@@ -154,6 +169,16 @@ function AdminOrdenDetalle() {
       <div className="mb-6">
         <BotonVolver fallback="/catalogo/admin/ordenes" />
       </div>
+
+      {advertencias.length > 0 ? (
+        <Advertencia titulo="Stock insuficiente" icono="inventory" testId="advertencias-stock">
+          <ul className="font-body-md text-body-md flex list-disc flex-col gap-1 pl-5 text-on-surface">
+            {advertencias.map((aviso) => (
+              <li key={aviso}>{aviso}</li>
+            ))}
+          </ul>
+        </Advertencia>
+      ) : null}
 
       {avisoNotificacion ? (
         <Advertencia titulo="El cliente no fue notificado" icono="mark_email_unread">
@@ -241,9 +266,12 @@ function AdminOrdenDetalle() {
       </div>
 
       <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
-        <table role="table" className={`${claseTablaApilada} w-full min-w-[560px] text-left`}>
+        <table role="table" className={`${claseTablaApilada} w-full min-w-[640px] text-left`}>
           <thead role="rowgroup">
             <tr role="row" className="border-b border-outline-variant">
+              <th role="columnheader" className={claseEncabezado}>
+                Foto
+              </th>
               <th role="columnheader" className={claseEncabezado}>
                 Producto
               </th>
@@ -261,6 +289,33 @@ function AdminOrdenDetalle() {
           <tbody role="rowgroup">
             {orden.items.map((item) => (
               <tr key={item.id} role="row" className="border-b border-outline-variant last:border-b-0">
+                {/* La portada, para reconocer el producto de un vistazo.
+                    `alt=""` a proposito —a diferencia de `AdminPrecios`, que
+                    repite el nombre—: la celda de al lado ya lo dice, y un alt
+                    poblado se lo haria leer dos veces por fila a un lector de
+                    pantalla. El placeholder cubre por igual los tres casos sin
+                    foto: producto borrado, producto sin fotos, y una respuesta
+                    anterior a que el backend emitiera la clave. */}
+                <td role="cell" data-celda="control" className="px-4 py-3">
+                  {item.fotoPortada ? (
+                    <img
+                      src={item.fotoPortada}
+                      alt=""
+                      className="h-9 w-9 rounded-lg object-cover xl:h-12 xl:w-12"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <div
+                      data-testid={`sin-foto-${item.id}`}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant xl:h-12 xl:w-12"
+                    >
+                      <span className="material-symbols-outlined text-[16px] xl:text-[20px]">
+                        image
+                      </span>
+                    </div>
+                  )}
+                </td>
                 <td role="cell" data-celda="identidad" className="font-body-md text-body-md px-4 py-3 text-on-surface">{item.nombreProducto}</td>
                 <td role="cell" data-label="Precio unitario" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
                   {formatPrecio(item.precioUnitario)}

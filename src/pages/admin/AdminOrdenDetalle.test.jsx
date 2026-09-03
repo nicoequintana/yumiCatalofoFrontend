@@ -26,7 +26,16 @@ const ORDEN = {
   notas: null,
   createdAt: "2026-08-23T12:00:00.000Z",
   cliente: { dni: "12345678", nombre: "Juan Perez", telefono: "1122334455", email: "juan@gmail.com" },
-  items: [{ id: 1, productId: 1, nombreProducto: "Difusor", precioUnitario: "8000", cantidad: 1 }],
+  items: [
+    {
+      id: 1,
+      productId: 1,
+      nombreProducto: "Difusor",
+      precioUnitario: "8000",
+      cantidad: 1,
+      fotoPortada: "https://res.cloudinary.com/demo/difusor.jpg",
+    },
+  ],
 };
 
 // Fixture de las tres pruebas preexistentes (info de cliente, link de DNI,
@@ -220,5 +229,70 @@ describe("AdminOrdenDetalle — cambio de estado", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(await screen.findByText("No se pudo actualizar.")).toBeInTheDocument();
     expect(select).toHaveValue("PENDIENTE");
+  });
+});
+
+describe("AdminOrdenDetalle — portada de cada producto", () => {
+  it("muestra la miniatura del producto cuando la orden la trae", async () => {
+    // Se consulta el DOM y no `getByRole("img")` a proposito: la miniatura es
+    // DECORATIVA (`alt=""`), asi que no tiene rol accesible — el nombre del
+    // producto vive en la celda de al lado y un alt poblado se lo haria leer
+    // dos veces por fila a un lector de pantalla. Que `getByRole` no la
+    // encuentre es la prueba de que el alt vacio esta bien puesto.
+    const { container } = renderDetalle();
+    await screen.findByText("Difusor");
+
+    const foto = container.querySelector("img");
+    expect(foto).toHaveAttribute("src", "https://res.cloudinary.com/demo/difusor.jpg");
+    expect(foto).toHaveAttribute("alt", "");
+    expect(foto).toHaveAttribute("loading", "lazy");
+    expect(foto).toHaveAttribute("decoding", "async");
+  });
+
+  it("cae a un placeholder cuando el item no tiene portada", async () => {
+    // Los tres casos colapsan al mismo placeholder y esta bien: producto
+    // borrado (productId null), producto sin fotos, y respuesta vieja sin la
+    // clave. El trabajo de la columna es reconocer el producto, no explicar
+    // por que no hay foto.
+    getOrdenById.mockResolvedValue({
+      ...ORDEN,
+      items: [{ ...ORDEN.items[0], productId: null, fotoPortada: null }],
+    });
+    const { container } = renderDetalle();
+
+    expect(await screen.findByTestId("sin-foto-1")).toBeInTheDocument();
+    // Ni un `<img>` con src vacio, que pintaria el icono de imagen rota.
+    expect(container.querySelector("img")).toBeNull();
+  });
+});
+
+describe("AdminOrdenDetalle — advertencias de stock", () => {
+  it("muestra las advertencias que devuelve el cambio de estado", async () => {
+    // El backend avisa cuando el descuento se apoyo en cero: se tomaron menos
+    // unidades de las pedidas. Ese dato viajaba y el frontend lo tiraba a la
+    // basura, asi que el faltante solo quedaba en el AuditLog.
+    actualizarEstadoOrden.mockResolvedValue({
+      ...ORDEN,
+      estado: "EN_PREPARACION",
+      advertencias: ['Stock insuficiente para "Difusor": se pidieron 3 unidades y el stock se apoyo en 0.'],
+    });
+    renderDetalle();
+
+    await screen.findByRole("heading", { name: /Orden #42/ });
+    await userEvent.selectOptions(screen.getByLabelText("Cambiar estado de la orden"), "EN_PREPARACION");
+    await userEvent.click(await screen.findByRole("button", { name: "Guardar sin notificar" }));
+
+    expect(await screen.findByTestId("advertencias-stock")).toHaveTextContent(/se pidieron 3 unidades/);
+  });
+
+  it("no muestra nada cuando el cambio de estado no trae advertencias", async () => {
+    renderDetalle();
+
+    await screen.findByRole("heading", { name: /Orden #42/ });
+    await userEvent.selectOptions(screen.getByLabelText("Cambiar estado de la orden"), "EN_PREPARACION");
+    await userEvent.click(await screen.findByRole("button", { name: "Guardar sin notificar" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.queryByTestId("advertencias-stock")).not.toBeInTheDocument();
   });
 });
