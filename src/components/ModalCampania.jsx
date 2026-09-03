@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import LogoYima from "./LogoYima.jsx";
 import useBloquearScroll from "../hooks/useBloquearScroll.js";
 import useDialogo from "../hooks/useDialogo.js";
 
@@ -10,6 +11,20 @@ import useDialogo from "../hooks/useDialogo.js";
  * `useDialogo` le da foco inicial, trampa de foco, cierre por Escape y
  * restauración del foco al salir, y `useBloquearScroll` frena la página de
  * atrás. Es el mismo tratamiento que el panel móvil del navbar y el lightbox.
+ *
+ * EL DOODLE. El arte de la campaña abre el cartel, y sale de `modal.doodleUrl`
+ * —el Doodle de ESTA campaña, no el del encabezado—: los dos recursos se
+ * resuelven aparte en el backend y pueden caer en campañas distintas. Es además
+ * el único lugar donde el Doodle se ve en tamaño real; en el navbar mide 28px
+ * de alto y compite con toda la barra.
+ *
+ * Va `decorativo`, o sea con `alt=""`: el diálogo ya se nombra por su `<h2>`, y
+ * un `alt="YIMA"` acá haría que un lector de pantalla anuncie la marca antes
+ * del título sin agregar información. Es el mismo criterio que el logo del
+ * panel, que acompaña al texto "YIMA ADMIN".
+ *
+ * Una campaña SIN arte no cae en el wordmark de siempre: no se pinta nada. El
+ * cartel no es el encabezado del sitio, y la marca ya está arriba.
  *
  * EL CONTADOR. `texto` llega crudo con el marcador `{dias}` y el backend manda
  * `diasFaltantes` ya resuelto. La sustitución se hace acá porque es
@@ -65,6 +80,10 @@ export default function ModalCampania({ modal, onCerrar }) {
             close
           </span>
         </button>
+
+        {modal.doodleUrl ? (
+          <LogoYima decorativo doodleUrl={modal.doodleUrl} className="mb-5 h-20 md:h-24" />
+        ) : null}
 
         <h2
           id="titulo-modal-campania"
