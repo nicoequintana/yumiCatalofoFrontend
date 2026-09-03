@@ -168,6 +168,77 @@ test.describe("Admin en mobile", () => {
         );
       });
     }
+
+    // El tablero de órdenes es la única pantalla del panel que NO apila una
+    // tabla en mobile: muestra UNA columna por vez, elegida con tabs. Va como
+    // un paso más de este test —y no como uno propio— porque el login tiene
+    // rate limit de 8 intentos cada 15 minutos por IP y este spec ya usa seis.
+    await test.step("/catalogo/admin/ordenes: una sola columna visible y los tabs la cambian", async () => {
+      await page.goto("/catalogo/admin/ordenes");
+      await esperarPantallaLista(page);
+
+      // Las CUATRO columnas se MONTAN siempre —hacen falta las cuatro
+      // respuestas para que los contadores de los tabs digan la verdad—, así
+      // que se cuentan con un selector de DOM crudo.
+      //
+      // ⚠️ `getByRole` NO sirve para contarlas: las tres ocultas son
+      // `display: none`, y eso las saca del árbol de accesibilidad. Mismo
+      // gotcha que `admin-desktop-layout.spec.js` documenta con el drawer.
+      // Que el rol devuelva exactamente UNA es justamente la prueba de que
+      // solo una columna se ve.
+      const montadas = await page.evaluate(() =>
+        ["Pendiente:", "En preparación:", "Entregada:", "Cancelada:"].filter((prefijo) =>
+          document.querySelector(`section[aria-label^="${prefijo}"]`),
+        ).length,
+      );
+      expect(montadas, "columnas montadas en el DOM").toBe(4);
+
+      await expect(
+        page.getByRole("region", { name: /^(Pendiente|En preparación|Entregada|Cancelada):/ }),
+      ).toHaveCount(1);
+
+      await expect(page.getByRole("region", { name: /^Pendiente:/ })).toBeVisible();
+      await page
+        .getByRole("group", { name: "Filtrar por estado" })
+        .getByRole("button", { name: /Entregada/ })
+        .click();
+      await expect(page.getByRole("region", { name: /^Entregada:/ })).toBeVisible();
+      await expect(page.getByRole("region", { name: /^Pendiente:/ })).toBeHidden();
+
+      // El arrastre en celular termina en un TAB, no en otra columna: solo se
+      // ve una, así que no hay a dónde soltar. Las otras tres siguen montadas
+      // pero en `display: none` —dnd-kit las mide 0×0— y `soloDroppablesVisibles`
+      // las descarta, así que un drop no puede caer en una columna invisible.
+      await page.getByRole("group", { name: "Filtrar por estado" })
+        .getByRole("button", { name: /Pendiente/ })
+        .click();
+      const tarjeta = page.locator("[data-tarjeta-orden]").first();
+      await expect(tarjeta).toBeVisible();
+
+      const tabDestino = page
+        .getByRole("group", { name: "Filtrar por estado" })
+        .getByRole("button", { name: /En preparación/ });
+      const cajaTarjeta = await tarjeta.boundingBox();
+      const cajaTab = await tabDestino.boundingBox();
+
+      await page.mouse.move(cajaTarjeta.x + cajaTarjeta.width / 2, cajaTarjeta.y + 16);
+      await page.mouse.down();
+      await page.mouse.move(cajaTarjeta.x + 60, cajaTarjeta.y + 30, { steps: 5 });
+      await page.mouse.move(cajaTab.x + cajaTab.width / 2, cajaTab.y + cajaTab.height / 2, {
+        steps: 15,
+      });
+      await page.mouse.up();
+
+      // Soltar sobre el tab abre el MISMO diálogo que un drop entre columnas.
+      //
+      // Se acota por nombre: en mobile el drawer del menú también es
+      // `role="dialog"` —sigue montado e inerte, ver `AdminSidebar`—, así que un
+      // `getByRole("dialog")` pelado rompe por strict mode.
+      const dialogoEstado = page.getByRole("dialog", { name: /Cambiar el estado/ });
+      await expect(dialogoEstado).toBeVisible();
+      await page.getByRole("button", { name: "Cancelar" }).click();
+      await expect(dialogoEstado).toHaveCount(0);
+    });
   });
 
   /**
