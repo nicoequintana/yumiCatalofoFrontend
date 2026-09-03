@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import BotonFavorito from "./BotonFavorito.jsx";
-import { formatPrecio } from "../utils/formato.js";
 import { rutaProducto } from "../utils/slug.js";
+import PrecioProducto from "./PrecioProducto.jsx";
 
 /**
  * Single card component for the public product grids (`/coleccion`,
@@ -84,9 +84,12 @@ function ProductCard({ producto }) {
         <h3 className="font-body-md text-[13px] md:text-body-md mb-1 truncate text-on-surface">
           {producto.nombre}
         </h3>
-        <span className="font-body-lg text-[15px] md:text-[17px] font-bold mt-auto text-primary">
-          {formatPrecio(producto.precio)}
-        </span>
+        {/* El precio y su promoción, si la tiene. `PrecioProducto` no calcula
+            nada: el efectivo llega resuelto del backend. */}
+        <PrecioProducto
+          producto={producto}
+          className="font-body-lg text-[15px] md:text-[17px] font-bold mt-auto text-primary"
+        />
       </div>
     </Link>
   );

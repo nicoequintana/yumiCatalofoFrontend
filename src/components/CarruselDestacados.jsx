@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import BotonFavorito from "./BotonFavorito.jsx";
-import { formatPrecio } from "../utils/formato.js";
 import { MIN_DESTACADOS } from "../hooks/useDestacados.js";
 import { rutaProducto } from "../utils/slug.js";
+import PrecioProducto from "./PrecioProducto.jsx";
 
 /** Píxeles por segundo del desplazamiento automático. */
 const VELOCIDAD_PX_POR_SEGUNDO = 40;
@@ -139,9 +139,11 @@ function TarjetaDestacado({ producto, decorativa = false, onPausar, onReanudar, 
         </h3>
         {/* El precio es lo que la gente busca primero: gana peso y tamaño
             para que el ojo lo encuentre sin leer el nombre entero. */}
-        <span className="font-body-lg text-[22px] font-bold leading-none tracking-[-0.01em] text-surface [text-shadow:0_2px_4px_rgb(0_0_0/0.55)]">
-          {formatPrecio(producto.precio)}
-        </span>
+        <PrecioProducto
+          producto={producto}
+          className="font-body-lg text-[22px] font-bold leading-none tracking-[-0.01em] text-surface [text-shadow:0_2px_4px_rgb(0_0_0/0.55)]"
+          claseAnterior="text-surface/80 [text-shadow:0_1px_3px_rgb(0_0_0/0.55)]"
+        />
       </div>
     </Link>
   );

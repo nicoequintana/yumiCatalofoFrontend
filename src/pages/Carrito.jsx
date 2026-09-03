@@ -8,6 +8,8 @@ import useCarrito from "../hooks/useCarrito.js";
 import { getProductsByIds } from "../api/products.js";
 import { formatPrecio, precioACentavos } from "../utils/formato.js";
 import { urlAbsoluta } from "../constants/seo.js";
+import PrecioProducto from "../components/PrecioProducto.jsx";
+import { precioAPagar } from "../utils/precioEfectivo.js";
 
 /**
  * `/carrito` — líneas del carrito (Sprint 5, Task 3, tarea final). Reutiliza
@@ -95,7 +97,10 @@ function Carrito() {
   const hayExcesos = lineas.some((l) => l.excedeStock);
 
   const totalCentavos = lineasValidas.reduce(
-    (total, l) => total + precioACentavos(l.producto.precio) * l.cantidad,
+    // El EFECTIVO, no el de lista: es lo que el backend va a cobrar al
+    // crear la orden. Sumar el de lista mostraría un total que no coincide
+    // con la factura, y el cliente lo descubriría al recibir el mail.
+    (total, l) => total + precioACentavos(precioAPagar(l.producto)) * l.cantidad,
     0,
   );
   const total = formatPrecio(totalCentavos / 100);
@@ -160,9 +165,10 @@ function Carrito() {
                           <span className="font-body-lg text-body-lg text-on-surface">
                             {l.producto.nombre}
                           </span>
-                          <span className="font-body-md text-body-md text-on-surface-variant">
-                            {formatPrecio(l.producto.precio)}
-                          </span>
+                          <PrecioProducto
+                            producto={l.producto}
+                            className="font-body-md text-body-md text-on-surface-variant"
+                          />
                         </>
                       ) : (
                         <span className="font-body-lg text-body-lg text-on-surface-variant">
@@ -173,7 +179,7 @@ function Carrito() {
 
                     {!l.noDisponible ? (
                       <span className="font-body-lg text-body-lg text-on-surface">
-                        {formatPrecio((precioACentavos(l.producto.precio) * l.cantidad) / 100)}
+                        {formatPrecio((precioACentavos(precioAPagar(l.producto)) * l.cantidad) / 100)}
                       </span>
                     ) : null}
                   </div>

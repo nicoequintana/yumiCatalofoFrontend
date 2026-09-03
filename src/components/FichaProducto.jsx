@@ -6,7 +6,7 @@ import BotonFavorito from "./BotonFavorito.jsx";
 import BotonWhatsapp from "./BotonWhatsapp.jsx";
 import BotonAgregarCarrito from "./BotonAgregarCarrito.jsx";
 import ProductCard from "./ProductCard.jsx";
-import { formatPrecio } from "../utils/formato.js";
+import PrecioProducto from "./PrecioProducto.jsx";
 
 /**
  * Presentational product detail sheet — the single source of truth for how a
@@ -181,9 +181,10 @@ function FichaProducto({
             <BloqueVacio className="mb-4">Frase comercial</BloqueVacio>
           ) : null}
 
-          <span className="font-body-lg text-body-lg mb-4 block font-bold text-terracotta-warm">
-            {formatPrecio(producto.precio)}
-          </span>
+          <PrecioProducto
+            producto={producto}
+            className="font-body-lg text-body-lg mb-4 block font-bold text-terracotta-warm"
+          />
 
           {producto.descripcion || !plantilla ? (
             <p className="font-body-lg text-body-lg mb-6 leading-relaxed text-on-surface-variant">
@@ -455,9 +456,10 @@ function FichaProducto({
           }`}
           style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
         >
-          <span className="font-body-lg text-body-lg whitespace-nowrap font-bold text-terracotta-warm">
-            {formatPrecio(producto.precio)}
-          </span>
+          <PrecioProducto
+            producto={producto}
+            className="font-body-lg text-body-lg whitespace-nowrap font-bold text-terracotta-warm"
+          />
           <BotonAgregarCarrito producto={producto} compacto />
         </div>
       ) : null}

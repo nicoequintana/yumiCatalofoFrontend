@@ -8,6 +8,7 @@ import { getProductsByIds } from "../api/products.js";
 import { crearOrden } from "../api/ordenes.js";
 import { formatPrecio, precioACentavos } from "../utils/formato.js";
 import { urlAbsoluta } from "../constants/seo.js";
+import { precioAPagar } from "../utils/precioEfectivo.js";
 
 /**
  * `/checkout` — formulario de checkout de invitado (Sprint 6, Task 1).
@@ -130,7 +131,10 @@ function Checkout() {
   // sumar floats decimales linea a linea acumula drift de punto flotante.
   // Solo cuenta las líneas válidas, que son exactamente las que se envían.
   const totalCentavos = lineasValidas.reduce(
-    (total, l) => total + precioACentavos(l.producto.precio) * l.cantidad,
+    // El EFECTIVO, no el de lista: es lo que el backend va a cobrar al
+    // crear la orden. Sumar el de lista mostraría un total que no coincide
+    // con la factura, y el cliente lo descubriría al recibir el mail.
+    (total, l) => total + precioACentavos(precioAPagar(l.producto)) * l.cantidad,
     0,
   );
   const total = formatPrecio(totalCentavos / 100);
@@ -292,10 +296,10 @@ function Checkout() {
                   </span>
                   <span className="flex shrink-0 flex-col items-end">
                     <span className="font-body-md text-body-md text-on-surface">
-                      {formatPrecio((precioACentavos(l.producto.precio) * l.cantidad) / 100)}
+                      {formatPrecio((precioACentavos(precioAPagar(l.producto)) * l.cantidad) / 100)}
                     </span>
                     <span className="font-body-md text-[13px] text-on-surface-variant">
-                      {formatPrecio(l.producto.precio)} c/u
+                      {formatPrecio(precioAPagar(l.producto))} c/u
                     </span>
                   </span>
                 </li>
