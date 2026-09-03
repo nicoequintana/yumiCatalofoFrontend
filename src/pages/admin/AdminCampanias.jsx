@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
@@ -14,6 +14,7 @@ import {
   duplicarCampania,
   eliminarCampania,
   getCampanias,
+  getOpcionesCampania,
   quitarDoodle,
   subirDoodle,
 } from "../../api/campanias.js";
@@ -45,12 +46,15 @@ function ventanaDelMes({ ano, mes }) {
 }
 
 export default function AdminCampanias() {
-  const { claveDia } = useContextoComercial();
+  const { claveDia, resuelto } = useContextoComercial();
 
-  const [mesVisible, setMesVisible] = useState(() => {
-    const hoy = new Date();
-    return { ano: hoy.getUTCFullYear(), mes: hoy.getUTCMonth() };
-  });
+  // Arranca en `null` y NO en el mes del reloj del navegador. `claveDia` la
+  // manda el backend, que es la única definición de "día" del sistema: sembrar
+  // con `new Date().getUTCMonth()` reintroducía en el frontend la definición por
+  // reloj UTC que el proyecto borró a propósito, y entre las 21:00 y las 23:59
+  // del último día del mes abría el calendario en el mes SIGUIENTE.
+  const [mesVisible, setMesVisible] = useState(null);
+  const [opciones, setOpciones] = useState(null);
   const [campanias, setCampanias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -62,35 +66,36 @@ export default function AdminCampanias() {
   const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
   const inputDoodle = useRef(null);
 
-  // La clave del día la manda el BACKEND. Cuando llega, el calendario salta al
-  // mes que de verdad es hoy — no al que dice el reloj del navegador.
-  const [mesAlineado, setMesAlineado] = useState(false);
+  // El mes del calendario lo fija la clave del día que manda el BACKEND, no el
+  // reloj del navegador. Hasta que llegue, la pantalla muestra el spinner.
   useEffect(() => {
-    if (claveDia && !mesAlineado) {
-      setMesVisible(mesDeClave(claveDia));
-      setMesAlineado(true);
-    }
-  }, [claveDia, mesAlineado]);
+    if (claveDia) setMesVisible((actual) => actual ?? mesDeClave(claveDia));
+  }, [claveDia]);
 
-  const cargar = useCallback(
-    async ({ silencioso = false } = {}) => {
-      if (!silencioso) setCargando(true);
-      try {
-        const datos = await getCampanias(ventanaDelMes(mesVisible));
-        setCampanias(datos);
-        // Un fetch exitoso limpia el error anterior: si no, un problema de red
-        // ya resuelto seguiría en pantalla sobre datos frescos.
-        setError(null);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setCargando(false);
-      }
-    },
-    [mesVisible],
-  );
+  // El contexto terminó de intentar y no trajo la fecha: sin ella no hay mes
+  // que abrir, y esperar para siempre dejaría el spinner girando. Se dice qué
+  // pasó en vez de fingir que todavía está cargando.
+  const sinFecha = resuelto && !claveDia;
+  useEffect(() => {
+    if (sinFecha) setCargando(false);
+  }, [sinFecha]);
 
   useEffect(() => {
+    let activo = true;
+    getOpcionesCampania()
+      .then((datos) => {
+        if (activo) setOpciones(datos);
+      })
+      .catch((err) => {
+        if (activo) setError(err.message);
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mesVisible) return undefined;
     let activo = true;
 
     setCargando(true);
@@ -98,6 +103,8 @@ export default function AdminCampanias() {
       .then((datos) => {
         if (!activo) return;
         setCampanias(datos);
+        // Un fetch exitoso limpia el error anterior: si no, un problema de red
+        // ya resuelto seguiría en pantalla sobre datos frescos.
         setError(null);
       })
       // El catch es obligatorio: sin él, un backend caído deja la promesa
@@ -121,19 +128,37 @@ export default function AdminCampanias() {
     setConfirmandoBorrado(false);
   }
 
+  /**
+   * Ejecuta una mutación y refresca el listado.
+   *
+   * **El refresco tiene su propio catch, con un mensaje DISTINTO**, igual que
+   * en `AdminAnuncios` y `AdminCategorias`. El motivo es concreto: si la
+   * escritura anduvo y el GET posterior falla, dejar caer el error en el catch
+   * de arriba muestra el mensaje crudo de red — indistinguible de "no se
+   * guardó"— y el admin repite una operación que ya se hizo. `Campania.nombre`
+   * no es único, así que el reintento crea una segunda fila real.
+   */
   async function conGuardado(operacion) {
     setGuardando(true);
     setError(null);
     try {
       await operacion();
-      await cargar({ silencioso: true });
-      return true;
     } catch (err) {
       setError(err.message);
       return false;
     } finally {
       setGuardando(false);
     }
+
+    try {
+      const datos = await getCampanias(ventanaDelMes(mesVisible));
+      setCampanias(datos);
+    } catch {
+      setError(
+        "La operación se guardó, pero no se pudo actualizar el calendario. Recargá la página para ver el estado actual.",
+      );
+    }
+    return true;
   }
 
   async function guardar(datos) {
@@ -213,7 +238,13 @@ export default function AdminCampanias() {
 
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div>
-            {cargando ? (
+            {sinFecha ? (
+              <EstadoVacio
+                icono="cloud_off"
+                titulo="No se pudo abrir el calendario"
+                mensaje="Revisá tu conexión e intentá de nuevo."
+              />
+            ) : cargando || !mesVisible ? (
               <div className="flex items-center justify-center gap-3 py-24">
                 <Spinner className="h-8 w-8 text-on-surface-variant" />
                 <span className="font-body-md text-body-md text-on-surface-variant">
@@ -224,7 +255,9 @@ export default function AdminCampanias() {
               <CalendarioComercial
                 mesVisible={mesVisible}
                 onCambiarMes={(mes) => {
-                  setMesVisible(mes ?? mesDeClave(claveDia ?? claveDeDia(new Date())));
+                  // Sin `claveDia` no hay a qué "hoy" volver: se queda donde está en vez
+                  // de inventar uno con el reloj del navegador.
+                  setMesVisible(mes ?? (claveDia ? mesDeClave(claveDia) : mesVisible));
                   cerrarPanel();
                 }}
                 campanias={campanias}
@@ -243,7 +276,7 @@ export default function AdminCampanias() {
               />
             )}
 
-            {!cargando && !error && campanias.length === 0 ? (
+            {!cargando && !error && !sinFecha && mesVisible && campanias.length === 0 ? (
               <div className="mt-6">
                 <EstadoVacio
                   icono="event_available"
@@ -268,6 +301,7 @@ export default function AdminCampanias() {
                 <FormularioCampania
                   campania={seleccionada}
                   diaElegido={diaElegido}
+                  opciones={opciones}
                   guardando={guardando}
                   onGuardar={guardar}
                   onCancelar={() => (seleccionada ? setEditando(false) : cerrarPanel())}

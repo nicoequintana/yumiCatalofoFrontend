@@ -12,49 +12,52 @@ import { useEffect, useState } from "react";
  * `AAAA-MM-DD`: exactamente el formato que la API pide y devuelve. No hay
  * ninguna conversión de por medio, y por lo tanto ningún lugar donde la zona
  * horaria pueda correr un día.
+ *
+ * ⚠️ **Las opciones de los dos `<select>` LLEGAN POR PROP desde la API**
+ * (`GET /campanias/opciones`), no se declaran acá. Estuvieron un rato copiadas
+ * a mano y era la regla 1 del proyecto al revés, con el modo de falla más mudo
+ * que hay: agregar un tipo en `lib/campanias.js` lo hacía aceptable para el
+ * backend e invisible en el panel, sin ningún test rojo.
  */
-
-const TIPOS = [
-  { valor: "ESTACIONAL", etiqueta: "Estacional" },
-  { valor: "EVENTO_COMERCIAL", etiqueta: "Evento comercial" },
-  { valor: "FECHA_ESPECIAL", etiqueta: "Fecha especial" },
-  { valor: "PROMOCIONAL", etiqueta: "Promocional" },
-  { valor: "INSTITUCIONAL", etiqueta: "Institucional" },
-  { valor: "OTRO", etiqueta: "Otro" },
-];
-
-const ESTADOS = [
-  { valor: "BORRADOR", etiqueta: "Borrador" },
-  { valor: "HABILITADA", etiqueta: "Habilitada" },
-  { valor: "DESHABILITADA", etiqueta: "Deshabilitada" },
-];
 
 const claseEtiqueta =
   "font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface";
 const claseCampo =
   "w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none";
 
-function valoresIniciales(campania, diaElegido) {
+function valoresIniciales(campania, diaElegido, opciones) {
   return {
     nombre: campania?.nombre ?? "",
     descripcion: campania?.descripcion ?? "",
-    tipo: campania?.tipo ?? "ESTACIONAL",
+    // El default sale de la PRIMERA opción que mandó el backend, no de una
+    // constante local: si algún día el primer tipo deja de ser ESTACIONAL, el
+    // formulario no se queda pidiendo un valor que ya no existe.
+    tipo: campania?.tipo ?? opciones?.tipos?.[0]?.valor ?? "",
     estado: campania?.estado ?? "BORRADOR",
     desde: campania?.desde ?? diaElegido ?? "",
     hasta: campania?.hasta ?? diaElegido ?? "",
     prioridad: String(campania?.prioridad ?? 0),
+    doodleEnCatalogo: campania?.doodleEnCatalogo ?? true,
+    doodleEnAdmin: campania?.doodleEnAdmin ?? false,
   };
 }
 
-export default function FormularioCampania({ campania, diaElegido, guardando, onGuardar, onCancelar }) {
-  const [valores, setValores] = useState(() => valoresIniciales(campania, diaElegido));
+export default function FormularioCampania({
+  campania,
+  diaElegido,
+  opciones,
+  guardando,
+  onGuardar,
+  onCancelar,
+}) {
+  const [valores, setValores] = useState(() => valoresIniciales(campania, diaElegido, opciones));
 
   // Al cambiar de campaña seleccionada (o al abrir el alta desde otro día) el
   // formulario tiene que reflejar lo nuevo. Sin esto, editar una campaña
   // distinta mostraría los valores de la anterior.
   useEffect(() => {
-    setValores(valoresIniciales(campania, diaElegido));
-  }, [campania, diaElegido]);
+    setValores(valoresIniciales(campania, diaElegido, opciones));
+  }, [campania, diaElegido, opciones]);
 
   function cambiar(campo, valor) {
     setValores((actuales) => ({ ...actuales, [campo]: valor }));
@@ -70,6 +73,8 @@ export default function FormularioCampania({ campania, diaElegido, guardando, on
       desde: valores.desde,
       hasta: valores.hasta,
       prioridad: Number(valores.prioridad) || 0,
+      doodleEnCatalogo: valores.doodleEnCatalogo,
+      doodleEnAdmin: valores.doodleEnAdmin,
     });
   }
 
@@ -123,7 +128,7 @@ export default function FormularioCampania({ campania, diaElegido, guardando, on
                 onChange={(e) => cambiar("tipo", e.target.value)}
                 className={claseCampo}
               >
-                {TIPOS.map((tipo) => (
+                {(opciones?.tipos ?? []).map((tipo) => (
                   <option key={tipo.valor} value={tipo.valor}>
                     {tipo.etiqueta}
                   </option>
@@ -183,7 +188,7 @@ export default function FormularioCampania({ campania, diaElegido, guardando, on
                   onChange={(e) => cambiar("estado", e.target.value)}
                   className={claseCampo}
                 >
-                  {ESTADOS.map((estado) => (
+                  {(opciones?.estados ?? []).map((estado) => (
                     <option key={estado.valor} value={estado.valor}>
                       {estado.etiqueta}
                     </option>
@@ -208,6 +213,48 @@ export default function FormularioCampania({ campania, diaElegido, guardando, on
               Si dos campañas activas tienen Doodle, se muestra el de mayor prioridad.
             </p>
           </div>
+        </div>
+
+        <div>
+          <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface-variant">
+            Dónde se muestra el Doodle
+          </h3>
+
+          {/* Son DOS interruptores y no uno porque el catálogo y el panel son
+              públicos distintos: se puede querer marca festiva de cara al
+              cliente sin cambiarle el logo a quien está trabajando adentro. */}
+          <div className="flex flex-col gap-3">
+            {[
+              { campo: "doodleEnCatalogo", etiqueta: "En el catálogo público" },
+              { campo: "doodleEnAdmin", etiqueta: "En el panel de administración" },
+            ].map(({ campo, etiqueta }) => (
+              <button
+                key={campo}
+                type="button"
+                role="switch"
+                aria-checked={valores[campo]}
+                onClick={() => cambiar(campo, !valores[campo])}
+                className="flex items-center justify-between gap-4 rounded-lg border border-outline-variant px-4 py-3 text-left transition-colors hover:bg-surface-container"
+              >
+                <span className="font-body-md text-body-md text-on-surface">{etiqueta}</span>
+                <span
+                  aria-hidden="true"
+                  className={`flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors ${
+                    valores[campo] ? "bg-primary" : "bg-outline-variant"
+                  }`}
+                >
+                  <span
+                    className={`h-5 w-5 rounded-full bg-surface-container-lowest transition-transform ${
+                      valores[campo] ? "translate-x-5" : ""
+                    }`}
+                  />
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="font-body-sm text-body-sm mt-2 text-on-surface-variant">
+            Solo tiene efecto si la campaña está activa y tiene un Doodle cargado.
+          </p>
         </div>
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

@@ -2,9 +2,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getContextoComercialMock = vi.fn();
+let tokenActual = null;
 
 vi.mock("../api/campanias.js", () => ({
   getContextoComercial: (...args) => getContextoComercialMock(...args),
+}));
+
+vi.mock("../api/authClient.js", () => ({
+  getToken: () => tokenActual,
 }));
 
 const { default: useContextoComercial, reiniciarContextoComercial } = await import(
@@ -13,10 +18,11 @@ const { default: useContextoComercial, reiniciarContextoComercial } = await impo
 
 /** Sonda mínima: pinta lo que el hook devuelve. */
 function Sonda({ etiqueta = "a" }) {
-  const { doodle, claveDia } = useContextoComercial();
+  const { doodle, claveDia, resuelto } = useContextoComercial();
   return (
     <span data-testid={etiqueta}>
-      {doodle ? doodle.url : "sin-doodle"}|{claveDia ?? "sin-clave"}
+      {doodle ? doodle.url : "sin-doodle"}|{claveDia ?? "sin-clave"}|
+      {resuelto ? "resuelto" : "pendiente"}
     </span>
   );
 }
@@ -29,6 +35,7 @@ const CONTEXTO = {
 beforeEach(() => {
   vi.clearAllMocks();
   reiniciarContextoComercial();
+  tokenActual = null;
   getContextoComercialMock.mockResolvedValue(CONTEXTO);
 });
 
@@ -112,6 +119,82 @@ describe("useContextoComercial", () => {
     render(<Sonda />);
 
     expect(screen.getByTestId("a")).toHaveTextContent("sin-doodle|sin-clave");
+    resolver(CONTEXTO);
+  });
+
+  it("vuelve a pedir el contexto cuando cambia la identidad de quien pregunta", async () => {
+    // ESTE ES EL BUG QUE ARREGLA. La pantalla de login vive dentro del Layout
+    // público, así que el Navbar dispara el fetch SIN token y el backend omite
+    // `doodleAdmin` a propósito. Loguearse es `setToken` + `navigate`, o sea
+    // navegación SPA sin recarga: con un cache ciego a la identidad, el
+    // contexto anónimo quedaba vigente para toda la sesión y el Doodle del
+    // panel no se veía NUNCA salvo que alguien apretara F5.
+    const anonimo = { claveDia: "2026-09-15", doodle: null };
+    const conSesion = { claveDia: "2026-09-15", doodle: null, doodleAdmin: { url: "x.png", campaniaId: 9 } };
+
+    getContextoComercialMock.mockResolvedValue(anonimo);
+    const login = render(<Sonda />);
+    await waitFor(() => expect(getContextoComercialMock).toHaveBeenCalledTimes(1));
+    login.unmount();
+
+    // El admin se loguea: aparece el token, sin recargar la página.
+    tokenActual = "token-de-admin";
+    getContextoComercialMock.mockResolvedValue(conSesion);
+
+    render(<Sonda />);
+
+    await waitFor(() => expect(getContextoComercialMock).toHaveBeenCalledTimes(2));
+  });
+
+  it("cerrar sesión también vuelve a pedirlo", async () => {
+    // El camino inverso: el contexto con `doodleAdmin` no puede sobrevivir al
+    // logout, o el panel seguiría mostrando su Doodle a alguien sin sesión.
+    tokenActual = "token-de-admin";
+    const primera = render(<Sonda />);
+    await waitFor(() => expect(getContextoComercialMock).toHaveBeenCalledTimes(1));
+    primera.unmount();
+
+    tokenActual = null;
+    render(<Sonda />);
+
+    await waitFor(() => expect(getContextoComercialMock).toHaveBeenCalledTimes(2));
+  });
+
+  it("con la MISMA identidad sigue reusando el cache", async () => {
+    // La invalidación no puede volverse un refetch por montaje: eso destruiría
+    // el motivo de existir del patrón.
+    tokenActual = "token-de-admin";
+    const primera = render(<Sonda />);
+    await waitFor(() => expect(getContextoComercialMock).toHaveBeenCalledTimes(1));
+    primera.unmount();
+
+    render(<Sonda />);
+
+    await waitFor(() => expect(screen.getByTestId("a")).toHaveTextContent("2026-09-15"));
+    expect(getContextoComercialMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("marca `resuelto` cuando el intento TERMINÓ, haya andado o no", async () => {
+    // Sin esto, "todavía no llegó" y "falló y no va a llegar" son el mismo
+    // estado, y una pantalla que espere `claveDia` para dibujarse deja el
+    // spinner girando para siempre — que es justamente lo que el proyecto
+    // prohíbe: hay que distinguir "falló la carga" de "no hay nada".
+    getContextoComercialMock.mockRejectedValue(new Error("backend caído"));
+
+    render(<Sonda />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("a")).toHaveTextContent("sin-doodle|sin-clave|resuelto");
+    });
+  });
+
+  it("`resuelto` arranca en false", () => {
+    let resolver;
+    getContextoComercialMock.mockReturnValue(new Promise((r) => (resolver = r)));
+
+    render(<Sonda />);
+
+    expect(screen.getByTestId("a")).toHaveTextContent("pendiente");
     resolver(CONTEXTO);
   });
 

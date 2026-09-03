@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getContextoComercial } from "../api/campanias.js";
+import { getToken } from "../api/authClient.js";
 
 /**
  * El contexto comercial activo: qué campaña está mandando ahora mismo sobre la
@@ -32,11 +33,25 @@ import { getContextoComercial } from "../api/campanias.js";
  * `doodleAdmin` solo lo puebla una respuesta con sesión de admin: es el Doodle
  * que la campaña eligió mostrar puertas adentro, y para un anónimo no existe.
  */
-const CONTEXTO_VACIO = { doodle: null, doodleAdmin: null, claveDia: null };
+const CONTEXTO_VACIO = { doodle: null, doodleAdmin: null, claveDia: null, resuelto: false };
 
 let contextoActual = CONTEXTO_VACIO;
 let promesaEnVuelo = null;
 const listeners = new Set();
+
+/**
+ * El token con el que se pidió el contexto cacheado.
+ *
+ * **El cache depende de la identidad, así que tiene que estar keyeado por
+ * ella.** La pantalla de login vive dentro del `Layout` público, o sea que el
+ * navbar dispara el primer fetch SIN token y el backend omite `doodleAdmin` a
+ * propósito. Loguearse es `setToken` + `navigate`: navegación SPA, sin recarga.
+ * Con un cache ciego a esto, el contexto anónimo quedaba vigente para toda la
+ * sesión y **el Doodle del panel no se veía nunca**, salvo que alguien apretara
+ * F5. El camino inverso es igual de malo: el contexto con `doodleAdmin` no
+ * puede sobrevivir a un logout.
+ */
+let tokenDelCache = null;
 
 function notificar(contexto) {
   contextoActual = contexto;
@@ -50,22 +65,36 @@ function notificar(contexto) {
  * tick produzcan UNA request y no tres.
  */
 function cargar() {
+  const token = getToken();
+
+  // Cambió quién pregunta: lo cacheado ya no es la respuesta correcta.
+  if (promesaEnVuelo && token !== tokenDelCache) {
+    promesaEnVuelo = null;
+    contextoActual = CONTEXTO_VACIO;
+  }
   if (promesaEnVuelo) return promesaEnVuelo;
 
+  tokenDelCache = token;
   promesaEnVuelo = getContextoComercial()
     .then((contexto) => {
       notificar({
         doodle: contexto?.doodle ?? null,
         doodleAdmin: contexto?.doodleAdmin ?? null,
         claveDia: contexto?.claveDia ?? null,
+        resuelto: true,
       });
     })
     .catch(() => {
       // Falla BLANDA, igual que la cinta de anuncios: esto es decoración de
       // temporada. Un backend caído tiene que dejar el logo de marca y el sitio
-      // andando, nunca tumbar el catálogo. Se conserva `contextoActual` (el
-      // vacío) y no se reintenta: un reintento por instancia multiplicaría las
-      // requests contra un backend que ya está en problemas.
+      // andando, nunca tumbar el catálogo. No se reintenta: un reintento por
+      // instancia multiplicaría las requests contra un backend que ya está en
+      // problemas.
+      //
+      // Pero `resuelto` SÍ pasa a true. Sin eso, "todavía no llegó" y "falló y
+      // no va a llegar" serían el mismo estado, y una pantalla que espere
+      // `claveDia` para dibujarse dejaría el spinner girando para siempre.
+      notificar({ ...CONTEXTO_VACIO, resuelto: true });
     });
 
   return promesaEnVuelo;
@@ -110,5 +139,6 @@ export default function useContextoComercial() {
 export function reiniciarContextoComercial() {
   contextoActual = CONTEXTO_VACIO;
   promesaEnVuelo = null;
+  tokenDelCache = null;
   listeners.clear();
 }

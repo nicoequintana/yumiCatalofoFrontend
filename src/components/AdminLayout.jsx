@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar.jsx";
 import LimiteDeError from "./LimiteDeError.jsx";
 import LogoYima from "./LogoYima.jsx";
+import useContextoComercial from "../hooks/useContextoComercial.js";
 import Spinner from "./Spinner.jsx";
 import ToggleTemaAdmin from "./ToggleTemaAdmin.jsx";
 import MetaSeo from "./MetaSeo.jsx";
@@ -50,6 +51,11 @@ import { urlAbsoluta } from "../constants/seo.js";
  * del chunk (`React.lazy`), que se propaga como un error de render.
  */
 function AdminLayout() {
+  // El Doodle del PANEL. Va acá además de en AdminSidebar porque este header
+  // es el tercer lugar donde el panel pinta el logo: sin esto, debajo de `lg`
+  // la barra superior mostraria la marca mientras el drawer muestra el Doodle.
+  const { doodleAdmin } = useContextoComercial();
+
   const [sidebarColapsada, setSidebarColapsada] = useState(true);
   const { pathname } = useLocation();
 
@@ -151,7 +157,7 @@ function AdminLayout() {
             <span className="material-symbols-outlined">menu</span>
           </button>
           <span className="flex items-baseline gap-2">
-            <LogoYima className="h-6 self-center" />
+            <LogoYima className="h-6 self-center" doodleUrl={doodleAdmin?.url ?? null} />
             <span className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant">
               Admin
             </span>

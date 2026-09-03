@@ -64,6 +64,17 @@ export async function getCampania(id) {
   return pedirAutenticado(`${BASE}/campanias/${id}`);
 }
 
+/**
+ * `GET /api/campanias/opciones` — los diccionarios de tipos y estados.
+ *
+ * **El frontend NO tiene copia de estas listas.** Mismo criterio que
+ * `getEstadosOrden`: una lista duplicada a mano falla mudo — se agrega un tipo,
+ * el backend lo acepta, el `<select>` no lo ofrece, y ningún test se pone rojo.
+ */
+export async function getOpcionesCampania() {
+  return pedirAutenticado(`${BASE}/campanias/opciones`);
+}
+
 export async function crearCampania(datos) {
   return pedirAutenticado(`${BASE}/campanias`, {
     method: "POST",
