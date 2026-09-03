@@ -48,6 +48,29 @@ export const ESTILOS_CAMPANIA = {
 export const ESTILO_CAMPANIA_POR_DEFECTO = ESTILOS_CAMPANIA.BORRADOR;
 
 /**
+ * Las promociones programadas se ven DISTINTO de las campañas, no solo de otro
+ * color: son otra cosa. Una campaña es una experiencia comercial completa; una
+ * promoción programada es un descuento con fecha. El borde punteado y el ícono
+ * de etiqueta las separan de un vistazo, sin depender del tono.
+ */
+export const ESTILOS_PROGRAMACION = {
+  HABILITADA: {
+    barra: "border border-dashed border-primary bg-primary/15 text-on-surface",
+    icono: "sell",
+  },
+  DESHABILITADA: {
+    barra: "border border-dashed border-outline bg-surface-container text-on-surface-variant line-through decoration-1",
+    icono: "sell",
+  },
+};
+
+export function estiloDeProgramacion(programacion) {
+  return programacion?.habilitada
+    ? ESTILOS_PROGRAMACION.HABILITADA
+    : ESTILOS_PROGRAMACION.DESHABILITADA;
+}
+
+/**
  * Los dos ejes colapsados en la clave visual que se muestra.
  *
  * El orden importa: el eje ADMINISTRATIVO gana. Una campaña deshabilitada en

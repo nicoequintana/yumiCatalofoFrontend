@@ -20,11 +20,21 @@ import {
   crearCampania,
   duplicarCampania,
   eliminarCampania,
+  getCampania,
   getCampanias,
   getOpcionesCampania,
   quitarDoodle,
   subirDoodle,
 } from "../../api/campanias.js";
+import {
+  cambiarEstadoProgramacion,
+  eliminarProgramacion,
+  getProgramaciones,
+  getPromociones,
+  programarPromocion,
+} from "../../api/promociones.js";
+import { guardarPromocionesDeCampania } from "../../api/campanias.js";
+import DialogoProgramar from "../../components/admin/campanias/DialogoProgramar.jsx";
 import useContextoComercial from "../../hooks/useContextoComercial.js";
 
 /**
@@ -71,6 +81,10 @@ export default function AdminCampanias() {
   const [mesVisible, setMesVisible] = useState(null);
   const [opciones, setOpciones] = useState(null);
   const [campanias, setCampanias] = useState([]);
+  const [programaciones, setProgramaciones] = useState([]);
+  const [promociones, setPromociones] = useState([]);
+  const [programando, setProgramando] = useState(null);
+  const [programacionAbierta, setProgramacionAbierta] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
 
@@ -114,10 +128,16 @@ export default function AdminCampanias() {
     let activo = true;
 
     setCargando(true);
-    getCampanias(ventanaDelMes(mesVisible))
-      .then((datos) => {
+    Promise.all([
+      getCampanias(ventanaDelMes(mesVisible)),
+      getProgramaciones(ventanaDelMes(mesVisible)),
+      getPromociones(),
+    ])
+      .then(([datos, progs, promos]) => {
         if (!activo) return;
         setCampanias(datos);
+        setProgramaciones(progs);
+        setPromociones(promos);
         // Un fetch exitoso limpia el error anterior: si no, un problema de red
         // ya resuelto seguiría en pantalla sobre datos frescos.
         setError(null);
@@ -143,11 +163,26 @@ export default function AdminCampanias() {
     setConfirmandoBorrado(false);
   }
 
-  function abrirDetalle(campania) {
+  /**
+   * Abre el detalle de una campaña.
+   *
+   * **Pide el DETALLE, no reusa la fila del listado**: el listado no trae
+   * `promociones` —serían N consultas para pintar una grilla— y sin ellas los
+   * checkboxes de "promociones que aplica" saldrían todos vacíos, como si la
+   * campaña no tuviera ninguna. La fila se muestra igual mientras llega, para
+   * que el diálogo no aparezca en blanco.
+   */
+  async function abrirDetalle(campania) {
     setSeleccionada(campania);
     setDiaElegido(null);
     setEditando(false);
     setConfirmandoBorrado(false);
+    try {
+      const detalle = await getCampania(campania.id);
+      setSeleccionada((actual) => (actual?.id === detalle.id ? detalle : actual));
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   function abrirEdicion(campania) {
@@ -161,6 +196,53 @@ export default function AdminCampanias() {
     setSeleccionada(null);
     setDiaElegido(clave);
     setEditando(true);
+  }
+
+  /**
+   * Abre lo que se tocó en el calendario, sea una campaña o una programación.
+   *
+   * Son dos entidades distintas y se editan distinto: una campaña tiene
+   * formulario, Doodle y modal; una programación solo tiene fechas y un
+   * interruptor. Ramificar acá evita que el detalle tenga que adivinar qué le
+   * llegó.
+   */
+  function abrirElemento(elemento) {
+    if (elemento.tipo === "PROMOCION") {
+      setProgramacionAbierta(elemento);
+      cerrarPanel();
+      return;
+    }
+    abrirDetalle(elemento);
+  }
+
+  async function programar({ promocionId, desde, hasta }) {
+    const ok = await conGuardado(() => programarPromocion(promocionId, { desde, hasta }));
+    if (ok) setProgramando(null);
+  }
+
+  async function alternarProgramacion(programacion) {
+    await conGuardado(async () => {
+      await cambiarEstadoProgramacion(programacion.id, !programacion.habilitada);
+      setProgramacionAbierta((actual) =>
+        actual?.id === programacion.id ? { ...actual, habilitada: !programacion.habilitada } : actual,
+      );
+    });
+  }
+
+  async function desprogramar(programacion) {
+    const ok = await conGuardado(() => eliminarProgramacion(programacion.id));
+    if (ok) setProgramacionAbierta(null);
+  }
+
+  /** Qué promociones aplica una campaña mientras está activa. */
+  async function guardarPromociones(campaniaId, promocionIds) {
+    await conGuardado(async () => {
+      await guardarPromocionesDeCampania(campaniaId, promocionIds);
+      // El detalle abierto tiene que reflejar lo que se acaba de guardar: el
+      // refresco general recarga el LISTADO, que no trae `promociones`.
+      const detalle = await getCampania(campaniaId);
+      setSeleccionada((actual) => (actual?.id === campaniaId ? detalle : actual));
+    });
   }
 
   /**
@@ -186,8 +268,14 @@ export default function AdminCampanias() {
     }
 
     try {
-      const datos = await getCampanias(ventanaDelMes(mesVisible));
+      const [datos, progs, promos] = await Promise.all([
+        getCampanias(ventanaDelMes(mesVisible)),
+        getProgramaciones(ventanaDelMes(mesVisible)),
+        getPromociones(),
+      ]);
       setCampanias(datos);
+      setProgramaciones(progs);
+      setPromociones(promos);
     } catch {
       setError(
         "La operación se guardó, pero no se pudo actualizar el calendario. Recargá la página para ver el estado actual.",
@@ -246,6 +334,17 @@ export default function AdminCampanias() {
     });
   }
 
+  /**
+   * Lo que el calendario dibuja: campañas Y promociones programadas, en una
+   * sola lista con un `tipo` que las distingue. El reparto en carriles trabaja
+   * sobre el conjunto, así que una campaña y una promo que se superponen se
+   * apilan igual que dos campañas — que es lo correcto: ocupan los mismos días.
+   */
+  const elementos = [
+    ...campanias.map((c) => ({ ...c, tipo: "CAMPANIA" })),
+    ...programaciones.map((p) => ({ ...p, tipo: "PROMOCION" })),
+  ];
+
   const panelAbierto = seleccionada !== null || diaElegido !== null;
   const mostrandoFormulario = editando || (diaElegido !== null && seleccionada === null);
 
@@ -296,10 +395,10 @@ export default function AdminCampanias() {
               setMesVisible(mes ?? (claveDia ? mesDeClave(claveDia) : mesVisible));
               cerrarPanel();
             }}
-            campanias={campanias}
+            elementos={elementos}
             claveHoy={claveDia}
             onSeleccionarDia={abrirAlta}
-            onSeleccionarCampania={abrirDetalle}
+            onSeleccionar={abrirElemento}
           />
         )}
 
@@ -321,13 +420,24 @@ export default function AdminCampanias() {
                   mes.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => abrirAlta(claveDia)}
-                className="font-label-md text-label-md shrink-0 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
-              >
-                Nueva campaña
-              </button>
+              <span className="flex shrink-0 gap-2">
+                {/* Programar una promoción SIN crear una campaña: el §21. Bajar
+                    un precio tres días no necesita Doodle, modal ni CTA. */}
+                <button
+                  type="button"
+                  onClick={() => setProgramando(claveDia)}
+                  className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container"
+                >
+                  Programar promoción
+                </button>
+                <button
+                  type="button"
+                  onClick={() => abrirAlta(claveDia)}
+                  className="font-label-md text-label-md rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
+                >
+                  Nueva campaña
+                </button>
+              </span>
             </div>
 
             {cargando ? null : campanias.length === 0 ? (
@@ -411,6 +521,8 @@ export default function AdminCampanias() {
             ) : (
               <DetalleCampania
                 campania={seleccionada}
+                promociones={promociones}
+                onGuardarPromociones={(ids) => guardarPromociones(seleccionada.id, ids)}
                 guardando={guardando}
                 confirmandoBorrado={confirmandoBorrado}
                 inputDoodle={inputDoodle}
@@ -424,6 +536,60 @@ export default function AdminCampanias() {
                 onQuitarDoodle={borrarDoodle}
               />
             )}
+          </DialogoCampania>
+        ) : null}
+        {programando !== null ? (
+          <DialogoProgramar
+            promociones={promociones}
+            diaInicial={programando}
+            guardando={guardando}
+            onProgramar={programar}
+            onCerrar={() => setProgramando(null)}
+          />
+        ) : null}
+
+        {programacionAbierta ? (
+          <DialogoCampania
+            titulo={programacionAbierta.nombre}
+            onCerrar={() => setProgramacionAbierta(null)}
+          >
+            <div className="flex flex-col gap-5">
+              <p className="font-body-md text-body-md text-on-surface-variant">
+                Promoción programada del{" "}
+                <strong className="text-on-surface">{formatFecha(programacionAbierta.desde)}</strong>{" "}
+                al{" "}
+                <strong className="text-on-surface">{formatFecha(programacionAbierta.hasta)}</strong>.
+              </p>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                Los descuentos por producto se editan desde <strong>Promociones</strong>. Acá solo se
+                decide cuándo se aplican.
+              </p>
+
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  disabled={guardando}
+                  onClick={() => alternarProgramacion(programacionAbierta)}
+                  className={`font-label-md text-label-md w-full rounded-lg px-4 py-3 uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-60 ${
+                    programacionAbierta.habilitada
+                      ? "bg-surface-container text-on-surface"
+                      : "bg-primary text-on-primary"
+                  }`}
+                >
+                  {programacionAbierta.habilitada ? "Apagar" : "Encender"}
+                </button>
+                {/* Desprogramar borra el PERÍODO, no la promoción: sigue
+                    existiendo con sus productos y sus otras programaciones. */}
+                <button
+                  type="button"
+                  disabled={guardando}
+                  onClick={() => desprogramar(programacionAbierta)}
+                  className={claseAccion}
+                >
+                  Quitar del calendario
+                </button>
+              </div>
+            </div>
           </DialogoCampania>
         ) : null}
       </main>
@@ -559,6 +725,8 @@ const claseAccionFila =
 
 function DetalleCampania({
   campania,
+  promociones,
+  onGuardarPromociones,
   guardando,
   confirmandoBorrado,
   inputDoodle,
@@ -663,6 +831,51 @@ function DetalleCampania({
       </div>
 
       <div className="flex flex-col gap-2">
+        {/* Las promociones que la campaña aplica mientras está activa. De acá
+            sale la regla más útil del módulo: apagar la campaña las apaga a
+            todas de una, sin desactivar nada una por una. */}
+        <div className="mb-2">
+          <h3 className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface-variant">
+            Promociones que aplica
+          </h3>
+          {promociones.length === 0 ? (
+            <p className="font-body-sm text-body-sm text-on-surface-variant">
+              Todavía no hay promociones. Creá una desde Promociones.
+            </p>
+          ) : (
+            <div className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-lg border border-outline-variant p-2">
+              {promociones.map((promocion) => {
+                const asociada = (campania.promociones ?? []).some((p) => p.id === promocion.id);
+                return (
+                  <label
+                    key={promocion.id}
+                    className="font-body-md text-body-md flex items-center gap-2 rounded px-2 py-1 text-on-surface hover:bg-surface-container"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={asociada}
+                      disabled={guardando}
+                      onChange={() => {
+                        const actuales = (campania.promociones ?? []).map((p) => p.id);
+                        onGuardarPromociones(
+                          asociada
+                            ? actuales.filter((id) => id !== promocion.id)
+                            : [...actuales, promocion.id],
+                        );
+                      }}
+                      className="h-4 w-4 accent-[rgb(var(--color-primary))]"
+                    />
+                    <span className="truncate">{promocion.nombre}</span>
+                    <span className="font-body-sm text-body-sm ml-auto shrink-0 text-on-surface-variant">
+                      {promocion.cantidadProductos}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <button
           type="button"
           disabled={guardando}

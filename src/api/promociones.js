@@ -85,3 +85,37 @@ export async function getListadoComercial({ page = 1, pageSize = 20, categoria }
   if (categoria) params.set("categoria", String(categoria));
   return pedir(`${BASE}/promociones/productos?${params}`);
 }
+
+/**
+ * Las programaciones que ocupan el mes visible.
+ *
+ * Filtro de SOLAPAMIENTO como el de campañas: una que arranca en agosto y
+ * termina en octubre ocupa septiembre y tiene que aparecer al mirar ese mes.
+ */
+export async function getProgramaciones({ desde, hasta } = {}) {
+  const query = desde && hasta ? `?desde=${desde}&hasta=${hasta}` : "";
+  return pedir(`${BASE}/promociones/programaciones${query}`);
+}
+
+/** Programa una promoción suelta, sin campaña. Nace habilitada. */
+export async function programarPromocion(promocionId, { desde, hasta }) {
+  return pedir(`${BASE}/promociones/${promocionId}/programaciones`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ desde, hasta }),
+  });
+}
+
+/** El OFF manual de una programación: deja de aplicarse sin perder el período. */
+export async function cambiarEstadoProgramacion(programacionId, habilitada) {
+  return pedir(`${BASE}/promociones/programaciones/${programacionId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ habilitada }),
+  });
+}
+
+/** Borra el período. **No borra la promoción**, que sigue existiendo. */
+export async function eliminarProgramacion(programacionId) {
+  return pedir(`${BASE}/promociones/programaciones/${programacionId}`, { method: "DELETE" });
+}

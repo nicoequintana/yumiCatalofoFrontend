@@ -35,6 +35,19 @@ export const DIAS_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
+/**
+ * La clave única de un elemento del calendario.
+ *
+ * El calendario dibuja DOS cosas distintas —campañas y promociones
+ * programadas—, y cada una vive en su tabla con su propio id autoincremental:
+ * la campaña 3 y la programación 3 conviven todo el tiempo. React usa la key
+ * para decidir qué nodo reusar, así que con una clave repetida una barra
+ * hereda el DOM de la otra.
+ */
+export function claveDeElemento(elemento) {
+  return `${elemento.tipo}-${elemento.id}`;
+}
+
 /** `Date` (UTC) → `"YYYY-MM-DD"`. La clave con la que se compara todo. */
 export function claveDeDia(fecha) {
   return fecha.toISOString().slice(0, 10);

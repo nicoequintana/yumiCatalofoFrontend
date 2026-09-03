@@ -131,3 +131,17 @@ export async function subirDoodle(id, archivo) {
 export async function quitarDoodle(id) {
   return pedirAutenticado(`${BASE}/campanias/${id}/doodle`, { method: "DELETE" });
 }
+
+/**
+ * Qué promociones aplica una campaña mientras está activa.
+ *
+ * Reemplaza la lista completa. **Desasociar NO borra la promoción**: sigue
+ * existiendo con sus productos y sus otras programaciones.
+ */
+export async function guardarPromocionesDeCampania(id, promocionIds) {
+  return pedirAutenticado(`${BASE}/campanias/${id}/promociones`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ promocionIds }),
+  });
+}

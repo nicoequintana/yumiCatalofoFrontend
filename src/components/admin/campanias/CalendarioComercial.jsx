@@ -1,7 +1,8 @@
-import { estiloDeCampania } from "../../../constants/campanias.js";
+import { estiloDeCampania, estiloDeProgramacion } from "../../../constants/campanias.js";
 import {
   DIAS_SEMANA,
   claveDeDia,
+  claveDeElemento,
   desplazarMes,
   esDelMes,
   esHoy,
@@ -35,10 +36,10 @@ import {
 export default function CalendarioComercial({
   mesVisible,
   onCambiarMes,
-  campanias,
+  elementos,
   claveHoy,
   onSeleccionarDia,
-  onSeleccionarCampania,
+  onSeleccionar,
 }) {
   const semanas = semanasDelMes(mesVisible.ano, mesVisible.mes);
 
@@ -93,7 +94,7 @@ export default function CalendarioComercial({
         </div>
 
         {semanas.map((semana) => {
-          const tramos = tramosDeLaSemana(campanias, semana);
+          const tramos = tramosDeLaSemana(elementos, semana);
           // El alto de la fila lo fija la cantidad de carriles ocupados: una
           // semana sin campañas no reserva espacio vacío, y una con cinco
           // superpuestas no las recorta.
@@ -144,25 +145,35 @@ export default function CalendarioComercial({
                   dos barras siga siendo un día clickeable; cada barra los
                   reactiva para sí misma. */}
               <div className="pointer-events-none absolute inset-x-0 top-9 grid grid-cols-7 gap-y-1 px-1">
-                {tramos.map(({ campania, columna, span, carril }) => {
-                  const estilo = estiloDeCampania(campania);
+                {tramos.map(({ campania: elemento, columna, span, carril }) => {
+                  // Dos cosas distintas comparten la grilla: una campaña es una
+                  // experiencia comercial completa, una programación es un
+                  // descuento con fecha. Se distinguen por forma e ícono, no
+                  // solo por color.
+                  const esPromocion = elemento.tipo === "PROMOCION";
+                  const estilo = esPromocion
+                    ? estiloDeProgramacion(elemento)
+                    : estiloDeCampania(elemento);
+                  const detalle = esPromocion
+                    ? elemento.habilitada
+                      ? "Promoción programada"
+                      : "Promoción programada, apagada"
+                    : `${elemento.etiquetaEstado} · ${elemento.etiquetaTemporal}`;
 
                   return (
                     <button
-                      key={campania.id}
+                      key={claveDeElemento(elemento)}
                       type="button"
-                      onClick={() => onSeleccionarCampania(campania)}
+                      onClick={() => onSeleccionar(elemento)}
                       style={{ gridColumn: `${columna} / span ${span}`, gridRow: carril + 1 }}
-                      title={`${campania.nombre} · ${campania.etiquetaEstado} · ${campania.etiquetaTemporal}`}
+                      title={`${elemento.nombre} · ${detalle}`}
                       className={`font-label-sm text-label-sm pointer-events-auto flex items-center gap-1 overflow-hidden rounded px-2 py-1 text-left transition-opacity hover:opacity-80 ${estilo.barra}`}
                     >
                       <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
                         {estilo.icono}
                       </span>
-                      <span className="truncate">{campania.nombre}</span>
-                      <span className="sr-only">
-                        {`, ${campania.etiquetaEstado}, ${campania.etiquetaTemporal}`}
-                      </span>
+                      <span className="truncate">{elemento.nombre}</span>
+                      <span className="sr-only">{`, ${detalle}`}</span>
                     </button>
                   );
                 })}

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   claveDeDia,
+  claveDeElemento,
   desplazarMes,
   esDelMes,
   esHoy,
@@ -212,5 +213,23 @@ describe("etiquetaDeMes", () => {
   it("nombra el mes en español", () => {
     expect(etiquetaDeMes({ ano: 2026, mes: 8 })).toBe("Septiembre 2026");
     expect(etiquetaDeMes({ ano: 2027, mes: 0 })).toBe("Enero 2027");
+  });
+});
+
+describe("claveDeElemento — campañas y programaciones en la misma grilla", () => {
+  it("una campaña y una programación con el MISMO id no colisionan", () => {
+    // Es el bug que este helper existe para impedir. Las dos tablas tienen sus
+    // propios ids autoincrementales, así que la campaña 3 y la programación 3
+    // conviven todo el tiempo — y React usa la key para decidir qué reusar: con
+    // una clave repetida, una barra hereda el DOM de la otra.
+    expect(claveDeElemento({ tipo: "CAMPANIA", id: 3 })).not.toBe(
+      claveDeElemento({ tipo: "PROMOCION", id: 3 }),
+    );
+  });
+
+  it("el mismo elemento da siempre la misma clave", () => {
+    expect(claveDeElemento({ tipo: "CAMPANIA", id: 3 })).toBe(
+      claveDeElemento({ tipo: "CAMPANIA", id: 3 }),
+    );
   });
 });
