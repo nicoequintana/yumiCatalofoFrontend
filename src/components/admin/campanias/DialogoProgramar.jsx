@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import useDialogo from "../../../hooks/useDialogo.js";
 
 /**
@@ -39,116 +40,124 @@ export default function DialogoProgramar({ promociones, diaInicial, guardando, o
     onProgramar({ promocionId: Number(promocionId), desde, hasta });
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-6">
-      <div
-        ref={dialogoRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="titulo-programar"
-        tabIndex={-1}
-        className="my-auto w-full max-w-lg rounded-xl bg-surface-container-lowest p-6 shadow-ambient outline-none"
-      >
-        <div className="mb-6 flex items-start justify-between gap-3">
-          <h2 id="titulo-programar" className="font-headline-sm text-headline-sm text-primary">
-            Programar una promoción
-          </h2>
-          <button
-            type="button"
-            onClick={onCerrar}
-            aria-label="Cerrar"
-            className="rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container"
-          >
-            <span aria-hidden="true" className="material-symbols-outlined block text-[20px]">
-              close
-            </span>
-          </button>
+  // Mismo contenedor que `DialogoCampania`, y por los mismos dos motivos: el
+  // portal lo saca del `relative z-10` de `AdminLayout` para que la bottom nav
+  // de escritorio (`z-40`, en la raíz) no se le pinte encima, y el envoltorio
+  // `min-h-full` reemplaza al `my-auto` que dejaba el borde superior fuera de
+  // la pantalla cuando el panel no entraba. El detalle está documentado allá.
+  return createPortal(
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-6 lg:pb-24">
+      <div className="flex min-h-full items-center justify-center">
+        <div
+          ref={dialogoRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="titulo-programar"
+          tabIndex={-1}
+          className="w-full max-w-lg rounded-xl bg-surface-container-lowest p-6 shadow-ambient outline-none"
+        >
+          <div className="mb-6 flex items-start justify-between gap-3">
+            <h2 id="titulo-programar" className="font-headline-sm text-headline-sm text-primary">
+              Programar una promoción
+            </h2>
+            <button
+              type="button"
+              onClick={onCerrar}
+              aria-label="Cerrar"
+              className="rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined block text-[20px]">
+                close
+              </span>
+            </button>
+          </div>
+
+          {disponibles.length === 0 ? (
+            <p className="font-body-md text-body-md text-on-surface-variant">
+              No hay promociones activas. Creá una desde <strong>Promociones</strong> y volvé acá para
+              programarla.
+            </p>
+          ) : (
+            <form onSubmit={enviar} className="flex flex-col gap-5">
+              <fieldset disabled={guardando} className="contents">
+                <div>
+                  <label htmlFor="programar-promocion" className={claseEtiqueta}>
+                    Promoción
+                  </label>
+                  <select
+                    id="programar-promocion"
+                    value={promocionId}
+                    onChange={(e) => setPromocionId(e.target.value)}
+                    className={claseCampo}
+                  >
+                    {disponibles.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre} ({p.cantidadProductos} producto
+                        {p.cantidadProductos === 1 ? "" : "s"})
+                      </option>
+                    ))}
+                  </select>
+                  {sinProductos ? (
+                    <p className="font-body-sm text-body-sm mt-2 rounded-lg bg-error-container px-3 py-2 text-on-error-container">
+                      Esta promoción no tiene productos: programarla no le bajaría el precio a nadie.
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="programar-desde" className={claseEtiqueta}>
+                      Desde
+                    </label>
+                    <input
+                      id="programar-desde"
+                      type="date"
+                      required
+                      value={desde}
+                      onChange={(e) => setDesde(e.target.value)}
+                      className={claseCampo}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="programar-hasta" className={claseEtiqueta}>
+                      Hasta
+                    </label>
+                    <input
+                      id="programar-hasta"
+                      type="date"
+                      required
+                      value={hasta}
+                      onChange={(e) => setHasta(e.target.value)}
+                      className={claseCampo}
+                    />
+                  </div>
+                </div>
+                <p className="font-body-sm text-body-sm text-on-surface-variant">
+                  Los dos días valen completos. Para un solo día, poné la misma fecha en las dos.
+                </p>
+
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={onCerrar}
+                    className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sinProductos}
+                    className="font-label-md text-label-md rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
+                  >
+                    {guardando ? "Programando…" : "Programar"}
+                  </button>
+                </div>
+              </fieldset>
+            </form>
+          )}
         </div>
-
-        {disponibles.length === 0 ? (
-          <p className="font-body-md text-body-md text-on-surface-variant">
-            No hay promociones activas. Creá una desde <strong>Promociones</strong> y volvé acá para
-            programarla.
-          </p>
-        ) : (
-          <form onSubmit={enviar} className="flex flex-col gap-5">
-            <fieldset disabled={guardando} className="contents">
-              <div>
-                <label htmlFor="programar-promocion" className={claseEtiqueta}>
-                  Promoción
-                </label>
-                <select
-                  id="programar-promocion"
-                  value={promocionId}
-                  onChange={(e) => setPromocionId(e.target.value)}
-                  className={claseCampo}
-                >
-                  {disponibles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre} ({p.cantidadProductos} producto
-                      {p.cantidadProductos === 1 ? "" : "s"})
-                    </option>
-                  ))}
-                </select>
-                {sinProductos ? (
-                  <p className="font-body-sm text-body-sm mt-2 rounded-lg bg-error-container px-3 py-2 text-on-error-container">
-                    Esta promoción no tiene productos: programarla no le bajaría el precio a nadie.
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="programar-desde" className={claseEtiqueta}>
-                    Desde
-                  </label>
-                  <input
-                    id="programar-desde"
-                    type="date"
-                    required
-                    value={desde}
-                    onChange={(e) => setDesde(e.target.value)}
-                    className={claseCampo}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="programar-hasta" className={claseEtiqueta}>
-                    Hasta
-                  </label>
-                  <input
-                    id="programar-hasta"
-                    type="date"
-                    required
-                    value={hasta}
-                    onChange={(e) => setHasta(e.target.value)}
-                    className={claseCampo}
-                  />
-                </div>
-              </div>
-              <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Los dos días valen completos. Para un solo día, poné la misma fecha en las dos.
-              </p>
-
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={onCerrar}
-                  className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={sinProductos}
-                  className="font-label-md text-label-md rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
-                >
-                  {guardando ? "Programando…" : "Programar"}
-                </button>
-              </div>
-            </fieldset>
-          </form>
-        )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -4,6 +4,7 @@ import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import SoloEscritorio from "../../components/admin/SoloEscritorio.jsx";
 import CalendarioComercial from "../../components/admin/campanias/CalendarioComercial.jsx";
+import DialogoCampania from "../../components/admin/campanias/DialogoCampania.jsx";
 import FormularioCampania from "../../components/admin/campanias/FormularioCampania.jsx";
 import {
   claveDeDia,
@@ -13,7 +14,6 @@ import {
 import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
 import { estiloDeCampania } from "../../constants/campanias.js";
 import { formatFecha } from "../../utils/formato.js";
-import useDialogo from "../../hooks/useDialogo.js";
 import {
   actualizarCampania,
   cambiarEstadoCampania,
@@ -680,43 +680,6 @@ function FilaCampania({ campania, guardando, onAbrir, onEditar, onAlternarEstado
  * trampa de foco, Escape, restauración) y `tabIndex={-1}` + `role="dialog"` +
  * `aria-modal` son parte de su contrato, no decoración.
  */
-function DialogoCampania({ titulo, onCerrar, children }) {
-  const dialogoRef = useDialogo({ onCerrar });
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-6">
-      <div
-        ref={dialogoRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="titulo-dialogo-campania"
-        tabIndex={-1}
-        className="my-auto w-full max-w-2xl rounded-xl bg-surface-container-lowest p-6 shadow-ambient outline-none"
-      >
-        <div className="mb-6 flex items-start justify-between gap-3">
-          <h2
-            id="titulo-dialogo-campania"
-            className="font-headline-sm text-headline-sm text-primary"
-          >
-            {titulo}
-          </h2>
-          <button
-            type="button"
-            onClick={onCerrar}
-            aria-label="Cerrar"
-            className="rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container"
-          >
-            <span aria-hidden="true" className="material-symbols-outlined block text-[20px]">
-              close
-            </span>
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
 const claseAccion =
   "font-label-md text-label-md w-full rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-60";
 
