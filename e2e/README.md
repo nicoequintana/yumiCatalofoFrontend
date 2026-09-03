@@ -56,9 +56,10 @@ por defecto de Playwright con `projects` múltiples, no algo que la config
 pueda desactivar; los scripts de `package.json` son la forma de elegir uno
 solo sin tener que acordarse del flag.
 
-**Por qué `mobile` corre un único spec y no la suite entera**: los otros 7
+**Por qué `mobile` corre un único spec y no la suite entera**: los otros 8
 specs (6 de flujo — 5 públicos más `admin-cambio-estado.spec.js`, que es del
-panel — y `admin-desktop-layout.spec.js`) prueban
+panel — más `admin-desktop-layout.spec.js` y `admin-tablero-ordenes.spec.js`)
+prueban
 *comportamiento* (checkout, login, cambio de estado de una orden, que la
 tabla siga siendo `display: table` en escritorio) — ese comportamiento ya
 está cubierto contra 1280px, y correrlo de nuevo a 412px no agrega cobertura
@@ -99,6 +100,47 @@ Qué verifica cada spec nuevo:
      botón "Abrir menú" devuelve el backdrop del diálogo y no un nodo del
      `<header>`. Es la medición del contexto de apilamiento de `AdminLayout`
      que jsdom no puede dar (ver "Tabla apilada del admin" en `CLAUDE.md`).
+- **`admin-tablero-ordenes.spec.js`** (proyecto `chromium`): el gesto de
+  arrastre del tablero Kanban de órdenes, que es lo ÚNICO que Vitest no puede
+  cubrir — jsdom no implementa `PointerEvent` ni `setPointerCapture` (el
+  `PointerSensor` de dnd-kit no arranca) y devuelve `getBoundingClientRect` en
+  cero, así que la detección de colisión resuelve degeneradamente. Verifica el
+  arrastre con mouse, el camino de TECLADO (que es por lo que se aceptó sumar
+  `@dnd-kit/core`), que cancelar el diálogo no mueva nada, y el panel de
+  resumen con Escape. Cada movimiento se confirma **leyendo la fila en la
+  base**, no contra la UI.
+
+  ⚠️ **Va entero en UN test con `test.step`, y no es pereza: el login tiene
+  rate limit de 8 intentos cada 15 minutos por IP.** Con un login por test,
+  este spec solo agotaba casi la mitad del cupo de la corrida y hacía fallar a
+  los demás — el primero en caerse fue `admin-cambio-estado.spec.js`, que ni
+  siquiera es parte de esa feature. Mismo criterio que `admin-mobile.spec.js`.
+  Si al correr la suite completa varios specs fallan con "sigo en
+  /catalogo/admin/login", **es el rate limit, no el código**: esperar 15
+  minutos.
+
+  Nota de Playwright: `page.dragAndDrop` falla seguido contra dnd-kit porque
+  manda un solo movimiento y no supera la `activationConstraint` de 8 px. Hay
+  que usar `mouse.move` → `down` → `move(..., { steps })` → `up`.
+
+  ⚠️ **Dos carreras que hay que respetar en cualquier test de este tablero, y
+  las dos son intermitentes:**
+
+  - **Levantar con `Space` NO es sincrónico.** Una flecha que llega antes se
+    procesa como si no hubiera arrastre: el `Space` final suelta sobre la MISMA
+    columna y no pasa nada, sin error. Hay que esperar a que aparezca el clon
+    del `DragOverlay` (`[data-tarjeta-orden][aria-hidden="true"]`), que existe
+    solo mientras dura el gesto. El anuncio del `aria-live` **no** sirve:
+    conserva el texto del arrastre anterior, así que la espera pasa de
+    inmediato.
+  - **Ver la tarjeta en la columna destino NO prueba que el PATCH terminó.**
+    Con el diálogo abierto la tarjeta ya se dibuja ahí (la previsualización que
+    evita verla "volver" detrás del modal), así que esa aserción pasa antes de
+    que se escriba nada. La señal de que el movimiento se persistió es que **el
+    diálogo se cerró**; leer la base antes devuelve el estado viejo.
+
+  Y en mobile, `getByRole("dialog")` pelado rompe por strict mode: el drawer
+  del menú también es un `dialog` (montado e inerte). Acotar por nombre.
 - **`admin-desktop-layout.spec.js`** (proyecto `chromium`): guard de
   no-regresión — a 1280x720 la tabla de `/productos` sigue siendo
   `display: table` (no apilada), el botón "Abrir menú" sigue oculto, el

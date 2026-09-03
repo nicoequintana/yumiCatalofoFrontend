@@ -9,8 +9,9 @@
  * comparte son estos dos strings de clases, y —desde el mecanismo de tabla
  * apilada en mobile— `claseTablaApilada` más su contrato de atributos.
  *
- * Son 18 las instancias de `<table>` que apilan (`AdminOperacion`, `AdminLogs`
- * y `AdminPrecios` tienen más de una). La única que NO lleva
+ * Son 17 las instancias de `<table>` que apilan (`AdminOperacion`, `AdminLogs`
+ * y `AdminPrecios` tienen más de una). Eran 18 hasta que `AdminOrdenes` dejó
+ * de ser una tabla y pasó a ser el tablero Kanban. La única que NO lleva
  * `claseTablaApilada` es la tabla de previsualización dentro del diálogo de
  * confirmación de `AdminPrecios`: ya vive en una caja angosta con su propio
  * scroll, no es el contenido principal de una pantalla.
