@@ -1,4 +1,5 @@
 import useDialogo from "../../hooks/useDialogo.js";
+import VeloModal from "../VeloModal.jsx";
 
 /**
  * Diálogo que se interpone entre elegir un estado nuevo y guardarlo, para que
@@ -49,7 +50,7 @@ function DialogoNotificarEstado({
   const puedeNotificar = Boolean(emailCliente);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/60 p-4">
+    <VeloModal className="z-50 flex items-center justify-center bg-inverse-surface/60 p-4">
       <div
         ref={contenedorRef}
         tabIndex={-1}
@@ -116,7 +117,7 @@ function DialogoNotificarEstado({
           </button>
         </div>
       </div>
-    </div>
+    </VeloModal>
   );
 }
 

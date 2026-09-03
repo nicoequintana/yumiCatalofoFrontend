@@ -8,6 +8,7 @@ import PanelPreview from "../../components/admin/producto/PanelPreview.jsx";
 import SolapaImagenes from "../../components/admin/producto/SolapaImagenes.jsx";
 import useProductoForm from "../../hooks/useProductoForm.js";
 import useDialogo from "../../hooks/useDialogo.js";
+import VeloModal from "../../components/VeloModal.jsx";
 
 /**
  * Shared create/edit editor.
@@ -216,7 +217,7 @@ function AdminProductoForm() {
       </div>
 
       {confirmandoBorrado ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-margin-mobile">
+        <VeloModal className="z-50 flex items-center justify-center bg-black/40 px-margin-mobile">
           <div
             ref={dialogoBorradoRef}
             role="dialog"
@@ -262,7 +263,7 @@ function AdminProductoForm() {
               </button>
             </div>
           </div>
-        </div>
+        </VeloModal>
       ) : null}
     </div>
   );

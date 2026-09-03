@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import useDialogo from "../../../hooks/useDialogo.js";
+import VeloModal from "../../VeloModal.jsx";
 
 /**
  * Programar una promoción suelta, sin campaña.
@@ -46,7 +47,7 @@ export default function DialogoProgramar({ promociones, diaInicial, guardando, o
   // `min-h-full` reemplaza al `my-auto` que dejaba el borde superior fuera de
   // la pantalla cuando el panel no entraba. El detalle está documentado allá.
   return createPortal(
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-6 lg:pb-24">
+    <VeloModal className="z-50 overflow-y-auto bg-black/40 p-6 lg:pb-24">
       <div className="flex min-h-full items-center justify-center">
         <div
           ref={dialogoRef}
@@ -157,7 +158,7 @@ export default function DialogoProgramar({ promociones, diaInicial, guardando, o
           )}
         </div>
       </div>
-    </div>,
+    </VeloModal>,
     document.body,
   );
 }

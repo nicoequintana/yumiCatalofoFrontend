@@ -20,6 +20,7 @@ import {
   calcularPrecio,
   estadoDePrecio,
 } from "../../utils/precios.js";
+import VeloModal from "../../components/VeloModal.jsx";
 
 /**
  * `/catalogo/admin/productos/precios` — costos, coeficiente y precio de venta.
@@ -1008,7 +1009,7 @@ function AdminPrecios() {
       ) : null}
 
       {confirmacion ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 p-4">
+        <VeloModal className="z-50 flex items-center justify-center bg-inverse-surface/50 p-4">
           <div
             ref={dialogoRef}
             role="dialog"
@@ -1090,7 +1091,7 @@ function AdminPrecios() {
               </button>
             </div>
           </div>
-        </div>
+        </VeloModal>
       ) : null}
     </main>
   );

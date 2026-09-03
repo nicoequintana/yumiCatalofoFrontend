@@ -1,5 +1,6 @@
 import { createPortal } from "react-dom";
 import useDialogo from "../../../hooks/useDialogo.js";
+import VeloModal from "../../VeloModal.jsx";
 
 /**
  * La cáscara de los diálogos de Campañas.
@@ -49,7 +50,7 @@ export default function DialogoCampania({ titulo, onCerrar, children }) {
   const dialogoRef = useDialogo({ onCerrar });
 
   return createPortal(
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-6 lg:pb-24">
+    <VeloModal className="z-50 overflow-y-auto bg-black/40 p-6 lg:pb-24">
       <div className="flex min-h-full items-center justify-center">
         <div
           ref={dialogoRef}
@@ -80,7 +81,7 @@ export default function DialogoCampania({ titulo, onCerrar, children }) {
           {children}
         </div>
       </div>
-    </div>,
+    </VeloModal>,
     document.body,
   );
 }

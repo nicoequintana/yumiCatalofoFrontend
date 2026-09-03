@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import LogoYima from "./LogoYima.jsx";
-import useBloquearScroll from "../hooks/useBloquearScroll.js";
 import useDialogo from "../hooks/useDialogo.js";
+import VeloModal from "./VeloModal.jsx";
 
 /**
  * El cartel estacional del catálogo público.
@@ -9,8 +9,9 @@ import useDialogo from "../hooks/useDialogo.js";
  * Es el ÚNICO elemento del sitio que interrumpe a alguien que no lo pidió, así
  * que se comporta como un diálogo de verdad y no como una capa decorativa:
  * `useDialogo` le da foco inicial, trampa de foco, cierre por Escape y
- * restauración del foco al salir, y `useBloquearScroll` frena la página de
- * atrás. Es el mismo tratamiento que el panel móvil del navbar y el lightbox.
+ * restauración del foco al salir, y `VeloModal` desenfoca y frena la página
+ * de atrás. Es el mismo tratamiento que el panel móvil del navbar y el
+ * lightbox.
  *
  * EL DOODLE. El arte de la campaña abre el cartel, y sale de `modal.doodleUrl`
  * —el Doodle de ESTA campaña, no el del encabezado—: los dos recursos se
@@ -52,7 +53,6 @@ function partirPorContador(texto, dias) {
 
 export default function ModalCampania({ modal, onCerrar }) {
   const dialogoRef = useDialogo({ onCerrar });
-  useBloquearScroll(true);
 
   const { partes, dias } = partirPorContador(modal.texto, modal.diasFaltantes);
 
@@ -61,7 +61,7 @@ export default function ModalCampania({ modal, onCerrar }) {
     // documenta `Navbar.jsx`: un ancestro con `backdrop-filter` se convierte en
     // bloque contenedor de sus descendientes `fixed` y les rompe el
     // posicionamiento.
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-margin-mobile">
+    <VeloModal className="z-[60] flex items-center justify-center bg-black/50 px-margin-mobile">
       <div
         ref={dialogoRef}
         role="dialog"
@@ -120,6 +120,6 @@ export default function ModalCampania({ modal, onCerrar }) {
           </Link>
         ) : null}
       </div>
-    </div>
+    </VeloModal>
   );
 }

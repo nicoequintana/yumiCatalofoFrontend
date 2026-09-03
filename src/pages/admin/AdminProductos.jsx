@@ -21,6 +21,7 @@ import { getCategorias } from "../../api/categorias.js";
 import { formatPrecio } from "../../utils/formato.js";
 import useDialogo from "../../hooks/useDialogo.js";
 import { MIN_DESTACADOS } from "../../hooks/useDestacados.js";
+import VeloModal from "../../components/VeloModal.jsx";
 
 /**
  * Filas por página de ESTA pantalla.
@@ -1041,7 +1042,7 @@ function AdminProductos() {
       ) : null}
 
       {confirmandoBorradoMasivo ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-margin-mobile">
+        <VeloModal className="z-50 flex items-center justify-center bg-black/40 px-margin-mobile">
           <div
             ref={dialogoMasivoRef}
             role="dialog"
@@ -1091,7 +1092,7 @@ function AdminProductos() {
               </button>
             </div>
           </div>
-        </div>
+        </VeloModal>
       ) : null}
     </main>
   );
