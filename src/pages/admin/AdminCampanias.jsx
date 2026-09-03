@@ -5,8 +5,15 @@ import Spinner from "../../components/Spinner.jsx";
 import SoloEscritorio from "../../components/admin/SoloEscritorio.jsx";
 import CalendarioComercial from "../../components/admin/campanias/CalendarioComercial.jsx";
 import FormularioCampania from "../../components/admin/campanias/FormularioCampania.jsx";
-import { claveDeDia, semanasDelMes } from "../../components/admin/campanias/calendario.js";
+import {
+  claveDeDia,
+  etiquetaDeMes,
+  semanasDelMes,
+} from "../../components/admin/campanias/calendario.js";
+import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
 import { estiloDeCampania } from "../../constants/campanias.js";
+import { formatFecha } from "../../utils/formato.js";
+import useDialogo from "../../hooks/useDialogo.js";
 import {
   actualizarCampania,
   cambiarEstadoCampania,
@@ -27,9 +34,17 @@ import useContextoComercial from "../../hooks/useContextoComercial.js";
  * siete columnas con barras que atraviesan la semana, y a 412 px no hay forma
  * honesta de mostrarla. El item tampoco aparece en el drawer de < lg.
  *
- * El mes visible acota la consulta (`?desde`/`?hasta`) con filtro de
- * SOLAPAMIENTO: una campaña de agosto a octubre aparece al mirar septiembre,
- * porque efectivamente ocupa ese mes.
+ * LAYOUT: el calendario ocupa el ancho completo arriba, y abajo va el CRUD de
+ * las campañas del mes. Empezó como calendario + panel lateral de 22 rem, y el
+ * panel apretaba un formulario que tiene cuatro secciones. Las dos mitades
+ * hablan SIEMPRE del mismo conjunto: la tabla usa la misma ventana de
+ * solapamiento que la consulta del calendario.
+ *
+ * Promociones es un módulo APARTE (`/catalogo/admin/promociones`) y no una
+ * sección de esta pantalla: su listado comercial es una tabla de análisis
+ * entera. La separación que sí importa no es de pantallas sino de ACCIONES —
+ * Promociones define QUÉ descuento tiene cada producto, el calendario programa
+ * CUÁNDO se aplica.
  */
 
 /** El mes al que pertenece una clave `AAAA-MM-DD`. */
@@ -128,6 +143,26 @@ export default function AdminCampanias() {
     setConfirmandoBorrado(false);
   }
 
+  function abrirDetalle(campania) {
+    setSeleccionada(campania);
+    setDiaElegido(null);
+    setEditando(false);
+    setConfirmandoBorrado(false);
+  }
+
+  function abrirEdicion(campania) {
+    setSeleccionada(campania);
+    setDiaElegido(null);
+    setEditando(true);
+    setConfirmandoBorrado(false);
+  }
+
+  function abrirAlta(clave) {
+    setSeleccionada(null);
+    setDiaElegido(clave);
+    setEditando(true);
+  }
+
   /**
    * Ejecuta una mutación y refresca el listado.
    *
@@ -172,7 +207,9 @@ export default function AdminCampanias() {
     const siguiente = campania.estado === "HABILITADA" ? "DESHABILITADA" : "HABILITADA";
     await conGuardado(async () => {
       const actualizada = await cambiarEstadoCampania(campania.id, siguiente);
-      setSeleccionada(actualizada);
+      // Solo se refleja en el diálogo si es la campaña que está abierta: el
+      // botón de la tabla puede apagar una fila distinta de la seleccionada.
+      setSeleccionada((actual) => (actual?.id === campania.id ? actualizada : actual));
     });
   }
 
@@ -236,77 +273,141 @@ export default function AdminCampanias() {
           </p>
         ) : null}
 
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
-          <div>
-            {sinFecha ? (
-              <EstadoVacio
-                icono="cloud_off"
-                titulo="No se pudo abrir el calendario"
-                mensaje="Revisá tu conexión e intentá de nuevo."
-              />
-            ) : cargando || !mesVisible ? (
-              <div className="flex items-center justify-center gap-3 py-24">
-                <Spinner className="h-8 w-8 text-on-surface-variant" />
-                <span className="font-body-md text-body-md text-on-surface-variant">
-                  Cargando campañas…
-                </span>
-              </div>
-            ) : (
-              <CalendarioComercial
-                mesVisible={mesVisible}
-                onCambiarMes={(mes) => {
-                  // Sin `claveDia` no hay a qué "hoy" volver: se queda donde está en vez
-                  // de inventar uno con el reloj del navegador.
-                  setMesVisible(mes ?? (claveDia ? mesDeClave(claveDia) : mesVisible));
-                  cerrarPanel();
-                }}
-                campanias={campanias}
-                claveHoy={claveDia}
-                onSeleccionarDia={(clave) => {
-                  setSeleccionada(null);
-                  setDiaElegido(clave);
-                  setEditando(false);
-                }}
-                onSeleccionarCampania={(campania) => {
-                  setSeleccionada(campania);
-                  setDiaElegido(null);
-                  setEditando(false);
-                  setConfirmandoBorrado(false);
-                }}
-              />
-            )}
-
-            {!cargando && !error && !sinFecha && mesVisible && campanias.length === 0 ? (
-              <div className="mt-6">
-                <EstadoVacio
-                  icono="event_available"
-                  titulo="Todavía no hay campañas este mes"
-                  mensaje="Tocá cualquier día del calendario para crear la primera."
-                />
-              </div>
-            ) : null}
+        {/* CALENDARIO — a lo ancho. Es la vista principal del módulo. */}
+        {sinFecha ? (
+          <EstadoVacio
+            icono="cloud_off"
+            titulo="No se pudo abrir el calendario"
+            mensaje="Revisá tu conexión e intentá de nuevo."
+          />
+        ) : cargando || !mesVisible ? (
+          <div className="flex items-center justify-center gap-3 py-24">
+            <Spinner className="h-8 w-8 text-on-surface-variant" />
+            <span className="font-body-md text-body-md text-on-surface-variant">
+              Cargando campañas…
+            </span>
           </div>
+        ) : (
+          <CalendarioComercial
+            mesVisible={mesVisible}
+            onCambiarMes={(mes) => {
+              // Sin `claveDia` no hay a qué "hoy" volver: se queda donde está en
+              // vez de inventar uno con el reloj del navegador.
+              setMesVisible(mes ?? (claveDia ? mesDeClave(claveDia) : mesVisible));
+              cerrarPanel();
+            }}
+            campanias={campanias}
+            claveHoy={claveDia}
+            onSeleccionarDia={abrirAlta}
+            onSeleccionarCampania={abrirDetalle}
+          />
+        )}
 
-          <aside className="rounded-xl border border-outline-variant bg-surface-container-low p-5">
-            {!panelAbierto ? (
-              <p className="font-body-md text-body-md text-on-surface-variant">
-                Elegí un día para crear una campaña, o una campaña del calendario para ver su
-                detalle.
-              </p>
-            ) : mostrandoFormulario ? (
-              <>
-                <h2 className="font-headline-sm text-headline-sm mb-6 text-primary">
-                  {seleccionada ? "Editar campaña" : "Nueva campaña"}
+        {/* CRUD — las campañas del mes visible, con la MISMA ventana de
+            solapamiento que el calendario: lo de arriba y lo de abajo hablan
+            siempre del mismo conjunto. */}
+        {!sinFecha && mesVisible ? (
+          <section aria-labelledby="titulo-crud-campanias" className="mt-10">
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <div>
+                <h2
+                  id="titulo-crud-campanias"
+                  className="font-headline-sm text-headline-sm text-primary"
+                >
+                  Campañas de {etiquetaDeMes(mesVisible)}
                 </h2>
-                <FormularioCampania
-                  campania={seleccionada}
-                  diaElegido={diaElegido}
-                  opciones={opciones}
-                  guardando={guardando}
-                  onGuardar={guardar}
-                  onCancelar={() => (seleccionada ? setEditando(false) : cerrarPanel())}
-                />
-              </>
+                <p className="font-body-md text-body-md mt-1 text-on-surface-variant">
+                  Incluye las que arrancan antes o terminan después, mientras ocupen algún día del
+                  mes.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => abrirAlta(claveDia)}
+                className="font-label-md text-label-md shrink-0 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
+              >
+                Nueva campaña
+              </button>
+            </div>
+
+            {cargando ? null : campanias.length === 0 ? (
+              <EstadoVacio
+                icono="event_available"
+                titulo="Todavía no hay campañas este mes"
+                mensaje="Tocá cualquier día del calendario, o el botón de arriba, para crear la primera."
+              />
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-outline-variant bg-surface-container-lowest">
+                {/* Sin `claseTablaApilada`: esta pantalla nunca se renderiza por
+                    debajo de `lg`, así que el CSS de apilado —que arranca en
+                    `md`— no puede dispararse nunca. Ver `clasesTabla.js`. */}
+                <table role="table" className="w-full">
+                  <thead role="rowgroup">
+                    <tr
+                      role="row"
+                      className="border-b border-outline-variant bg-surface-container-low text-left"
+                    >
+                      <th role="columnheader" className={claseEncabezado}>
+                        Campaña
+                      </th>
+                      <th role="columnheader" className={claseEncabezado}>
+                        Período
+                      </th>
+                      <th role="columnheader" className={claseEncabezado}>
+                        Estado
+                      </th>
+                      <th role="columnheader" className={`${claseEncabezado} text-right`}>
+                        Prioridad
+                      </th>
+                      <th role="columnheader" className={claseEncabezado}>
+                        Experiencia
+                      </th>
+                      <th role="columnheader" className={`${claseEncabezado} text-right`}>
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody role="rowgroup">
+                    {campanias.map((campania) => (
+                      <FilaCampania
+                        key={campania.id}
+                        campania={campania}
+                        guardando={guardando}
+                        onAbrir={() => abrirDetalle(campania)}
+                        onEditar={() => abrirEdicion(campania)}
+                        onAlternarEstado={() => alternarEstado(campania)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        ) : null}
+
+        {/* El detalle y el formulario viven en un DIÁLOGO y no en un panel
+            lateral: el formulario tiene cuatro secciones y en 22 rem quedaba
+            apretado contra el borde. */}
+        {panelAbierto ? (
+          <DialogoCampania
+            titulo={
+              mostrandoFormulario
+                ? seleccionada
+                  ? "Editar campaña"
+                  : "Nueva campaña"
+                : seleccionada.nombre
+            }
+            onCerrar={cerrarPanel}
+          >
+            {mostrandoFormulario ? (
+              <FormularioCampania
+                campania={seleccionada}
+                diaElegido={diaElegido}
+                opciones={opciones}
+                guardando={guardando}
+                onGuardar={guardar}
+                onCancelar={() => (seleccionada ? setEditando(false) : cerrarPanel())}
+              />
             ) : (
               <DetalleCampania
                 campania={seleccionada}
@@ -321,18 +422,140 @@ export default function AdminCampanias() {
                 onEliminar={() => eliminar(seleccionada)}
                 onSubirDoodle={cambiarDoodle}
                 onQuitarDoodle={borrarDoodle}
-                onCerrar={cerrarPanel}
               />
             )}
-          </aside>
-        </div>
+          </DialogoCampania>
+        ) : null}
       </main>
     </SoloEscritorio>
   );
 }
 
+/** Una fila del CRUD. Aparte para que el `map` de la tabla se lea de un vistazo. */
+function FilaCampania({ campania, guardando, onAbrir, onEditar, onAlternarEstado }) {
+  const estilo = estiloDeCampania(campania);
+  const encendida = campania.estado === "HABILITADA";
+  const sinExperiencia = !campania.doodleUrl && !campania.modalActivo;
+
+  return (
+    <tr
+      role="row"
+      className="border-b border-outline-variant transition-colors last:border-b-0 hover:bg-surface-container"
+    >
+      <td role="cell" className={claseCelda}>
+        <button type="button" onClick={onAbrir} className="text-left text-primary hover:underline">
+          {campania.nombre}
+        </button>
+        <span className="font-body-sm text-body-sm block text-on-surface-variant">
+          {campania.tipo}
+        </span>
+      </td>
+      <td role="cell" className={`${claseCelda} whitespace-nowrap text-on-surface-variant`}>
+        {formatFecha(campania.desde)} → {formatFecha(campania.hasta)}
+      </td>
+      <td role="cell" className={claseCelda}>
+        {/* El estado nunca se comunica solo con color: ícono + texto siempre. */}
+        <span
+          className={`font-label-sm text-label-sm inline-flex items-center gap-1 rounded-full px-3 py-1 ${estilo.barra}`}
+        >
+          <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
+            {estilo.icono}
+          </span>
+          {campania.etiquetaEstado} · {campania.etiquetaTemporal}
+        </span>
+      </td>
+      <td role="cell" className={`${claseCelda} text-right text-on-surface-variant`}>
+        {campania.prioridad}
+      </td>
+      <td role="cell" className={`${claseCelda} text-on-surface-variant`}>
+        <span className="flex gap-3">
+          {campania.doodleUrl ? (
+            <span className="flex items-center gap-1">
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
+                palette
+              </span>
+              Doodle
+            </span>
+          ) : null}
+          {campania.modalActivo ? (
+            <span className="flex items-center gap-1">
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
+                campaign
+              </span>
+              Modal
+            </span>
+          ) : null}
+          {sinExperiencia ? "—" : null}
+        </span>
+      </td>
+      <td role="cell" className={`${claseCelda} text-right`}>
+        <span className="flex justify-end gap-2">
+          <button
+            type="button"
+            disabled={guardando}
+            onClick={onAlternarEstado}
+            className={claseAccionFila}
+          >
+            {encendida ? "Apagar" : "Encender"}
+          </button>
+          <button type="button" disabled={guardando} onClick={onEditar} className={claseAccionFila}>
+            Editar
+          </button>
+        </span>
+      </td>
+    </tr>
+  );
+}
+
+/**
+ * El diálogo que envuelve al detalle y al formulario.
+ *
+ * `useDialogo` resuelve las cuatro piezas de un modal accesible (foco inicial,
+ * trampa de foco, Escape, restauración) y `tabIndex={-1}` + `role="dialog"` +
+ * `aria-modal` son parte de su contrato, no decoración.
+ */
+function DialogoCampania({ titulo, onCerrar, children }) {
+  const dialogoRef = useDialogo({ onCerrar });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-6">
+      <div
+        ref={dialogoRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="titulo-dialogo-campania"
+        tabIndex={-1}
+        className="my-auto w-full max-w-2xl rounded-xl bg-surface-container-lowest p-6 shadow-ambient outline-none"
+      >
+        <div className="mb-6 flex items-start justify-between gap-3">
+          <h2
+            id="titulo-dialogo-campania"
+            className="font-headline-sm text-headline-sm text-primary"
+          >
+            {titulo}
+          </h2>
+          <button
+            type="button"
+            onClick={onCerrar}
+            aria-label="Cerrar"
+            className="rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container"
+          >
+            <span aria-hidden="true" className="material-symbols-outlined block text-[20px]">
+              close
+            </span>
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 const claseAccion =
   "font-label-md text-label-md w-full rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-60";
+
+const claseAccionFila =
+  "font-label-sm text-label-sm rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60";
 
 function DetalleCampania({
   campania,
@@ -347,97 +570,99 @@ function DetalleCampania({
   onEliminar,
   onSubirDoodle,
   onQuitarDoodle,
-  onCerrar,
 }) {
   const estilo = estiloDeCampania(campania);
   const encendida = campania.estado === "HABILITADA";
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="font-headline-sm text-headline-sm text-primary">{campania.nombre}</h2>
-        <button
-          type="button"
-          onClick={onCerrar}
-          aria-label="Cerrar detalle"
-          className="rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container"
-        >
-          <span aria-hidden="true" className="material-symbols-outlined block text-[20px]">
-            close
+    <div className="grid gap-6 md:grid-cols-2">
+      <div className="flex flex-col gap-5">
+        {/* El estado nunca se comunica solo con color: ícono + texto siempre. */}
+        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${estilo.barra}`}>
+          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+            {estilo.icono}
           </span>
-        </button>
-      </div>
-
-      {/* El estado nunca se comunica solo con color: ícono + texto siempre. */}
-      <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${estilo.barra}`}>
-        <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-          {estilo.icono}
-        </span>
-        <span className="font-label-md text-label-md">
-          {campania.etiquetaEstado} · {campania.etiquetaTemporal}
-        </span>
-      </div>
-
-      <dl className="font-body-md text-body-md flex flex-col gap-2 text-on-surface-variant">
-        <div className="flex justify-between gap-3">
-          <dt>Período</dt>
-          <dd className="text-on-surface">
-            {campania.desde} → {campania.hasta}
-          </dd>
+          <span className="font-label-md text-label-md">
+            {campania.etiquetaEstado} · {campania.etiquetaTemporal}
+          </span>
         </div>
-        <div className="flex justify-between gap-3">
-          <dt>Prioridad</dt>
-          <dd className="text-on-surface">{campania.prioridad}</dd>
-        </div>
-        {campania.descripcion ? (
-          <div className="mt-1">
-            <dt className="font-label-sm text-label-sm uppercase tracking-widest">Nota interna</dt>
-            <dd className="mt-1 text-on-surface">{campania.descripcion}</dd>
+
+        <dl className="font-body-md text-body-md flex flex-col gap-2 text-on-surface-variant">
+          <div className="flex justify-between gap-3">
+            <dt>Período</dt>
+            <dd className="text-on-surface">
+              {formatFecha(campania.desde)} → {formatFecha(campania.hasta)}
+            </dd>
           </div>
-        ) : null}
-      </dl>
-
-      <div>
-        <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface-variant">
-          Doodle
-        </h3>
-        {campania.doodleUrl ? (
-          <img
-            src={campania.doodleUrl}
-            alt={`Doodle de ${campania.nombre}`}
-            className="mb-3 h-16 w-auto rounded-lg bg-surface-container-lowest p-2"
-          />
-        ) : (
-          <p className="font-body-sm text-body-sm mb-3 text-on-surface-variant">
-            Sin Doodle: el logo queda como siempre.
-          </p>
-        )}
-
-        <input
-          ref={inputDoodle}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={onSubirDoodle}
-          className="sr-only"
-        />
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            disabled={guardando}
-            onClick={() => inputDoodle.current?.click()}
-            className={claseAccion}
-          >
-            {campania.doodleUrl ? "Reemplazar Doodle" : "Subir Doodle"}
-          </button>
-          {campania.doodleUrl ? (
-            <button type="button" disabled={guardando} onClick={onQuitarDoodle} className={claseAccion}>
-              Quitar Doodle
-            </button>
+          <div className="flex justify-between gap-3">
+            <dt>Tipo</dt>
+            <dd className="text-on-surface">{campania.tipo}</dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt>Prioridad</dt>
+            <dd className="text-on-surface">{campania.prioridad}</dd>
+          </div>
+          {campania.modalActivo ? (
+            <div className="flex justify-between gap-3">
+              <dt>Modal</dt>
+              <dd className="text-on-surface">{campania.modalTitulo}</dd>
+            </div>
           ) : null}
+          {campania.descripcion ? (
+            <div className="mt-1">
+              <dt className="font-label-sm text-label-sm uppercase tracking-widest">Nota interna</dt>
+              <dd className="mt-1 text-on-surface">{campania.descripcion}</dd>
+            </div>
+          ) : null}
+        </dl>
+
+        <div>
+          <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface-variant">
+            Doodle
+          </h3>
+          {campania.doodleUrl ? (
+            <img
+              src={campania.doodleUrl}
+              alt={`Doodle de ${campania.nombre}`}
+              className="mb-3 h-16 w-auto rounded-lg bg-surface-container p-2"
+            />
+          ) : (
+            <p className="font-body-sm text-body-sm mb-3 text-on-surface-variant">
+              Sin Doodle: el logo queda como siempre.
+            </p>
+          )}
+
+          <input
+            ref={inputDoodle}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={onSubirDoodle}
+            className="sr-only"
+          />
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              disabled={guardando}
+              onClick={() => inputDoodle.current?.click()}
+              className={claseAccion}
+            >
+              {campania.doodleUrl ? "Reemplazar Doodle" : "Subir Doodle"}
+            </button>
+            {campania.doodleUrl ? (
+              <button
+                type="button"
+                disabled={guardando}
+                onClick={onQuitarDoodle}
+                className={claseAccion}
+              >
+                Quitar Doodle
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-outline-variant pt-4">
+      <div className="flex flex-col gap-2">
         <button
           type="button"
           disabled={guardando}
@@ -455,10 +680,10 @@ function DetalleCampania({
           Duplicar
         </button>
 
-        {/* Confirmación inline, sin modal: el mismo patrón que Categorías y
-            Anuncios usan para el borrado. */}
+        {/* Confirmación inline, sin otro modal encima: el mismo patrón que
+            Categorías y Anuncios usan para el borrado. */}
         {confirmandoBorrado ? (
-          <div className="flex flex-col gap-2 rounded-lg bg-error-container p-3">
+          <div className="mt-2 flex flex-col gap-2 rounded-lg bg-error-container p-3">
             <p className="font-body-sm text-body-sm text-on-error-container">
               ¿Eliminar “{campania.nombre}”? No se puede deshacer.
             </p>
@@ -482,7 +707,12 @@ function DetalleCampania({
             </div>
           </div>
         ) : (
-          <button type="button" disabled={guardando} onClick={onPedirBorrado} className={claseAccion}>
+          <button
+            type="button"
+            disabled={guardando}
+            onClick={onPedirBorrado}
+            className={`${claseAccion} mt-2`}
+          >
             Eliminar
           </button>
         )}

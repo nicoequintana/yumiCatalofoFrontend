@@ -11,10 +11,16 @@
  *
  * Son 17 las instancias de `<table>` que apilan (`AdminOperacion`, `AdminLogs`
  * y `AdminPrecios` tienen más de una). Eran 18 hasta que `AdminOrdenes` dejó
- * de ser una tabla y pasó a ser el tablero Kanban. La única que NO lleva
- * `claseTablaApilada` es la tabla de previsualización dentro del diálogo de
- * confirmación de `AdminPrecios`: ya vive en una caja angosta con su propio
- * scroll, no es el contenido principal de una pantalla.
+ * de ser una tabla y pasó a ser el tablero Kanban. Hay DOS que no llevan
+ * `claseTablaApilada`, cada una por su motivo:
+ *
+ * - la tabla de previsualización dentro del diálogo de confirmación de
+ *   `AdminPrecios`: ya vive en una caja angosta con su propio scroll, no es el
+ *   contenido principal de una pantalla;
+ * - la de `AdminCampanias`: esa pantalla es **solo escritorio** y nunca se
+ *   renderiza por debajo de `lg` (ver `SoloEscritorio.jsx`), así que el CSS de
+ *   apilado —que arranca en `md`— no puede dispararse nunca. Ponerlo sería un
+ *   contrato de `data-label` que hay que mantener para un caso inalcanzable.
  *
  * `claseCelda` se compone con la clase de color de cada celda:
  * `` className={`${claseCelda} text-on-surface`} ``.
