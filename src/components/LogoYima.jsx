@@ -17,13 +17,28 @@
  * PNG como alternativa (41 kB). El original de marca son 494 kB a 2038 px de
  * ancho, un peso que no tiene sentido pagar en cada página para pintar una
  * imagen de menos de cien píxeles.
+ *
+ * DOODLE. `doodleUrl` reemplaza temporalmente el wordmark por la variante de
+ * una campaña activa (ver `useContextoComercial`). Tres cosas se mantienen
+ * intactas cuando eso pasa, y las tres son las de arriba:
+ *
+ * - el `alt` sigue siendo "YIMA", porque es el nombre accesible del link a la
+ *   home: una campaña de temporada no puede dejar ese link mudo;
+ * - las dimensiones intrínsecas siguen puestas, y acá importan MÁS —el Doodle
+ *   es una imagen remota, más propensa al salto que un archivo local—;
+ * - la clase `logo-yima` sigue enganchando el realce del tema oscuro.
+ *
+ * Lo único que se cae es el `<source>` del WebP: su `srcSet` apunta al archivo
+ * estático de la marca, así que dejarlo puesto haría que todo navegador con
+ * soporte WebP —o sea, todos— siguiera mostrando el logo viejo y el Doodle no
+ * se viera nunca.
  */
-export default function LogoYima({ className = "h-8", decorativo = false }) {
+export default function LogoYima({ className = "h-8", decorativo = false, doodleUrl = null }) {
   return (
     <picture>
-      <source srcSet="/logo-yima-160.webp" type="image/webp" />
+      {doodleUrl ? null : <source srcSet="/logo-yima-160.webp" type="image/webp" />}
       <img
-        src="/logo-yima-160.png"
+        src={doodleUrl ?? "/logo-yima-160.png"}
         // Un logo decorativo es el que acompaña a un texto que ya dice la marca
         // (el "YIMA ADMIN" del panel): ahí repetirlo obligaría a escuchar el
         // nombre dos veces seguidas.

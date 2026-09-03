@@ -34,6 +34,7 @@ const AdminAnuncios = lazy(() => import("./pages/admin/AdminAnuncios.jsx"));
 const AdminMetricas = lazy(() => import("./pages/admin/AdminMetricas.jsx"));
 const AdminUsuarios = lazy(() => import("./pages/admin/AdminUsuarios.jsx"));
 const AdminOrdenes = lazy(() => import("./pages/admin/AdminOrdenes.jsx"));
+const AdminCampanias = lazy(() => import("./pages/admin/AdminCampanias.jsx"));
 const AdminOrdenDetalle = lazy(() => import("./pages/admin/AdminOrdenDetalle.jsx"));
 const AdminProductosSolicitados = lazy(
   () => import("./pages/admin/AdminProductosSolicitados.jsx"),
@@ -101,6 +102,10 @@ function App() {
           <Route path="/catalogo/admin/productos/salud" element={<AdminSaludCatalogo />} />
           <Route path="/catalogo/admin/productos/:id/editar" element={<AdminProductoForm />} />
           <Route path="/catalogo/admin/ordenes" element={<AdminOrdenes />} />
+          {/* Solo escritorio: el item no aparece en el drawer de < lg y la
+              pantalla se guarda a sí misma con `SoloEscritorio`, para quien
+              llegue por una URL pegada a mano. */}
+          <Route path="/catalogo/admin/campanias" element={<AdminCampanias />} />
           {/* Segmento literal dentro de `/ordenes/`: convive con `/:id` de
               abajo porque react-router resuelve por especificidad, no por
               orden de declaración. Hay un test que lo fija. */}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import useBloquearScroll from "../hooks/useBloquearScroll.js";
 import useCarrito from "../hooks/useCarrito.js";
+import useContextoComercial from "../hooks/useContextoComercial.js";
 import useDialogo from "../hooks/useDialogo.js";
 import LogoYima from "./LogoYima.jsx";
 
@@ -52,6 +53,13 @@ function Navbar() {
   const { pathname } = useLocation();
   const esAdmin = pathname.startsWith("/catalogo/admin");
   const { cantidadTotal } = useCarrito();
+
+  // El Doodle sale del contexto comercial, que se pide una sola vez por carga
+  // de página y lo comparten todos los consumidores. Cuál de los dos aplica lo
+  // decide la superficie: el panel y el catálogo son públicos distintos, y una
+  // campaña puede querer marca festiva en uno y no en el otro.
+  const { doodle, doodleAdmin } = useContextoComercial();
+  const doodleDelHeader = (esAdmin ? doodleAdmin : doodle)?.url ?? null;
 
   const [menuAbierto, setMenuAbierto] = useState(false);
 
@@ -142,8 +150,13 @@ function Navbar() {
           vidrio en toda la franja del contenido — el blur se aplicaría igual,
           detrás de una capa opaca, y no se vería nada. */}
       <div className="relative z-50 mx-auto flex h-navbar-height w-full max-w-container-max items-center justify-between gap-4 px-margin-mobile md:grid md:h-navbar-height-md md:grid-cols-[1fr_auto_1fr] md:px-margin-desktop">
+        {/* El Doodle de la campaña activa reemplaza al wordmark. Sin campaña
+            —el caso normal— `doodle` es null y `LogoYima` pinta la marca de
+            siempre. En el panel manda el Doodle del panel, que puede ser el de
+            otra campaña o ninguno: son dos públicos distintos y cada campaña
+            decide por separado dónde aparece. */}
         <Link to="/" className="shrink-0 transition-opacity hover:opacity-80">
-          <LogoYima className="h-7 md:h-8" />
+          <LogoYima className="h-7 md:h-8" doodleUrl={doodleDelHeader} />
         </Link>
 
         {esAdmin ? null : (

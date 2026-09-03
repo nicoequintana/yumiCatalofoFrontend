@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { clearToken } from "../api/authClient.js";
 import useBloquearScroll from "../hooks/useBloquearScroll.js";
+import useContextoComercial from "../hooks/useContextoComercial.js";
 import useDialogo from "../hooks/useDialogo.js";
 import LogoYima from "./LogoYima.jsx";
 import ToggleTemaAdmin from "./ToggleTemaAdmin.jsx";
@@ -27,9 +28,24 @@ function claseTab({ isActive }) {
   return `${tabBase} ${isActive ? tabActivo : tabInactivo}`;
 }
 
+/**
+ * `soloEscritorio` marca los módulos que NO existen para el celular.
+ *
+ * El calendario comercial es una grilla de siete columnas con barras que
+ * atraviesan la semana: a 412 px no hay forma honesta de mostrarlo. En vez de
+ * degradarlo a algo ilegible, el item se filtra del drawer (que es la
+ * navegación de < lg) y solo aparece en la bottom nav, que ya es `hidden
+ * lg:flex`.
+ *
+ * Se resuelve con un flag en el dato y CSS, NO con `matchMedia`: el frontend no
+ * tiene ninguno y el plan del admin responsive lo descarta a propósito. Mismo
+ * mecanismo que `soloChico` en `EditorTabs.jsx` y `soloEscritorio` en
+ * `constants/hero.js`.
+ */
 const ITEMS_NAV = [
   { to: "/catalogo/admin/productos", icono: "inventory_2", label: "Productos" },
   { to: "/catalogo/admin/ordenes", icono: "receipt_long", label: "Órdenes" },
+  { to: "/catalogo/admin/campanias", icono: "calendar_month", label: "Campañas", soloEscritorio: true },
   { to: "/catalogo/admin/ventas", icono: "payments", label: "Ventas" },
   { to: "/catalogo/admin/embudo", icono: "filter_alt", label: "Embudo" },
   { to: "/catalogo/admin/clientes", icono: "group", label: "Clientes" },
@@ -37,6 +53,9 @@ const ITEMS_NAV = [
   { to: "/catalogo/admin/metricas", icono: "query_stats", label: "Métricas" },
   { to: "/catalogo/admin/logs", icono: "history", label: "Logs" },
 ];
+
+/** Los que sí van en el drawer de < lg. */
+const ITEMS_NAV_MOBILE = ITEMS_NAV.filter((item) => !item.soloEscritorio);
 
 const ITEMS_CONFIGURACION = [
   { to: "/catalogo/admin/configuracion/categorias", label: "Categorías" },
@@ -65,6 +84,12 @@ const ITEMS_CONFIGURACION = [
  * barra ya está pegada al borde inferior de la pantalla).
  */
 function AdminSidebar({ colapsada, onCerrar }) {
+  // El Doodle del PANEL, que puede ser el de otra campaña que el del catálogo o
+  // ninguno: cada campaña decide por separado dónde aparece. Sin campaña activa
+  // es null y los dos logos pintan la marca de siempre.
+  const { doodleAdmin } = useContextoComercial();
+  const doodleUrl = doodleAdmin?.url ?? null;
+
   const location = useLocation();
   const navigate = useNavigate();
   const enConfiguracion = location.pathname.startsWith("/catalogo/admin/configuracion");
@@ -127,13 +152,13 @@ function AdminSidebar({ colapsada, onCerrar }) {
           {/* El logo aporta la marca y "ADMIN" la califica: juntos dan el mismo
               nombre accesible que tenía el texto, sin repetir "YIMA" dos veces. */}
           <span className="mb-8 flex items-baseline gap-2 px-2">
-            <LogoYima className="h-7 self-center" />
+            <LogoYima className="h-7 self-center" doodleUrl={doodleUrl} />
             <span className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant">
               Admin
             </span>
           </span>
           <nav className="flex flex-col gap-1">
-            {ITEMS_NAV.map((item) => (
+            {ITEMS_NAV_MOBILE.map((item) => (
               <NavLink key={item.to} to={item.to} className={claseLink} onClick={onCerrar}>
                 <span className="material-symbols-outlined text-[18px]">{item.icono}</span>
                 {item.label}
@@ -193,7 +218,7 @@ function AdminSidebar({ colapsada, onCerrar }) {
           documentado en CLAUDE.md: hasta ese toque (o Escape, o navegar) el
           scroll sigue bloqueado. */}
       <nav className="fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-6 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:flex">
-        <LogoYima className="h-6 shrink-0" />
+        <LogoYima className="h-6 shrink-0" doodleUrl={doodleUrl} />
 
         <div className="flex items-center gap-2">
           {ITEMS_NAV.map((item) => (
