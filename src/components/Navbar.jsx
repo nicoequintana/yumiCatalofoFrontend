@@ -127,13 +127,12 @@ function Navbar() {
   // soporte no se pierde el efecto — se queda con una barra semitransparente
   // y el contenido NÍTIDO por detrás, que es peor que no haber intentado nada.
   return (
-    <>
-    {/* `top-[var(--alto-cinta-ambiente)]`, no `top-0`: la variable la declara
-        `CintaAmbiente.jsx` (ver `index.css`) y vale el alto real de la cinta
-        de dev mientras existe en el DOM, `0px` en producción — el mismo
-        `top-0` de siempre, así que el sitio publicado no cambia. Sin esto la
-        cinta, `fixed` y sin empujar el layout, tapaba la mitad superior del
-        header. */}
+    // `top-[var(--alto-cinta-ambiente)]`, no `top-0`: la variable la declara
+    // `CintaAmbiente.jsx` (ver `index.css`) y vale el alto real de la cinta
+    // de dev mientras existe en el DOM, `0px` en producción — el mismo
+    // `top-0` de siempre, así que el sitio publicado no cambia. Sin esto la
+    // cinta, `fixed` y sin empujar el layout, tapaba la mitad superior del
+    // header.
     <header className="vidrio-header sticky top-[var(--alto-cinta-ambiente)] z-50 w-full bg-background/70 shadow backdrop-blur-[10px]">
       {/* Alto FIJO (`h-navbar-height`), no derivado del padding. Es la mitad
           de un contrato: `FiltrosCatalogo.jsx` se pega debajo con
@@ -250,7 +249,6 @@ function Navbar() {
         </div>
       ) : null}
     </header>
-    </>
   );
 }
 

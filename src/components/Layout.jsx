@@ -15,6 +15,7 @@ import Footer from "./Footer.jsx";
 function Layout() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const { pathname } = useLocation();
+  const esAdmin = pathname.startsWith("/catalogo/admin");
 
   // Navegar cierra la hoja. Sin esto, tocar un destino cambia la página por
   // detrás de un menú que sigue tapándola.
@@ -38,8 +39,13 @@ function Layout() {
           esto, la última fila de productos y el botón "Mostrar más" quedan
           debajo. El comentario que estaba acá decía que este padding se había
           sacado al retirarse un BottomNav anterior — vuelve, porque vuelve la
-          barra que lo justificaba, ahora solo en móvil. */}
-      <div aria-hidden="true" className="h-24 md:hidden" />
+          barra que lo justificaba, ahora solo en móvil.
+
+          Va detrás del guard `esAdmin`, igual que `NavFlotante` y `HojaMenu`:
+          `/catalogo/admin/login` es la única ruta de admin que cuelga de este
+          Layout público (el resto usa `AdminLayout`), y sin el guard pagaría
+          un espacio muerto al pie que ninguna isla ocupa. */}
+      {esAdmin ? null : <div aria-hidden="true" className="h-24 md:hidden" />}
 
       <NavFlotante
         menuAbierto={menuAbierto}
