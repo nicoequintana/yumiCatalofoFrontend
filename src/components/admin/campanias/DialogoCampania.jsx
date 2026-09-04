@@ -1,4 +1,3 @@
-import { createPortal } from "react-dom";
 import useDialogo from "../../../hooks/useDialogo.js";
 import VeloModal from "../../VeloModal.jsx";
 
@@ -23,33 +22,18 @@ import VeloModal from "../../VeloModal.jsx";
  *
  * ── 2. LA BOTTOM NAV DE ESCRITORIO SE PINTA ENCIMA ──
  *
- * `AdminLayout` mete barra y contenido en un `relative z-10` —y eso es
- * deliberado, resuelve que el header móvil no tape los modales—, pero deja la
- * navegación FUERA, para que sus tres capas se comparen contra la raíz. La
- * consecuencia es que un diálogo renderizado dentro del outlet, por más `z-50`
- * que declare, tiene capa efectiva 10: la bottom nav (`z-40`, en la raíz) le
- * gana siempre. Con un diálogo corto no se notaba; con el formulario de
- * campaña, los botones de guardar y cancelar quedaban abajo, tapados y sin
- * poder clickearse.
- *
- * **Por eso este diálogo va por portal a `document.body`.** Es lo único que lo
- * saca de ese contexto y lo pone a competir de igual a igual con la nav, donde
- * 50 > 40. No alcanza con subirle el z-index: adentro de un contexto de
- * apilamiento, el número no se compara con nada de afuera.
+ * Es la trampa del contexto de apilamiento de `AdminLayout`, y la resuelve
+ * **`VeloModal`** con un portal a `body`. Acá apareció primero, porque este
+ * es el diálogo más alto del panel; el detalle completo está allá, y aplica a
+ * los siete diálogos por igual.
  *
  * `lg:pb-24` es el remate: aun ganando el apilamiento, un panel que TERMINA
  * justo donde empieza la nav se lee como cortado. El padding lo despega.
- *
- * ⚠️ Los otros diálogos del panel —borrado masivo de `AdminProductos`, borrado
- * del editor, confirmación de `AdminPrecios`, `DialogoNotificarEstado`— siguen
- * renderizándose dentro del outlet y comparten el problema 2. Hoy no se nota
- * porque son cortos y su contenido no llega a la franja de la nav, pero es el
- * mismo bug esperando un modal más alto.
  */
 export default function DialogoCampania({ titulo, onCerrar, children }) {
   const dialogoRef = useDialogo({ onCerrar });
 
-  return createPortal(
+  return (
     <VeloModal className="z-50 overflow-y-auto bg-black/40 p-6 lg:pb-24">
       <div className="flex min-h-full items-center justify-center">
         <div
@@ -81,7 +65,6 @@ export default function DialogoCampania({ titulo, onCerrar, children }) {
           {children}
         </div>
       </div>
-    </VeloModal>,
-    document.body,
+    </VeloModal>
   );
 }

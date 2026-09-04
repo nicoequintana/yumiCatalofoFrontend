@@ -13,12 +13,19 @@ const BASE = {
   doodleUrl: null,
 };
 
+/**
+ * Devuelve el `<div role="dialog">`, no lo que devuelve `render`: el velo se
+ * monta en `body` (portal de `VeloModal`), así que el contenedor de `render` no
+ * lo contiene. Buscar adentro del diálogo es además la afirmación correcta —
+ * importa que el arte esté EN el cartel, no en cualquier parte del documento.
+ */
 function montar(extra = {}) {
-  return render(
+  render(
     <MemoryRouter>
       <ModalCampania modal={{ ...BASE, ...extra }} onCerrar={() => {}} />
     </MemoryRouter>,
   );
+  return screen.getByRole("dialog");
 }
 
 describe("ModalCampania — el Doodle en el encabezado", () => {
@@ -26,26 +33,26 @@ describe("ModalCampania — el Doodle en el encabezado", () => {
     // En el navbar el Doodle mide 28px de alto y compite con el resto de la
     // barra. El cartel es el único lugar donde se puede ver de verdad, y es
     // además lo que le da identidad a la interrupción.
-    const { container } = montar({ doodleUrl: "https://res.cloudinary.com/demo/primavera.png" });
+    const dialogo = montar({ doodleUrl: "https://res.cloudinary.com/demo/primavera.png" });
 
-    const imagen = container.querySelector("img");
+    const imagen = dialogo.querySelector("img");
     expect(imagen).toHaveAttribute("src", "https://res.cloudinary.com/demo/primavera.png");
   });
 
   it("el Doodle es DECORATIVO: no repite la marca para un lector de pantalla", () => {
     // El diálogo ya se nombra por su `<h2>`. Un `alt="YIMA"` acá haría que
     // quien lo escucha oiga la marca antes del título, sin ganar nada.
-    const { container } = montar({ doodleUrl: "https://res.cloudinary.com/demo/primavera.png" });
+    const dialogo = montar({ doodleUrl: "https://res.cloudinary.com/demo/primavera.png" });
 
-    expect(container.querySelector("img")).toHaveAttribute("alt", "");
+    expect(dialogo.querySelector("img")).toHaveAttribute("alt", "");
   });
 
   it("sin Doodle no pinta ninguna imagen", () => {
     // Una campaña sin arte no tiene que caer en el wordmark de siempre: el
     // cartel no es el encabezado del sitio, y ahí la marca ya está arriba.
-    const { container } = montar();
+    const dialogo = montar();
 
-    expect(container.querySelector("img")).toBeNull();
+    expect(dialogo.querySelector("img")).toBeNull();
   });
 
   it("sigue resolviendo el contador y el título", () => {

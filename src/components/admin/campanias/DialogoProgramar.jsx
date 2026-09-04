@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import useDialogo from "../../../hooks/useDialogo.js";
 import VeloModal from "../../VeloModal.jsx";
 
@@ -41,12 +40,11 @@ export default function DialogoProgramar({ promociones, diaInicial, guardando, o
     onProgramar({ promocionId: Number(promocionId), desde, hasta });
   }
 
-  // Mismo contenedor que `DialogoCampania`, y por los mismos dos motivos: el
-  // portal lo saca del `relative z-10` de `AdminLayout` para que la bottom nav
-  // de escritorio (`z-40`, en la raíz) no se le pinte encima, y el envoltorio
-  // `min-h-full` reemplaza al `my-auto` que dejaba el borde superior fuera de
-  // la pantalla cuando el panel no entraba. El detalle está documentado allá.
-  return createPortal(
+  // Mismo contenedor que `DialogoCampania`: el envoltorio `min-h-full`
+  // reemplaza al `my-auto` que dejaba el borde superior fuera de la pantalla
+  // cuando el panel no entraba, y `lg:pb-24` lo despega de la bottom nav. El
+  // portal y el bloqueo del scroll los pone `VeloModal`. Detalle allá.
+  return (
     <VeloModal className="z-50 overflow-y-auto bg-black/40 p-6 lg:pb-24">
       <div className="flex min-h-full items-center justify-center">
         <div
@@ -158,7 +156,6 @@ export default function DialogoProgramar({ promociones, diaInicial, guardando, o
           )}
         </div>
       </div>
-    </VeloModal>,
-    document.body,
+    </VeloModal>
   );
 }

@@ -7,6 +7,24 @@ afterEach(() => {
 });
 
 describe("VeloModal", () => {
+  it("se monta en `body`, FUERA del árbol que lo invoca", () => {
+    // El panel envuelve su contenido en un `relative z-10`, que es un contexto
+    // de apilamiento: adentro, la capa efectiva de cualquier diálogo es 10 por
+    // más `z-50` que declare, y la bottom nav de escritorio (`z-40`, en la
+    // raíz) se le pinta encima. Subir el z-index no sirve — adentro de un
+    // contexto el número no se compara con nada de afuera. Un portal a `body`
+    // es lo único que lo saca, y es una propiedad del velo, no de cada pantalla.
+    const { container } = render(
+      <div className="relative z-10">
+        <VeloModal>contenido</VeloModal>
+      </div>,
+    );
+
+    const velo = screen.getByText("contenido");
+    expect(container).not.toContainElement(velo);
+    expect(velo.parentElement).toBe(document.body);
+  });
+
   it("desenfoca y oscurece lo que queda atrás", () => {
     render(<VeloModal className="z-50 bg-black/40">contenido</VeloModal>);
 
