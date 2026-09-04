@@ -35,6 +35,7 @@ const AdminMetricas = lazy(() => import("./pages/admin/AdminMetricas.jsx"));
 const AdminUsuarios = lazy(() => import("./pages/admin/AdminUsuarios.jsx"));
 const AdminOrdenes = lazy(() => import("./pages/admin/AdminOrdenes.jsx"));
 const AdminCampanias = lazy(() => import("./pages/admin/AdminCampanias.jsx"));
+const AdminCampaniaEditor = lazy(() => import("./pages/admin/AdminCampaniaEditor.jsx"));
 const AdminPromociones = lazy(() => import("./pages/admin/AdminPromociones.jsx"));
 const AdminOrdenDetalle = lazy(() => import("./pages/admin/AdminOrdenDetalle.jsx"));
 const AdminProductosSolicitados = lazy(
@@ -107,6 +108,13 @@ function App() {
               pantalla se guarda a sí misma con `SoloEscritorio`, para quien
               llegue por una URL pegada a mano. */}
           <Route path="/catalogo/admin/campanias" element={<AdminCampanias />} />
+          {/* El alta y la edición son PÁGINAS, no un diálogo del calendario: el
+              editor tiene cuatro secciones y un selector de productos, y eso
+              dentro de un modal es un flujo dentro de un flujo. Mismo
+              precedente que `/productos/nuevo` y `/productos/:id/editar`.
+              El literal `nueva` va ANTES de `:id/editar`. */}
+          <Route path="/catalogo/admin/campanias/nueva" element={<AdminCampaniaEditor />} />
+          <Route path="/catalogo/admin/campanias/:id/editar" element={<AdminCampaniaEditor />} />
           {/* Solo escritorio, igual que Campañas: la tabla comercial tiene diez
               columnas. Es un módulo APARTE porque acá no se programa nada. */}
           <Route path="/catalogo/admin/promociones" element={<AdminPromociones />} />

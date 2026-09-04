@@ -145,3 +145,36 @@ export async function guardarPromocionesDeCampania(id, promocionIds) {
     body: JSON.stringify({ promocionIds }),
   });
 }
+
+/**
+ * La VITRINA: qué productos MUESTRA la campaña. Es otra pregunta que qué
+ * descuentos aplica, y por eso otro endpoint.
+ *
+ * Reemplaza la lista completa y **responde el DETALLE entero**, no la lista de
+ * ids: el editor pinta cada producto con nombre, precio y portada, así que un
+ * segundo GET para dibujar lo que se acaba de guardar sería una request de más
+ * y una ventana en la que la vitrina se ve vacía.
+ *
+ * El tope de productos lo pone y lo rechaza el BACKEND
+ * (`MAX_PRODUCTOS_CAMPANIA`). Acá no hay copia de ese número a propósito: sería
+ * un espejo manual más, del tipo que se desincroniza sin que nada falle.
+ */
+export async function guardarProductosDeCampania(id, productIds) {
+  return pedirAutenticado(`${BASE}/campanias/${id}/productos`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productIds }),
+  });
+}
+
+/**
+ * `GET /api/campanias/contador?hasta=AAAA-MM-DD` — cuántos días faltan.
+ *
+ * **El día lo cuenta el backend, nunca el navegador.** `horarioArgentino.js` es
+ * la única definición de "día" del sistema: con la cuenta de este lado, alguien
+ * con el reloj corrido vería en la vista previa un número distinto del que el
+ * cartel le muestra al visitante.
+ */
+export async function getContadorCampania(hasta) {
+  return pedirAutenticado(`${BASE}/campanias/contador?hasta=${encodeURIComponent(hasta)}`);
+}

@@ -1,3 +1,4 @@
+import CeldaProducto from "../CeldaProducto.jsx";
 import { claseCelda, claseEncabezado } from "../clasesTabla.js";
 import { formatPrecio } from "../../../utils/formato.js";
 
@@ -73,29 +74,12 @@ export default function TablaComercial({ filas, seleccionados, onAlternar, guard
                 />
               </td>
               <td role="cell" className={`${claseCelda} text-on-surface`}>
-                <span className="flex items-center gap-3">
-                  {fila.fotoPortada ? (
-                    <img
-                      src={fila.fotoPortada}
-                      alt=""
-                      className="h-10 w-10 shrink-0 rounded object-cover"
-                    />
-                  ) : (
-                    <span
-                      aria-hidden="true"
-                      className="material-symbols-outlined flex h-10 w-10 shrink-0 items-center justify-center rounded bg-surface-container text-on-surface-variant"
-                    >
-                      image
-                    </span>
-                  )}
-                  <span className="min-w-0">
-                    <span className="block truncate">{fila.nombre}</span>
-                    <span className="font-body-sm text-body-sm block text-on-surface-variant">
-                      {fila.sku}
-                      {fila.visibleEnCatalogo ? "" : " · oculto"}
-                    </span>
-                  </span>
-                </span>
+                <CeldaProducto
+                  nombre={fila.nombre}
+                  sku={fila.sku}
+                  fotoPortada={fila.fotoPortada}
+                  visibleEnCatalogo={fila.visibleEnCatalogo}
+                />
               </td>
               <td role="cell" className={`${claseCelda} text-on-surface-variant`}>
                 {fila.categoria?.nombre ?? "—"}

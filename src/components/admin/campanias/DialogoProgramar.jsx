@@ -1,6 +1,7 @@
 import { useState } from "react";
 import useDialogo from "../../../hooks/useDialogo.js";
 import VeloModal from "../../VeloModal.jsx";
+import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
 
 /**
  * Programar una promoción suelta, sin campaña.
@@ -15,11 +16,6 @@ import VeloModal from "../../VeloModal.jsx";
  * calendario define el cuándo — y por eso este diálogo no ofrece crear una
  * promoción ni tocar sus porcentajes.
  */
-
-const claseEtiqueta =
-  "font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface";
-const claseCampo =
-  "w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none";
 
 export default function DialogoProgramar({ promociones, diaInicial, guardando, onProgramar, onCerrar }) {
   const dialogoRef = useDialogo({ onCerrar });

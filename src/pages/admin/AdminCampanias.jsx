@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import SoloEscritorio from "../../components/admin/SoloEscritorio.jsx";
 import CalendarioComercial from "../../components/admin/campanias/CalendarioComercial.jsx";
 import DialogoCampania from "../../components/admin/campanias/DialogoCampania.jsx";
-import FormularioCampania from "../../components/admin/campanias/FormularioCampania.jsx";
 import {
   claveDeDia,
   etiquetaDeMes,
@@ -14,18 +14,7 @@ import {
 import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
 import { estiloDeCampania } from "../../constants/campanias.js";
 import { formatFecha } from "../../utils/formato.js";
-import {
-  actualizarCampania,
-  cambiarEstadoCampania,
-  crearCampania,
-  duplicarCampania,
-  eliminarCampania,
-  getCampania,
-  getCampanias,
-  getOpcionesCampania,
-  quitarDoodle,
-  subirDoodle,
-} from "../../api/campanias.js";
+import { cambiarEstadoCampania, getCampanias } from "../../api/campanias.js";
 import {
   cambiarEstadoProgramacion,
   eliminarProgramacion,
@@ -33,7 +22,6 @@ import {
   getPromociones,
   programarPromocion,
 } from "../../api/promociones.js";
-import { guardarPromocionesDeCampania } from "../../api/campanias.js";
 import DialogoProgramar from "../../components/admin/campanias/DialogoProgramar.jsx";
 import useContextoComercial from "../../hooks/useContextoComercial.js";
 
@@ -55,6 +43,17 @@ import useContextoComercial from "../../hooks/useContextoComercial.js";
  * entera. La separación que sí importa no es de pantallas sino de ACCIONES —
  * Promociones define QUÉ descuento tiene cada producto, el calendario programa
  * CUÁNDO se aplica.
+ *
+ * ESTA PANTALLA YA NO EDITA CAMPAÑAS: NAVEGA. El alta y la edición viven en
+ * `/campanias/nueva` y `/campanias/:id/editar`, que son PÁGINAS
+ * (`AdminCampaniaEditor`). El editor ya medía 1.686 px de alto en una ventana
+ * de 800 antes de sumarle el selector de productos: elegir la vitrina dentro de
+ * un modal es un flujo dentro de un flujo. Mismo precedente que el editor de
+ * producto.
+ *
+ * LO QUE SÍ SIGUE SIENDO DIÁLOGO: programar una promoción y el panel de una
+ * promoción ya programada. Son cortos e interruptivos —una fecha, un
+ * interruptor—, que es justo para lo que sirve un modal.
  */
 
 /** El mes al que pertenece una clave `AAAA-MM-DD`. */
@@ -72,6 +71,7 @@ function ventanaDelMes({ ano, mes }) {
 
 export default function AdminCampanias() {
   const { claveDia, resuelto } = useContextoComercial();
+  const navigate = useNavigate();
 
   // Arranca en `null` y NO en el mes del reloj del navegador. `claveDia` la
   // manda el backend, que es la única definición de "día" del sistema: sembrar
@@ -79,7 +79,6 @@ export default function AdminCampanias() {
   // reloj UTC que el proyecto borró a propósito, y entre las 21:00 y las 23:59
   // del último día del mes abría el calendario en el mes SIGUIENTE.
   const [mesVisible, setMesVisible] = useState(null);
-  const [opciones, setOpciones] = useState(null);
   const [campanias, setCampanias] = useState([]);
   const [programaciones, setProgramaciones] = useState([]);
   const [promociones, setPromociones] = useState([]);
@@ -87,13 +86,7 @@ export default function AdminCampanias() {
   const [programacionAbierta, setProgramacionAbierta] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
-
-  const [seleccionada, setSeleccionada] = useState(null);
-  const [diaElegido, setDiaElegido] = useState(null);
-  const [editando, setEditando] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
-  const inputDoodle = useRef(null);
 
   // El mes del calendario lo fija la clave del día que manda el BACKEND, no el
   // reloj del navegador. Hasta que llegue, la pantalla muestra el spinner.
@@ -108,20 +101,6 @@ export default function AdminCampanias() {
   useEffect(() => {
     if (sinFecha) setCargando(false);
   }, [sinFecha]);
-
-  useEffect(() => {
-    let activo = true;
-    getOpcionesCampania()
-      .then((datos) => {
-        if (activo) setOpciones(datos);
-      })
-      .catch((err) => {
-        if (activo) setError(err.message);
-      });
-    return () => {
-      activo = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (!mesVisible) return undefined;
@@ -156,63 +135,41 @@ export default function AdminCampanias() {
     };
   }, [mesVisible]);
 
-  function cerrarPanel() {
-    setSeleccionada(null);
-    setDiaElegido(null);
-    setEditando(false);
-    setConfirmandoBorrado(false);
+  /**
+   * Abre la página de edición de una campaña.
+   *
+   * **No pide el detalle acá**: lo carga el editor, que es quien lo necesita
+   * entero (promociones, vitrina, referencia del CTA). Pedirlo desde el
+   * calendario sería la misma consulta hecha dos veces.
+   */
+  function abrirCampania(campania) {
+    navigate(`/catalogo/admin/campanias/${campania.id}/editar`);
   }
 
   /**
-   * Abre el detalle de una campaña.
+   * Abre el alta con el día que se tocó ya precargado en las dos fechas.
    *
-   * **Pide el DETALLE, no reusa la fila del listado**: el listado no trae
-   * `promociones` —serían N consultas para pintar una grilla— y sin ellas los
-   * checkboxes de "promociones que aplica" saldrían todos vacíos, como si la
-   * campaña no tuviera ninguna. La fila se muestra igual mientras llega, para
-   * que el diálogo no aparezca en blanco.
+   * `clave` la manda el backend (`claveDia`) o sale del calendario, nunca del
+   * reloj del navegador. Sin ella se abre el alta con las fechas vacías, que es
+   * mejor que sembrarlas con un día que podría estar corrido.
    */
-  async function abrirDetalle(campania) {
-    setSeleccionada(campania);
-    setDiaElegido(null);
-    setEditando(false);
-    setConfirmandoBorrado(false);
-    try {
-      const detalle = await getCampania(campania.id);
-      setSeleccionada((actual) => (actual?.id === detalle.id ? detalle : actual));
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  function abrirEdicion(campania) {
-    setSeleccionada(campania);
-    setDiaElegido(null);
-    setEditando(true);
-    setConfirmandoBorrado(false);
-  }
-
   function abrirAlta(clave) {
-    setSeleccionada(null);
-    setDiaElegido(clave);
-    setEditando(true);
+    navigate(`/catalogo/admin/campanias/nueva${clave ? `?dia=${clave}` : ""}`);
   }
 
   /**
    * Abre lo que se tocó en el calendario, sea una campaña o una programación.
    *
-   * Son dos entidades distintas y se editan distinto: una campaña tiene
-   * formulario, Doodle y modal; una programación solo tiene fechas y un
-   * interruptor. Ramificar acá evita que el detalle tenga que adivinar qué le
-   * llegó.
+   * Son dos entidades distintas y se abren distinto: una campaña tiene una
+   * página entera (formulario, Doodle, vitrina, cartel); una programación solo
+   * tiene fechas y un interruptor, y para eso alcanza un diálogo.
    */
   function abrirElemento(elemento) {
     if (elemento.tipo === "PROMOCION") {
       setProgramacionAbierta(elemento);
-      cerrarPanel();
       return;
     }
-    abrirDetalle(elemento);
+    abrirCampania(elemento);
   }
 
   async function programar({ promocionId, desde, hasta }) {
@@ -232,17 +189,6 @@ export default function AdminCampanias() {
   async function desprogramar(programacion) {
     const ok = await conGuardado(() => eliminarProgramacion(programacion.id));
     if (ok) setProgramacionAbierta(null);
-  }
-
-  /** Qué promociones aplica una campaña mientras está activa. */
-  async function guardarPromociones(campaniaId, promocionIds) {
-    await conGuardado(async () => {
-      await guardarPromocionesDeCampania(campaniaId, promocionIds);
-      // El detalle abierto tiene que reflejar lo que se acaba de guardar: el
-      // refresco general recarga el LISTADO, que no trae `promociones`.
-      const detalle = await getCampania(campaniaId);
-      setSeleccionada((actual) => (actual?.id === campaniaId ? detalle : actual));
-    });
   }
 
   /**
@@ -284,54 +230,14 @@ export default function AdminCampanias() {
     return true;
   }
 
-  async function guardar(datos) {
-    const ok = await conGuardado(() =>
-      seleccionada ? actualizarCampania(seleccionada.id, datos) : crearCampania(datos),
-    );
-    if (ok) cerrarPanel();
-  }
-
+  /**
+   * El ON/OFF desde la fila. Va por su ruta propia y no por el editor: apagar
+   * una campaña desde el calendario no tiene que reenviar fechas y textos que
+   * nadie está tocando.
+   */
   async function alternarEstado(campania) {
     const siguiente = campania.estado === "HABILITADA" ? "DESHABILITADA" : "HABILITADA";
-    await conGuardado(async () => {
-      const actualizada = await cambiarEstadoCampania(campania.id, siguiente);
-      // Solo se refleja en el diálogo si es la campaña que está abierta: el
-      // botón de la tabla puede apagar una fila distinta de la seleccionada.
-      setSeleccionada((actual) => (actual?.id === campania.id ? actualizada : actual));
-    });
-  }
-
-  async function duplicar(campania) {
-    const ok = await conGuardado(async () => {
-      const copia = await duplicarCampania(campania.id);
-      setSeleccionada(copia);
-    });
-    if (ok) setEditando(true);
-  }
-
-  async function eliminar(campania) {
-    const ok = await conGuardado(() => eliminarCampania(campania.id));
-    if (ok) cerrarPanel();
-  }
-
-  async function cambiarDoodle(evento) {
-    const archivo = evento.target.files?.[0];
-    // Se limpia el input SIEMPRE, así reintentar con el mismo archivo dispara
-    // el change de nuevo.
-    evento.target.value = "";
-    if (!archivo || !seleccionada) return;
-
-    await conGuardado(async () => {
-      const actualizada = await subirDoodle(seleccionada.id, archivo);
-      setSeleccionada(actualizada);
-    });
-  }
-
-  async function borrarDoodle() {
-    await conGuardado(async () => {
-      const actualizada = await quitarDoodle(seleccionada.id);
-      setSeleccionada(actualizada);
-    });
+    await conGuardado(() => cambiarEstadoCampania(campania.id, siguiente));
   }
 
   /**
@@ -344,9 +250,6 @@ export default function AdminCampanias() {
     ...campanias.map((c) => ({ ...c, tipo: "CAMPANIA" })),
     ...programaciones.map((p) => ({ ...p, tipo: "PROMOCION" })),
   ];
-
-  const panelAbierto = seleccionada !== null || diaElegido !== null;
-  const mostrandoFormulario = editando || (diaElegido !== null && seleccionada === null);
 
   return (
     <SoloEscritorio titulo="Campañas">
@@ -393,7 +296,7 @@ export default function AdminCampanias() {
               // Sin `claveDia` no hay a qué "hoy" volver: se queda donde está en
               // vez de inventar uno con el reloj del navegador.
               setMesVisible(mes ?? (claveDia ? mesDeClave(claveDia) : mesVisible));
-              cerrarPanel();
+              setProgramacionAbierta(null);
             }}
             elementos={elementos}
             claveHoy={claveDia}
@@ -483,8 +386,7 @@ export default function AdminCampanias() {
                         key={campania.id}
                         campania={campania}
                         guardando={guardando}
-                        onAbrir={() => abrirDetalle(campania)}
-                        onEditar={() => abrirEdicion(campania)}
+                        onAbrir={() => abrirCampania(campania)}
                         onAlternarEstado={() => alternarEstado(campania)}
                       />
                     ))}
@@ -495,49 +397,6 @@ export default function AdminCampanias() {
           </section>
         ) : null}
 
-        {/* El detalle y el formulario viven en un DIÁLOGO y no en un panel
-            lateral: el formulario tiene cuatro secciones y en 22 rem quedaba
-            apretado contra el borde. */}
-        {panelAbierto ? (
-          <DialogoCampania
-            titulo={
-              mostrandoFormulario
-                ? seleccionada
-                  ? "Editar campaña"
-                  : "Nueva campaña"
-                : seleccionada.nombre
-            }
-            onCerrar={cerrarPanel}
-          >
-            {mostrandoFormulario ? (
-              <FormularioCampania
-                campania={seleccionada}
-                diaElegido={diaElegido}
-                opciones={opciones}
-                guardando={guardando}
-                onGuardar={guardar}
-                onCancelar={() => (seleccionada ? setEditando(false) : cerrarPanel())}
-              />
-            ) : (
-              <DetalleCampania
-                campania={seleccionada}
-                promociones={promociones}
-                onGuardarPromociones={(ids) => guardarPromociones(seleccionada.id, ids)}
-                guardando={guardando}
-                confirmandoBorrado={confirmandoBorrado}
-                inputDoodle={inputDoodle}
-                onEditar={() => setEditando(true)}
-                onAlternarEstado={() => alternarEstado(seleccionada)}
-                onDuplicar={() => duplicar(seleccionada)}
-                onPedirBorrado={() => setConfirmandoBorrado(true)}
-                onCancelarBorrado={() => setConfirmandoBorrado(false)}
-                onEliminar={() => eliminar(seleccionada)}
-                onSubirDoodle={cambiarDoodle}
-                onQuitarDoodle={borrarDoodle}
-              />
-            )}
-          </DialogoCampania>
-        ) : null}
         {programando !== null ? (
           <DialogoProgramar
             promociones={promociones}
@@ -597,8 +456,14 @@ export default function AdminCampanias() {
   );
 }
 
-/** Una fila del CRUD. Aparte para que el `map` de la tabla se lea de un vistazo. */
-function FilaCampania({ campania, guardando, onAbrir, onEditar, onAlternarEstado }) {
+/**
+ * Una fila del CRUD. Aparte para que el `map` de la tabla se lea de un vistazo.
+ *
+ * El nombre y "Editar" llevan al MISMO lugar: la página del editor. Son dos
+ * puertas a propósito — el nombre es el gesto natural sobre una fila, y el botón
+ * es el que se busca cuando se viene a cambiar algo.
+ */
+function FilaCampania({ campania, guardando, onAbrir, onAlternarEstado }) {
   const estilo = estiloDeCampania(campania);
   const encendida = campania.estado === "HABILITADA";
   const sinExperiencia = !campania.doodleUrl && !campania.modalActivo;
@@ -664,7 +529,7 @@ function FilaCampania({ campania, guardando, onAbrir, onEditar, onAlternarEstado
           >
             {encendida ? "Apagar" : "Encender"}
           </button>
-          <button type="button" disabled={guardando} onClick={onEditar} className={claseAccionFila}>
+          <button type="button" disabled={guardando} onClick={onAbrir} className={claseAccionFila}>
             Editar
           </button>
         </span>
@@ -674,225 +539,15 @@ function FilaCampania({ campania, guardando, onAbrir, onEditar, onAlternarEstado
 }
 
 /**
- * El diálogo que envuelve al detalle y al formulario.
+ * Las dos formas de botón secundario de esta pantalla.
  *
- * `useDialogo` resuelve las cuatro piezas de un modal accesible (foco inicial,
- * trampa de foco, Escape, restauración) y `tabIndex={-1}` + `role="dialog"` +
- * `aria-modal` son parte de su contrato, no decoración.
+ * `claseAccion` es de ancho completo y la usa el panel de una promoción
+ * programada; `claseAccionFila` es compacta y la usan los botones de cada fila
+ * del CRUD. **Las dos siguen en uso**: es fácil confundirlas con residuo del
+ * detalle que vivía acá antes de que la edición se mudara a su propia página.
  */
 const claseAccion =
   "font-label-md text-label-md w-full rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-60";
 
 const claseAccionFila =
   "font-label-sm text-label-sm rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60";
-
-function DetalleCampania({
-  campania,
-  promociones,
-  onGuardarPromociones,
-  guardando,
-  confirmandoBorrado,
-  inputDoodle,
-  onEditar,
-  onAlternarEstado,
-  onDuplicar,
-  onPedirBorrado,
-  onCancelarBorrado,
-  onEliminar,
-  onSubirDoodle,
-  onQuitarDoodle,
-}) {
-  const estilo = estiloDeCampania(campania);
-  const encendida = campania.estado === "HABILITADA";
-
-  return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <div className="flex flex-col gap-5">
-        {/* El estado nunca se comunica solo con color: ícono + texto siempre. */}
-        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${estilo.barra}`}>
-          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-            {estilo.icono}
-          </span>
-          <span className="font-label-md text-label-md">
-            {campania.etiquetaEstado} · {campania.etiquetaTemporal}
-          </span>
-        </div>
-
-        <dl className="font-body-md text-body-md flex flex-col gap-2 text-on-surface-variant">
-          <div className="flex justify-between gap-3">
-            <dt>Período</dt>
-            <dd className="text-on-surface">
-              {formatFecha(campania.desde)} → {formatFecha(campania.hasta)}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt>Tipo</dt>
-            <dd className="text-on-surface">{campania.tipo}</dd>
-          </div>
-          <div className="flex justify-between gap-3">
-            <dt>Prioridad</dt>
-            <dd className="text-on-surface">{campania.prioridad}</dd>
-          </div>
-          {campania.modalActivo ? (
-            <div className="flex justify-between gap-3">
-              <dt>Modal</dt>
-              <dd className="text-on-surface">{campania.modalTitulo}</dd>
-            </div>
-          ) : null}
-          {campania.descripcion ? (
-            <div className="mt-1">
-              <dt className="font-label-sm text-label-sm uppercase tracking-widest">Nota interna</dt>
-              <dd className="mt-1 text-on-surface">{campania.descripcion}</dd>
-            </div>
-          ) : null}
-        </dl>
-
-        <div>
-          <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface-variant">
-            Doodle
-          </h3>
-          {campania.doodleUrl ? (
-            <img
-              src={campania.doodleUrl}
-              alt={`Doodle de ${campania.nombre}`}
-              className="mb-3 h-16 w-auto rounded-lg bg-surface-container p-2"
-            />
-          ) : (
-            <p className="font-body-sm text-body-sm mb-3 text-on-surface-variant">
-              Sin Doodle: el logo queda como siempre.
-            </p>
-          )}
-
-          <input
-            ref={inputDoodle}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={onSubirDoodle}
-            className="sr-only"
-          />
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              disabled={guardando}
-              onClick={() => inputDoodle.current?.click()}
-              className={claseAccion}
-            >
-              {campania.doodleUrl ? "Reemplazar Doodle" : "Subir Doodle"}
-            </button>
-            {campania.doodleUrl ? (
-              <button
-                type="button"
-                disabled={guardando}
-                onClick={onQuitarDoodle}
-                className={claseAccion}
-              >
-                Quitar Doodle
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        {/* Las promociones que la campaña aplica mientras está activa. De acá
-            sale la regla más útil del módulo: apagar la campaña las apaga a
-            todas de una, sin desactivar nada una por una. */}
-        <div className="mb-2">
-          <h3 className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface-variant">
-            Promociones que aplica
-          </h3>
-          {promociones.length === 0 ? (
-            <p className="font-body-sm text-body-sm text-on-surface-variant">
-              Todavía no hay promociones. Creá una desde Promociones.
-            </p>
-          ) : (
-            <div className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-lg border border-outline-variant p-2">
-              {promociones.map((promocion) => {
-                const asociada = (campania.promociones ?? []).some((p) => p.id === promocion.id);
-                return (
-                  <label
-                    key={promocion.id}
-                    className="font-body-md text-body-md flex items-center gap-2 rounded px-2 py-1 text-on-surface hover:bg-surface-container"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={asociada}
-                      disabled={guardando}
-                      onChange={() => {
-                        const actuales = (campania.promociones ?? []).map((p) => p.id);
-                        onGuardarPromociones(
-                          asociada
-                            ? actuales.filter((id) => id !== promocion.id)
-                            : [...actuales, promocion.id],
-                        );
-                      }}
-                      className="h-4 w-4 accent-[rgb(var(--color-primary))]"
-                    />
-                    <span className="truncate">{promocion.nombre}</span>
-                    <span className="font-body-sm text-body-sm ml-auto shrink-0 text-on-surface-variant">
-                      {promocion.cantidadProductos}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <button
-          type="button"
-          disabled={guardando}
-          onClick={onAlternarEstado}
-          className={`font-label-md text-label-md w-full rounded-lg px-4 py-3 uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-60 ${
-            encendida ? "bg-surface-container text-on-surface" : "bg-primary text-on-primary"
-          }`}
-        >
-          {encendida ? "Apagar campaña" : "Encender campaña"}
-        </button>
-        <button type="button" disabled={guardando} onClick={onEditar} className={claseAccion}>
-          Editar
-        </button>
-        <button type="button" disabled={guardando} onClick={onDuplicar} className={claseAccion}>
-          Duplicar
-        </button>
-
-        {/* Confirmación inline, sin otro modal encima: el mismo patrón que
-            Categorías y Anuncios usan para el borrado. */}
-        {confirmandoBorrado ? (
-          <div className="mt-2 flex flex-col gap-2 rounded-lg bg-error-container p-3">
-            <p className="font-body-sm text-body-sm text-on-error-container">
-              ¿Eliminar “{campania.nombre}”? No se puede deshacer.
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={guardando}
-                onClick={onEliminar}
-                className="font-label-md text-label-md flex-1 rounded-lg bg-error px-4 py-2 uppercase tracking-widest text-on-error disabled:opacity-60"
-              >
-                Sí, eliminar
-              </button>
-              <button
-                type="button"
-                disabled={guardando}
-                onClick={onCancelarBorrado}
-                className="font-label-md text-label-md flex-1 rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant"
-              >
-                No
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            type="button"
-            disabled={guardando}
-            onClick={onPedirBorrado}
-            className={`${claseAccion} mt-2`}
-          >
-            Eliminar
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
