@@ -80,6 +80,14 @@ describe("NavFlotante", () => {
     expect(screen.getByLabelText("Cerrar menú")).toHaveAttribute("aria-expanded", "true");
   });
 
+  // Migrado de `Navbar.test.jsx` ("el panel no está en el DOM hasta que se
+  // abre"): el botón vivía ahí antes de mudarse a la isla.
+  it("en su estado inicial el botón no está expandido", () => {
+    montar("/", { menuAbierto: false });
+
+    expect(screen.getByLabelText("Abrir menú")).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("solo existe por debajo de md: en escritorio manda el navbar", () => {
     const { container } = montar();
 

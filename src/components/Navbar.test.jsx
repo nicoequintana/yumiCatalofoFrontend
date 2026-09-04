@@ -149,86 +149,20 @@ describe("Navbar - navegación", () => {
     expect(screen.queryByRole("link", { name: "Buscar" })).not.toBeInTheDocument();
   });
 
-  it("oculta la navegación y el botón de menú en rutas de admin", () => {
+  it("oculta la navegación en rutas de admin", () => {
     renderNavbar("/catalogo/admin");
 
     expect(screen.queryByRole("navigation", { name: "Navegación principal" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /abrir menú/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Buscar productos" })).not.toBeInTheDocument();
   });
 });
 
-describe("Navbar - menú móvil", () => {
-  it("el panel no está en el DOM hasta que se abre", () => {
-    renderNavbar();
-
-    expect(screen.queryByRole("dialog", { name: "Menú" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Abrir menú" })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
-  });
-
-  it("el botón abre el panel y cambia su estado anunciado", async () => {
-    const user = userEvent.setup();
-    renderNavbar();
-
-    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
-
-    const panel = screen.getByRole("dialog", { name: "Menú" });
-    expect(within(panel).getByRole("link", { name: "Inicio" })).toHaveAttribute("href", "/");
-    expect(within(panel).getByRole("link", { name: "Productos" })).toHaveAttribute(
-      "href",
-      "/coleccion",
-    );
-    expect(screen.getByRole("button", { name: "Cerrar menú" })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-  });
-
-  // El corazón del header se rotula "Ver favoritos" y el del panel "Favoritos":
-  // aunque los dos estén montados (en jsdom no hay CSS que oculte ninguno),
-  // nunca comparten nombre accesible, así que `getByRole` sigue devolviendo uno
-  // solo y los tests del contrato de favoritos no se vuelven ambiguos.
-  it("el link de favoritos del panel no colisiona con el del header", async () => {
-    const user = userEvent.setup();
-    renderNavbar();
-
-    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
-
-    expect(screen.getByRole("link", { name: /ver favoritos/i })).toHaveAttribute(
-      "href",
-      "/favoritos",
-    );
-    const panel = screen.getByRole("dialog", { name: "Menú" });
-    expect(within(panel).getByRole("link", { name: "Favoritos" })).toHaveAttribute(
-      "href",
-      "/favoritos",
-    );
-  });
-
-  it("Escape cierra el panel", async () => {
-    const user = userEvent.setup();
-    renderNavbar();
-
-    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
-    await user.keyboard("{Escape}");
-
-    expect(screen.queryByRole("dialog", { name: "Menú" })).not.toBeInTheDocument();
-  });
-
-  it("cerrar el panel devuelve el scroll del documento", async () => {
-    const user = userEvent.setup();
-    renderNavbar();
-
-    await user.click(screen.getByRole("button", { name: "Abrir menú" }));
-    expect(document.body.style.overflow).toBe("hidden");
-
-    await user.keyboard("{Escape}");
-    expect(document.body.style.overflow).not.toBe("hidden");
-  });
-});
+// El menú móvil (panel, botón de hamburguesa, velo) ya no vive en `Navbar`:
+// se mudó a `NavFlotante` (el botón que lo abre) y `HojaMenu` (el panel en
+// sí), ambos montados desde `Layout.jsx`. La cobertura que tenía este
+// `describe` se movió a `NavFlotante.test.jsx` (el botón y su estado
+// `aria-expanded`) y a `HojaMenu.test.jsx` (el contenido del panel, Escape,
+// y el bloqueo de scroll).
 
 describe("Navbar - dropdown de categorías", () => {
   it("Productos es un botón que abre el panel, no un link", async () => {

@@ -49,17 +49,17 @@ export default defineConfig({
   // exige instalar WebKit) para el layout responsive del admin (Sprint del
   // panel admin full responsive, Task 5).
   //
-  // El proyecto `mobile` corre UN SOLO spec (`admin-mobile.spec.js`), no la
-  // suite entera: los otros 7 specs (6 de flujo — 5 públicos más
-  // `admin-cambio-estado.spec.js` — y `admin-desktop-layout.spec.js`) prueban
-  // FLUJO/no-regresión de escritorio
-  // (checkout, login, cambio de estado de una orden, que la tabla siga siendo
-  // `display: table` a 1280px) y eso ya está cubierto contra escritorio —
-  // correrlos de nuevo a 412px no agrega cobertura de layout, solo duplica
-  // tiempo de corrida y rate limit (login 8/15min, órdenes 10/10min) sin
-  // ganar nada. Lo que SÍ es específico de mobile es el layout (desborde,
-  // tabla apilada, áreas táctiles, drawer), que es exactamente lo que prueba
-  // `admin-mobile.spec.js`.
+  // El proyecto `mobile` corre SOLO DOS specs (`admin-mobile.spec.js` y
+  // `publico-mobile.spec.js`), no la suite entera: los otros specs (de flujo
+  // — checkout, login, cambio de estado de una orden — y
+  // `admin-desktop-layout.spec.js`, que confirma que la tabla siga siendo
+  // `display: table` a 1280px) prueban FLUJO/no-regresión de escritorio, y eso
+  // ya está cubierto contra escritorio — correrlos de nuevo a 412px no agrega
+  // cobertura de layout, solo duplica tiempo de corrida y rate limit (login
+  // 8/15min, órdenes 10/10min) sin ganar nada. Lo que SÍ es específico de
+  // mobile es el layout (desborde, tabla apilada, áreas táctiles, drawer, la
+  // isla flotante y su hoja), que es exactamente lo que prueban
+  // `admin-mobile.spec.js` y `publico-mobile.spec.js`.
   //
   // Por eso Playwright NUNCA elige el proyecto solo — cuando hay varios
   // `projects` configurados y no se pasa `--project`, corre TODOS, y con dos
@@ -75,12 +75,12 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: ["**/admin-mobile.spec.js"],
+      testIgnore: ["**/admin-mobile.spec.js", "**/publico-mobile.spec.js"],
     },
     {
       name: "mobile",
       use: { ...devices["Pixel 7"] },
-      testMatch: ["**/admin-mobile.spec.js"],
+      testMatch: ["**/admin-mobile.spec.js", "**/publico-mobile.spec.js"],
     },
   ],
 

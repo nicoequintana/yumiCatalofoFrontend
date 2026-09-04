@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import useBloquearScroll from "../hooks/useBloquearScroll.js";
 import useCarrito from "../hooks/useCarrito.js";
 import useCategoriasNavbar from "../hooks/useCategoriasNavbar.js";
 import useContextoComercial from "../hooks/useContextoComercial.js";
-import useDialogo from "../hooks/useDialogo.js";
 import LogoYima from "./LogoYima.jsx";
 import PanelCategorias from "./PanelCategorias.jsx";
 
 /**
- * Navegación principal del catálogo público. Es la única lista de destinos del
- * header: la usan tanto la barra de escritorio como el panel móvil, así que un
- * destino nuevo se agrega en un solo lugar.
+ * Navegación principal del catálogo público, solo para la barra de escritorio:
+ * por debajo de `md` la navegación vive en `NavFlotante` y en `HojaMenu`, que
+ * tienen su propia lista de destinos.
  *
  * `Productos` ya NO es un destino de esta lista: en la barra de escritorio es
  * el disparador del dropdown de categorías (`PanelCategorias`), así que se
@@ -19,21 +17,19 @@ import PanelCategorias from "./PanelCategorias.jsx";
  * de ofrecer categorías porque un link a `/coleccion?categoria=…` perdía el
  * filtro (`Coleccion.jsx` blanquea los filtros heredados al MONTAR, y ese
  * link no remonta si ya estabas en `/coleccion`). Ese impedimento se resolvió
- * al existir `/coleccion/categoria/:slug`, que sí es una ruta propia.
- *
- * **Hay DOS escrituras a mano, no una**: el `<button>` del `<nav>` de
- * escritorio (el dropdown de esta tarea) y el objeto
- * `{ to: "/coleccion", texto: "Productos", … }` armado dentro del `<ul>` del
- * panel móvil. La segunda es TRANSITORIA — el panel móvil todavía no tiene su
- * propio dropdown de categorías y por ahora conserva el link directo a
- * `/coleccion` — y desaparece cuando la hoja de la Fase E reemplace ese
- * bloque entero montando `PanelCategorias` ahí también.
+ * al existir `/coleccion/categoria/:slug`, que sí es una ruta propia. Es la
+ * única escritura a mano de "Productos": la que tenía el panel móvil viejo se
+ * fue con él.
  */
 const DESTINOS = [{ to: "/", texto: "Inicio", esActivo: (pathname) => pathname === "/" }];
 
 /**
  * Header público: wordmark a la izquierda, navegación al centro y acciones a la
- * derecha, con panel desplegable en móvil.
+ * derecha, en escritorio (`md+`). **Por debajo de `md` la barra queda solo con
+ * el logo, centrado**: la navegación, la lupa, favoritos, el carrito y el menú
+ * viven en `NavFlotante` (la isla) y en `HojaMenu` (lo que abre), montados
+ * aparte en `Layout.jsx` — este componente ya no tiene panel ni botón de menú
+ * propios.
  *
  * **No hay ícono de cuenta**, aunque el mockup lo mostraba: este proyecto no
  * tiene login público — el checkout es de invitado por DNI. Un ícono de persona
@@ -45,10 +41,9 @@ const DESTINOS = [{ to: "/", texto: "Inicio", esActivo: (pathname) => pathname =
  * `aria-label` es "Buscar productos" y no "Buscar" justamente para no colisionar
  * con el nombre accesible de ese input.
  *
- * **Todo lo público cae bajo el mismo guard `esAdmin`** — navegación, acciones y
- * botón de menú — porque `/catalogo/admin/login` se renderiza dentro de este
- * mismo `Layout`. Lo único que sobrevive ahí es el wordmark, que sigue siendo un
- * link a la home.
+ * **Todo lo público cae bajo el mismo guard `esAdmin`** — navegación y acciones
+ * — porque `/catalogo/admin/login` se renderiza dentro de este mismo `Layout`.
+ * Lo único que sobrevive ahí es el wordmark, que sigue siendo un link a la home.
  *
  * El badge del carrito solo aparece con `cantidadTotal > 0` (nada de un "0"
  * permanente) y favoritos sigue sin contador: es una asimetría confirmada entre
@@ -67,15 +62,13 @@ function Navbar() {
   const { doodle, doodleAdmin } = useContextoComercial();
   const doodleDelHeader = (esAdmin ? doodleAdmin : doodle)?.url ?? null;
 
-  const [menuAbierto, setMenuAbierto] = useState(false);
   const [categoriasAbiertas, setCategoriasAbiertas] = useState(false);
   const disparadorCategoriasRef = useRef(null);
   const panelCategoriasRef = useRef(null);
 
-  // Navegar cierra el panel. Sin esto, tocar un destino cambia la página por
-  // detrás de un menú que sigue tapándola.
+  // Navegar cierra el dropdown. Sin esto, tocar un destino cambia la página
+  // por detrás de un panel que sigue montado.
   useEffect(() => {
-    setMenuAbierto(false);
     setCategoriasAbiertas(false);
   }, [pathname]);
 
@@ -105,19 +98,6 @@ function Navbar() {
     };
   }, [categoriasAbiertas]);
 
-  // El panel es una superficie modal de verdad (cubre la página con un velo),
-  // así que le corresponde la semántica completa de diálogo: foco inicial
-  // adentro, trampa de foco, Escape y devolución del foco al botón que lo abrió.
-  // `useDialogo` es el módulo compartido que ya resuelve las cuatro.
-  const panelRef = useDialogo({
-    abierto: menuAbierto,
-    onCerrar: () => setMenuAbierto(false),
-  });
-
-  // Con el panel abierto la página de atrás no debe scrollear: está tapada, y
-  // el gesto de scroll ahí mueve contenido que no se ve.
-  useBloquearScroll(menuAbierto);
-
   const claseAccion =
     "relative inline-flex h-11 w-11 items-center justify-center rounded-full text-on-surface transition-colors hover:bg-surface-container-high";
 
@@ -146,16 +126,6 @@ function Navbar() {
   // `backdrop-filter`, el fondo pasa a opaco. Sin esa regla, un cliente sin
   // soporte no se pierde el efecto — se queda con una barra semitransparente
   // y el contenido NÍTIDO por detrás, que es peor que no haber intentado nada.
-  //
-  // El VELO del panel móvil se renderiza como HERMANO del `<header>`, no
-  // adentro, y eso es obligatorio desde que existe este vidrio: un elemento
-  // con `backdrop-filter` se vuelve el bloque contenedor de sus descendientes
-  // `fixed`, así que un velo hijo del header queda preso de la caja del
-  // header en vez de cubrir la ventana. Medido en Chromium con el menú
-  // abierto: iba de 114px a 307px, o sea exactamente el rango del panel que
-  // se pinta encima — invisible, y sin capturar un solo click, con lo cual
-  // "tocar afuera para cerrar" no funcionaba. Como hermano recupera el
-  // viewport y vuelve a velar la página entera.
   return (
     <>
     {/* `top-[var(--alto-cinta-ambiente)]`, no `top-0`: la variable la declara
@@ -165,11 +135,6 @@ function Navbar() {
         cinta, `fixed` y sin empujar el layout, tapaba la mitad superior del
         header. */}
     <header className="vidrio-header sticky top-[var(--alto-cinta-ambiente)] z-50 w-full bg-background/70 shadow backdrop-blur-[10px]">
-      {/* `relative z-50` no es decorativo: el velo del panel móvil es `fixed`
-          con z-index, y dentro del contexto de apilado que crea el header
-          sticky un elemento posicionado se pinta por encima de uno estático.
-          Sin esto, el velo taparía la propia barra y el botón "Cerrar menú"
-          dejaría de ser clickeable. */}
       {/* Alto FIJO (`h-navbar-height`), no derivado del padding. Es la mitad
           de un contrato: `FiltrosCatalogo.jsx` se pega debajo con
           `top-navbar-height`, el MISMO token. Mientras el alto salía del
@@ -185,7 +150,7 @@ function Navbar() {
           lleva la opacidad y el desenfoque. Un fondo sólido acá tapa ese
           vidrio en toda la franja del contenido — el blur se aplicaría igual,
           detrás de una capa opaca, y no se vería nada. */}
-      <div className="relative z-50 mx-auto flex h-navbar-height w-full max-w-container-max items-center justify-between gap-4 px-margin-mobile md:grid md:h-navbar-height-md md:grid-cols-[1fr_auto_1fr] md:px-margin-desktop">
+      <div className="relative z-50 mx-auto flex h-navbar-height w-full max-w-container-max items-center justify-center gap-4 px-margin-mobile md:grid md:h-navbar-height-md md:grid-cols-[1fr_auto_1fr] md:px-margin-desktop">
         {/* El Doodle de la campaña activa reemplaza al wordmark. Sin campaña
             —el caso normal— `doodle` es null y `LogoYima` pinta la marca de
             siempre. En el panel manda el Doodle del panel, que puede ser el de
@@ -240,22 +205,16 @@ function Navbar() {
               </ul>
             </nav>
 
-            <div className="flex items-center gap-1 md:justify-end md:gap-2">
+            {/* `hidden md:flex`: por debajo de `md` la lupa, favoritos y el
+                carrito viven en la isla flotante (`NavFlotante`), no acá. */}
+            <div className="hidden items-center gap-1 md:flex md:justify-end md:gap-2">
               <Link to="/coleccion" aria-label="Buscar productos" className={claseAccion}>
                 <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
                   search
                 </span>
               </Link>
 
-              {/* Favoritos queda fuera de la fila en móvil (vive en el panel,
-                  como en el mockup). El link del panel se rotula "Favoritos" a
-                  secas, así que aunque los dos estuvieran montados a la vez
-                  nunca comparten nombre accesible con este. */}
-              <Link
-                to="/favoritos"
-                aria-label="Ver favoritos"
-                className={`${claseAccion} hidden md:inline-flex`}
-              >
+              <Link to="/favoritos" aria-label="Ver favoritos" className={claseAccion}>
                 <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
                   favorite
                 </span>
@@ -271,18 +230,6 @@ function Navbar() {
                   </span>
                 ) : null}
               </Link>
-
-              <button
-                type="button"
-                aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
-                aria-expanded={menuAbierto}
-                onClick={() => setMenuAbierto((abierto) => !abierto)}
-                className={`${claseAccion} md:hidden`}
-              >
-                <span aria-hidden="true" className="material-symbols-outlined text-[24px]">
-                  {menuAbierto ? "close" : "menu"}
-                </span>
-              </button>
             </div>
           </>
         )}
@@ -302,72 +249,7 @@ function Navbar() {
           </div>
         </div>
       ) : null}
-
-      {/* El panel se MONTA solo mientras está abierto, en vez de quedar oculto
-          con `hidden`. Además de ser lo correcto para el foco, evita duplicar
-          destinos en el DOM: con las dos copias montadas, cualquier consulta
-          por rol o texto encontraría dos nodos para el mismo link. */}
-      {menuAbierto && !esAdmin ? (
-          <div
-            ref={panelRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Menú"
-            tabIndex={-1}
-            className="relative z-50 border-t border-outline-variant bg-background px-margin-mobile pb-6 pt-2 md:hidden"
-          >
-            <ul className="flex flex-col">
-              {/* El panel móvil todavía no tiene su propio dropdown de
-                  categorías (llega en la Fase E, con la hoja que monta
-                  `PanelCategorias`): mientras tanto conserva el link directo a
-                  `/coleccion`, así que "Productos" se agrega a mano acá y no
-                  sale de `DESTINOS`. */}
-              {[
-                ...DESTINOS,
-                {
-                  to: "/coleccion",
-                  texto: "Productos",
-                  esActivo: (ruta) => ruta.startsWith("/coleccion"),
-                },
-                { to: "/favoritos", texto: "Favoritos" },
-              ].map((destino) => (
-                <li key={destino.to}>
-                  <Link
-                    to={destino.to}
-                    aria-current={destino.esActivo?.(pathname) ? "page" : undefined}
-                    className="flex min-h-11 items-center border-b border-outline-variant py-3 font-body-lg text-body-lg text-on-surface"
-                  >
-                    {destino.texto}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-      ) : null}
     </header>
-
-    {/* Velo del panel móvil — HERMANO del `<header>`, ver el comentario de
-        arriba: adentro quedaría preso del bloque contenedor que crea el
-        `backdrop-filter` y no velaría nada. Acá `inset-0` vuelve a ser la
-        ventana, así que oscurece la página y captura el click de cerrar en
-        toda el área libre.
-
-        Se pinta DEBAJO del header (`z-40` contra `z-50`), que es lo que deja
-        la barra legible con el menú abierto: lo poco que se cuela por el 30%
-        translúcido del header es un velo al 20% —mucho más claro que el fondo
-        negro contra el que se calculó el contraste—, así que no mueve la cota.
-
-        `opacity-20` sobre el nodo entero y no `bg-inverse-surface/20` es
-        indistinto desde que los tokens están en canales (23/08); se conserva
-        porque el velo no tiene contenido y bajarle la opacidad no arrastra
-        nada más. */}
-    {menuAbierto && !esAdmin ? (
-      <div
-        className="fixed inset-0 z-40 bg-inverse-surface opacity-20 md:hidden"
-        onClick={() => setMenuAbierto(false)}
-        aria-hidden="true"
-      />
-    ) : null}
     </>
   );
 }
