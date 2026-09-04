@@ -50,6 +50,14 @@ cargarEnv({ path: path.resolve(__dirname, "../../../backend/.env") });
 
 const { prisma } = await import("../../../backend/src/lib/prisma.js");
 
+// La definición de "día" del sistema, importada y no reescrita: `desde`/`hasta`
+// de una `Campania` son la MEDIANOCHE ARGENTINA de su día, y un `new Date(...)`
+// a mano acá sería una cuarta copia de esa regla — la clase de espejo que este
+// repo lleva censada justamente porque se desincroniza sin que nada falle.
+const { claveDiaArgentino, inicioDelDiaArgentino } = await import(
+  "../../../backend/src/lib/horarioArgentino.js"
+);
+
 export const MARCA_TEST = "E2E-TEST-";
 
 // Mismo costo que `backend/src/scripts/create-admin.js` — no hay razón para
@@ -269,6 +277,60 @@ export async function borrarUsuarioAdminDeTest(usuarioId) {
 }
 
 /**
+ * Crea una campaña de test directo vía Prisma.
+ *
+ * `Campania` no tiene default para `tipo`, `estado`, `desde` ni `hasta` (ver
+ * `backend/prisma/schema.prisma`), así que los cuatro se completan acá — un
+ * `create` sin ellos falla en la base, no en el test.
+ *
+ * ⚠️ **Los defaults dejan la campaña APAGADA** (`BORRADOR`, y un período de un
+ * solo día que es hoy). Una campaña de test HABILITADA y vigente compite por el
+ * Doodle y por el modal contra las campañas reales de la base de dev, y el modal
+ * es `fixed inset-0`: intercepta el primer click de cualquier spec público. Un
+ * spec que necesite verla activa lo pide explícito en `overrides`, y entonces se
+ * hace cargo de que su recorrido cuente con el cartel.
+ *
+ * `prioridad` sí tiene default en la base (0). Un spec que necesite GANARLE al
+ * resto de las campañas vigentes tiene que mandar una alta: el Doodle y el modal
+ * son recursos exclusivos y los decide la prioridad, no el orden de creación.
+ *
+ * @param {object} [overrides] campos a pisar sobre los defaults
+ * @returns {Promise<object>} la campaña creada
+ */
+export async function crearCampaniaDeTest(overrides = {}) {
+  const hoy = claveDiaArgentino(new Date());
+
+  const { desde, hasta, ...resto } = overrides;
+
+  return prisma.campania.create({
+    data: {
+      nombre: `${MARCA_TEST}Campaña E2E`,
+      tipo: "ESTACIONAL",
+      estado: "BORRADOR",
+      ...resto,
+      // Van después del spread para poder aceptar la clave `AAAA-MM-DD` que
+      // maneja la API, en vez de obligar al spec a construir el instante.
+      desde: inicioDelDiaArgentino(desde ?? hoy),
+      hasta: inicioDelDiaArgentino(hasta ?? hoy),
+    },
+  });
+}
+
+/**
+ * Borra una campaña de test por id. Silencioso si ya no existe, como sus
+ * hermanas.
+ *
+ * No hace falta borrar antes sus asociaciones: `CampaniaProducto` y
+ * `CampaniaPromocion` cuelgan de `Campania` con `onDelete: Cascade`, así que se
+ * van solas. Los productos y las promociones en sí NO se tocan — la asociación
+ * es lo único que la campaña posee.
+ * @param {number} campaniaId
+ */
+export async function borrarCampaniaDeTest(campaniaId) {
+  await prisma.campania.delete({ where: { id: campaniaId } }).catch(() => {});
+}
+
+/**
  * Limpieza global por patrón: barre CUALQUIER fila marcada `E2E-TEST-` que
  * haya quedado huérfana (un test anterior que crasheó antes de su propio
  * cleanup puntual). Pensado para correr como global teardown, además del
@@ -289,6 +351,15 @@ export async function limpiarTodoRastroDeTest() {
     await prisma.orden.deleteMany({ where: { clienteId: { in: idsClientes } } });
     await prisma.cliente.deleteMany({ where: { id: { in: idsClientes } } });
   }
+
+  // Campañas de test, ANTES que los productos: una campaña con la vitrina
+  // sembrada es lo que más molesta si sobrevive (activa, compite por el Doodle y
+  // por el modal, y el modal intercepta el primer click de todo spec público).
+  //
+  // ⚠️ NO hace falta borrar `CampaniaProducto` ni `CampaniaPromocion` acá: las
+  // dos cuelgan de `Campania` con `onDelete: Cascade` y se van con ella. Un
+  // `deleteMany` extra sobre esas tablas sería ruido que aparenta ser necesario.
+  await prisma.campania.deleteMany({ where: { nombre: { startsWith: MARCA_TEST } } });
 
   // Productos de test (cascade se lleva fotos/video/características).
   await prisma.product.deleteMany({ where: { sku: { startsWith: MARCA_TEST } } });

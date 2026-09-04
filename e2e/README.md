@@ -56,9 +56,10 @@ por defecto de Playwright con `projects` múltiples, no algo que la config
 pueda desactivar; los scripts de `package.json` son la forma de elegir uno
 solo sin tener que acordarse del flag.
 
-**Por qué `mobile` corre un único spec y no la suite entera**: los otros 8
+**Por qué `mobile` corre un único spec y no la suite entera**: los otros 9
 specs (6 de flujo — 5 públicos más `admin-cambio-estado.spec.js`, que es del
-panel — más `admin-desktop-layout.spec.js` y `admin-tablero-ordenes.spec.js`)
+panel — más `admin-desktop-layout.spec.js`, `admin-tablero-ordenes.spec.js` y
+`admin-campania-editor.spec.js`)
 prueban
 *comportamiento* (checkout, login, cambio de estado de una orden, que la
 tabla siga siendo `display: table` en escritorio) — ese comportamiento ya
@@ -188,9 +189,15 @@ seed/cleanup en escenarios nuevos (Sprint 7 Task 2).
   (import de `backend/src/lib/prisma.js` — los tests de Playwright corren en
   Node, así que esto es acceso directo a DB legítimo, sin pasar por HTTP).
   Incluye tanto helpers de creación (`crearProductoDeTest`,
-  `crearClienteDeTest`, `crearOrdenDeTest`, `crearUsuarioAdminDeTest`) como
-  de borrado (`borrarProductoDeTest`, `borrarOrdenDeTest`,
-  `borrarUsuarioAdminDeTest`, `limpiarTodoRastroDeTest`).
+  `crearClienteDeTest`, `crearOrdenDeTest`, `crearUsuarioAdminDeTest`,
+  `crearCampaniaDeTest`) como de borrado (`borrarProductoDeTest`,
+  `borrarOrdenDeTest`, `borrarUsuarioAdminDeTest`, `borrarCampaniaDeTest`,
+  `limpiarTodoRastroDeTest`).
+- `helpers/contextoComercial.js` — `neutralizarContextoComercial(page)`.
+  **Todo spec público lo necesita**: desde que hay campañas, el cartel es
+  `fixed inset-0` e intercepta el primer click de cualquier página, con un
+  error que no nombra ninguna campaña. La única excepción es
+  `admin-campania-editor.spec.js`, donde el cartel es lo que se prueba.
 - `flujo-feliz.spec.js` — Escenario 1: catálogo -> detalle -> carrito ->
   checkout -> confirmación, con verificación final directa en la DB.
 - `cliente-recurrente.spec.js` — Escenario 2: dos órdenes con el mismo dni
@@ -207,6 +214,16 @@ seed/cleanup en escenarios nuevos (Sprint 7 Task 2).
 - `admin-cambio-estado.spec.js` — Escenario 5: login real de admin -> cambiar
   el estado de una orden por UI -> reload -> el estado persiste (verificado
   también directo en la DB).
+- `admin-campania-editor.spec.js` — el recorrido de una campaña con vitrina,
+  de punta a punta: login real -> crear la campaña desde el editor en página
+  (estado, período, prioridad 999, cartel y destino "los productos de la
+  campaña") -> elegir el producto de la vitrina -> el CTA del cartel del
+  catálogo aterriza en `/coleccion?campania=<id>` con su chip y su grilla.
+  Prueba lo único que ningún test unitario de los dos lados puede afirmar: que
+  la ruta que ARMA el backend sea la que el router del frontend sabe abrir.
+  **UN SOLO LOGIN**, con `test.step` por etapa, y **sin**
+  `neutralizarContextoComercial`: acá el cartel es el sujeto. El "hoy" sale de
+  `GET /api/campanias/activas` (`claveDia`) y no de un `new Date()` en el spec.
 - `checkout-accesibilidad.spec.js` — pasada de accesibilidad sobre el
   formulario de checkout: labels asociados, `aria-invalid`/
   `aria-describedby` en campos inválidos, `role="alert"` en errores de envío

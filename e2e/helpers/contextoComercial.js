@@ -19,9 +19,16 @@
  * tienen sus tests unitarios—, así que estabilizar esta respuesta los aísla en
  * vez de recortarles cobertura.
  *
- * `claveDia` viaja igual y con un valor real: es lo que decide qué día es para
- * la regla de "una vez por día", y devolverlo en `null` sería un estado que la
- * API nunca produce cuando responde bien.
+ * ⚠️ **Hace MÁS falta desde que el cartel se muestra en cada carga.** El tope de
+ * "una vez por día por visitante" se retiró: ya no hay ningún `localStorage` que
+ * silencie el segundo `goto` de un spec.
+ *
+ * `claveDia` viaja igual y con un valor real —lo consume el calendario del
+ * panel—: devolverlo en `null` sería un estado que la API nunca produce cuando
+ * responde bien.
+ *
+ * La excepción es `admin-campania-editor.spec.js`, que NO llama a este helper
+ * porque el cartel es justamente lo que prueba.
  */
 export async function neutralizarContextoComercial(page) {
   await page.route("**/api/campanias/activas*", async (route) => {
