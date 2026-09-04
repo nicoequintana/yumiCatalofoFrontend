@@ -20,10 +20,15 @@ export default function PreviewCartel({ modal }) {
   return (
     <div
       data-testid="preview-cartel"
-      className="relative overflow-hidden rounded-xl border border-outline-variant bg-surface-container-low p-4"
+      className="relative overflow-hidden rounded-xl border border-outline-variant bg-surface-container-low p-6"
     >
-      {/* El sitio insinuado. Decorativo: no aporta ninguna información. */}
-      <div aria-hidden="true" className="flex flex-col gap-3 p-2">
+      {/* ⚠️ EL FONDO VA DETRÁS Y EN `absolute`, Y LA TARJETA EN FLUJO.
+          Al revés —el esqueleto marcando el alto y la tarjeta encima— el panel
+          medía lo que medía el fondo, y un cartel más alto se recortaba contra
+          el `overflow-hidden`. Lo primero que se perdía era el botón, que es el
+          final de la tarjeta. Y el alto de un cartel es variable por
+          definición: el título, el texto y el arte los escribe el admin. */}
+      <div aria-hidden="true" className="absolute inset-0 flex flex-col gap-3 p-6">
         <div className="h-6 w-32 rounded bg-surface-container-high" />
         <div className="grid grid-cols-3 gap-3">
           <div className="h-24 rounded-lg bg-surface-container-high" />
@@ -36,13 +41,13 @@ export default function PreviewCartel({ modal }) {
 
       {/* El velo del modal real: `black/40` es un tinte, no un color del tema,
           igual que en `DialogoCampania`. */}
-      <div className="absolute inset-0 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-        {/* `max-w-md` es EXACTAMENTE el ancho del modal real (`ModalCampania`).
-            Un preview mas angosto o mas ancho mentiria sobre donde cortan el
-            titulo y el texto, que es lo unico que este panel existe para mostrar. */}
-        <div className="w-full max-w-md rounded-2xl bg-surface-container-lowest px-6 py-7 shadow-ambient">
-          <CartelCampania modal={modal} interactivo={false} />
-        </div>
+      <div aria-hidden="true" className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+
+      {/* `max-w-md` es EXACTAMENTE el ancho del modal real (`ModalCampania`).
+          Un preview más angosto o más ancho mentiría sobre dónde cortan el
+          título y el texto, que es lo único que este panel existe para mostrar. */}
+      <div className="relative mx-auto w-full max-w-md rounded-2xl bg-surface-container-lowest px-6 py-7 shadow-ambient">
+        <CartelCampania modal={modal} interactivo={false} />
       </div>
     </div>
   );

@@ -37,7 +37,12 @@ export default function EditorCampaniaHeader({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0">
           <div className="mb-2">
-            <BotonVolver fallback="/catalogo/admin/campanias" puedeSalir={confirmarSalida} />
+            <BotonVolver
+              fallback="/catalogo/admin/campanias"
+              puedeSalir={confirmarSalida}
+              destinoFijo
+              etiqueta="Volver al calendario"
+            />
           </div>
           <span className="font-label-sm text-label-sm block uppercase tracking-[0.2em] text-secondary">
             Panel de administración
