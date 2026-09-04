@@ -2,7 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* `.paleta-clara` comparte el bloque de `:root` A PROPOSITO: es la unica forma
+   de forzar la paleta del catalogo dentro del panel sin escribir los 34 tokens
+   una cuarta vez. El proyecto ya sostiene tres copias sincronizadas a mano
+   (`:root`, `[data-tema-admin="oscuro"]` y `tailwind.config.js`); una cuarta,
+   ademas parcial, se desincronizaria sin que nada falle.
+
+   Funciona por herencia: un elemento con esta clase adentro de un `<html>` en
+   tema oscuro redeclara los tokens SOBRE SI MISMO, y su subarbol los hereda.
+   Lo usa la vista previa del cartel, que tiene que mostrarlo como lo ve el
+   cliente — el catalogo publico NO tiene tema oscuro. */
+:root,
+.paleta-clara {
   /* "Vibrant Editorial Discovery" palette — terracotta primary, moss-green
      secondary, golden-sand tertiary, warm cream surfaces. Replaces the prior
      beige/brown editorial palette in full (see CLAUDE.md design tokens).

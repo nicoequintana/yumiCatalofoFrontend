@@ -46,7 +46,12 @@ export default function PreviewCartel({ modal }) {
       {/* `max-w-md` es EXACTAMENTE el ancho del modal real (`ModalCampania`).
           Un preview más angosto o más ancho mentiría sobre dónde cortan el
           título y el texto, que es lo único que este panel existe para mostrar. */}
-      <div className="relative mx-auto w-full max-w-md rounded-2xl bg-surface-container-lowest px-6 py-7 shadow-ambient">
+      {/* `paleta-clara`: el catalogo publico NO tiene tema oscuro, asi que un
+          admin con el panel en oscuro veria un cartel que el cliente nunca ve
+          — y no podria juzgar el contraste de lo que esta por publicar. Es la
+          misma razon por la que el ancho es `max-w-md`: el preview no puede
+          mentir sobre lo que se publica. */}
+      <div className="paleta-clara relative mx-auto w-full max-w-md rounded-2xl bg-background px-6 py-7 shadow-ambient">
         <CartelCampania modal={modal} interactivo={false} />
       </div>
     </div>
