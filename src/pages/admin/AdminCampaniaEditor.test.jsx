@@ -287,3 +287,146 @@ describe("AdminCampaniaEditor — edición", () => {
     expect(await screen.findByText("Centro de Campañas (mock)")).toBeInTheDocument();
   });
 });
+
+describe("AdminCampaniaEditor — los errores de las secciones que guardan solas", () => {
+  /**
+   * Las secciones 3 y 4 viven DESPUÉS de un formulario de ~1.686 px. Un error
+   * pintado arriba de todo existe, está bien calculado y no entra en el
+   * viewport de quien apretó el botón: se lee como un botón que no hace nada, y
+   * el admin lo vuelve a apretar. Misma familia que el error del diálogo de
+   * borrado.
+   */
+  it("el fallo al guardar la vitrina se ve DENTRO de la sección de productos", async () => {
+    const usuario = userEvent.setup();
+    const producto = {
+      id: 9,
+      nombre: "Vela de soja",
+      sku: "V-9",
+      precio: "2500",
+      fotoPortada: null,
+      visibleEnCatalogo: true,
+      stock: 4,
+    };
+    campaniasApi.getCampania.mockResolvedValue(detalle({ productos: [producto] }));
+    campaniasApi.guardarProductosDeCampania.mockRejectedValue(
+      new Error("No se pudo guardar la vitrina."),
+    );
+
+    renderEditor("/catalogo/admin/campanias/31/editar");
+
+    await usuario.click(await screen.findByRole("button", { name: "Quitar Vela de soja" }));
+
+    const seccion = screen.getByRole("region", { name: "Productos de la campaña" });
+    expect(await within(seccion).findByText("No se pudo guardar la vitrina.")).toBeInTheDocument();
+  });
+
+  it("el fallo al guardar las promociones se ve DENTRO de la sección de promociones", async () => {
+    const usuario = userEvent.setup();
+    promocionesApi.getPromociones.mockResolvedValue([
+      { id: 3, nombre: "20% en velas", habilitada: true },
+    ]);
+    campaniasApi.guardarPromocionesDeCampania.mockRejectedValue(
+      new Error("No se pudo guardar la lista de promociones."),
+    );
+
+    renderEditor("/catalogo/admin/campanias/31/editar");
+
+    await usuario.click(await screen.findByRole("checkbox", { name: /20% en velas/ }));
+
+    const seccion = screen.getByRole("region", { name: "Promociones" });
+    expect(
+      await within(seccion).findByText("No se pudo guardar la lista de promociones."),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("AdminCampaniaEditor — «Traer los de las promociones»", () => {
+  const promocionAsociada = { id: 3, nombre: "20% en velas" };
+
+  /**
+   * El botón dispara N `getPromocion` en paralelo. Sin `try/catch` la promesa
+   * quedaba rechazada sin manejar: ni error, ni spinner, ni productos. El 401
+   * NO es uno de los casos mudos —`fetchAutenticado` lo intercepta y redirige
+   * al login—, pero el 404 de una promoción que otro admin borró, el 502 con
+   * HTML del proxy y el timeout de 15 s sí lo eran.
+   */
+  it("un fallo al traer una promoción muestra el motivo JUNTO al botón", async () => {
+    const usuario = userEvent.setup();
+    campaniasApi.getCampania.mockResolvedValue(detalle({ promociones: [promocionAsociada] }));
+    promocionesApi.getPromocion.mockRejectedValue(new Error("Promoción no encontrada."));
+
+    renderEditor("/catalogo/admin/campanias/31/editar");
+
+    await usuario.click(
+      await screen.findByRole("button", { name: "Traer los de las promociones" }),
+    );
+
+    const vitrina = screen.getByRole("region", { name: /En la vitrina/ });
+    expect(await within(vitrina).findByText(/No se pudieron traer/i)).toBeInTheDocument();
+    // Todo o nada: la vitrina no se toca, y el mensaje tiene que decirlo para
+    // que el admin no crea que agregó algo a medias.
+    expect(within(vitrina).getByText(/no se agregó ninguno/i)).toBeInTheDocument();
+    expect(campaniasApi.guardarProductosDeCampania).not.toHaveBeenCalled();
+  });
+
+  it("cuando las promociones responden, agrega sus productos a la vitrina", async () => {
+    const usuario = userEvent.setup();
+    campaniasApi.getCampania.mockResolvedValue(detalle({ promociones: [promocionAsociada] }));
+    promocionesApi.getPromocion.mockResolvedValue({
+      id: 3,
+      nombre: "20% en velas",
+      items: [{ productId: 9 }, { productId: 12 }],
+    });
+    campaniasApi.guardarProductosDeCampania.mockResolvedValue(detalle());
+
+    renderEditor("/catalogo/admin/campanias/31/editar");
+
+    await usuario.click(
+      await screen.findByRole("button", { name: "Traer los de las promociones" }),
+    );
+
+    await waitFor(() => {
+      expect(campaniasApi.guardarProductosDeCampania).toHaveBeenCalledWith(31, [9, 12]);
+    });
+  });
+});
+
+describe("AdminCampaniaEditor — el destino del CTA", () => {
+  /**
+   * El nombre salía SOLO de `campania.modalCtaReferencia`, que es el detalle
+   * cargado y no se refresca al elegir. El admin veía el producto ANTERIOR
+   * aunque el PUT persistiera el nuevo: el dato guardado era correcto y lo que
+   * mostraba la pantalla era mentira, en la pantalla donde se decide a dónde
+   * manda un cartel que ve todo el mundo.
+   */
+  it("al elegir otro producto, «Elegido» muestra el nuevo en el acto", async () => {
+    const usuario = userEvent.setup();
+    campaniasApi.getCampania.mockResolvedValue(
+      detalle({
+        modalCtaTipo: "PRODUCTO",
+        modalCtaReferenciaId: 12,
+        modalCtaReferencia: { id: 12, nombre: "Velador LED" },
+      }),
+    );
+    productsApi.getProducts.mockResolvedValue({
+      data: [{ id: 45, nombre: "Reloj Clásico", sku: "R-45", fotos: [], visibleEnCatalogo: true }],
+      page: 1,
+      pageSize: 8,
+      total: 1,
+    });
+
+    renderEditor("/catalogo/admin/campanias/31/editar");
+
+    const destinos = await screen.findByRole("group", { name: "A dónde lleva el botón" });
+    // El nombre vive en el párrafo "Elegido: …", no en la lista de resultados:
+    // el resultado clickeado sigue listado, así que la aserción tiene que
+    // mirar el cartel y no el documento entero.
+    const elegido = () => within(destinos).getByText(/^Elegido:/).textContent;
+    expect(elegido()).toBe("Elegido: Velador LED");
+
+    await usuario.type(within(destinos).getByLabelText("Buscá el producto"), "reloj");
+    await usuario.click(await within(destinos).findByRole("button", { name: /Reloj Clásico/ }));
+
+    await waitFor(() => expect(elegido()).toBe("Elegido: Reloj Clásico"));
+  });
+});

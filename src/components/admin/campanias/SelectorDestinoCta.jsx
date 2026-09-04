@@ -134,10 +134,26 @@ export default function SelectorDestinoCta({
  * resultados y no ofrece agregar en lote. Con `admin: true` para poder elegir
  * también un producto oculto — el backend ya rechaza mandar el cartel a la ficha
  * de uno que el visitante no puede abrir.
+ *
+ * ⚠️ **El nombre del elegido no puede salir solo de `referenciaNombre`.** Esa
+ * prop viene de `campania.modalCtaReferencia`, o sea del detalle CARGADO, que
+ * no se refresca al elegir: la pantalla seguía diciendo "Elegido: Velador LED"
+ * después de clickear "Reloj Clásico", y también después de guardar. El dato
+ * que se persistía era el correcto; lo que el admin veía era mentira, en la
+ * pantalla donde se decide a dónde manda un cartel que ve todo el mundo. Por
+ * eso el componente RECUERDA lo que se acaba de elegir.
  */
 function BuscadorDeProducto({ referenciaId, referenciaNombre, onElegir }) {
   const [termino, setTermino] = useState("");
   const [resultados, setResultados] = useState([]);
+  // Lo elegido en ESTA sesión de edición, con su id: sin el id no habría forma
+  // de saber si el nombre recordado sigue describiendo la referencia vigente.
+  const [elegido, setElegido] = useState(null);
+
+  // El nombre recordado gana mientras describa al id vigente. Si la referencia
+  // cambió desde afuera (cambiar de destino la limpia), se cae al del detalle.
+  const nombreElegido =
+    elegido && String(elegido.id) === String(referenciaId) ? elegido.nombre : referenciaNombre;
 
   useEffect(() => {
     const buscado = termino.trim();
@@ -177,12 +193,12 @@ function BuscadorDeProducto({ referenciaId, referenciaNombre, onElegir }) {
         className={claseCampo}
       />
 
-      {/* Qué está elegido AHORA. El nombre lo manda el backend con el detalle:
-          sin él el editor mostraría un id, o tendría que pedir el producto
-          aparte solo para poder nombrarlo. */}
+      {/* Qué está elegido AHORA. El nombre sale de lo que se acaba de clickear
+          y, si no hubo elección todavía, del detalle que manda el backend: sin
+          ninguno de los dos el editor mostraría un id pelado. */}
       {referenciaId ? (
         <p className="font-body-sm text-body-sm mt-2 text-on-surface-variant">
-          Elegido: <strong className="text-on-surface">{referenciaNombre ?? `#${referenciaId}`}</strong>
+          Elegido: <strong className="text-on-surface">{nombreElegido ?? `#${referenciaId}`}</strong>
         </p>
       ) : null}
 
@@ -192,7 +208,10 @@ function BuscadorDeProducto({ referenciaId, referenciaNombre, onElegir }) {
             <li key={producto.id}>
               <button
                 type="button"
-                onClick={() => onElegir(String(producto.id))}
+                onClick={() => {
+                  setElegido({ id: producto.id, nombre: producto.nombre });
+                  onElegir(String(producto.id));
+                }}
                 className="font-body-md text-body-md w-full rounded px-2 py-1 text-left text-on-surface transition-colors hover:bg-surface-container"
               >
                 {producto.nombre}

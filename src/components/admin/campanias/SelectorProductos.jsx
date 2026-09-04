@@ -49,6 +49,11 @@ export default function SelectorProductos({
   const [resultados, setResultados] = useState([]);
   const [buscando, setBuscando] = useState(true);
   const [errorBusqueda, setErrorBusqueda] = useState(null);
+  // Estado propio de "Traer los de las promociones": el error se muestra JUNTO
+  // al botón, y el hook del editor no llega a enterarse de este fallo (la
+  // lectura falla antes de que haya nada que guardar).
+  const [trayendo, setTrayendo] = useState(false);
+  const [errorTraer, setErrorTraer] = useState(null);
 
   useEffect(() => {
     let activo = true;
@@ -119,10 +124,43 @@ export default function SelectorProductos({
    * Es el atajo del caso más común: se arma la promoción primero y la campaña
    * después. **Une, no reemplaza** — la vitrina puede tener productos que
    * ninguna promoción toca, y pisarlos sería borrar trabajo sin avisar.
+   *
+   * ⚠️ **TODO O NADA, y el mensaje lo dice.** `Promise.all` rechaza con la
+   * primera que falle, y con degradación parcial la vitrina quedaría con los
+   * productos de algunas promociones y sin los de otras, persistidos, sin que
+   * nada en pantalla diga cuáles faltan. Es peor que no agregar nada: el admin
+   * no tiene forma de auditar qué quedó afuera.
+   *
+   * ⚠️ **Sin este `try/catch` el botón se moría mudo.** La promesa quedaba
+   * rechazada sin manejar: no hay estado de error acá, `onGuardar` nunca se
+   * llamaba, y por lo tanto tampoco entraba en el `conGuardado` del hook, que
+   * es lo único que pinta el error de la página. El admin apretaba y no pasaba
+   * nada — ni error, ni spinner, ni productos —, así que volvía a apretar.
+   *
+   * El 401 NO es uno de los casos mudos: `fetchAutenticado` lo intercepta
+   * antes, borra el token y redirige al login. Los que sí lo eran: el 404 de
+   * una promoción que otro admin borró entre la carga y el click, el 502 con
+   * HTML del proxy, y el timeout de 15 s de `fetchConTimeout`.
    */
   async function traerDeLasPromociones() {
-    const detalles = await Promise.all(promocionesAsociadas.map((p) => getPromocion(p.id)));
-    const ids = detalles.flatMap((detalle) => (detalle.items ?? []).map((i) => i.productId));
+    setErrorTraer(null);
+    setTrayendo(true);
+
+    let ids;
+    try {
+      const detalles = await Promise.all(promocionesAsociadas.map((p) => getPromocion(p.id)));
+      ids = detalles.flatMap((detalle) => (detalle.items ?? []).map((i) => i.productId));
+    } catch {
+      setErrorTraer(
+        "No se pudieron traer los productos de las promociones: no se agregó ninguno. Revisá tu conexión e intentá de nuevo.",
+      );
+      return;
+    } finally {
+      setTrayendo(false);
+    }
+
+    // Fuera del `try`: un fallo del guardado no es un fallo de la lectura, y su
+    // motivo lo reporta el editor en la sección de productos.
     agregar([...new Set(ids)]);
   }
 
@@ -263,14 +301,23 @@ export default function SelectorProductos({
             {promocionesAsociadas.length > 0 ? (
               <button
                 type="button"
-                disabled={guardando}
+                disabled={guardando || trayendo}
                 onClick={traerDeLasPromociones}
                 className="font-label-sm text-label-sm rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60"
               >
-                Traer los de las promociones
+                {trayendo ? "Trayendo…" : "Traer los de las promociones"}
               </button>
             ) : null}
           </div>
+
+          {/* El motivo va ACÁ, pegado al botón que falló: el error general de la
+              página se pinta arriba de todo, a ~1.686 px de esta sección, o sea
+              fuera del viewport de quien apretó. */}
+          {errorTraer ? (
+            <p className="font-body-sm text-body-sm mb-3 rounded-lg bg-error-container px-3 py-2 text-on-error-container">
+              {errorTraer}
+            </p>
+          ) : null}
 
           {productos.length === 0 ? (
             <p className="font-body-sm text-body-sm text-on-surface-variant">

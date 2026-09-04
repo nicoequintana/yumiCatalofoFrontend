@@ -124,6 +124,13 @@ export default function useCampaniaEditor() {
   // del diálogo, que la tapa con su velo. Mismo reparto que `useProductoForm`.
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState(null);
+  // Mismo reparto, por el mismo motivo: la vitrina y las promociones son las
+  // secciones 3 y 4, DESPUÉS de un formulario de ~1.686 px. Su error pintado en
+  // el bloque general —arriba de todo, antes del `<form>`— existe y está bien
+  // calculado, pero queda fuera del viewport de quien apretó el botón: se lee
+  // como un botón que no hace nada, y el admin lo vuelve a apretar.
+  const [errorProductos, setErrorProductos] = useState(null);
+  const [errorPromociones, setErrorPromociones] = useState(null);
   const [sucio, setSucio] = useState(false);
   const confirmarSalida = useGuardaSalida(sucio);
 
@@ -246,15 +253,22 @@ export default function useCampaniaEditor() {
     setValores((actuales) => ({ ...actuales, modalCtaTipo: tipo, modalCtaReferenciaId: "" }));
   }, []);
 
-  /** Ejecuta una mutación de las que persisten solas y refresca el detalle. */
-  async function conGuardado(operacion) {
+  /**
+   * Ejecuta una mutación de las que persisten solas y refresca el detalle.
+   *
+   * `reportarError` decide DÓNDE se ve el motivo. El default es el error
+   * general de la página, que sirve para lo que se dispara desde el encabezado
+   * (duplicar, prender/apagar, el Doodle); las secciones que viven abajo del
+   * formulario pasan el suyo para que el aviso entre en el viewport.
+   */
+  async function conGuardado(operacion, reportarError = setError) {
     setGuardando(true);
-    setError(null);
+    reportarError(null);
     try {
       await operacion();
       return true;
     } catch (err) {
-      setError(err.message ?? "No se pudo guardar.");
+      reportarError(err.message ?? "No se pudo guardar.");
       return false;
     } finally {
       setGuardando(false);
@@ -371,7 +385,7 @@ export default function useCampaniaEditor() {
     await conGuardado(async () => {
       const detalle = await guardarProductosDeCampania(Number(id), productIds);
       setCampania(detalle);
-    });
+    }, setErrorProductos);
   }
 
   /**
@@ -384,7 +398,7 @@ export default function useCampaniaEditor() {
       await guardarPromocionesDeCampania(Number(id), promocionIds);
       const detalle = await getCampania(id);
       setCampania(detalle);
-    });
+    }, setErrorPromociones);
   }
 
   return {
@@ -401,6 +415,8 @@ export default function useCampaniaEditor() {
     error,
     eliminando,
     errorEliminar,
+    errorProductos,
+    errorPromociones,
     sucio,
     confirmarSalida,
     editar,

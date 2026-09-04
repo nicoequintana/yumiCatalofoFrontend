@@ -53,6 +53,24 @@ import useCampaniaEditor from "../../hooks/useCampaniaEditor.js";
  * sección existe y qué falta para habilitarla, en vez de dejar la página con
  * forma de incompleta.
  */
+/**
+ * El motivo de un fallo, pintado DENTRO de la sección que lo produjo.
+ *
+ * Las secciones 3 y 4 arrancan después de un formulario de ~1.686 px: el error
+ * general de la página se renderiza arriba de todo y no entra en el viewport de
+ * quien apretó el botón. Un error invisible se lee como un botón que no hace
+ * nada. Mismo criterio que el error del diálogo de borrado, que va adentro del
+ * diálogo porque el velo tapa la página.
+ */
+function ErrorDeSeccion({ children }) {
+  if (!children) return null;
+  return (
+    <p className="font-body-md text-body-md mb-5 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
+      {children}
+    </p>
+  );
+}
+
 function AunNoDisponible({ children }) {
   return (
     <p className="font-body-md text-body-md flex items-start gap-2 rounded-lg border border-dashed border-outline-variant bg-surface-container-low px-4 py-3 text-on-surface-variant">
@@ -91,6 +109,8 @@ export default function AdminCampaniaEditor() {
     error,
     eliminando,
     errorEliminar,
+    errorProductos,
+    errorPromociones,
     sucio,
     confirmarSalida,
     editar,
@@ -217,6 +237,7 @@ export default function AdminCampaniaEditor() {
               La vitrina: qué muestra la campaña. Es otra pregunta que qué descuentos aplica — un
               producto puede estar acá sin ninguna rebaja.
             </p>
+            <ErrorDeSeccion>{errorProductos}</ErrorDeSeccion>
             {esEdicion ? (
               <SecccionProductos
                 campania={campania}
@@ -242,6 +263,7 @@ export default function AdminCampaniaEditor() {
               Qué descuentos aplica mientras esté activa. Apagar la campaña los apaga a todos de
               una.
             </p>
+            <ErrorDeSeccion>{errorPromociones}</ErrorDeSeccion>
             {esEdicion ? (
               <PromocionesDeCampania
                 promociones={promociones}
