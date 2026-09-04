@@ -1,30 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import useBloquearScroll from "../hooks/useBloquearScroll.js";
 import useCarrito from "../hooks/useCarrito.js";
+import useCategoriasNavbar from "../hooks/useCategoriasNavbar.js";
 import useContextoComercial from "../hooks/useContextoComercial.js";
 import useDialogo from "../hooks/useDialogo.js";
 import LogoYima from "./LogoYima.jsx";
+import PanelCategorias from "./PanelCategorias.jsx";
 
 /**
  * Navegación principal del catálogo público. Es la única lista de destinos del
  * header: la usan tanto la barra de escritorio como el panel móvil, así que un
  * destino nuevo se agrega en un solo lugar.
  *
- * Deliberadamente NO hay un item "Categorías": llevaría a
- * `/coleccion?categoria=…`, y `Coleccion.jsx` blanquea los filtros heredados al
- * MONTAR. Un link así perdería el filtro viniendo de la home pero lo aplicaría
- * si ya estabas en `/coleccion` (el componente no remonta) — el mismo control
- * haciendo dos cosas distintas según de dónde venís.
+ * `Productos` ya NO es un destino de esta lista: en la barra de escritorio es
+ * el disparador del dropdown de categorías (`PanelCategorias`), así que se
+ * escribe a mano en el JSX en vez de mapearse desde acá. Antes no había forma
+ * de ofrecer categorías porque un link a `/coleccion?categoria=…` perdía el
+ * filtro (`Coleccion.jsx` blanquea los filtros heredados al MONTAR, y ese
+ * link no remonta si ya estabas en `/coleccion`). Ese impedimento se resolvió
+ * al existir `/coleccion/categoria/:slug`, que sí es una ruta propia.
  */
-const DESTINOS = [
-  { to: "/", texto: "Inicio", esActivo: (pathname) => pathname === "/" },
-  {
-    to: "/coleccion",
-    texto: "Productos",
-    esActivo: (pathname) => pathname.startsWith("/coleccion"),
-  },
-];
+const DESTINOS = [{ to: "/", texto: "Inicio", esActivo: (pathname) => pathname === "/" }];
 
 /**
  * Header público: wordmark a la izquierda, navegación al centro y acciones a la
@@ -53,6 +50,7 @@ function Navbar() {
   const { pathname } = useLocation();
   const esAdmin = pathname.startsWith("/catalogo/admin");
   const { cantidadTotal } = useCarrito();
+  const { categorias } = useCategoriasNavbar();
 
   // El Doodle sale del contexto comercial, que se pide una sola vez por carga
   // de página y lo comparten todos los consumidores. Cuál de los dos aplica lo
@@ -62,12 +60,42 @@ function Navbar() {
   const doodleDelHeader = (esAdmin ? doodleAdmin : doodle)?.url ?? null;
 
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [categoriasAbiertas, setCategoriasAbiertas] = useState(false);
+  const disparadorCategoriasRef = useRef(null);
+  const panelCategoriasRef = useRef(null);
 
   // Navegar cierra el panel. Sin esto, tocar un destino cambia la página por
   // detrás de un menú que sigue tapándola.
   useEffect(() => {
     setMenuAbierto(false);
+    setCategoriasAbiertas(false);
   }, [pathname]);
+
+  // El dropdown de categorías NO usa `useDialogo` a propósito: no es una
+  // superficie modal —no vela la página ni bloquea el scroll—, y una trampa de
+  // foco encerraría el tabulado en un menú del que se sale tabulando. Lo que
+  // sí necesita del tratamiento de diálogo es Escape y devolver el foco.
+  useEffect(() => {
+    if (!categoriasAbiertas) return undefined;
+
+    const alTeclado = (evento) => {
+      if (evento.key !== "Escape") return;
+      setCategoriasAbiertas(false);
+      disparadorCategoriasRef.current?.focus();
+    };
+    const alClick = (evento) => {
+      if (panelCategoriasRef.current?.contains(evento.target)) return;
+      if (disparadorCategoriasRef.current?.contains(evento.target)) return;
+      setCategoriasAbiertas(false);
+    };
+
+    document.addEventListener("keydown", alTeclado);
+    document.addEventListener("mousedown", alClick);
+    return () => {
+      document.removeEventListener("keydown", alTeclado);
+      document.removeEventListener("mousedown", alClick);
+    };
+  }, [categoriasAbiertas]);
 
   // El panel es una superficie modal de verdad (cubre la página con un velo),
   // así que le corresponde la semántica completa de diálogo: foco inicial
@@ -181,6 +209,26 @@ function Navbar() {
                     </li>
                   );
                 })}
+
+                <li>
+                  <button
+                    type="button"
+                    ref={disparadorCategoriasRef}
+                    aria-expanded={categoriasAbiertas}
+                    aria-controls="panel-categorias"
+                    onClick={() => setCategoriasAbiertas((abierto) => !abierto)}
+                    className={`inline-flex items-center gap-1 border-b-2 pb-1 font-body-md text-body-md font-medium transition-colors ${
+                      pathname.startsWith("/coleccion") || categoriasAbiertas
+                        ? "border-on-surface text-on-surface"
+                        : "border-transparent text-on-surface-variant hover:text-on-surface"
+                    }`}
+                  >
+                    Productos
+                    <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                      expand_more
+                    </span>
+                  </button>
+                </li>
               </ul>
             </nav>
 
@@ -232,6 +280,21 @@ function Navbar() {
         )}
       </div>
 
+      {categoriasAbiertas ? (
+        <div
+          id="panel-categorias"
+          ref={panelCategoriasRef}
+          className="absolute inset-x-0 top-full z-50 hidden border-t border-outline-variant bg-surface-container-lowest shadow md:block"
+        >
+          <div className="mx-auto w-full max-w-container-max px-margin-desktop py-4">
+            <PanelCategorias
+              categorias={categorias}
+              onNavegar={() => setCategoriasAbiertas(false)}
+            />
+          </div>
+        </div>
+      ) : null}
+
       {/* El panel se MONTA solo mientras está abierto, en vez de quedar oculto
           con `hidden`. Además de ser lo correcto para el foco, evita duplicar
           destinos en el DOM: con las dos copias montadas, cualquier consulta
@@ -246,7 +309,20 @@ function Navbar() {
             className="relative z-50 border-t border-outline-variant bg-background px-margin-mobile pb-6 pt-2 md:hidden"
           >
             <ul className="flex flex-col">
-              {[...DESTINOS, { to: "/favoritos", texto: "Favoritos" }].map((destino) => (
+              {/* El panel móvil todavía no tiene su propio dropdown de
+                  categorías (llega en la Fase E, con la hoja que monta
+                  `PanelCategorias`): mientras tanto conserva el link directo a
+                  `/coleccion`, así que "Productos" se agrega a mano acá y no
+                  sale de `DESTINOS`. */}
+              {[
+                ...DESTINOS,
+                {
+                  to: "/coleccion",
+                  texto: "Productos",
+                  esActivo: (ruta) => ruta.startsWith("/coleccion"),
+                },
+                { to: "/favoritos", texto: "Favoritos" },
+              ].map((destino) => (
                 <li key={destino.to}>
                   <Link
                     to={destino.to}

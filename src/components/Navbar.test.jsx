@@ -2,9 +2,16 @@ import { act, renderHook } from "@testing-library/react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import Navbar from "./Navbar.jsx";
 import useCarrito from "../hooks/useCarrito.js";
+
+vi.mock("../hooks/useCategoriasNavbar.js", () => ({
+  default: () => ({
+    categorias: [{ id: 1002, nombre: "Cocina", cantidadPublicados: 27 }],
+    resuelto: true,
+  }),
+}));
 
 function renderNavbar(ruta = "/") {
   return render(
@@ -102,23 +109,20 @@ function navPrincipal() {
 }
 
 describe("Navbar - navegación", () => {
-  it("muestra Inicio y Productos con sus destinos", () => {
+  it("muestra Inicio como link y Productos como disparador del panel", () => {
     renderNavbar();
 
     expect(navPrincipal().getByRole("link", { name: "Inicio" })).toHaveAttribute("href", "/");
-    expect(navPrincipal().getByRole("link", { name: "Productos" })).toHaveAttribute(
-      "href",
-      "/coleccion",
-    );
+    expect(navPrincipal().getByRole("button", { name: "Productos" })).toBeInTheDocument();
   });
 
-  it("marca el destino activo con aria-current", () => {
+  it("marca Productos activo (por estilo) cuando la ruta es de catálogo", () => {
     renderNavbar("/coleccion");
 
-    expect(navPrincipal().getByRole("link", { name: "Productos" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    // Ya no es un link con aria-current: el estado activo del disparador es
+    // visual (clase), no semántico — sigue siendo un botón que abre un panel,
+    // no una página distinta.
+    expect(navPrincipal().getByRole("button", { name: "Productos" })).toBeInTheDocument();
     expect(navPrincipal().getByRole("link", { name: "Inicio" })).not.toHaveAttribute(
       "aria-current",
     );
@@ -126,13 +130,10 @@ describe("Navbar - navegación", () => {
 
   // El detalle de un producto no es "Productos": marcar ese item ahí haría que
   // el subrayado dijera algo que la URL no dice.
-  it("no marca ningún destino como activo fuera de sus rutas", () => {
+  it("no marca Inicio como activo fuera de su ruta", () => {
     renderNavbar("/carrito");
 
     expect(navPrincipal().getByRole("link", { name: "Inicio" })).not.toHaveAttribute(
-      "aria-current",
-    );
-    expect(navPrincipal().getByRole("link", { name: "Productos" })).not.toHaveAttribute(
       "aria-current",
     );
   });
@@ -226,5 +227,45 @@ describe("Navbar - menú móvil", () => {
 
     await user.keyboard("{Escape}");
     expect(document.body.style.overflow).not.toBe("hidden");
+  });
+});
+
+describe("Navbar - dropdown de categorías", () => {
+  it("Productos es un botón que abre el panel, no un link", async () => {
+    const usuario = userEvent.setup();
+    renderNavbar();
+
+    const disparador = screen.getByRole("button", { name: "Productos" });
+    expect(disparador).toHaveAttribute("aria-expanded", "false");
+
+    await usuario.click(disparador);
+
+    expect(disparador).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("link", { name: /todos/i })).toBeInTheDocument();
+  });
+
+  it("Escape cierra el panel y devuelve el foco al disparador", async () => {
+    const usuario = userEvent.setup();
+    renderNavbar();
+
+    const disparador = screen.getByRole("button", { name: "Productos" });
+    await usuario.click(disparador);
+    await usuario.keyboard("{Escape}");
+
+    expect(disparador).toHaveAttribute("aria-expanded", "false");
+    expect(disparador).toHaveFocus();
+  });
+
+  it("navegar a otra ruta cierra el panel", async () => {
+    const usuario = userEvent.setup();
+    renderNavbar();
+
+    await usuario.click(screen.getByRole("button", { name: "Productos" }));
+    await usuario.click(screen.getByRole("link", { name: /todos/i }));
+
+    expect(screen.getByRole("button", { name: "Productos" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 });
