@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
@@ -48,8 +48,8 @@ const MAX_RESTAURACION = 100;
  * PURA a nivel de módulo (no un closure del componente) para poder usarse
  * dentro del efecto de fetch sin entrar en sus dependencias.
  */
-function claveDeFetch(categoria, search, minPrecio, maxPrecio, tandas) {
-  return `${categoria}|${search}|${minPrecio}|${maxPrecio}|${tandas}`;
+function claveDeFetch(categoria, search, minPrecio, maxPrecio, campania, tandas) {
+  return `${categoria}|${search}|${minPrecio}|${maxPrecio}|${campania}|${tandas}`;
 }
 
 /**
@@ -131,6 +131,18 @@ function Coleccion() {
   const paginasUrl = Number(searchParams.get("paginas"));
   const paginas = Number.isInteger(paginasUrl) && paginasUrl > 0 ? paginasUrl : 1;
 
+  // La vitrina de una campaña (`/coleccion?campania=7`, a donde manda el CTA
+  // del cartel estacional). Se lee de `searchParams` y NO de `filtrosUrl`, por
+  // el mismo motivo que `paginas`: en el primer render con filtros heredados
+  // `filtrosUrl` es un `URLSearchParams` vacío a propósito, así que el valor se
+  // perdería justo en el fetch inicial — que es el único que importa acá,
+  // porque a esta URL se llega desde afuera.
+  //
+  // Tampoco entra en `CLAVES_FILTRO`: no es un filtro que el visitante haya
+  // aplicado y que convenga blanquear al entrar, es la IDENTIDAD del link que
+  // acaba de tocar. Blanquearla vaciaría la vitrina antes de mostrarla.
+  const campaniaId = searchParams.get("campania") ?? "";
+
   const [searchInput, setSearchInput] = useState("");
 
   // Último valor que el input de búsqueda emitió o adoptó — mismo patrón que
@@ -152,6 +164,13 @@ function Coleccion() {
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);
   const [totalProductos, setTotalProductos] = useState(0);
+  // La campaña que devuelve el SOBRE, con TRES valores distintos y necesarios:
+  // `undefined` = no se pidió ninguna (el backend omite el campo), un objeto
+  // `{id, nombre}` = está vigente, y `null` = el id no existe o la campaña ya
+  // terminó. Colapsar los dos últimos haría que una campaña vencida se leyera
+  // como "sin resultados", que le echa la culpa al filtro en vez de explicar
+  // que el link caducó.
+  const [campaniaSobre, setCampaniaSobre] = useState(undefined);
   // El append de "Mostrar más" tiene su propio spinner y su propio error: el
   // `cargando` global reemplaza la grilla entera, y acá lo ya visto tiene que
   // quedarse en pantalla mientras baja la tanda siguiente.
@@ -203,8 +222,14 @@ function Coleccion() {
   // resuelto (o sin filtro, si el slug no matchea ninguna categoría).
   const categoriasListas = !slugCategoria || categorias.length > 0;
 
-  const titulo = categoriaDeRuta ? `${categoriaDeRuta.nombre} — YIMA` : "Todos los productos — YIMA";
-  const encabezado = categoriaDeRuta ? categoriaDeRuta.nombre : "Todos los productos";
+  // El nombre de la campaña MANDA sobre el resto cuando la vitrina está
+  // vigente: el visitante llegó por su cartel y esa es la pantalla que pidió.
+  // Sale del sobre de la respuesta, nunca de la URL — el frontend no tiene
+  // diccionario de campañas y armarlo sería un espejo de un dato del backend.
+  const nombreVitrina = campaniaSobre?.nombre ?? categoriaDeRuta?.nombre ?? null;
+
+  const titulo = nombreVitrina ? `${nombreVitrina} — YIMA` : "Todos los productos — YIMA";
+  const encabezado = nombreVitrina ?? "Todos los productos";
   // Canonical propio SOLO para una categoría de ruta válida — construido con
   // `rutaCategoria`, la MISMA función que arma el `<loc>` del sitemap (nunca
   // a mano: son dos template literals mantenidos por separado esperando
@@ -358,6 +383,10 @@ function Coleccion() {
         search: searchUrl,
         minPrecio,
         maxPrecio,
+        // La tanda siguiente TAMBIÉN va restringida a la campaña. Olvidarla acá
+        // no da ningún error: simplemente la segunda tanda trae el catálogo
+        // entero y contamina la vitrina con productos que no son de la promo.
+        campania: campaniaId,
         page: siguiente,
         pageSize: PRODUCTOS_POR_TANDA,
       });
@@ -369,7 +398,14 @@ function Coleccion() {
         return [...prev, ...data.filter((p) => !vistos.has(p.id))];
       });
       setTotalProductos(total);
-      claveCargada.current = claveDeFetch(categoriaActiva, searchUrl, minPrecio, maxPrecio, siguiente);
+      claveCargada.current = claveDeFetch(
+        categoriaActiva,
+        searchUrl,
+        minPrecio,
+        maxPrecio,
+        campaniaId,
+        siguiente,
+      );
       escribirTandas(siguiente);
     } catch {
       // El error del append NO vacía la grilla: lo ya visto se queda, el
@@ -427,7 +463,14 @@ function Coleccion() {
     // Esta combinación exacta ya está en pantalla: el cambio de URL vino del
     // append de "Mostrar más", que ya sumó la tanda y escribió `?paginas=`.
     // Volver a pedir acá reemplazaría la grilla con un flash de spinner.
-    const clave = claveDeFetch(categoriaActiva, searchUrl, minPrecio, maxPrecio, paginas);
+    const clave = claveDeFetch(
+      categoriaActiva,
+      searchUrl,
+      minPrecio,
+      maxPrecio,
+      campaniaId,
+      paginas,
+    );
     if (clave === claveCargada.current) return;
 
     let activo = true;
@@ -438,17 +481,23 @@ function Coleccion() {
       search: searchUrl,
       minPrecio,
       maxPrecio,
+      campania: campaniaId,
       page: 1,
       // La restauración trae TODO lo acumulado en un solo request (volver de
       // una ficha con `?paginas=3` son 36 productos), topeado en el máximo
       // del backend.
       pageSize: Math.min(PRODUCTOS_POR_TANDA * paginas, MAX_RESTAURACION),
     })
-      .then(({ data, total }) => {
+      .then(({ data, total, campania }) => {
         if (!activo) return;
         claveCargada.current = clave;
         setProductos(data);
         setTotalProductos(total);
+        // Se copia TAL CUAL, sin `?? null`: el `undefined` de "no se pidió
+        // ninguna" y el `null` de "ya terminó" son estados distintos, y
+        // normalizarlos acá borraría justamente la diferencia que la pantalla
+        // necesita para elegir qué mensaje mostrar.
+        setCampaniaSobre(campania);
         // Un fetch exitoso limpia cualquier error anterior: el backend volvió.
         setErrorCarga(null);
         setErrorMas(null);
@@ -470,7 +519,7 @@ function Coleccion() {
     return () => {
       activo = false;
     };
-  }, [categoriaActiva, searchUrl, minPrecio, maxPrecio, paginas, categoriasListas]);
+  }, [categoriaActiva, searchUrl, minPrecio, maxPrecio, campaniaId, paginas, categoriasListas]);
 
   // Un link viejo o un catálogo que se achicó pueden dejar la URL pidiendo
   // más tandas de las que existen. Se corrige a las reales (con `replace`,
@@ -490,7 +539,18 @@ function Coleccion() {
   // catálogo ENTERO está vacío) en vez de "Sin resultados" (lo que
   // corresponde a un filtro que no encontró nada). Mismo criterio que
   // documenta CLAUDE.md para el buscador del admin.
-  const hayFiltrosActivos = Boolean(categoriaActiva || searchUrl || minPrecio || maxPrecio);
+  //
+  // `campaniaId` cuenta como filtro por el mismo motivo: una vitrina de campaña
+  // sin stock diría "Todavía no hay productos" —o sea, que el catálogo ENTERO
+  // está vacío— cuando lo que pasó es que esa promoción se quedó sin nada.
+  const hayFiltrosActivos = Boolean(
+    categoriaActiva || searchUrl || minPrecio || maxPrecio || campaniaId,
+  );
+
+  // El link caducó: el id no corresponde a ninguna campaña, o la que había ya
+  // terminó. Es un estado propio y no "sin resultados" — el visitante no aplicó
+  // ningún filtro, tocó un cartel que quedó viejo.
+  const campaniaTerminada = Boolean(campaniaId) && campaniaSobre === null;
 
   return (
     <>
@@ -546,6 +606,11 @@ function Coleccion() {
         maxPrecio={maxPrecio}
         onChangeMaxPrecio={(valor) => actualizarFiltro("maxPrecio", valor)}
         onLimpiarFiltros={limpiarFiltrosDePanel}
+        // Solo la campaña VIGENTE tiene chip: una terminada no es un filtro que
+        // se pueda quitar, es un link caducado, y su explicación va en el
+        // cuerpo de la página.
+        campania={campaniaSobre ?? null}
+        onQuitarCampania={() => actualizarFiltro("campania", "")}
       />
 
       {/* Collection Grid — section header from home.html L132-136, card grid idiom from catalogo.html.
@@ -568,6 +633,24 @@ function Coleccion() {
               titulo="No pudimos cargar los productos"
               mensaje={errorCarga}
             />
+          ) : campaniaTerminada ? (
+            // `EstadoVacio` no tiene prop de acción a propósito (lo comparten
+            // media docena de pantallas que no necesitan ninguna), así que el
+            // link va como HERMANO. Sin él, el visitante que llegó por un
+            // cartel viejo queda en una página que solo le dice que no.
+            <div className="flex flex-col items-center">
+              <EstadoVacio
+                icono="event_busy"
+                titulo="Esta campaña ya terminó"
+                mensaje="Se cerró la promoción a la que apuntaba este enlace, pero el resto del catálogo sigue acá."
+              />
+              <Link
+                to="/coleccion"
+                className="font-label-md text-label-md -mt-12 mb-4 rounded-full border border-outline px-8 py-3 uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary"
+              >
+                Ver el catálogo
+              </Link>
+            </div>
           ) : productos.length === 0 ? (
             <EstadoVacio
               icono={hayFiltrosActivos ? "search_off" : "inventory_2"}

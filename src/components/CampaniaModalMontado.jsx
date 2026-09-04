@@ -14,16 +14,20 @@ import useModalCampania from "../hooks/useModalCampania.js";
  * Ponerlo en la home dejaría afuera a quien entra directo a una ficha desde una
  * búsqueda, que es por donde llega buena parte del tráfico.
  *
+ * Ese montaje único es también lo que acota el "se muestra en cada carga" de
+ * `useModalCampania`: como este componente no se desmonta al navegar dentro de
+ * la SPA, un cartel cerrado no reaparece hasta la próxima carga completa.
+ *
  * NO se muestra en el panel: `/catalogo/admin/*` usa este mismo `Layout` para
  * el login, y a alguien que va a laburar no se le interrumpe con la vidriera.
  * Mismo guard que `BarraAnuncios`.
  */
 export default function CampaniaModalMontado() {
   const { pathname } = useLocation();
-  const { modal, claveDia } = useContextoComercial();
+  const { modal } = useContextoComercial();
 
   const esAdmin = pathname.startsWith("/catalogo/admin");
-  const { visible, cerrar } = useModalCampania(esAdmin ? null : modal, claveDia);
+  const { visible, cerrar } = useModalCampania(esAdmin ? null : modal);
 
   if (!visible || !modal) return null;
 

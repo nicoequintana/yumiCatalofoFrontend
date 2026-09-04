@@ -90,6 +90,18 @@ describe("getProducts", () => {
     expect(params.get("maxPrecio")).toBe("500");
   });
 
+  it("agrega campania cuando se provee", async () => {
+    // La vitrina de una campaña: `/coleccion?campania=7` restringe la grilla a
+    // los productos de esa promoción, y el sobre suma `campania: {id, nombre}`.
+    await getProducts({ campania: "7" });
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products?campania=7`);
+  });
+
+  it("no manda campania cuando no se provee", async () => {
+    await getProducts({ campania: "" });
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products`);
+  });
+
   it("combina admin con filtros", async () => {
     await getProducts({ admin: true, categoria: 3 });
 

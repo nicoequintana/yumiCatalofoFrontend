@@ -200,6 +200,7 @@ export async function getProducts({
   pageSize,
   etiqueta,
   stock,
+  campania,
 } = {}) {
   const params = new URLSearchParams();
 
@@ -229,6 +230,14 @@ export async function getProducts({
   // "sin" | "bajo" — any other value is treated by the backend as no filter.
   if (stock !== undefined && stock !== null && stock !== "") {
     params.set("stock", stock);
+  }
+  // La vitrina de una campaña. Es el ÚNICO param que cambia la forma del sobre:
+  // cuando viaja, la respuesta suma `campania: {id, nombre} | null`. Ese `null`
+  // significa "la campaña no existe o ya terminó" y no es lo mismo que no
+  // haberla pedido (el campo ausente), así que la pantalla tiene que
+  // distinguir los tres estados.
+  if (campania !== undefined && campania !== null && campania !== "") {
+    params.set("campania", campania);
   }
 
   const query = params.toString();

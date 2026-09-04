@@ -1,10 +1,9 @@
-import { Link } from "react-router-dom";
-import LogoYima from "./LogoYima.jsx";
+import CartelCampania from "./CartelCampania.jsx";
 import useDialogo from "../hooks/useDialogo.js";
 import VeloModal from "./VeloModal.jsx";
 
 /**
- * El cartel estacional del catálogo público.
+ * La CÁSCARA DE DIÁLOGO del cartel estacional del catálogo público.
  *
  * Es el ÚNICO elemento del sitio que interrumpe a alguien que no lo pidió, así
  * que se comporta como un diálogo de verdad y no como una capa decorativa:
@@ -13,48 +12,18 @@ import VeloModal from "./VeloModal.jsx";
  * de atrás. Es el mismo tratamiento que el panel móvil del navbar y el
  * lightbox.
  *
- * EL DOODLE. El arte de la campaña abre el cartel, y sale de `modal.doodleUrl`
- * —el Doodle de ESTA campaña, no el del encabezado—: los dos recursos se
- * resuelven aparte en el backend y pueden caer en campañas distintas. Es además
- * el único lugar donde el Doodle se ve en tamaño real; en el navbar mide 28px
- * de alto y compite con toda la barra.
- *
- * Va `decorativo`, o sea con `alt=""`: el diálogo ya se nombra por su `<h2>`, y
- * un `alt="YIMA"` acá haría que un lector de pantalla anuncie la marca antes
- * del título sin agregar información. Es el mismo criterio que el logo del
- * panel, que acompaña al texto "YIMA ADMIN".
- *
- * Una campaña SIN arte no cae en el wordmark de siempre: no se pinta nada. El
- * cartel no es el encabezado del sitio, y la marca ya está arriba.
- *
- * EL CONTADOR. `texto` llega crudo con el marcador `{dias}` y el backend manda
- * `diasFaltantes` ya resuelto. La sustitución se hace acá porque es
- * presentación —el número va resaltado—, pero **el cálculo nunca sale del
- * backend**: es la única definición de "día" del sistema.
+ * El CONTENIDO —arte, título, contador y CTA— es `CartelCampania`, que el panel
+ * de campañas reusa como vista previa. Acá queda todo lo que es de diálogo y
+ * solo de diálogo: el velo, el foco, el botón cerrar, y el `role="dialog"` con
+ * su `aria-labelledby` apuntando al `<h2>` que el cartel pinta con el id que
+ * este componente le pasa.
  */
 
-/** El marcador que el admin escribe en el texto del modal. */
-const MARCADOR_DIAS = "{dias}";
-
-/**
- * Parte el texto en los pedazos de alrededor del contador.
- *
- * Devuelve los trozos literales para que el número se pueda pintar aparte. Si
- * el texto no tiene marcador —o no hay contador que poner— sale entero, sin
- * ningún hueco.
- */
-function partirPorContador(texto, dias) {
-  if (!texto) return { partes: [], dias: null };
-  if (dias === null || dias === undefined || !texto.includes(MARCADOR_DIAS)) {
-    return { partes: [texto], dias: null };
-  }
-  return { partes: texto.split(MARCADOR_DIAS), dias };
-}
+/** El id del `<h2>` del cartel: es lo que nombra al diálogo. */
+const ID_TITULO = "titulo-modal-campania";
 
 export default function ModalCampania({ modal, onCerrar }) {
   const dialogoRef = useDialogo({ onCerrar });
-
-  const { partes, dias } = partirPorContador(modal.texto, modal.diasFaltantes);
 
   return (
     // El velo es hermano del contenido y no su padre por la trampa que ya
@@ -66,7 +35,7 @@ export default function ModalCampania({ modal, onCerrar }) {
         ref={dialogoRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="titulo-modal-campania"
+        aria-labelledby={ID_TITULO}
         tabIndex={-1}
         className="relative max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-background p-6 shadow-xl outline-none md:p-8"
       >
@@ -81,44 +50,10 @@ export default function ModalCampania({ modal, onCerrar }) {
           </span>
         </button>
 
-        {modal.doodleUrl ? (
-          <LogoYima decorativo doodleUrl={modal.doodleUrl} className="mb-5 h-20 md:h-24" />
-        ) : null}
-
-        <h2
-          id="titulo-modal-campania"
-          className="font-headline-md text-headline-md mb-3 pr-8 text-primary"
-        >
-          {modal.titulo}
-        </h2>
-
-        {partes.length > 0 ? (
-          <p className="font-body-lg text-body-lg text-on-surface">
-            {partes.map((parte, indice) => (
-              // El índice como key es correcto acá: la lista sale de partir un
-              // string, no de datos que se puedan reordenar.
-              // eslint-disable-next-line react/no-array-index-key
-              <span key={indice}>
-                {parte}
-                {dias !== null && indice < partes.length - 1 ? (
-                  <strong className="font-headline-sm text-headline-sm text-secondary">
-                    {dias}
-                  </strong>
-                ) : null}
-              </span>
-            ))}
-          </p>
-        ) : null}
-
-        {modal.ctaTexto && modal.ctaDestino ? (
-          <Link
-            to={modal.ctaDestino}
-            onClick={onCerrar}
-            className="font-label-lg text-label-lg mt-6 inline-flex w-full items-center justify-center rounded-full bg-primary px-6 py-4 text-on-primary transition-opacity hover:opacity-90"
-          >
-            {modal.ctaTexto}
-          </Link>
-        ) : null}
+        {/* Tocar el CTA cierra el diálogo además de navegar: sin eso, volver
+            atrás desde el destino devolvería a la página con el cartel todavía
+            abierto encima. */}
+        <CartelCampania modal={modal} onCtaClick={onCerrar} idTitulo={ID_TITULO} />
       </div>
     </VeloModal>
   );

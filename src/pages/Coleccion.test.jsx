@@ -109,6 +109,7 @@ describe("Coleccion - filtros y grid", () => {
         search: "",
         minPrecio: "",
         maxPrecio: "",
+        campania: "",
         page: 1,
         pageSize: 12,
       });
@@ -331,6 +332,7 @@ describe("Coleccion - filtros y grid", () => {
       search: "",
       minPrecio: "",
       maxPrecio: "",
+      campania: "",
       page: 1,
       pageSize: 12,
     });
@@ -345,6 +347,7 @@ describe("Coleccion - filtros y grid", () => {
       search: "",
       minPrecio: "",
       maxPrecio: "",
+      campania: "",
       page: 1,
       pageSize: 12,
     });
@@ -689,5 +692,119 @@ describe("Coleccion - escrituras de filtro en el mismo tick", () => {
       },
       { timeout: 3000 },
     );
+  });
+});
+
+/**
+ * La vitrina de una campaña: `/coleccion?campania=ID`, que es a donde manda el
+ * CTA del cartel estacional.
+ *
+ * `campania` NO es un filtro del panel y por eso no entra en `CLAVES_FILTRO`:
+ * tiene que sobrevivir al blanqueo de filtros heredados del mount. Y se lee de
+ * `searchParams`, nunca de `filtrosUrl` —que en ese primer render es un
+ * `URLSearchParams` vacío a propósito—, mismo motivo por el que `paginas` ya se
+ * leía así.
+ */
+describe("Coleccion - vitrina de campaña", () => {
+  const CAMPANIA = { id: 7, nombre: "Primavera" };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    llamadasSetSearchParams.length = 0;
+    categoriasApi.getCategorias.mockResolvedValue(CATEGORIAS);
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }], { campania: CAMPANIA }));
+  });
+
+  it("manda campania a getProducts", async () => {
+    renderPagina("/coleccion?campania=7");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ campania: "7" }),
+      );
+    });
+  });
+
+  it("el h1 toma el nombre que devuelve el backend", async () => {
+    // El nombre NO sale de la URL ni de un diccionario del frontend: viaja en
+    // el sobre de la respuesta. `/coleccion` no tiene título visible por
+    // decisión del 29/08/2026 (el `<h1>` es `sr-only`), así que lo visible es
+    // el chip; el encabezado sigue siendo lo que lee un buscador.
+    renderPagina("/coleccion?campania=7");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Primavera" })).toBeInTheDocument();
+  });
+
+  it("con campania: null avisa que la campaña terminó y ofrece volver", async () => {
+    // El sobre distingue tres estados: campo ausente (no se pidió), objeto
+    // (activa) y `null` (no existe o ya terminó). Sin ese tercero, una campaña
+    // vencida se leería como "sin resultados", que le echa la culpa al filtro.
+    productsApi.getProducts.mockResolvedValue(pagina([], { campania: null }));
+
+    renderPagina("/coleccion?campania=7");
+
+    expect(await screen.findByText("Esta campaña ya terminó")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /catálogo/i })).toHaveAttribute("href", "/coleccion");
+  });
+
+  it("sobrevive al blanqueo de filtros heredados: la categoría se va, la campaña queda", async () => {
+    // ESTE es el test que atrapa el bug de leer `campania` de `filtrosUrl`: en
+    // el primer render con filtros heredados ese objeto está vacío a propósito,
+    // así que el valor se perdería justo en el fetch inicial.
+    renderPagina("/coleccion?campania=7&categoria=2");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ campania: "7", categoria: "" }),
+      );
+    });
+  });
+
+  it("quitar el chip refetchea sin campania", async () => {
+    const user = userEvent.setup();
+    renderPagina("/coleccion?campania=7");
+    await screen.findByText("Reloj Clásico");
+
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+
+    await user.click(screen.getByRole("button", { name: "Quitar filtro: Campaña: Primavera" }));
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ campania: "" }),
+      );
+    });
+  });
+
+  it("Mostrar más también manda la campaña", async () => {
+    // `claveDeFetch` y las DOS llamadas a `getProducts` tienen que llevarla: si
+    // solo la lleva la inicial, la tanda siguiente trae el catálogo entero y la
+    // vitrina se contamina con productos que no son de la campaña.
+    const user = userEvent.setup();
+    productsApi.getProducts.mockResolvedValue(
+      pagina([{ ...PRODUCTO }], { total: 40, campania: CAMPANIA }),
+    );
+
+    renderPagina("/coleccion?campania=7");
+    await screen.findByText("Reloj Clásico");
+
+    await user.click(screen.getByRole("button", { name: "Mostrar más" }));
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ campania: "7", page: 2 }),
+      );
+    });
+  });
+
+  it("una vitrina vacía dice 'Sin resultados', no 'Todavía no hay productos'", async () => {
+    // La campaña cuenta como filtro activo para el estado vacío: sin eso, una
+    // campaña activa y sin stock le diría al visitante que el catálogo ENTERO
+    // está vacío.
+    productsApi.getProducts.mockResolvedValue(pagina([], { campania: CAMPANIA }));
+
+    renderPagina("/coleccion?campania=7");
+
+    expect(await screen.findByText("Sin resultados")).toBeInTheDocument();
   });
 });

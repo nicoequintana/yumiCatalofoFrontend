@@ -403,4 +403,36 @@ describe("FiltrosCatalogo — chips de filtros aplicados", () => {
     expect(listaChips()).toBeInTheDocument();
     expect(listaChips().closest("[inert]")).toBeNull();
   });
+
+  it("la campaña activa tiene su propio chip, con su nombre", () => {
+    // Entrar por el CTA del cartel (`/coleccion?campania=7`) filtra la grilla
+    // sin tocar ningún control del panel: sin chip, la vitrina se vería como
+    // un catálogo recortado sin ninguna explicación de por qué.
+    renderFiltros({ campania: { id: 7, nombre: "Primavera" }, onQuitarCampania: vi.fn() });
+
+    expect(listaChips()).toHaveTextContent("Campaña: Primavera");
+  });
+
+  it("quitar el chip de campaña avisa al padre", () => {
+    const onQuitarCampania = vi.fn();
+    renderFiltros({ campania: { id: 7, nombre: "Primavera" }, onQuitarCampania });
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Quitar filtro: Campaña: Primavera" }));
+    });
+
+    expect(onQuitarCampania).toHaveBeenCalled();
+  });
+
+  it("la campaña NO entra en el contador del botón Filtros", () => {
+    // El badge cuenta los filtros que el panel contiene y su "Limpiar" borra.
+    // La campaña no es uno de ellos —igual que la búsqueda libre—: atribuírsela
+    // al botón haría que abrirlo mostrara un filtro menos de los que anuncia.
+    renderFiltros({ campania: { id: 7, nombre: "Primavera" }, onQuitarCampania: vi.fn() });
+
+    // El badge es lo ÚNICO numérico del botón (el resto es el ligature "tune"
+    // del ícono más la palabra "Filtros"), así que "no hay dígitos" es
+    // exactamente "no hay contador".
+    expect(botonFiltros().textContent).not.toMatch(/\d/);
+  });
 });

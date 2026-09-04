@@ -1,83 +1,43 @@
 import { useEffect, useState } from "react";
 
 /**
- * Decide si el modal de campaña se muestra, y registra que se mostró.
+ * Decide si el cartel de campaña se muestra.
  *
- * LA REGLA: máximo una vez por día por visitante. Un cartel que reaparece en
- * cada navegación deja de ser una novedad y pasa a ser un obstáculo.
+ * LA REGLA: se muestra en CADA carga de página. Antes había un tope de "una vez
+ * por día por visitante" apoyado en `localStorage` y en la `claveDia` del
+ * backend; se retiró porque el cartel es la vidriera de la campaña y silenciarlo
+ * por una visita previa hacía que el visitante recurrente —justamente el que más
+ * vuelve— no lo viera nunca.
  *
- * **El día lo decide el BACKEND** (`claveDia` del contexto comercial), no el
- * reloj del navegador. Es la misma disciplina que el resto del módulo: el
- * sistema tiene una sola definición de "día". Con el reloj local, alguien con la
- * máquina mal puesta vería el cartel dos veces, o dejaría de verlo.
+ * ⚠️ "CADA CARGA" ES CADA CARGA COMPLETA DE PÁGINA, NO CADA NAVEGACIÓN DE LA
+ * SPA. Dos piezas lo determinan y ninguna vive acá: `useContextoComercial`
+ * cachea el contexto a nivel de módulo (un fetch por carga de página, compartido
+ * entre todos los consumidores) y `CampaniaModalMontado` se monta una sola vez,
+ * en `Layout`. O sea que después de cerrarlo, el cartel no reaparece navegando
+ * dentro del sitio: vuelve recién con un F5.
  *
- * Mientras no exista autenticación de clientes, "por visitante" es "por
- * navegador": `localStorage`, que es lo que el proyecto ya usa para carrito,
- * favoritos y tema. El día que haya cuentas, esto se muda al perfil sin tocar
- * nada de lo que lo consume — el hook devuelve lo mismo.
- */
-
-export const CLAVE_STORAGE = "yumi-modal-campania";
-
-/**
- * Qué modal se vio y qué día.
+ * NO PERSISTE NADA. `cerrar` solo apaga el estado local. Volver a escribir en
+ * `localStorage` desde acá no daría ningún error ni test rojo de
+ * comportamiento visible: simplemente el cartel dejaría de aparecer en la
+ * recarga siguiente, en silencio. Por eso el guard de "no toca storage" vive en
+ * `useModalCampania.test.jsx`.
  *
- * Las tres lecturas y escrituras van en `try/catch`: el modo privado y algunas
- * políticas de navegador hacen que `localStorage` LANCE, no que devuelva null.
- * Esto es decoración — que no se pueda registrar no puede tumbar el catálogo.
- */
-function leerRegistro() {
-  try {
-    const crudo = localStorage.getItem(CLAVE_STORAGE);
-    if (!crudo) return null;
-    const registro = JSON.parse(crudo);
-    // Un registro corrupto (o de una versión vieja del formato) se trata como
-    // "nunca se vio": mostrar de más es mejor que romper.
-    return typeof registro?.clave === "string" ? registro : null;
-  } catch {
-    return null;
-  }
-}
-
-function guardarRegistro(campaniaId, clave) {
-  try {
-    localStorage.setItem(CLAVE_STORAGE, JSON.stringify({ campaniaId, clave }));
-  } catch {
-    // Sin registro, el modal reaparece en la próxima carga. Es el peor caso
-    // aceptable, y solo lo sufre quien tiene el storage bloqueado.
-  }
-}
-
-/**
  * @param {{campaniaId: number, titulo: string}|null} modal - del contexto comercial
- * @param {string|null} claveDia - `"YYYY-MM-DD"` que manda el backend
  * @returns {{visible: boolean, cerrar: () => void}}
  */
-export default function useModalCampania(modal, claveDia) {
-  const [visible, setVisible] = useState(false);
+export default function useModalCampania(modal) {
+  const [visible, setVisible] = useState(Boolean(modal));
 
+  // El efecto REABRE al cambiar de campaña: si el visitante cerró un cartel y el
+  // contexto trae otro distinto, es otro mensaje y no una repetición. Depender
+  // de `modal` (la identidad del objeto que emite el contexto) alcanza: el
+  // contexto se resuelve una vez por carga y no re-emite el mismo modal.
   useEffect(() => {
-    // Sin modal no hay nada que mostrar. Sin `claveDia` —el contexto todavía no
-    // llegó, o falló— no hay forma de saber si ya se mostró hoy, y mostrarlo
-    // igual significaría repetirlo en cada recarga.
-    if (!modal || !claveDia) {
-      setVisible(false);
-      return;
-    }
-
-    const registro = leerRegistro();
-    // Una campaña DISTINTA se muestra aunque ya se haya visto otra hoy: es otro
-    // mensaje, no una repetición. Silenciarlo por el registro de una campaña
-    // ajena haría que estrenar una campaña el mismo día que terminó otra pasara
-    // desapercibido.
-    const yaSeVio = registro?.clave === claveDia && registro?.campaniaId === modal.campaniaId;
-
-    setVisible(!yaSeVio);
-  }, [modal, claveDia]);
+    setVisible(Boolean(modal));
+  }, [modal]);
 
   function cerrar() {
     setVisible(false);
-    if (modal && claveDia) guardarRegistro(modal.campaniaId, claveDia);
   }
 
   return { visible, cerrar };

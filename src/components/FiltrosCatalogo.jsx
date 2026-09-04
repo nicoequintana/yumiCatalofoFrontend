@@ -167,6 +167,8 @@ function FiltrosCatalogo({
   maxPrecio,
   onChangeMaxPrecio,
   onLimpiarFiltros,
+  campania,
+  onQuitarCampania,
 }) {
   const [panelAbierto, setPanelAbierto] = useState(false);
   const contenedorRef = useRef(null);
@@ -182,7 +184,9 @@ function FiltrosCatalogo({
 
   // La búsqueda libre NO entra en el contador: se ve sola en su propio input,
   // afuera del panel. Sumarla le atribuiría al botón un filtro que el panel
-  // que abre no contiene.
+  // que abre no contiene. La CAMPAÑA queda afuera por el mismo motivo: no hay
+  // ningún control del panel que la aplique ni que la borre, así que contarla
+  // haría que abrir el panel mostrara un filtro menos de los que anuncia.
   const cantidadFiltrosActivos = [categoria, minPrecio, maxPrecio].filter(Boolean).length;
 
   // Resumen de lo aplicado, visible SIN abrir el panel. Mismo alcance que el
@@ -191,6 +195,16 @@ function FiltrosCatalogo({
   // barra. Cada chip quita UN filtro — una sola escritura al router, así que
   // no sufre el pisoteo de actualizaciones que obligó a centralizar "Limpiar".
   const chips = [];
+  // La campaña va PRIMERA: no es un filtro más sino el contexto de toda la
+  // vitrina —se llega por el CTA del cartel, no tocando ningún control—, y es
+  // lo único que explica por qué la grilla muestra un recorte del catálogo.
+  if (campania) {
+    chips.push({
+      clave: "campania",
+      texto: `Campaña: ${campania.nombre}`,
+      quitar: onQuitarCampania,
+    });
+  }
   if (categoria) {
     // `categorias` llega por fetch: entre el mount y su respuesta el id de la
     // URL no resuelve a ningún nombre. Se cae a una etiqueta genérica en vez
