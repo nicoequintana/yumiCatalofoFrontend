@@ -54,23 +54,6 @@ function partirPorContador(texto, dias) {
   return { partes: texto.split(MARCADOR_DIAS), dias };
 }
 
-/**
- * El resplandor cálido detrás del arte.
- *
- * Va en `style` y no en una utilidad `bg-[…]` de Tailwind por legibilidad: un
- * `radial-gradient` con paradas y alfa dentro de un valor arbitrario obliga a
- * escapar cada espacio con guiones bajos, y una coma mal puesta ahí no emite
- * ninguna regla ni ningún error.
- *
- * El token va en CANALES (`rgb(var(--token) / alfa)`), que es la única forma de
- * aplicarle opacidad a un color del tema — con hex el navegador descarta la
- * declaración entera y el resplandor simplemente no se pinta.
- */
-const RESPLANDOR = {
-  background:
-    "radial-gradient(circle at center, rgb(var(--color-tertiary-container) / 0.55) 0%, rgb(var(--color-tertiary-container) / 0) 70%)",
-};
-
 export default function CartelCampania({ modal, onCtaClick, idTitulo, interactivo = true }) {
   const { partes, dias } = partirPorContador(modal.texto, modal.diasFaltantes);
 
@@ -83,13 +66,7 @@ export default function CartelCampania({ modal, onCtaClick, idTitulo, interactiv
   return (
     <div className="text-center">
       {modal.doodleUrl ? (
-        // `relative` para que el resplandor tenga bloque contenedor. El arte va
-        // encima (`relative`), el resplandor debajo (sin z-index: el orden del
-        // DOM alcanza porque los dos están posicionados).
-        <div className="relative mb-5 flex items-center justify-center">
-          <span aria-hidden="true" className="absolute inset-x-0 -inset-y-6" style={RESPLANDOR} />
-          <LogoYima decorativo doodleUrl={modal.doodleUrl} className="relative mx-auto h-14" />
-        </div>
+        <LogoYima decorativo doodleUrl={modal.doodleUrl} className="mb-5 mx-auto h-14" />
       ) : null}
 
       {/* 22px es el techo tipográfico del cartel: es una interrupción, y un
