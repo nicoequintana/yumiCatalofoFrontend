@@ -97,13 +97,22 @@ beforeEach(() => {
 });
 
 describe("AdminCampaniaEditor — alta", () => {
-  it("no muestra Doodle, Productos ni Promociones: no hay id al que subirlos", async () => {
+  it("muestra TODAS las secciones, con las que necesitan id esperando y explicando por que", async () => {
+    // Esconderlas hacia que la pantalla pareciera incompleta: quien entra por
+    // primera vez no sabe que la vitrina existe, y quien ya la conoce la busca
+    // y no la encuentra. Se muestran bloqueadas, que ademas anticipa el paso
+    // siguiente. El Doodle y la vitrina van a endpoints `/:id/...`: no se le
+    // puede subir una imagen a algo que todavia no existe.
     renderEditor("/catalogo/admin/campanias/nueva");
 
     expect(await screen.findByLabelText("Nombre")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Doodle" })).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Productos de la campaña" })).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Promociones" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Productos de la campaña" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Promociones" })).toBeInTheDocument();
+
+    // Y ninguna de las dos deja operar todavia.
+    expect(screen.queryByLabelText("Buscar productos")).toBeNull();
+    expect(screen.getAllByText(/Guardá la campaña/i).length).toBeGreaterThan(0);
+
     // Tampoco se pide el detalle: no hay campaña que pedir.
     expect(campaniasApi.getCampania).not.toHaveBeenCalled();
   });

@@ -46,6 +46,36 @@ import useCampaniaEditor from "../../hooks/useCampaniaEditor.js";
  * no aparece en el drawer de < lg, pero la ruta sigue existiendo para un enlace
  * guardado o una URL pegada a mano.
  */
+/**
+ * El estado "todavía no" de una sección del alta.
+ *
+ * Es un cartel y no una sección escondida a propósito: el hueco cuenta que la
+ * sección existe y qué falta para habilitarla, en vez de dejar la página con
+ * forma de incompleta.
+ */
+function AunNoDisponible({ children }) {
+  return (
+    <p className="font-body-md text-body-md flex items-start gap-2 rounded-lg border border-dashed border-outline-variant bg-surface-container-low px-4 py-3 text-on-surface-variant">
+      <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
+        lock
+      </span>
+      {children}
+    </p>
+  );
+}
+
+/** El selector de la vitrina, con las props que salen del detalle ya cargado. */
+function SecccionProductos({ campania, guardando, onGuardar }) {
+  return (
+    <SelectorProductos
+      productos={campania?.productos ?? []}
+      promocionesAsociadas={campania?.promociones ?? []}
+      guardando={guardando}
+      onGuardar={onGuardar}
+    />
+  );
+}
+
 export default function AdminCampaniaEditor() {
   const {
     esEdicion,
@@ -131,7 +161,7 @@ export default function AdminCampaniaEditor() {
           onAlternarEstado={alternarEstado}
         />
 
-        <main className="mx-auto w-full max-w-[1080px] px-4 py-8 md:px-8">
+        <main className="w-full px-4 py-8 md:px-8">
           {error ? (
             <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
               {error}
@@ -166,53 +196,65 @@ export default function AdminCampaniaEditor() {
           </form>
 
           {/* ---------------- Fuera del formulario: guardan solas ---------------- */}
-          {esEdicion ? (
-            <section
-              aria-labelledby="titulo-seccion-productos"
-              className="mt-6 rounded-xl border border-outline-variant bg-surface-container-lowest p-6"
+          {/* Las dos secciones se muestran SIEMPRE, y en el alta esperan.
+              Esconderlas hacía que la pantalla pareciera incompleta: quien
+              entra por primera vez no se entera de que la vitrina existe, y
+              quien ya la conoce la busca y no la encuentra. Mostrarlas
+              bloqueadas cuenta lo que viene y por qué todavía no se puede —
+              las dos escriben en endpoints `/:id/...` y no hay id hasta que
+              la campaña exista. */}
+          <section
+            aria-labelledby="titulo-seccion-productos"
+            className="mt-6 rounded-xl border border-outline-variant bg-surface-container-lowest p-6"
+          >
+            <h2
+              id="titulo-seccion-productos"
+              className="font-headline-sm text-headline-sm mb-2 text-primary"
             >
-              <h2
-                id="titulo-seccion-productos"
-                className="font-headline-sm text-headline-sm mb-2 text-primary"
-              >
-                Productos de la campaña
-              </h2>
-              <p className="font-body-md text-body-md mb-5 text-on-surface-variant">
-                La vitrina: qué muestra la campaña. Es otra pregunta que qué descuentos aplica — un
-                producto puede estar acá sin ninguna rebaja.
-              </p>
-              <SelectorProductos
-                productos={campania?.productos ?? []}
-                promocionesAsociadas={campania?.promociones ?? []}
+              Productos de la campaña
+            </h2>
+            <p className="font-body-md text-body-md mb-5 text-on-surface-variant">
+              La vitrina: qué muestra la campaña. Es otra pregunta que qué descuentos aplica — un
+              producto puede estar acá sin ninguna rebaja.
+            </p>
+            {esEdicion ? (
+              <SecccionProductos
+                campania={campania}
                 guardando={guardando}
                 onGuardar={guardarProductos}
               />
-            </section>
-          ) : null}
+            ) : (
+              <AunNoDisponible>Guardá la campaña para empezar a armar la vitrina.</AunNoDisponible>
+            )}
+          </section>
 
-          {esEdicion ? (
-            <section
-              aria-labelledby="titulo-seccion-promociones"
-              className="mt-6 rounded-xl border border-outline-variant bg-surface-container-lowest p-6"
+          <section
+            aria-labelledby="titulo-seccion-promociones"
+            className="mt-6 rounded-xl border border-outline-variant bg-surface-container-lowest p-6"
+          >
+            <h2
+              id="titulo-seccion-promociones"
+              className="font-headline-sm text-headline-sm mb-2 text-primary"
             >
-              <h2
-                id="titulo-seccion-promociones"
-                className="font-headline-sm text-headline-sm mb-2 text-primary"
-              >
-                Promociones
-              </h2>
-              <p className="font-body-md text-body-md mb-5 text-on-surface-variant">
-                Qué descuentos aplica mientras esté activa. Apagar la campaña los apaga a todos de
-                una.
-              </p>
+              Promociones
+            </h2>
+            <p className="font-body-md text-body-md mb-5 text-on-surface-variant">
+              Qué descuentos aplica mientras esté activa. Apagar la campaña los apaga a todos de
+              una.
+            </p>
+            {esEdicion ? (
               <PromocionesDeCampania
                 promociones={promociones}
                 asociadas={campania?.promociones}
                 guardando={guardando}
                 onGuardar={guardarPromociones}
               />
-            </section>
-          ) : null}
+            ) : (
+              <AunNoDisponible>
+                Guardá la campaña para elegir qué promociones aplica.
+              </AunNoDisponible>
+            )}
+          </section>
         </main>
 
         {confirmandoBorrado ? (

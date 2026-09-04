@@ -37,7 +37,10 @@ export default function PreviewCartel({ modal }) {
       {/* El velo del modal real: `black/40` es un tinte, no un color del tema,
           igual que en `DialogoCampania`. */}
       <div className="absolute inset-0 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-        <div className="w-full max-w-xs rounded-2xl bg-surface-container-lowest px-6 py-7 shadow-ambient">
+        {/* `max-w-md` es EXACTAMENTE el ancho del modal real (`ModalCampania`).
+            Un preview mas angosto o mas ancho mentiria sobre donde cortan el
+            titulo y el texto, que es lo unico que este panel existe para mostrar. */}
+        <div className="w-full max-w-md rounded-2xl bg-surface-container-lowest px-6 py-7 shadow-ambient">
           <CartelCampania modal={modal} interactivo={false} />
         </div>
       </div>

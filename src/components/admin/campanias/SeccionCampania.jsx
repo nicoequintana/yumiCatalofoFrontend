@@ -153,14 +153,16 @@ export default function SeccionCampania({
           Con dos campañas activas a la vez, el Doodle que se muestra es el de mayor prioridad.
         </p>
 
-        {/* ⚠️ El Doodle solo existe con id: sube a `PUT /:id/doodle`, y no se
-            puede subir una imagen a algo que todavía no fue creado. Mismo patrón
-            que los bloques de IA en `SolapaImagenes`. */}
-        {esEdicion ? (
-          <div className="rounded-lg border border-outline-variant p-4">
-            <h3 className="font-label-md text-label-md mb-3 uppercase tracking-widest text-on-surface-variant">
-              Doodle
-            </h3>
+        {/* El bloque se muestra SIEMPRE; en el alta espera. Sube a
+            `PUT /:id/doodle`, así que no puede operar hasta que la campaña
+            exista — pero esconderlo hacía que la sección pareciera no tenerlo.
+            El cartel dice qué viene y qué falta. */}
+        <div className="rounded-lg border border-outline-variant p-4">
+          <h3 className="font-label-md text-label-md mb-3 uppercase tracking-widest text-on-surface-variant">
+            Doodle
+          </h3>
+          {esEdicion ? (
+            <>
 
             <div className="flex flex-wrap items-center gap-4">
               {campania?.doodleUrl ? (
@@ -217,8 +219,16 @@ export default function SeccionCampania({
                 onCambiar={(valor) => editar("doodleEnAdmin", valor)}
               />
             </div>
-          </div>
-        ) : null}
+            </>
+          ) : (
+            <p className="font-body-md text-body-md flex items-start gap-2 text-on-surface-variant">
+              <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
+                lock
+              </span>
+              Guardá la campaña para subir el Doodle.
+            </p>
+          )}
+        </div>
 
         <div>
           <label htmlFor="campania-descripcion" className={claseEtiqueta}>

@@ -34,7 +34,7 @@ export default function EditorCampaniaHeader({
 
   return (
     <header className="sticky top-0 z-10 border-b border-outline-variant bg-surface px-4 py-4 md:px-8">
-      <div className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0">
           <div className="mb-2">
             <BotonVolver fallback="/catalogo/admin/campanias" puedeSalir={confirmarSalida} />
