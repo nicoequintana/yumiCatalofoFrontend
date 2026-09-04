@@ -20,6 +20,14 @@ import PanelCategorias from "./PanelCategorias.jsx";
  * filtro (`Coleccion.jsx` blanquea los filtros heredados al MONTAR, y ese
  * link no remonta si ya estabas en `/coleccion`). Ese impedimento se resolvió
  * al existir `/coleccion/categoria/:slug`, que sí es una ruta propia.
+ *
+ * **Hay DOS escrituras a mano, no una**: el `<button>` del `<nav>` de
+ * escritorio (el dropdown de esta tarea) y el objeto
+ * `{ to: "/coleccion", texto: "Productos", … }` armado dentro del `<ul>` del
+ * panel móvil. La segunda es TRANSITORIA — el panel móvil todavía no tiene su
+ * propio dropdown de categorías y por ahora conserva el link directo a
+ * `/coleccion` — y desaparece cuando la hoja de la Fase E reemplace ese
+ * bloque entero montando `PanelCategorias` ahí también.
  */
 const DESTINOS = [{ to: "/", texto: "Inicio", esActivo: (pathname) => pathname === "/" }];
 
