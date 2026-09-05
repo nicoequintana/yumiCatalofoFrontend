@@ -95,4 +95,14 @@ describe("SlideCampania", () => {
       expect(img).toHaveAttribute("alt", "");
     }
   });
+
+  it("el doodle también es decorativo, sin arte de por medio", () => {
+    // Sin arte el slide pinta el doodle, que es la otra rama: el guard de
+    // arriba no la toca porque ahí el doodle ni se renderiza.
+    const { container } = renderSlide(SLIDE);
+
+    const imagenes = container.querySelectorAll("img");
+    expect(imagenes).toHaveLength(1);
+    expect(imagenes[0]).toHaveAttribute("alt", "");
+  });
 });
