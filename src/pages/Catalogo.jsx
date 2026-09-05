@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
+import BannerCampania from "../components/BannerCampania.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import CarruselDestacados from "../components/CarruselDestacados.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
+import useContextoComercial from "../hooks/useContextoComercial.js";
 import useDestacados from "../hooks/useDestacados.js";
 import CategoriasDestacadas from "../components/CategoriasDestacadas.jsx";
 import { SENALES_CONFIANZA } from "../constants/hero.js";
@@ -88,6 +90,7 @@ function SenalesConfianza({ compacto = false }) {
  */
 function Catalogo() {
   const { productos: destacados } = useDestacados();
+  const { banner } = useContextoComercial();
 
   return (
     <>
@@ -247,6 +250,11 @@ function Catalogo() {
           </div>
         </div>
       </section>
+
+      {/* Primero la promesa de marca (el hero), después la oferta puntual, y
+          recién ahí la vidriera. Sin campaña con banner prendido, esto no
+          renderiza nada. */}
+      <BannerCampania banner={banner} />
 
       <CarruselDestacados productos={destacados} />
 
