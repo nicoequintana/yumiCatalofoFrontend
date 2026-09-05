@@ -70,20 +70,27 @@ export async function getCategorias() {
 }
 
 /** Requiere sesión admin. @returns {Promise<Object>} the newly created category */
-export async function createCategoria(nombre) {
+export async function createCategoria(nombre, icono = null) {
   return pedirAutenticado(`${BASE}/categorias`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nombre }),
+    body: JSON.stringify({ nombre, icono }),
   });
 }
 
-/** Requiere sesión admin. @returns {Promise<Object>} the updated category */
-export async function updateCategoria(id, nombre) {
+/**
+ * Requiere sesión admin. @returns {Promise<Object>} the updated category
+ *
+ * `PUT /categorias/:id` es FULL-REPLACE del lado del backend: un `icono`
+ * ausente en el body se escribe como `null` y borra el que la categoría ya
+ * tenía. Por eso acá `icono` viaja SIEMPRE (con `null` explícito si no hay
+ * uno vigente) — el llamador nunca puede omitirlo para "no tocarlo".
+ */
+export async function updateCategoria(id, nombre, icono = null) {
   return pedirAutenticado(`${BASE}/categorias/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nombre }),
+    body: JSON.stringify({ nombre, icono }),
   });
 }
 

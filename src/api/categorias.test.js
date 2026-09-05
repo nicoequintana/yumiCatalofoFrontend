@@ -49,7 +49,19 @@ describe("createCategoria", () => {
     expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/categorias`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre: "Velas" }),
+      body: JSON.stringify({ nombre: "Velas", icono: null }),
+    });
+  });
+
+  it("manda el ícono elegido", async () => {
+    mockFetchAutenticadoOnce({ id: 5, nombre: "Velas", cantidadProductos: 0, icono: "spa" });
+
+    await createCategoria("Velas", "spa");
+
+    expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/categorias`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre: "Velas", icono: "spa" }),
     });
   });
 
@@ -69,7 +81,23 @@ describe("updateCategoria", () => {
     expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/categorias/1`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre: "Aromas" }),
+      body: JSON.stringify({ nombre: "Aromas", icono: null }),
+    });
+  });
+
+  // `PUT /categorias/:id` es FULL-REPLACE del lado del backend: un `icono`
+  // ausente en el body se escribe como `null` y borra el que ya tenía. Este
+  // test es el que afirma que un llamador que SÍ tiene un ícono vigente lo
+  // manda, no que lo omite.
+  it("manda el ícono vigente para no borrarlo en un PUT full-replace", async () => {
+    mockFetchAutenticadoOnce({ id: 1, nombre: "Aromas", cantidadProductos: 0, icono: "spa" });
+
+    await updateCategoria(1, "Aromas", "spa");
+
+    expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/categorias/1`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre: "Aromas", icono: "spa" }),
     });
   });
 });

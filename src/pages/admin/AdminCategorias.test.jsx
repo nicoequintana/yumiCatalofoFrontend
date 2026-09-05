@@ -39,6 +39,34 @@ describe("AdminCategorias", () => {
     expect(await screen.findByText("Todavía no hay categorías")).toBeInTheDocument();
   });
 
+  // `PUT /categorias/:id` es FULL-REPLACE: si el payload no manda `icono`, el
+  // backend lo escribe como `null` y lo borra en silencio. Este test es el que
+  // frena que una edición que sólo toca el nombre le vuele el ícono a la
+  // categoría.
+  it("al renombrar sin tocar el ícono, no se lo borra", async () => {
+    const usuario = userEvent.setup();
+    categoriasApi.getCategorias.mockResolvedValue([
+      { id: 1, nombre: "Iluminación", cantidadProductos: 4, icono: "lightbulb" },
+    ]);
+    categoriasApi.updateCategoria.mockResolvedValue({
+      id: 1,
+      nombre: "Luces",
+      cantidadProductos: 4,
+      icono: "lightbulb",
+    });
+
+    renderPagina();
+    await screen.findByText("Iluminación");
+
+    await usuario.click(screen.getByRole("button", { name: /Renombrar Iluminación/i }));
+    const input = screen.getByDisplayValue("Iluminación");
+    await usuario.clear(input);
+    await usuario.type(input, "Luces");
+    await usuario.click(screen.getByRole("button", { name: /Guardar/i }));
+
+    expect(categoriasApi.updateCategoria).toHaveBeenCalledWith(1, "Luces", "lightbulb");
+  });
+
   it("la tabla está apilable: cada celda declara su columna o su tipo", async () => {
     categoriasApi.getCategorias.mockResolvedValue([
       {

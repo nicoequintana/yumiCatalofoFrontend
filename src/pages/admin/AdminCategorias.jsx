@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
+import SelectorIcono from "../../components/admin/SelectorIcono.jsx";
 import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import {
   createCategoria,
@@ -24,8 +25,8 @@ const MAX_CATEGORIAS_HOME = 3;
 
 /**
  * `/catalogo/admin/configuracion/categorias` — la lista de categorías y, desde
- * el 29/08/2026, también lo que la home pública muestra en su sección "Explorá
- * por categoría": qué categorías aparecen y con qué foto.
+ * el 29/08/2026, también lo que alimenta la fila de accesos por categoría de
+ * la home pública: el ícono de cada círculo y cuáles van primero.
  *
  * Las categorías se asignan a productos desde el desplegable de
  * `AdminProductoForm.jsx`; esta pantalla maneja la lista en sí.
@@ -36,10 +37,12 @@ function AdminCategorias() {
   const [error, setError] = useState(null);
 
   const [nombreNuevo, setNombreNuevo] = useState("");
+  const [iconoNuevo, setIconoNuevo] = useState(null);
   const [creando, setCreando] = useState(false);
 
   const [editandoId, setEditandoId] = useState(null);
   const [nombreEditado, setNombreEditado] = useState("");
+  const [iconoEditado, setIconoEditado] = useState(null);
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   const [confirmandoId, setConfirmandoId] = useState(null);
@@ -110,8 +113,9 @@ function AdminCategorias() {
     setError(null);
     setCreando(true);
     try {
-      await createCategoria(nombre);
+      await createCategoria(nombre, iconoNuevo);
       setNombreNuevo("");
+      setIconoNuevo(null);
       await cargarCategorias();
     } catch (err) {
       setError(err.message ?? "No se pudo crear la categoría.");
@@ -124,6 +128,7 @@ function AdminCategorias() {
     setConfirmandoId(null);
     setEditandoId(categoria.id);
     setNombreEditado(categoria.nombre);
+    setIconoEditado(categoria.icono ?? null);
   }
 
   async function handleGuardarEdicion(id) {
@@ -133,7 +138,10 @@ function AdminCategorias() {
     setError(null);
     setGuardandoEdicion(true);
     try {
-      await updateCategoria(id, nombre);
+      // `icono` viaja SIEMPRE, aunque esta edición sólo haya tocado el nombre:
+      // el PUT es full-replace y omitirlo borraría en silencio el ícono que la
+      // categoría ya tenía.
+      await updateCategoria(id, nombre, iconoEditado);
       setEditandoId(null);
       await cargarCategorias();
     } catch (err) {
@@ -212,31 +220,35 @@ function AdminCategorias() {
         </span>
         <h1 className="font-headline-lg text-headline-lg text-primary">Categorías</h1>
         <p className="font-body-md text-body-md mt-2 max-w-2xl text-on-surface-variant">
-          Además de organizar los productos, acá se define la sección{" "}
-          <strong className="font-semibold text-on-surface">«Explorá por categoría»</strong> de la
-          home: marcá hasta {MAX_CATEGORIAS_HOME} categorías y asignales una foto.{" "}
+          Además de organizar los productos, acá se arma la fila de accesos por
+          categoría de la home: a cada categoría se le puede asignar un ícono, y
+          marcar hasta {MAX_CATEGORIAS_HOME} hace que aparezcan primero.{" "}
           {cantidadDestacadas === 0
             ? "Sin ninguna marcada, esa sección no se muestra."
             : `Marcadas: ${cantidadDestacadas} de ${MAX_CATEGORIAS_HOME}.`}
         </p>
       </div>
 
-      <form onSubmit={handleCrear} className="mb-8 flex flex-col gap-3 sm:flex-row">
-        <input
-          type="text"
-          value={nombreNuevo}
-          onChange={(e) => setNombreNuevo(e.target.value)}
-          placeholder="Nombre de la nueva categoría"
-          className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none sm:max-w-sm"
-        />
-        <button
-          type="submit"
-          disabled={creando}
-          className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
-        >
-          {creando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
-          Agregar
-        </button>
+      <form onSubmit={handleCrear} className="mb-8 flex flex-col gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <input
+            type="text"
+            value={nombreNuevo}
+            onChange={(e) => setNombreNuevo(e.target.value)}
+            placeholder="Nombre de la nueva categoría"
+            className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none sm:max-w-sm"
+          />
+          <button
+            type="submit"
+            disabled={creando}
+            className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+          >
+            {creando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
+            Agregar
+          </button>
+        </div>
+
+        <SelectorIcono valor={iconoNuevo} onCambiar={setIconoNuevo} />
       </form>
 
       {error ? (
@@ -292,7 +304,7 @@ function AdminCategorias() {
                   role="columnheader"
                   className="font-label-sm text-label-sm w-[28%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
                 >
-                  En la home
+                  Aparece primero en la home
                 </th>
                 <th
                   role="columnheader"
@@ -311,12 +323,15 @@ function AdminCategorias() {
                     className="font-body-md text-body-md px-4 py-3 text-on-surface"
                   >
                     {editandoId === categoria.id ? (
-                      <input
-                        type="text"
-                        value={nombreEditado}
-                        onChange={(e) => setNombreEditado(e.target.value)}
-                        className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
-                      />
+                      <div className="flex flex-col gap-3">
+                        <input
+                          type="text"
+                          value={nombreEditado}
+                          onChange={(e) => setNombreEditado(e.target.value)}
+                          className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
+                        />
+                        <SelectorIcono valor={iconoEditado} onCambiar={setIconoEditado} />
+                      </div>
                     ) : (
                       categoria.nombre
                     )}
@@ -410,7 +425,7 @@ function AdminCategorias() {
                     </div>
                   </td>
 
-                  <td role="cell" data-label="En la home" className="px-4 py-3">
+                  <td role="cell" data-label="Aparece primero en la home" className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {/* Mismo switch que los toggles de `AdminProductos`
                           (`role="switch"` + `aria-checked` sobre un `<button>`,
@@ -421,7 +436,7 @@ function AdminCategorias() {
                         type="button"
                         role="switch"
                         aria-checked={categoria.destacadaEnHome}
-                        aria-label={`Mostrar ${categoria.nombre} en la home`}
+                        aria-label={`Que ${categoria.nombre} aparezca primero en la home`}
                         onClick={() => handleToggleHome(categoria)}
                         disabled={ocupadaId === categoria.id}
                         className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 md:h-5 md:w-9 xl:h-6 xl:w-11 ${
