@@ -133,6 +133,26 @@ export async function quitarDoodle(id) {
 }
 
 /**
+ * Sube o reemplaza el arte del slide del banner. Mismo patrón que
+ * `subirDoodle` — timeout largo de subidas (120 s) y no el de 15 s del resto —
+ * y mismo motivo: una imagen por una conexión lenta tarda más que cualquier
+ * request de JSON.
+ */
+export async function subirArte(id, archivo) {
+  const cuerpo = new FormData();
+  cuerpo.append("arte", archivo);
+  return pedirAutenticado(
+    `${BASE}/campanias/${id}/arte`,
+    { method: "PUT", body: cuerpo },
+    TIMEOUT_SUBIDA_MS,
+  );
+}
+
+export async function quitarArte(id) {
+  return pedirAutenticado(`${BASE}/campanias/${id}/arte`, { method: "DELETE" });
+}
+
+/**
  * Qué promociones aplica una campaña mientras está activa.
  *
  * Reemplaza la lista completa. **Desasociar NO borra la promoción**: sigue

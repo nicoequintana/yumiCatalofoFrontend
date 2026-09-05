@@ -123,6 +123,8 @@ export default function AdminCampaniaEditor() {
     alternarEstado,
     cambiarDoodle,
     borrarDoodle,
+    cambiarArte,
+    borrarArte,
     guardarProductos,
     guardarPromociones,
   } = useCampaniaEditor();
@@ -219,6 +221,9 @@ export default function AdminCampaniaEditor() {
                 opciones={opciones}
                 campania={campania}
                 guardando={guardando}
+                esEdicion={esEdicion}
+                onSubirArte={cambiarArte}
+                onQuitarArte={borrarArte}
               />
 
               <SeccionDestinoCta

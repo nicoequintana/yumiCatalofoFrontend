@@ -16,6 +16,8 @@ vi.mock("../api/campanias.js", () => ({
   eliminarCampania: vi.fn(),
   subirDoodle: vi.fn(),
   quitarDoodle: vi.fn(),
+  subirArte: vi.fn(),
+  quitarArte: vi.fn(),
   guardarProductosDeCampania: vi.fn(),
   guardarPromocionesDeCampania: vi.fn(),
 }));
@@ -75,6 +77,19 @@ describe("useCampaniaEditor — el bloque del banner", () => {
     expect(actualizarCampaniaMock).toHaveBeenCalledWith(
       1,
       expect.objectContaining({ bannerEnHome: true, bannerTexto: null }),
+    );
+  });
+
+  it("manda el color elegido en el payload", async () => {
+    const { result } = renderHook(() => useCampaniaEditor(), { wrapper: envoltorio });
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    act(() => result.current.editar("bannerColor", "OCRE"));
+    await act(() => result.current.guardar());
+
+    expect(actualizarCampaniaMock).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ bannerColor: "OCRE" }),
     );
   });
 });

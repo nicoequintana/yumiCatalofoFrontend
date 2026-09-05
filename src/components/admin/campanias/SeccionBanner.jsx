@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import Interruptor from "./Interruptor.jsx";
 import PreviewBanner from "./PreviewBanner.jsx";
 import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
@@ -24,13 +25,103 @@ import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
  */
 const PLACEHOLDER_TITULO = "Semana del Hogar";
 
+/**
+ * Solo la PASTILLA de la muestra. El par fondo/texto real del slide vive en
+ * `SlideCampania` — acá alcanza con el fondo, porque no hay texto encima.
+ */
+const MUESTRA_COLOR = {
+  TERRACOTA: "bg-primary",
+  VERDE: "bg-secondary",
+  OCRE: "bg-tertiary-container",
+  TINTA: "bg-inverse-surface",
+  ARENA: "bg-surface-container-high",
+};
+
+/**
+ * El mismo marcador que usa el cartel para su contador, pero PROHIBIDO acá: el
+ * banner no cuenta días —eso es `modalFechaObjetivo`, que es del cartel—, y el
+ * backend rechaza el marcador en `bannerTitulo`/`bannerTexto` con un 400.
+ * Avisarlo ACÁ, mientras se tipea, evita que ese 400 llegue como el error
+ * general de la página, que en este editor queda a ~1.700 px del botón de
+ * Guardar y se leería como un botón que no hace nada.
+ */
+const MARCADOR_DIAS = /\{dias\}/i;
+
+function avisoMarcadorDias(texto, campo) {
+  if (!texto || !MARCADOR_DIAS.test(texto)) return null;
+  return `El contador \`{dias}\` es del cartel, no del banner. Sacalo de \`${campo}\` o escribí los días a mano.`;
+}
+
+/** Tipos y peso máximo de la imagen del arte, espejados del backend (sync
+ * manual entre repos, igual que `MediaUploader`): sin este freno del lado del
+ * cliente, un archivo de sobra sube durante minutos para volver como 413 — y
+ * en este editor el error general se pinta lejos del botón que lo disparó. */
+const TIPOS_ARTE = ["image/jpeg", "image/png", "image/webp"];
+const MAX_ARTE_BYTES = 15 * 1024 * 1024;
+
 export default function SeccionBanner({
   valores,
   editar,
   opciones,
   campania,
   guardando,
+  esEdicion,
+  onSubirArte,
+  onQuitarArte,
 }) {
+  // Buffer LOCAL de estos dos campos, desacoplado de `valores` después del
+  // montaje. Existe solo para el aviso del marcador mientras se tipea: si el
+  // aviso leyera directo de `valores`, dependería de que el PADRE reescriba el
+  // estado en cada tecla para poder reaccionar. Acá alcanza con saber qué hay
+  // escrito AHORA MISMO, y `editar` se sigue llamando en cada cambio — la
+  // campaña se sigue guardando con el dato de siempre.
+  //
+  // Es seguro inicializarlo una sola vez: `SeccionBanner` no se monta hasta
+  // que la campaña ya cargó (el editor muestra un spinner mientras tanto), y
+  // nada vuelve a pisar `bannerTitulo`/`bannerTexto` desde afuera mientras
+  // sigue montado.
+  const [tituloLocal, setTituloLocal] = useState(valores.bannerTitulo);
+  const [textoLocal, setTextoLocal] = useState(valores.bannerTexto);
+  const [errorArte, setErrorArte] = useState(null);
+  const inputArte = useRef(null);
+
+  function cambiarTitulo(valor) {
+    setTituloLocal(valor);
+    editar("bannerTitulo", valor);
+  }
+
+  function cambiarTexto(valor) {
+    setTextoLocal(valor);
+    editar("bannerTexto", valor);
+  }
+
+  const avisoTitulo = avisoMarcadorDias(tituloLocal, "bannerTitulo");
+  const avisoTexto = avisoMarcadorDias(textoLocal, "bannerTexto");
+
+  /**
+   * Valida tipo y tamaño ANTES de subir. Es una cortesía, no la defensa: el
+   * backend valida magic bytes sobre el contenido real del archivo, no sobre
+   * lo que el cliente declara.
+   */
+  function elegirArte(evento) {
+    const archivo = evento.target.files?.[0];
+    // Se limpia SIEMPRE, así reintentar con el mismo archivo vuelve a disparar
+    // el change.
+    evento.target.value = "";
+    if (!archivo) return;
+
+    if (!TIPOS_ARTE.includes(archivo.type)) {
+      setErrorArte("Formato de imagen no admitido. Usá JPG, PNG o WEBP.");
+      return;
+    }
+    if (archivo.size > MAX_ARTE_BYTES) {
+      setErrorArte("La imagen debe pesar como máximo 15MB.");
+      return;
+    }
+    setErrorArte(null);
+    onSubirArte?.(archivo);
+  }
+
   // Lo que va a ver el visitante, en la MISMA forma que arma el backend en
   // `aSlideCampania` — con los mismos defaults ya aplicados, para que la
   // previa nunca muestre algo distinto de lo publicado (el bug que ya pasó
@@ -39,20 +130,27 @@ export default function SeccionBanner({
   const slidePreview = {
     tipo: "CAMPANIA",
     campaniaId: campania?.id ?? null,
-    titulo: valores.bannerTitulo || PLACEHOLDER_TITULO,
-    texto: valores.bannerTexto,
+    titulo: tituloLocal || PLACEHOLDER_TITULO,
+    texto: textoLocal,
     // Con `interactivo` apagado el valor nunca se navega. Acá alcanza con decir
     // SI HAY botón; la ruta real la resuelve el backend al leer.
     ctaDestino: valores.modalCtaTipo ? "#" : null,
     ctaTexto: valores.bannerCtaTexto.trim() || opciones?.ctaTextoPorDefecto || "",
-    // El arte del slide todavía no tiene campo en este formulario (falta la
-    // sección de subida, como la del Doodle) — se prepara igual el campo para
-    // que agregarla no exija tocar de nuevo la forma del preview.
+    // El arte SÍ sale de `campania` y no de `valores`: se sube por su propio
+    // endpoint (`onSubirArte`) y queda persistido EN EL ACTO — `cambiarArte`
+    // reescribe `campania` con la respuesta del PUT apenas termina la subida.
+    // No hay ningún campo de formulario que lo sostenga mientras tanto, así
+    // que acá no hace falta (ni corresponde) leer un valor "todavía no
+    // guardado".
     arteUrl: campania?.bannerArteUrl ?? null,
     doodleUrl: campania?.doodleUrl ?? null,
-    // Mismo default que aplica el backend al leer (`COLOR_SLIDE_POR_DEFECTO`):
-    // una campaña que todavía no eligió color sale en el de la marca.
-    color: campania?.bannerColor ?? "TERRACOTA",
+    // El color, en cambio, SÍ tiene que salir de `valores`: es un campo del
+    // `<form>` que recién viaja al servidor en el submit. Leerlo de `campania`
+    // congelaría la previa en el último color GUARDADO — el admin clickea
+    // otro color y no pasa nada hasta guardar y recargar, que es justo lo
+    // contrario de para qué existe una previa. Mismo default que aplica el
+    // backend al leer (`COLOR_SLIDE_POR_DEFECTO`).
+    color: valores.bannerColor ?? "TERRACOTA",
   };
 
   return (
@@ -86,11 +184,14 @@ export default function SeccionBanner({
               id="campania-banner-titulo"
               type="text"
               maxLength={120}
-              value={valores.bannerTitulo}
-              onChange={(e) => editar("bannerTitulo", e.target.value)}
+              value={tituloLocal}
+              onChange={(e) => cambiarTitulo(e.target.value)}
               className={claseCampo}
               placeholder={PLACEHOLDER_TITULO}
             />
+            {avisoTitulo ? (
+              <p className="font-body-sm text-body-sm mt-1 text-error">{avisoTitulo}</p>
+            ) : null}
           </div>
 
           <div>
@@ -104,11 +205,14 @@ export default function SeccionBanner({
               id="campania-banner-texto"
               rows={2}
               maxLength={200}
-              value={valores.bannerTexto}
-              onChange={(e) => editar("bannerTexto", e.target.value)}
+              value={textoLocal}
+              onChange={(e) => cambiarTexto(e.target.value)}
               className={claseCampo}
               placeholder="Hasta 30 % en cocina, deco e iluminación."
             />
+            {avisoTexto ? (
+              <p className="font-body-sm text-body-sm mt-1 text-error">{avisoTexto}</p>
+            ) : null}
           </div>
 
           <div>
@@ -125,6 +229,99 @@ export default function SeccionBanner({
               placeholder={opciones?.ctaTextoPorDefecto ?? ""}
             />
           </div>
+
+          <fieldset className="flex flex-col gap-2">
+            <legend className={claseEtiqueta}>Color del slide</legend>
+            {/* Los valores salen de `opciones.coloresSlide`, que emite el backend.
+                El panel NO tiene copia: un diccionario duplicado a mano falla mudo. */}
+            <div className="flex flex-wrap gap-2">
+              {(opciones?.coloresSlide ?? []).map((color) => (
+                <label
+                  key={color.valor}
+                  className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 ${
+                    valores.bannerColor === color.valor ? "border-primary" : "border-outline-variant"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="bannerColor"
+                    className="sr-only"
+                    checked={valores.bannerColor === color.valor}
+                    onChange={() => editar("bannerColor", color.valor)}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={`h-4 w-4 rounded-full ${MUESTRA_COLOR[color.valor] ?? ""}`}
+                  />
+                  <span className="font-label-md text-label-md text-on-surface">{color.etiqueta}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          {/* El bloque se muestra SIEMPRE; en el alta espera. Sube a
+              `PUT /:id/arte`, así que no puede operar hasta que la campaña
+              exista — mismo patrón que el Doodle de `SeccionCampania`. */}
+          <div className="rounded-lg border border-outline-variant p-4">
+            <h3 className="font-label-md text-label-md mb-3 uppercase tracking-widest text-on-surface-variant">
+              Arte del slide
+            </h3>
+            {esEdicion ? (
+              <>
+                <div className="flex flex-wrap items-center gap-4">
+                  {campania?.bannerArteUrl ? (
+                    <img
+                      src={campania.bannerArteUrl}
+                      alt={`Arte del slide de ${campania.nombre}`}
+                      className="h-16 w-auto rounded-lg bg-surface-container p-2"
+                    />
+                  ) : (
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">
+                      Sin arte: el slide sale solo con el color de fondo.
+                    </p>
+                  )}
+
+                  <input
+                    ref={inputArte}
+                    type="file"
+                    accept={TIPOS_ARTE.join(",")}
+                    onChange={elegirArte}
+                    className="sr-only"
+                  />
+                  <button
+                    type="button"
+                    disabled={guardando}
+                    onClick={() => inputArte.current?.click()}
+                    className={claseAccionArte}
+                  >
+                    {campania?.bannerArteUrl ? "Reemplazar" : "Subir arte"}
+                  </button>
+                  {campania?.bannerArteUrl ? (
+                    <button
+                      type="button"
+                      disabled={guardando}
+                      onClick={onQuitarArte}
+                      className={claseAccionArte}
+                    >
+                      Quitar
+                    </button>
+                  ) : null}
+                </div>
+                {errorArte ? (
+                  <p className="font-body-sm text-body-sm mt-3 rounded-lg bg-error-container px-3 py-2 text-on-error-container">
+                    {errorArte}
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <p className="font-body-md text-body-md flex items-start gap-2 text-on-surface-variant">
+                <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
+                  lock
+                </span>
+                Guardá la campaña para subir el arte.
+              </p>
+            )}
+          </div>
         </div>
 
         <PreviewBanner slide={slidePreview} />
@@ -132,3 +329,6 @@ export default function SeccionBanner({
     </section>
   );
 }
+
+const claseAccionArte =
+  "font-label-sm text-label-sm rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60";

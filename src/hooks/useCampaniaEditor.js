@@ -11,7 +11,9 @@ import {
   getOpcionesCampania,
   guardarProductosDeCampania,
   guardarPromocionesDeCampania,
+  quitarArte,
   quitarDoodle,
+  subirArte,
   subirDoodle,
 } from "../api/campanias.js";
 import { getPromociones } from "../api/promociones.js";
@@ -69,6 +71,10 @@ function valoresIniciales(campania, diaElegido) {
     bannerTitulo: campania?.bannerTitulo ?? "",
     bannerTexto: campania?.bannerTexto ?? "",
     bannerCtaTexto: campania?.bannerCtaTexto ?? "",
+    // `null` y no una de las cinco opciones: una campaña que todavía no eligió
+    // color no "es" TERRACOTA, el default lo aplica el backend AL LEER
+    // (`COLOR_SLIDE_POR_DEFECTO`) — mismo criterio que `modalCtaTipo` vacío.
+    bannerColor: campania?.bannerColor ?? null,
   };
 }
 
@@ -107,6 +113,7 @@ function construirPayload(valores) {
     bannerTitulo: valores.bannerTitulo.trim() || null,
     bannerTexto: valores.bannerTexto.trim() || null,
     bannerCtaTexto: valores.bannerCtaTexto.trim() || null,
+    bannerColor: valores.bannerColor,
   };
 }
 
@@ -385,6 +392,26 @@ export default function useCampaniaEditor() {
   }
 
   /**
+   * El arte del slide del banner. Mismo patrón que `cambiarDoodle`/
+   * `borrarDoodle`: endpoint propio, persiste en el acto, no toca `sucio` ni
+   * el submit del formulario.
+   */
+  async function cambiarArte(archivo) {
+    if (!archivo) return;
+    await conGuardado(async () => {
+      const actualizada = await subirArte(Number(id), archivo);
+      setCampania((actual) => ({ ...actual, ...actualizada }));
+    });
+  }
+
+  async function borrarArte() {
+    await conGuardado(async () => {
+      const actualizada = await quitarArte(Number(id));
+      setCampania((actual) => ({ ...actual, ...actualizada }));
+    });
+  }
+
+  /**
    * La vitrina. **Responde el detalle completo**, así que no hace falta un
    * segundo GET para pintar lo que se acaba de guardar.
    *
@@ -437,6 +464,8 @@ export default function useCampaniaEditor() {
     alternarEstado,
     cambiarDoodle,
     borrarDoodle,
+    cambiarArte,
+    borrarArte,
     guardarProductos,
     guardarPromociones,
   };
