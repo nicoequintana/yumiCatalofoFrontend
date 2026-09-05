@@ -5,6 +5,7 @@ import SoloEscritorio from "../../components/admin/SoloEscritorio.jsx";
 import DialogoCampania from "../../components/admin/campanias/DialogoCampania.jsx";
 import EditorCampaniaHeader from "../../components/admin/campanias/EditorCampaniaHeader.jsx";
 import PromocionesDeCampania from "../../components/admin/campanias/PromocionesDeCampania.jsx";
+import SeccionBanner from "../../components/admin/campanias/SeccionBanner.jsx";
 import SeccionCampania from "../../components/admin/campanias/SeccionCampania.jsx";
 import SeccionCartel from "../../components/admin/campanias/SeccionCartel.jsx";
 import SeccionDestinoCta from "../../components/admin/campanias/SeccionDestinoCta.jsx";
@@ -210,6 +211,15 @@ export default function AdminCampaniaEditor() {
                 opciones={opciones}
                 campania={campania}
                 diasFaltantes={diasFaltantes}
+              />
+
+              <SeccionBanner
+                valores={valores}
+                editar={editar}
+                opciones={opciones}
+                campania={campania}
+                diasFaltantes={diasFaltantes}
+                guardando={guardando}
               />
 
               <SeccionDestinoCta
