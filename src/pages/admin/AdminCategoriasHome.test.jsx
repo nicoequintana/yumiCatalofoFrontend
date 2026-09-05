@@ -151,12 +151,17 @@ describe("AdminCategorias — selección para la home", () => {
     expect(screen.queryByLabelText(/Bajar "Alfa"/)).not.toBeInTheDocument();
   });
 
-  it("avisa que la sección no se muestra si no hay ninguna marcada", async () => {
+  // Desde la Task 14 (`ordenarParaHome`) la fila muestra TODAS las categorías
+  // con productos publicados, estén marcadas o no — el flag ya no gatea
+  // visibilidad, sólo decide quién va primero. El texto anterior ("esa
+  // sección no se muestra") describía el comportamiento viejo (three-max
+  // gate) y quedó mintiendo después del cambio de la home.
+  it("avisa que sin marcar ninguna, las categorías igual aparecen en el orden por defecto", async () => {
     categoriasApi.getCategorias.mockResolvedValue([categoria("Cocina", { id: 1 })]);
 
     renderPagina();
 
-    expect(await screen.findByText(/esa sección no se muestra/i)).toBeInTheDocument();
+    expect(await screen.findByText(/orden por defecto/i)).toBeInTheDocument();
   });
 });
 

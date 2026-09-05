@@ -221,10 +221,11 @@ function AdminCategorias() {
         <h1 className="font-headline-lg text-headline-lg text-primary">Categorías</h1>
         <p className="font-body-md text-body-md mt-2 max-w-2xl text-on-surface-variant">
           Además de organizar los productos, acá se arma la fila de accesos por
-          categoría de la home: a cada categoría se le puede asignar un ícono, y
-          marcar hasta {MAX_CATEGORIAS_HOME} hace que aparezcan primero.{" "}
+          categoría de la home: aparecen ahí todas las categorías con
+          productos publicados, a cada una se le puede asignar un ícono, y
+          marcar hasta {MAX_CATEGORIAS_HOME} hace que esas vayan primero.{" "}
           {cantidadDestacadas === 0
-            ? "Sin ninguna marcada, esa sección no se muestra."
+            ? "Todavía no marcaste ninguna: se muestran en el orden por defecto."
             : `Marcadas: ${cantidadDestacadas} de ${MAX_CATEGORIAS_HOME}.`}
         </p>
       </div>
