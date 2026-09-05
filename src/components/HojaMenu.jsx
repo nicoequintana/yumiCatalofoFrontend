@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import PanelCategorias from "./PanelCategorias.jsx";
 import useBloquearScroll from "../hooks/useBloquearScroll.js";
+import useCarrito from "../hooks/useCarrito.js";
 import useCategoriasNavbar from "../hooks/useCategoriasNavbar.js";
 import useDialogo from "../hooks/useDialogo.js";
 
@@ -24,6 +25,19 @@ import useDialogo from "../hooks/useDialogo.js";
  *
  * Las categorías van anidadas y SIN acordeón: la hoja scrollea, y un acordeón
  * sería un toque extra para esconder ocho links.
+ *
+ * **Carrito y Buscar se sumaron el 05/09/2026.** En la ficha de producto
+ * (`esFichaProducto`, ver `Navbar.jsx`) el header entero se esconde por debajo
+ * de `md`, así que esta hoja pasa a ser la ÚNICA navegación ahí: sin una fila
+ * de Carrito, alguien que agrega algo al carrito desde la ficha no tenía
+ * ningún camino de vuelta.
+ *
+ * **Sus nombres accesibles NO copian los del header** (`Ver carrito`, `Buscar
+ * productos`) — mismo criterio que ya resolvía Favoritos (`Favoritos` acá,
+ * `Ver favoritos` en el header): la hoja y el header se montan A LA VEZ en
+ * `Layout` (la lupa y el carrito del header se ven ahora también en móvil), y
+ * dos nodos con el mismo nombre rompen los `getByRole` singulares de los tests
+ * de contrato.
  */
 
 const CLASE_FILA =
@@ -38,6 +52,9 @@ export default function HojaMenu({ abierta, onCerrar }) {
   // sin la bandera su efecto dispararía `GET /categorias` igual en
   // `/catalogo/admin/login` — la misma request que `Navbar` ya se ahorra.
   const { categorias } = useCategoriasNavbar({ activo: !esAdmin });
+  // Mismo motivo que `useCategoriasNavbar` de arriba: las reglas de hooks no
+  // dejan condicionarlo con el `return null` de abajo.
+  const { cantidadTotal } = useCarrito();
 
   useBloquearScroll(abierta);
 
@@ -79,6 +96,17 @@ export default function HojaMenu({ abierta, onCerrar }) {
           Inicio
         </Link>
 
+        {/* "Buscar" y NO "Buscar productos": ese nombre ya lo lleva la lupa
+            del header, visible también en móvil desde este reparto y montada
+            a la vez que esta hoja. El destino es el mismo que la lupa: no hay
+            un buscador propio acá, el real es el de `FiltrosCatalogo`. */}
+        <Link to="/coleccion" onClick={onCerrar} className={CLASE_FILA}>
+          <span aria-hidden="true" className="material-symbols-outlined text-on-surface-variant">
+            search
+          </span>
+          Buscar
+        </Link>
+
         <p className="font-label-sm text-label-sm mt-5 px-3 uppercase text-on-surface-variant">
           Productos
         </p>
@@ -89,6 +117,21 @@ export default function HojaMenu({ abierta, onCerrar }) {
             favorite
           </span>
           Favoritos
+        </Link>
+
+        {/* "Carrito" y NO "Ver carrito": mismo motivo que "Buscar" arriba. Es
+            la fila que resuelve la regresión — el globo solo aparece con
+            `cantidadTotal > 0`, misma regla que el header y la isla. */}
+        <Link to="/carrito" onClick={onCerrar} className={CLASE_FILA}>
+          <span aria-hidden="true" className="material-symbols-outlined text-on-surface-variant">
+            shopping_bag
+          </span>
+          Carrito
+          {cantidadTotal > 0 ? (
+            <span className="font-label-sm text-label-sm ml-auto flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-inverse-surface px-1.5 text-background">
+              {cantidadTotal}
+            </span>
+          ) : null}
         </Link>
       </div>
     </>

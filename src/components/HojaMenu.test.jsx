@@ -14,6 +14,12 @@ vi.mock("../hooks/useCategoriasNavbar.js", () => ({
   default: (...args) => categoriasMock(...args),
 }));
 
+// Mismo patrón que `Navbar.test.jsx`: mockeamos el módulo entero para
+// controlar `cantidadTotal` sin depender de `localStorage`, que en este
+// entorno de test es un objeto vacío sin métodos.
+const carritoMock = vi.fn(() => ({ cantidadTotal: 0 }));
+vi.mock("../hooks/useCarrito.js", () => ({ default: () => carritoMock() }));
+
 const { default: HojaMenu } = await import("./HojaMenu.jsx");
 
 function montar(props = {}, ruta = "/") {
@@ -44,6 +50,8 @@ describe("HojaMenu", () => {
     expect(screen.getByRole("link", { name: /favoritos/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /todos los productos/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /cocina/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Carrito" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Buscar" })).toBeInTheDocument();
   });
 
   it("Escape cierra", async () => {
@@ -92,6 +100,49 @@ describe("HojaMenu", () => {
 
     expect(screen.getByRole("link", { name: "Favoritos" })).toHaveAttribute("href", "/favoritos");
     expect(screen.queryByRole("link", { name: /ver favoritos/i })).not.toBeInTheDocument();
+  });
+
+  // Sumado en el reparto del 05/09/2026: sin esto, la ficha de producto en
+  // móvil (donde `Navbar` se esconde) no tenía NINGÚN camino al carrito.
+  // Mismo criterio que Favoritos: el nombre accesible NO copia el "Ver
+  // carrito" del header, porque los dos se montan a la vez en `Layout`.
+  describe("fila de Carrito", () => {
+    it("linkea a /carrito con un nombre que no colisiona con el del header", () => {
+      montar();
+
+      expect(screen.getByRole("link", { name: "Carrito" })).toHaveAttribute("href", "/carrito");
+      expect(screen.queryByRole("link", { name: /ver carrito/i })).not.toBeInTheDocument();
+    });
+
+    // Migrado de `NavFlotante.test.jsx`: el globo del carrito vivía en la isla
+    // y se mudó acá junto con la fila que lo muestra.
+    it("no muestra el globo cuando el carrito está vacío", () => {
+      carritoMock.mockReturnValue({ cantidadTotal: 0 });
+      montar();
+
+      expect(screen.getByRole("link", { name: "Carrito" })).not.toHaveTextContent(/\d/);
+    });
+
+    it("muestra el globo con la cantidad cuando el carrito tiene ítems", () => {
+      carritoMock.mockReturnValue({ cantidadTotal: 3 });
+      montar();
+
+      // Con el globo puesto el nombre accesible pasa a ser "Carrito 3" (el
+      // número entra en el cómputo del nombre): se busca por coincidencia
+      // parcial, no por el nombre exacto que usan los demás casos.
+      expect(screen.getByRole("link", { name: /carrito/i })).toHaveTextContent("3");
+    });
+  });
+
+  // El nombre "Buscar" (y no "Buscar productos") es lo mismo que ya resuelve
+  // Favoritos: la lupa del header vive también en móvil desde este reparto y
+  // se monta junto con la hoja, así que copiar su nombre accesible acá
+  // rompería los `getByRole` singulares de este mismo contrato.
+  it("la fila de Buscar lleva a /coleccion con un nombre que no colisiona con la lupa del header", () => {
+    montar();
+
+    expect(screen.getByRole("link", { name: "Buscar" })).toHaveAttribute("href", "/coleccion");
+    expect(screen.queryByRole("link", { name: "Buscar productos" })).not.toBeInTheDocument();
   });
 
   // Mismo guard que `NavFlotante`: `/catalogo/admin/login` se renderiza dentro
