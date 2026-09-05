@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getCategorias } from "../api/categorias.js";
+import { rutaCategoria } from "../utils/slug.js";
 
 /**
  * El cache CRUDO de `GET /categorias`, compartido por TODO consumidor público:
@@ -117,13 +118,30 @@ export function reiniciarCategoriasNavbar() {
  * ⚠️ Filtra por `cantidadPublicados`, NUNCA por `cantidadProductos`. El segundo
  * cuenta ocultos y agotados; ofrecer una categoría así manda al visitante a una
  * grilla vacía.
+ *
+ * ⚠️ **También filtra por `rutaCategoria(categoria) !== null`, y esto NO es
+ * redundante con lo de arriba.** `rutaCategoria` (`utils/slug.js`) devuelve
+ * `null` cuando el nombre es sólo símbolos y no produce ningún slug — nada en
+ * `categorias.controller.js` lo impide al crear una categoría. Sin este guard,
+ * `CirculosCategoria` renderiza `<Link to={null}>` para esa fila: antes lo
+ * tenía `useCategoriasDestacadas` (el hook que este reemplazó) y sólo hasta
+ * tres categorías marcadas a mano podían pisarlo; acá entran TODAS las
+ * publicadas, así que la superficie de este bug creció con el cambio.
  */
 export function ordenarParaHome(crudas) {
-  const publicadas = crudas.filter((categoria) => (categoria.cantidadPublicados ?? 0) > 0);
+  const publicadas = crudas.filter(
+    (categoria) => (categoria.cantidadPublicados ?? 0) > 0 && rutaCategoria(categoria),
+  );
 
   const destacadas = publicadas
     .filter((categoria) => categoria.destacadaEnHome)
-    .sort((a, b) => (a.ordenHome ?? 0) - (b.ordenHome ?? 0));
+    // Desempata por nombre, igual que `resto`: `ordenHome` lo reescribe entera
+    // la operación de reordenar del panel, así que no se asume sin repetidos —
+    // sin este desempate, dos destacadas con el mismo `ordenHome` sólo
+    // mantienen su orden hoy porque `GET /categorias` devuelve
+    // `orderBy: { nombre: "asc" }` y `Array.prototype.sort` es estable. Nada
+    // en ESTE archivo lo garantiza, así que se declara explícito acá.
+    .sort((a, b) => (a.ordenHome ?? 0) - (b.ordenHome ?? 0) || a.nombre.localeCompare(b.nombre, "es"));
 
   const resto = publicadas
     .filter((categoria) => !categoria.destacadaEnHome)
