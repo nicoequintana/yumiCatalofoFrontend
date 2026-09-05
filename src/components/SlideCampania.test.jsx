@@ -28,15 +28,18 @@ describe("SlideCampania", () => {
     const { container } = renderSlide(SLIDE);
 
     expect(screen.getByText("Primavera YIMA")).toBeInTheDocument();
-    expect(screen.getByRole("img", { hidden: true })).toHaveAttribute("src", SLIDE.doodleUrl);
+    // Decorativa (`alt=""`): no tiene rol "img" en el árbol de accesibilidad,
+    // así que se busca por el DOM, no por rol.
+    expect(container.querySelector("img")).toHaveAttribute("src", SLIDE.doodleUrl);
     expect(container.querySelector(".bg-secondary")).not.toBeNull();
   });
 
   it("con arte, la pieza llena la caja y el doodle NO se muestra", () => {
     // Dos imágenes en 135 px de alto es ruido: con arte, el doodle sobra.
-    renderSlide({ ...SLIDE, arteUrl: "https://cdn.test/arte.jpg" });
+    const { container } = renderSlide({ ...SLIDE, arteUrl: "https://cdn.test/arte.jpg" });
 
-    const imagenes = screen.getAllByRole("img", { hidden: true });
+    // Decorativas (`alt=""`): sin rol "img", se cuentan por el DOM.
+    const imagenes = container.querySelectorAll("img");
     expect(imagenes).toHaveLength(1);
     expect(imagenes[0]).toHaveAttribute("src", "https://cdn.test/arte.jpg");
   });
@@ -44,9 +47,10 @@ describe("SlideCampania", () => {
   it("el arte va absolute inset-0", () => {
     // En flujo normal el alto porcentual no resuelve contra `aspect-ratio` y la
     // caja toma el ratio del archivo, estirando el carrusel entero.
-    renderSlide({ ...SLIDE, arteUrl: "https://cdn.test/arte.jpg" });
+    const { container } = renderSlide({ ...SLIDE, arteUrl: "https://cdn.test/arte.jpg" });
 
-    const arte = screen.getByRole("img", { hidden: true });
+    // Decorativa (`alt=""`): sin rol "img", se busca por el DOM.
+    const arte = container.querySelector("img");
     expect(arte.className).toContain("absolute");
     expect(arte.className).toContain("inset-0");
   });
@@ -80,5 +84,15 @@ describe("SlideCampania", () => {
 
     expect(screen.queryByRole("link")).toBeNull();
     expect(screen.getByText("Ver la selección")).toBeInTheDocument();
+  });
+
+  it("las imágenes son decorativas: el título no se anuncia dos veces", () => {
+    // El título ya está como texto al lado de la imagen. Un `alt` con el mismo
+    // texto se lo hace leer dos veces seguidas a un lector de pantalla.
+    const { container } = renderSlide({ ...SLIDE, arteUrl: "https://cdn.test/arte.jpg" });
+
+    for (const img of container.querySelectorAll("img")) {
+      expect(img).toHaveAttribute("alt", "");
+    }
   });
 });

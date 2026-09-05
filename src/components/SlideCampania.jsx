@@ -43,10 +43,11 @@ export default function SlideCampania({ slide, interactivo = true }) {
   // y acá además hace que el slide caiga al molde compuesto en vez de quedar
   // en blanco.
   //
-  // ⚠️ `alt=""` marca la imagen como decorativa y le saca el rol "img" del
-  // árbol de accesibilidad (cae a "presentation"): un lector de pantalla la
-  // salta entera. Acá la imagen ES el contenido —arte o doodle de la
-  // campaña—, así que lleva el título como alternativa textual.
+  // `alt=""` es deliberado: el título ya está como texto al lado (el `<p>`
+  // de abajo). Con un `alt` igual a ese título, un lector de pantalla lo
+  // anuncia dos veces seguidas — la imagen y después el texto. La imagen es
+  // decorativa a efectos de accesibilidad, mismo criterio que el doodle de
+  // `BannerCampania`.
   const [arteRoto, setArteRoto] = useState(false);
   const [doodleRoto, setDoodleRoto] = useState(false);
 
@@ -75,7 +76,7 @@ export default function SlideCampania({ slide, interactivo = true }) {
               arregla: el problema es el tamaño de la caja. */}
           <img
             src={slide.arteUrl}
-            alt={slide.titulo}
+            alt=""
             onError={() => setArteRoto(true)}
             className="absolute inset-0 h-full w-full object-cover"
           />
@@ -91,7 +92,7 @@ export default function SlideCampania({ slide, interactivo = true }) {
         <div className="relative aspect-square w-16 shrink-0 overflow-hidden rounded-full bg-surface-container-lowest md:w-28">
           <img
             src={slide.doodleUrl}
-            alt={slide.titulo}
+            alt=""
             onError={() => setDoodleRoto(true)}
             className="absolute inset-0 h-full w-full object-contain p-2"
           />
