@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import CategoriasDestacadas from "./CategoriasDestacadas.jsx";
 import * as categoriasApi from "../api/categorias.js";
+import { reiniciarCategoriasNavbar } from "../hooks/useCategoriasNavbar.js";
 
 vi.mock("../api/categorias.js");
 
@@ -29,6 +30,11 @@ function categoria(nombre, { id = nombre.length, destacada = true, orden = 0, im
 describe("CategoriasDestacadas", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // `useCategoriasDestacadas` ahora lee del cache module-level compartido
+    // con `useCategoriasNavbar` (ver I3 en el CLAUDE.md del proyecto): sin
+    // este reset, la respuesta mockeada del PRIMER test quedaría cacheada y
+    // los siguientes verían datos viejos.
+    reiniciarCategoriasNavbar();
   });
 
   it("muestra sólo las categorías que el panel marcó, en el orden que eligió", async () => {

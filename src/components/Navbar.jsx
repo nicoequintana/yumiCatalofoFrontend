@@ -53,7 +53,11 @@ function Navbar() {
   const { pathname } = useLocation();
   const esAdmin = pathname.startsWith("/catalogo/admin");
   const { cantidadTotal } = useCarrito();
-  const { categorias } = useCategoriasNavbar();
+  // `activo: !esAdmin`: en `/catalogo/admin/login` —la única ruta de admin que
+  // cuelga de este `Layout` público— el dropdown de categorías no existe, y
+  // sin este freno la request salía igual porque el hook se invoca antes del
+  // guard `esAdmin` de más abajo (las reglas de hooks no dejan condicionarlo).
+  const { categorias } = useCategoriasNavbar({ activo: !esAdmin });
 
   // El Doodle sale del contexto comercial, que se pide una sola vez por carga
   // de página y lo comparten todos los consumidores. Cuál de los dos aplica lo

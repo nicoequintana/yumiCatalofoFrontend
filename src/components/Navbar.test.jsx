@@ -6,11 +6,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import Navbar from "./Navbar.jsx";
 import useCarrito from "../hooks/useCarrito.js";
 
+const categoriasNavbarMock = vi.fn(() => ({
+  categorias: [{ id: 1002, nombre: "Cocina", cantidadPublicados: 27 }],
+  resuelto: true,
+}));
 vi.mock("../hooks/useCategoriasNavbar.js", () => ({
-  default: () => ({
-    categorias: [{ id: 1002, nombre: "Cocina", cantidadPublicados: 27 }],
-    resuelto: true,
-  }),
+  default: (...args) => categoriasNavbarMock(...args),
 }));
 
 function renderNavbar(ruta = "/") {
@@ -201,5 +202,26 @@ describe("Navbar - dropdown de categorías", () => {
       "aria-expanded",
       "false",
     );
+  });
+});
+
+describe("Navbar - carga de categorías", () => {
+  beforeEach(() => {
+    categoriasNavbarMock.mockClear();
+  });
+
+  it("pide categorías en una ruta pública", () => {
+    renderNavbar("/");
+
+    expect(categoriasNavbarMock).toHaveBeenCalledWith({ activo: true });
+  });
+
+  // I3: en `/catalogo/admin/login` el dropdown no existe (`esAdmin` esconde
+  // toda la navegación), así que la request no hace falta — antes salía
+  // igual porque el hook se invocaba antes del guard.
+  it("no pide categorías en /catalogo/admin/login", () => {
+    renderNavbar("/catalogo/admin/login");
+
+    expect(categoriasNavbarMock).toHaveBeenCalledWith({ activo: false });
   });
 });
