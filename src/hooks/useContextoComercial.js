@@ -9,7 +9,7 @@ import { getToken } from "../api/authClient.js";
  * POR QUÉ ESTE PATRÓN Y NO EL DE `useWhatsapp`. Ese hook fetchea una vez POR
  * INSTANCIA, sin deduplicar: cada `BotonWhatsapp` montado dispara su propia
  * request. Es tolerable con un solo consumidor, pero acá hay tres —el navbar
- * (Doodle), el modal, y el banner— y todos preguntan lo mismo.
+ * (Doodle), el modal, y el carrusel de la home— y todos preguntan lo mismo.
  * Con ese patrón cada carga de página pagaría tres requests idénticas.
  *
  * Así que se usa el patrón module-level del resto del proyecto
@@ -37,7 +37,9 @@ const CONTEXTO_VACIO = {
   doodle: null,
   doodleAdmin: null,
   modal: null,
-  banner: null,
+  // Array y no `null`: una pantalla que haga `slides.map` no tiene que chequear
+  // antes, y "no hay nada que mostrar" ya está dicho por el array vacío.
+  slides: [],
   claveDia: null,
   resuelto: false,
 };
@@ -88,7 +90,7 @@ function cargar() {
         doodle: contexto?.doodle ?? null,
         doodleAdmin: contexto?.doodleAdmin ?? null,
         modal: contexto?.modal ?? null,
-        banner: contexto?.banner ?? null,
+        slides: contexto?.slides ?? [],
         claveDia: contexto?.claveDia ?? null,
         resuelto: true,
       });

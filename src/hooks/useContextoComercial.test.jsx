@@ -1,4 +1,4 @@
-import { render, renderHook, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getContextoComercialMock = vi.fn();
@@ -31,6 +31,18 @@ const CONTEXTO = {
   claveDia: "2026-09-15",
   doodle: { url: "https://res.cloudinary.com/demo/primavera.png", campaniaId: 1, nombre: "Primavera" },
 };
+
+// Sonda dedicada a `slides`: la de arriba ya usa el testid `etiqueta` para
+// otra cosa, y acá lo que importa es distinguir "array vacío" de "resuelto".
+function SondaSlides() {
+  const { slides, resuelto } = useContextoComercial();
+  return (
+    <>
+      <span data-testid="slides">{slides.length}</span>
+      <span data-testid="resuelto">{resuelto ? "si" : "no"}</span>
+    </>
+  );
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -205,26 +217,35 @@ describe("useContextoComercial", () => {
     expect(() => vista.unmount()).not.toThrow();
   });
 
-  it("expone el banner que emite el backend", async () => {
+  it("expone los slides del contexto", async () => {
     getContextoComercialMock.mockResolvedValue({
-      claveDia: "2026-09-04",
+      claveDia: "2026-09-05",
       doodle: null,
       modal: null,
-      banner: { campaniaId: 7, titulo: "Semana del Hogar", ctaDestino: "/coleccion?campania=7" },
+      slides: [{ tipo: "CAMPANIA", campaniaId: 7, titulo: "Primavera" }],
     });
 
-    const { result } = renderHook(() => useContextoComercial());
+    render(<SondaSlides />);
 
-    await waitFor(() => expect(result.current.resuelto).toBe(true));
-    expect(result.current.banner).toMatchObject({ campaniaId: 7, titulo: "Semana del Hogar" });
+    await waitFor(() => expect(screen.getByTestId("slides")).toHaveTextContent("1"));
   });
 
-  it("un backend caído deja el banner en null, no rompe el catálogo", async () => {
-    getContextoComercialMock.mockRejectedValue(new Error("boom"));
+  it("sin slides en la respuesta, devuelve un array vacío y NO null", async () => {
+    // Una pantalla que haga `slides.map` no puede tener que chequear null antes:
+    // el array vacío ya significa "no hay nada que mostrar".
+    getContextoComercialMock.mockResolvedValue({ claveDia: "2026-09-05" });
 
-    const { result } = renderHook(() => useContextoComercial());
+    render(<SondaSlides />);
 
-    await waitFor(() => expect(result.current.resuelto).toBe(true));
-    expect(result.current.banner).toBeNull();
+    await waitFor(() => expect(screen.getByTestId("slides")).toHaveTextContent("0"));
+  });
+
+  it("si el fetch falla, slides es un array vacío y resuelto pasa a true", async () => {
+    getContextoComercialMock.mockRejectedValue(new Error("red caída"));
+
+    render(<SondaSlides />);
+
+    await waitFor(() => expect(screen.getByTestId("resuelto")).toHaveTextContent("si"));
+    expect(screen.getByTestId("slides")).toHaveTextContent("0");
   });
 });
