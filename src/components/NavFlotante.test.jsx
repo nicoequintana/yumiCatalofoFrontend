@@ -35,6 +35,17 @@ describe("NavFlotante", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  // La ficha tiene su propia barra de compra fija abajo (precio, cantidad y
+  // "Agregar al carrito"): la píldora se le montaba encima y tapaba el botón,
+  // o sea que la navegación le estaba comiendo la conversión a la pantalla que
+  // vende. El carrito y favoritos siguen alcanzables desde el header, que ahí
+  // sí se muestra.
+  it("no se muestra en la ficha de producto: ahí manda la barra de compra", () => {
+    const { container } = montar("/producto/123-lampara-de-sal");
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("el botón de menú avisa al padre y refleja el estado abierto", async () => {
     const usuario = userEvent.setup();
     const alternar = vi.fn();

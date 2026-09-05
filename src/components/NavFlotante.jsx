@@ -25,15 +25,27 @@ import { useLocation } from "react-router-dom";
  * montarían encima de esa pantalla aunque nadie las haya abierto desde ahí.
  */
 
-/** El fondo de la ranura activa. Cápsula, no color. */
+/**
+ * El botón. `h-11 w-11` son 44px, el mínimo táctil accesible — y nada más:
+ * con un solo control, una píldora ancha se lee como una mancha y compite con
+ * el contenido en vez de acompañarlo.
+ */
 const CLASE_RANURA =
-  "relative inline-flex h-12 w-[62px] items-center justify-center rounded-full text-background transition-colors";
+  "relative inline-flex h-11 w-11 items-center justify-center rounded-full text-background transition-colors";
 const CLASE_ACTIVA = "bg-background/20";
 
 export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
   const { pathname } = useLocation();
 
   if (pathname.startsWith("/catalogo/admin")) return null;
+
+  // La ficha NO lleva isla. Dos motivos, y el primero cuesta ventas: esa
+  // pantalla tiene su propia barra de compra fija abajo (precio, cantidad y
+  // "Agregar al carrito"), y la isla se le montaba encima tapando el botón.
+  // El segundo es de producto: la ficha es donde se decide comprar, y la
+  // hamburguesa es la única salida que no lleva a la compra. El header sigue
+  // ahí arriba con lupa, favoritos y carrito, así que nadie queda encerrado.
+  if (pathname.startsWith("/producto/")) return null;
 
   return (
     <div
@@ -82,7 +94,7 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
           alfa se aplicaría igual pero el desenfoque no, y quedaría una
           píldora semitransparente con el contenido NÍTIDO por detrás — peor
           que no haber intentado el efecto. Ahí el fondo pasa a opaco. */}
-      <div className="vidrio-isla flex items-center rounded-full border border-background/10 bg-inverse-surface/70 p-2 shadow-ambient backdrop-blur-xl">
+      <div className="vidrio-isla flex items-center rounded-full border border-background/10 bg-inverse-surface/70 p-1.5 shadow-ambient backdrop-blur-xl">
         <button
           type="button"
           aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
@@ -91,7 +103,7 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
           onClick={onAlternarMenu}
           className={`${CLASE_RANURA} ${menuAbierto ? CLASE_ACTIVA : ""}`}
         >
-          <span aria-hidden="true" className="material-symbols-outlined text-[25px]">
+          <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
             {menuAbierto ? "close" : "menu"}
           </span>
         </button>

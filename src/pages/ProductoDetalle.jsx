@@ -4,7 +4,6 @@ import FichaProducto from "../components/FichaProducto.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
-import { useVolver } from "../hooks/useVolver.js";
 import { getProductById } from "../api/products.js";
 import { useToast } from "../context/useToast.js";
 import { parsearIdDeRuta, rutaProducto } from "../utils/slug.js";
@@ -14,9 +13,9 @@ import { urlAbsoluta } from "../constants/seo.js";
  * `/producto/:idSlug` — container for the public product detail view.
  *
  * Owns only page concerns: fetching by route param, redirecting when the
- * product is gone, and the mobile back header. All of the actual product
- * markup lives in `FichaProducto`, which the admin editor renders too — so
- * the preview an admin sees while editing cannot drift from this page.
+ * product is gone, and the back link. All of the actual product markup lives
+ * in `FichaProducto`, which the admin editor renders too — so the preview an
+ * admin sees while editing cannot drift from this page.
  */
 function ProductoDetalle() {
   const { idSlug } = useParams();
@@ -26,7 +25,6 @@ function ProductoDetalle() {
   const id = parsearIdDeRuta(idSlug);
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
-  const volver = useVolver();
   const [producto, setProducto] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);
@@ -118,33 +116,19 @@ function ProductoDetalle() {
         jsonLd={bloquesJsonLd}
       />
 
-      {/* El ÚNICO encabezado de esta pantalla en móvil: desde el 05/09/2026 el
-          `Navbar` público se esconde por debajo de `md` en `/producto/*` (ver
-          el comentario de `esFichaProducto` en `Navbar.jsx`). Antes convivían
-          los dos, y como comparten el mismo `top` sticky, este —que es el que
-          tiene la flecha de volver— se metía por debajo del otro al scrollear.
+      {/* Esta pantalla NO tiene encabezado propio: el que manda es el `Navbar`
+          público, en móvil y en escritorio. Hubo uno acá —una barra sticky con
+          una flecha y la palabra "Producto"— y se retiró el 05/09/2026: era una
+          SEGUNDA barra pegada al tope con el mismo `top` que la del sitio, así
+          que al scrollear se metían una debajo de la otra, y su título genérico
+          no decía nada que el nombre del producto no dijera mejor unos píxeles
+          más abajo.
 
-          `top-[var(--alto-cinta-ambiente)]`, no `top-0`: la variable la
-          declara `CintaAmbiente.jsx` (ver `index.css`) y vale el alto real de
-          la cinta de dev mientras existe en el DOM, `0px` en producción — el
-          mismo `top-0` de antes, así que el sitio publicado no cambia. Sin
-          esto la cinta (`fixed`, no empuja el layout) se pintaba encima de
-          este header. */}
-      <header className="sticky top-[var(--alto-cinta-ambiente)] z-40 flex w-full items-center justify-between bg-background px-margin-mobile py-4 md:hidden">
-        <button type="button" className="p-2 text-on-surface" onClick={volver}>
-          <span className="material-symbols-outlined">arrow_back</span>
-        </button>
-        {/* Título genérico, no el nombre del producto: ese ya se muestra en
-            `FichaProducto`, debajo de la galería. Repetirlo acá arriba hacía
-            que el nombre apareciera dos veces en mobile. */}
-        <div className="font-headline-lg-mobile text-headline-lg-mobile tracking-tighter text-primary">
-          Producto
-        </div>
-        <span className="w-10" aria-hidden="true" />
-      </header>
-
-      <main className="mx-auto w-full max-w-container-max px-margin-mobile py-8 pb-24 md:px-margin-desktop md:py-16 md:pb-16">
-        <div className="mb-6 hidden md:block">
+          Lo único que hacía falta rescatar de ahí era el "volver", y para eso
+          ya existe `BotonVolver` — el mismo control en los dos breakpoints, en
+          flujo con el contenido en vez de pegado al borde. */}
+      <main className="mx-auto w-full max-w-container-max px-margin-mobile py-6 pb-24 md:px-margin-desktop md:py-16 md:pb-16">
+        <div className="mb-4 md:mb-6">
           <BotonVolver />
         </div>
 

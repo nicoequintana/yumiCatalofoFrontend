@@ -38,21 +38,20 @@ function montarEnFicha() {
 }
 
 describe("Navegación móvil de la ficha de producto", () => {
-  it("el carrito es alcanzable desde la hoja mientras el header está oculto", () => {
-    const { container } = montarEnFicha();
+  // El reparto de la ficha, con sus dos mitades atadas en UN test: si se
+  // verificaran por separado, cada mitad pasaría igual con la otra rota, que
+  // es exactamente cómo se rompió esta pantalla la primera vez.
+  it("la isla no se monta, y el carrito queda alcanzable desde la barra", () => {
+    const { queryByTestId } = montarEnFicha();
 
-    // Las dos puntas atadas en UNA aserción, no dos afirmaciones sueltas: sin
-    // esto el test "integra" solo de nombre — la mitad ya la cubre
-    // `HojaMenu.test.jsx` (que el link existe) y la otra mitad, sin nada del
-    // otro lado, no prueba que el header sea de verdad el que se esconde acá.
-    // jsdom no aplica `@media` (no puede confirmar el `display: none` real),
-    // pero SÍ puede confirmar la clase que lo produce: `header` lleva `hidden`
-    // en esta ruta (ver `esFichaProducto` en `Navbar.jsx`). Si alguien saca la
-    // fila de la hoja, o el guard de `esFichaProducto` deja de esconder el
-    // header, esta aserción cae en cualquiera de los dos casos.
-    const header = container.querySelector("header");
-    expect(header).toHaveClass("hidden");
-    expect(screen.getByRole("link", { name: "Carrito" })).toHaveAttribute("href", "/carrito");
+    // La isla fuera: esa pantalla tiene su propia barra de compra fija abajo y
+    // la píldora le tapaba el botón "Agregar".
+    expect(queryByTestId("isla-flotante")).not.toBeInTheDocument();
+
+    // Y por eso mismo la barra de arriba TIENE que estar: es el único camino
+    // que le queda al carrito. Sacar el guard de la isla, o volver a esconder
+    // el header acá, tira este test.
+    expect(screen.getByRole("link", { name: "Ver carrito" })).toHaveAttribute("href", "/carrito");
   });
 
   it("ningún nombre accesible se repite entre el header y la hoja montados juntos", () => {

@@ -26,13 +26,15 @@ const DESTINOS = [{ to: "/", texto: "Inicio", esActivo: (pathname) => pathname =
 /**
  * Header público: wordmark a la izquierda, navegación al centro y acciones a la
  * derecha, en escritorio (`md+`). **Por debajo de `md` la barra queda con el
- * logo y las tres acciones** (lupa, favoritos, carrito): son el único camino a
- * esas tres pantallas en la ficha de producto, donde esta barra entera se
- * esconde (ver `esFichaProducto`, más abajo) y la única navegación que queda es
- * la hamburguesa. La navegación por destino ("Inicio", el dropdown de
- * "Productos") y el propio botón de menú siguen viviendo solo en `NavFlotante`
- * (la isla) y en `HojaMenu` (lo que abre), montados aparte en `Layout.jsx` —
- * este componente ya no tiene panel ni botón de menú propios.
+ * logo y las tres acciones** (lupa, favoritos, carrito). La navegación por
+ * destino ("Inicio", el dropdown de "Productos") y el botón de menú viven en
+ * `NavFlotante` (la isla) y en `HojaMenu` (lo que abre), montados aparte en
+ * `Layout.jsx` — este componente ya no tiene panel ni botón de menú propios.
+ *
+ * **Esta barra se muestra en TODAS las rutas públicas, la ficha incluida.** En
+ * la ficha es la única forma de llegar al carrito y a favoritos, porque ahí la
+ * isla no se monta: esa pantalla tiene su propia barra de compra fija abajo y
+ * la isla le tapaba el botón "Agregar" (ver el guard en `NavFlotante.jsx`).
  *
  * **No hay ícono de cuenta**, aunque el mockup lo mostraba: este proyecto no
  * tiene login público — el checkout es de invitado por DNI. Un ícono de persona
@@ -55,19 +57,6 @@ const DESTINOS = [{ to: "/", texto: "Inicio", esActivo: (pathname) => pathname =
 function Navbar() {
   const { pathname } = useLocation();
   const esAdmin = pathname.startsWith("/catalogo/admin");
-  // La ficha es la pantalla que VENDE, y en móvil esta barra no aportaba nada
-  // propio: desde que quedó con el logo solo, `ProductoDetalle` ya monta su
-  // encabezado con la flecha de volver. Eran dos barras para una función, y
-  // cada control de más ahí es una salida que no lleva a comprar.
-  //
-  // Y los dos son `sticky` con el MISMO `top`, así que además se pisaban: al
-  // scrollear, la flecha de volver (`z-40`) se metía por debajo de esta barra
-  // (`z-50`) y dejaba de ser clickeable.
-  //
-  // Solo en móvil, y por CSS: en `md+` hay lugar de sobra y sacarla dejaría la
-  // ficha sin ninguna navegación en pantalla grande. El breakpoint lo decide el
-  // navegador, no un `matchMedia` en JS — mismo criterio que el resto del shell.
-  const esFichaProducto = pathname.startsWith("/producto/");
   const { cantidadTotal } = useCarrito();
   // `activo: !esAdmin`: en `/catalogo/admin/login` —la única ruta de admin que
   // cuelga de este `Layout` público— el dropdown de categorías no existe, y
@@ -153,11 +142,7 @@ function Navbar() {
     // `top-0` de siempre, así que el sitio publicado no cambia. Sin esto la
     // cinta, `fixed` y sin empujar el layout, tapaba la mitad superior del
     // header.
-    <header
-      className={`vidrio-header sticky top-[var(--alto-cinta-ambiente)] z-50 w-full bg-background/70 shadow backdrop-blur-[10px] ${
-        esFichaProducto ? "hidden md:block" : ""
-      }`}
-    >
+    <header className="vidrio-header sticky top-[var(--alto-cinta-ambiente)] z-50 w-full bg-background/70 shadow backdrop-blur-[10px]">
       {/* Alto FIJO (`h-navbar-height`), no derivado del padding. Es la mitad
           de un contrato: `FiltrosCatalogo.jsx` se pega debajo con
           `top-navbar-height`, el MISMO token. Mientras el alto salía del

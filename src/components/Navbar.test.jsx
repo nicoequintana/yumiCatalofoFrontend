@@ -90,29 +90,34 @@ describe("Navbar - barra sticky", () => {
   });
 });
 
-// La ficha es la pantalla que VENDE: cada control del encabezado ahí es una
-// salida. Y esta barra además no aportaba nada propio en móvil desde que quedó
-// con el logo solo — `ProductoDetalle` ya monta su propio header con la flecha
-// de volver. Peor: los dos son `sticky` con el MISMO `top`, así que al
-// scrollear la flecha se metía por debajo de esta barra (z-50 contra z-40).
-describe("Navbar - se esconde en la ficha de producto (solo en móvil)", () => {
-  it("en la ficha desaparece por debajo de md", () => {
+// Esta barra llegó a esconderse en la ficha por debajo de `md`, y fue un error
+// que duró unas horas: al mover lupa, favoritos y carrito de vuelta acá, la
+// ficha se quedó SIN carrito, y la isla —que sí seguía ahí— le tapaba el botón
+// "Agregar" de la barra de compra. La salida correcta fue la inversa: la barra
+// se ve en todas las rutas públicas, y la que no se monta en la ficha es la
+// isla (ver `NavFlotante.jsx`).
+describe("Navbar - se ve en TODAS las rutas públicas, la ficha incluida", () => {
+  it("en la ficha la barra está, sin clase que la esconda", () => {
     const { container } = renderNavbar("/producto/123-lampara-de-sal");
     const header = container.querySelector("header");
 
-    expect(header).toHaveClass("hidden");
-    expect(header).toHaveClass("md:block");
+    expect(header).toBeInTheDocument();
+    expect(header).not.toHaveClass("hidden");
   });
 
-  it("en escritorio la ficha sigue teniendo encabezado", () => {
-    // El guard es de ANCHO, no de ruta: en `md+` hay lugar de sobra y sacarlo
-    // dejaría la ficha sin ninguna navegación en pantalla grande.
-    const { container } = renderNavbar("/producto/123-lampara-de-sal");
+  it("en la ficha se puede llegar al carrito y a favoritos", () => {
+    // Es el punto: en esa pantalla esta barra es el ÚNICO camino a las dos,
+    // porque la isla no se monta ahí.
+    renderNavbar("/producto/123-lampara-de-sal");
 
-    expect(container.querySelector("header")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver carrito" })).toHaveAttribute("href", "/carrito");
+    expect(screen.getByRole("link", { name: "Ver favoritos" })).toHaveAttribute(
+      "href",
+      "/favoritos",
+    );
   });
 
-  it("en el resto del catálogo la barra se ve en móvil", () => {
+  it("en el resto del catálogo la barra se ve igual", () => {
     for (const ruta of ["/", "/coleccion", "/favoritos", "/carrito"]) {
       const { container, unmount } = renderNavbar(ruta);
       expect(container.querySelector("header")).not.toHaveClass("hidden");
