@@ -15,7 +15,16 @@ import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
  * Los campos se muestran SIEMPRE, no solo con el banner prendido: se puede
  * escribir con calma y prenderlo después. El backend solo exige el título
  * cuando está activo.
+ *
+ * ⚠️ El fallback del título en el preview reutiliza el MISMO placeholder que el
+ * `<input>` (`PLACEHOLDER_TITULO`), nunca el texto de la etiqueta: la etiqueta
+ * del campo es "Título del banner" y el preview lleva un `<h2>` con
+ * `aria-labelledby` sobre su `<section>` (`BannerCampania.jsx`), así que si el
+ * fallback repitiera esa misma frase, `getByLabel("Título del banner")`
+ * resolvería DOS elementos —el campo real y esa sección— en vez de uno solo.
  */
+const PLACEHOLDER_TITULO = "Semana del Hogar";
+
 export default function SeccionBanner({
   valores,
   editar,
@@ -27,7 +36,7 @@ export default function SeccionBanner({
   // Lo que va a ver el visitante, armado con lo que hay tipeado AHORA.
   const bannerPreview = {
     doodleUrl: campania?.doodleUrl ?? null,
-    titulo: valores.bannerTitulo || "Título del banner",
+    titulo: valores.bannerTitulo || PLACEHOLDER_TITULO,
     texto: valores.bannerTexto,
     diasFaltantes,
     // Con `interactivo` apagado el valor nunca se navega. Acá alcanza con decir
@@ -61,7 +70,7 @@ export default function SeccionBanner({
         <div className="flex flex-col gap-4">
           <div>
             <label htmlFor="campania-banner-titulo" className={claseEtiqueta}>
-              Título
+              Título del banner
             </label>
             <input
               id="campania-banner-titulo"
@@ -70,13 +79,13 @@ export default function SeccionBanner({
               value={valores.bannerTitulo}
               onChange={(e) => editar("bannerTitulo", e.target.value)}
               className={claseCampo}
-              placeholder="Semana del Hogar"
+              placeholder={PLACEHOLDER_TITULO}
             />
           </div>
 
           <div>
             <label htmlFor="campania-banner-texto" className={claseEtiqueta}>
-              Texto{" "}
+              Texto del banner{" "}
               <span className="normal-case tracking-normal">
                 · <code className="text-secondary">{"{dias}"}</code> pone el contador · máx. 200
               </span>
@@ -94,7 +103,7 @@ export default function SeccionBanner({
 
           <div>
             <label htmlFor="campania-banner-cta" className={claseEtiqueta}>
-              Botón
+              Texto del botón del banner
             </label>
             <input
               id="campania-banner-cta"

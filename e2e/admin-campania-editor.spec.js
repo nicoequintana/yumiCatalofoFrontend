@@ -107,7 +107,15 @@ test.describe("Editor de campaña: vitrina, cartel y la grilla filtrada", () => 
       await page.getByLabel("Prioridad").fill("999");
 
       await page.getByRole("switch", { name: /Mostrar cada vez que alguien entra/ }).click();
-      await page.getByLabel("Título").fill("Vitrina de prueba E2E");
+
+      // `SeccionCartel` y `SeccionBanner` se montan juntas en esta misma
+      // página: cada etiqueta lleva su calificativo ("del cartel" / "del
+      // banner") para que `getByLabel` resuelva a un único campo en cada una
+      // — antes "Título" y "Botón" eran ambiguos entre las dos secciones.
+      await expect(page.getByLabel("Título del cartel")).toHaveCount(1);
+      await expect(page.getByLabel("Título del banner")).toHaveCount(1);
+
+      await page.getByLabel("Título del cartel").fill("Vitrina de prueba E2E");
 
       // El destino se guarda como INTENCIÓN. La ruta la arma el backend al leer.
       await page.getByRole("radio", { name: /Los productos de la campaña/ }).check();

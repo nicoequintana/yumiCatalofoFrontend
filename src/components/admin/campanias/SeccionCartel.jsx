@@ -20,7 +20,16 @@ import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
  * ⚠️ El placeholder del botón sale de `opciones.ctaTextoPorDefecto`, nunca de
  * una constante local: un placeholder hecho a mano divergiría del texto que el
  * cartel realmente muestra, sin error y sin test rojo.
+ *
+ * ⚠️ El fallback del título en el preview reutiliza el MISMO placeholder que el
+ * `<input>` (`PLACEHOLDER_TITULO`), nunca el texto de la etiqueta: la etiqueta
+ * del campo es "Título del cartel" y el preview lleva un `<h2>` con
+ * `aria-labelledby` sobre su `<section>`, así que si el fallback repitiera esa
+ * misma frase, `getByLabel("Título del cartel")` resolvería DOS elementos —el
+ * campo real y esa sección— en vez de uno solo.
  */
+const PLACEHOLDER_TITULO = "Llega la primavera";
+
 export default function SeccionCartel({
   valores,
   editar,
@@ -31,7 +40,7 @@ export default function SeccionCartel({
   // Lo que va a ver el visitante, armado con lo que hay tipeado AHORA.
   const modalPreview = {
     doodleUrl: campania?.doodleUrl ?? null,
-    titulo: valores.modalTitulo || "Título del cartel",
+    titulo: valores.modalTitulo || PLACEHOLDER_TITULO,
     texto: valores.modalTexto,
     diasFaltantes,
     // `CartelCampania` pinta el botón cuando hay destino. Con `interactivo`
@@ -63,7 +72,7 @@ export default function SeccionCartel({
         <div className="flex flex-col gap-4">
           <div>
             <label htmlFor="campania-modal-titulo" className={claseEtiqueta}>
-              Título
+              Título del cartel
             </label>
             <input
               id="campania-modal-titulo"
@@ -72,13 +81,13 @@ export default function SeccionCartel({
               value={valores.modalTitulo}
               onChange={(e) => editar("modalTitulo", e.target.value)}
               className={claseCampo}
-              placeholder="Llega la primavera"
+              placeholder={PLACEHOLDER_TITULO}
             />
           </div>
 
           <div>
             <label htmlFor="campania-modal-texto" className={claseEtiqueta}>
-              Texto{" "}
+              Texto del cartel{" "}
               <span className="normal-case tracking-normal">
                 · <code className="text-secondary">{"{dias}"}</code> pone el contador
               </span>
@@ -109,7 +118,7 @@ export default function SeccionCartel({
             </div>
             <div>
               <label htmlFor="campania-modal-cta" className={claseEtiqueta}>
-                Botón
+                Texto del botón del cartel
               </label>
               <input
                 id="campania-modal-cta"
