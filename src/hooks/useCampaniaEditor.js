@@ -65,6 +65,10 @@ function valoresIniciales(campania, diaElegido) {
       ? String(campania.modalCtaReferenciaId)
       : "",
     modalFechaObjetivo: campania?.modalFechaObjetivo ?? "",
+    bannerEnHome: campania?.bannerEnHome ?? false,
+    bannerTitulo: campania?.bannerTitulo ?? "",
+    bannerTexto: campania?.bannerTexto ?? "",
+    bannerCtaTexto: campania?.bannerCtaTexto ?? "",
   };
 }
 
@@ -97,6 +101,12 @@ function construirPayload(valores) {
       ? Number(valores.modalCtaReferenciaId)
       : null,
     modalFechaObjetivo: valores.modalFechaObjetivo || null,
+    bannerEnHome: valores.bannerEnHome,
+    // Vacíos como null, mismo criterio que los del cartel: "" guardaría una
+    // cadena vacía que después hay que distinguir de no haber cargado nada.
+    bannerTitulo: valores.bannerTitulo.trim() || null,
+    bannerTexto: valores.bannerTexto.trim() || null,
+    bannerCtaTexto: valores.bannerCtaTexto.trim() || null,
   };
 }
 
