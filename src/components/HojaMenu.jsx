@@ -33,7 +33,11 @@ export default function HojaMenu({ abierta, onCerrar }) {
   const { pathname } = useLocation();
   const esAdmin = pathname.startsWith("/catalogo/admin");
   const hojaRef = useDialogo({ abierto: abierta, onCerrar });
-  const { categorias } = useCategoriasNavbar();
+  // `activo` va acá y no alcanza con el `return null` de abajo: las reglas de
+  // hooks obligan a llamar a este antes de cualquier salida temprana, así que
+  // sin la bandera su efecto dispararía `GET /categorias` igual en
+  // `/catalogo/admin/login` — la misma request que `Navbar` ya se ahorra.
+  const { categorias } = useCategoriasNavbar({ activo: !esAdmin });
 
   useBloquearScroll(abierta);
 
