@@ -93,18 +93,36 @@ describe("NavFlotante", () => {
     expect(abierto.firstChild.className).toMatch(/\bz-50\b/);
   });
 
-  // El alfa tiene un PISO de contraste (ver `Navbar.jsx`, mismo cálculo): no
-  // puede bajar de `/70`. El desenfoque tiene que notarse más que el del
-  // header (acá el fondo es oscuro y el efecto vidrio es el único lenguaje
-  // visual de la isla).
-  it("el vidrio no baja del piso de contraste y lleva blur + borde", () => {
+  // El alfa tiene un PISO, y el guard afirma la REGLA, no el valor: clavar
+  // `/70` literal convertía cada ajuste de diseño en un test roto que no
+  // señalaba ningún problema real.
+  //
+  // El piso es 3:1 y no 4,5:1 porque lo único que va sobre este vidrio es el
+  // ícono de un control — WCAG 1.4.11 (Non-text Contrast), no 1.4.3, que es el
+  // que rige en `Navbar.jsx` porque ahí arriba hay texto.
+  //
+  // Compuesto contra blanco (el peor caso: el blur difumina el fondo pero no
+  // lo aclara), con el crema encima:
+  //   /70 → 6,04:1   /60 → 4,31:1   /55 → 3,65:1   /50 → 3,15:1   /45 → 2,74:1
+  // Verificado en Chromium con la fórmula de luminancia real, no a ojo.
+  it("el alfa del vidrio no baja del piso de 3:1", () => {
     const { container } = montar();
     const pastilla = container.querySelector(".vidrio-isla");
 
-    expect(pastilla).toHaveClass("bg-inverse-surface/70");
-    expect(pastilla).not.toHaveClass("bg-inverse-surface/90");
-    expect(pastilla).not.toHaveClass("bg-inverse-surface/50");
+    const alfa = pastilla.className.match(/bg-inverse-surface\/(\d+)/)?.[1];
+    expect(alfa).toBeDefined();
+    expect(Number(alfa)).toBeGreaterThanOrEqual(50);
+  });
+
+  it("es vidrio: lleva desenfoque y un canto visible", () => {
+    const { container } = montar();
+    const pastilla = container.querySelector(".vidrio-isla");
+
     expect(pastilla.className).toMatch(/backdrop-blur/);
     expect(pastilla.className).toMatch(/\bborder\b/);
+    // `.vidrio-isla` es el fallback de `index.css`: sin `backdrop-filter` el
+    // fondo pasa a opaco, porque un alfa así de bajo con el contenido NÍTIDO
+    // por detrás es peor que no haber intentado el efecto.
+    expect(pastilla).toHaveClass("vidrio-isla");
   });
 });

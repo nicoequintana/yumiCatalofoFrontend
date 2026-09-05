@@ -74,27 +74,36 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
           alfa — un hex adentro de la variable descartaría la clase entera sin
           avisar y la isla quedaría transparente.
 
-          El `/70` NO es una preferencia, es el mismo piso de contraste que ya
-          usa `vidrio-header` en `Navbar.jsx`: los íconos son `text-background`
-          (crema `#fff8f5`) sobre este fondo oscuro (`inverse-surface`,
-          `#1d1b1a`), y el blur difumina lo que pasa por detrás pero no lo
-          ACLARA — el peor caso sigue siendo una foto clara pareja. Contra
-          blanco, `/70` compone a `#615f5f` y deja el crema en 6,04:1. **Ya el
-          primer escalón hacia abajo rompe**: `/60` compone a `#777676` y cae a
-          4,31:1, por debajo del 4,5:1 que pide WCAG AA — no hace falta llegar
-          a `/50` (3,15:1) para perder el piso. Bajar de acá exige recalcular
-          con la fórmula real, no ajustar a ojo.
+          El `/55` tiene un piso, pero NO es el mismo que el del header, y la
+          diferencia es de norma, no de gusto: en `Navbar.jsx` lo que va sobre
+          el vidrio es TEXTO, y ahí rige el 4,5:1 de WCAG 1.4.3. Acá lo único
+          que va encima es el ícono de un control, o sea un elemento no
+          textual, y rige **WCAG 1.4.11 (Non-text Contrast): 3:1**. Por eso
+          esta píldora puede ser bastante más transparente que la barra sin
+          romper nada.
 
-          `border-background/10`: un pixel del mismo crema, casi invisible,
-          que insinúa el canto del vidrio — sin él la píldora se lee como una
-          mancha de color y no como una superficie.
+          El blur difumina lo que pasa por detrás pero no lo ACLARA, así que el
+          peor caso sigue siendo una foto clara pareja. Compuesto contra blanco,
+          con el crema (`#fff8f5`) encima:
+
+            /70 → 6,04:1    /60 → 4,31:1    /55 → 3,65:1    /50 → 3,15:1
+            /45 → 2,74:1  ← ACÁ SE ROMPE
+
+          `/55` deja margen sobre el 3:1 y es visiblemente más vidrio que el
+          `/70` con el que nació. **Bajar de `/50` incumple.** Y no ajustes a
+          ojo: la primera versión de esta tabla estaba mal calculada y decía
+          que `/60` pasaba AA cuando no llega.
+
+          `border-background/25`: el canto del vidrio. Con el fondo más
+          transparente el borde pasa a hacer más trabajo — es lo que separa
+          "una superficie de vidrio" de "una mancha borrosa".
 
           `.vidrio-isla` (en `index.css`) es el fallback: donde no hay
           `backdrop-filter` (Firefox con la flag apagada, entornos sin GPU), el
           alfa se aplicaría igual pero el desenfoque no, y quedaría una
           píldora semitransparente con el contenido NÍTIDO por detrás — peor
           que no haber intentado el efecto. Ahí el fondo pasa a opaco. */}
-      <div className="vidrio-isla flex items-center rounded-full border border-background/10 bg-inverse-surface/70 p-1.5 shadow-ambient backdrop-blur-xl">
+      <div className="vidrio-isla flex items-center rounded-full border border-background/25 bg-inverse-surface/55 p-1.5 shadow-ambient backdrop-blur-2xl">
         <button
           type="button"
           aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
