@@ -90,6 +90,37 @@ describe("Navbar - barra sticky", () => {
   });
 });
 
+// La ficha es la pantalla que VENDE: cada control del encabezado ahí es una
+// salida. Y esta barra además no aportaba nada propio en móvil desde que quedó
+// con el logo solo — `ProductoDetalle` ya monta su propio header con la flecha
+// de volver. Peor: los dos son `sticky` con el MISMO `top`, así que al
+// scrollear la flecha se metía por debajo de esta barra (z-50 contra z-40).
+describe("Navbar - se esconde en la ficha de producto (solo en móvil)", () => {
+  it("en la ficha desaparece por debajo de md", () => {
+    const { container } = renderNavbar("/producto/123-lampara-de-sal");
+    const header = container.querySelector("header");
+
+    expect(header).toHaveClass("hidden");
+    expect(header).toHaveClass("md:block");
+  });
+
+  it("en escritorio la ficha sigue teniendo encabezado", () => {
+    // El guard es de ANCHO, no de ruta: en `md+` hay lugar de sobra y sacarlo
+    // dejaría la ficha sin ninguna navegación en pantalla grande.
+    const { container } = renderNavbar("/producto/123-lampara-de-sal");
+
+    expect(container.querySelector("header")).toBeInTheDocument();
+  });
+
+  it("en el resto del catálogo la barra se ve en móvil", () => {
+    for (const ruta of ["/", "/coleccion", "/favoritos", "/carrito"]) {
+      const { container, unmount } = renderNavbar(ruta);
+      expect(container.querySelector("header")).not.toHaveClass("hidden");
+      unmount();
+    }
+  });
+});
+
 describe("Navbar - logo", () => {
   it("el logo YIMA es un link a la home", () => {
     renderNavbar();

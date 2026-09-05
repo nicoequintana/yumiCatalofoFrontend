@@ -118,7 +118,12 @@ function ProductoDetalle() {
         jsonLd={bloquesJsonLd}
       />
 
-      {/* Mobile header — the one page-specific mobile-nav exception.
+      {/* El ÚNICO encabezado de esta pantalla en móvil: desde el 05/09/2026 el
+          `Navbar` público se esconde por debajo de `md` en `/producto/*` (ver
+          el comentario de `esFichaProducto` en `Navbar.jsx`). Antes convivían
+          los dos, y como comparten el mismo `top` sticky, este —que es el que
+          tiene la flecha de volver— se metía por debajo del otro al scrollear.
+
           `top-[var(--alto-cinta-ambiente)]`, no `top-0`: la variable la
           declara `CintaAmbiente.jsx` (ver `index.css`) y vale el alto real de
           la cinta de dev mientras existe en el DOM, `0px` en producción — el
