@@ -89,21 +89,25 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
             /70 → 6,04:1    /60 → 4,31:1    /55 → 3,65:1    /50 → 3,15:1
             /45 → 2,74:1  ← ACÁ SE ROMPE
 
-          `/55` deja margen sobre el 3:1 y es visiblemente más vidrio que el
-          `/70` con el que nació. **Bajar de `/50` incumple.** Y no ajustes a
-          ojo: la primera versión de esta tabla estaba mal calculada y decía
-          que `/60` pasaba AA cuando no llega.
+          **`/50` es el piso y está agotado: `/45` incumple.** No lo bajes.
+          Y no ajustes a ojo: la primera versión de esta tabla estaba mal
+          calculada y decía que `/60` pasaba AA cuando no llega.
 
-          `border-background/25`: el canto del vidrio. Con el fondo más
-          transparente el borde pasa a hacer más trabajo — es lo que separa
-          "una superficie de vidrio" de "una mancha borrosa".
+          Si hace falta que se vea AÚN más vidrio, lo que se sube es el
+          desenfoque o el canto, nunca la transparencia — y el margen extra de
+          legibilidad lo da la sombra proyectada del ícono (ver más abajo), no
+          el fondo.
+
+          `border-background/30`: el canto del vidrio. Con el fondo tan
+          transparente el borde pasa a hacer casi todo el trabajo — es lo que
+          separa "una superficie de vidrio" de "una mancha borrosa".
 
           `.vidrio-isla` (en `index.css`) es el fallback: donde no hay
           `backdrop-filter` (Firefox con la flag apagada, entornos sin GPU), el
           alfa se aplicaría igual pero el desenfoque no, y quedaría una
           píldora semitransparente con el contenido NÍTIDO por detrás — peor
           que no haber intentado el efecto. Ahí el fondo pasa a opaco. */}
-      <div className="vidrio-isla flex items-center rounded-full border border-background/25 bg-inverse-surface/55 p-1.5 shadow-ambient backdrop-blur-2xl">
+      <div className="vidrio-isla flex items-center rounded-full border border-background/30 bg-inverse-surface/50 p-1.5 shadow-ambient backdrop-blur-3xl">
         <button
           type="button"
           aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
@@ -112,7 +116,21 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
           onClick={onAlternarMenu}
           className={`${CLASE_RANURA} ${menuAbierto ? CLASE_ACTIVA : ""}`}
         >
-          <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
+          {/* La sombra proyectada del ÍCONO es lo que permite que el vidrio
+              sea tan transparente. Sin ella, la única defensa del ícono contra
+              lo que pasa por detrás es el alfa del fondo, y ahí `/50` es el
+              piso duro (3,15:1). Con la sombra, el ícono se recorta contra su
+              propio halo oscuro aunque cruce una foto clara: el contraste deja
+              de depender solo de la pastilla.
+
+              No se declara como excusa para bajar de `/50` — el piso sigue
+              siendo el piso, y el alfa lo cumple por su cuenta. La sombra es
+              el margen de seguridad para el caso real que ningún cálculo
+              cubre: una foto de producto casi blanca justo debajo. */}
+          <span
+            aria-hidden="true"
+            className="material-symbols-outlined text-[22px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]"
+          >
             {menuAbierto ? "close" : "menu"}
           </span>
         </button>
