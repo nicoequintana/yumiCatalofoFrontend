@@ -93,21 +93,32 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
           Y no ajustes a ojo: la primera versión de esta tabla estaba mal
           calculada y decía que `/60` pasaba AA cuando no llega.
 
-          Si hace falta que se vea AÚN más vidrio, lo que se sube es el
-          desenfoque o el canto, nunca la transparencia — y el margen extra de
-          legibilidad lo da la sombra proyectada del ícono (ver más abajo), no
-          el fondo.
+          **QUÉ HACE QUE ESTO SE LEA COMO VIDRIO Y NO COMO NIEBLA.** No es el
+          alfa —ese ya está en el piso— sino tres cosas juntas, y sacar
+          cualquiera lo devuelve a "mancha borrosa":
 
-          `border-background/30`: el canto del vidrio. Con el fondo tan
-          transparente el borde pasa a hacer casi todo el trabajo — es lo que
-          separa "una superficie de vidrio" de "una mancha borrosa".
+          1. `backdrop-saturate-150`. Es LA firma del efecto. El desenfoque
+             solo promedia los colores de atrás hacia un gris sucio; la
+             saturación los devuelve vivos, y por eso el ojo lee "estoy viendo
+             A TRAVÉS de algo" en vez de "hay una capa opaca encima".
+          2. `backdrop-blur-xl` (24px) y **NO más**. Con 64px lo de atrás
+             desaparece por completo y el resultado es un plano liso: sin
+             formas que se intuyan detrás, no hay nada que "atravesar". Menos
+             desenfoque se ve MÁS vidrioso, que es el contrasentido de este
+             efecto.
+          3. El brillo del canto superior (`inset 0 1px 0` en el `shadow`):
+             la luz pegando en el borde. Es lo que le da espesor — sin él la
+             pastilla se ve como un recorte plano y no como una lámina.
+
+          `border-background/30` acompaña: con el fondo tan transparente, el
+          borde es buena parte de lo que define la superficie.
 
           `.vidrio-isla` (en `index.css`) es el fallback: donde no hay
           `backdrop-filter` (Firefox con la flag apagada, entornos sin GPU), el
           alfa se aplicaría igual pero el desenfoque no, y quedaría una
           píldora semitransparente con el contenido NÍTIDO por detrás — peor
           que no haber intentado el efecto. Ahí el fondo pasa a opaco. */}
-      <div className="vidrio-isla flex items-center rounded-full border border-background/30 bg-inverse-surface/50 p-1.5 shadow-ambient backdrop-blur-3xl">
+      <div className="vidrio-isla flex items-center rounded-full border border-background/30 bg-inverse-surface/50 p-1.5 shadow-[inset_0_1px_0_0_rgb(255_248_245_/_0.3),0_8px_24px_-8px_rgb(29_27_26_/_0.55)] backdrop-blur-xl backdrop-saturate-150">
         <button
           type="button"
           aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
