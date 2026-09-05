@@ -808,3 +808,49 @@ describe("Coleccion - vitrina de campaña", () => {
     expect(await screen.findByText("Sin resultados")).toBeInTheDocument();
   });
 });
+
+/**
+ * `/coleccion?conDescuento=1` — a donde llevan el "Ver todas" del riel de
+ * ofertas y (más adelante) el CTA del slide comercial. Mismo camino que
+ * `campania`: se lee de `searchParams`, nunca de `filtrosUrl`, porque no es un
+ * filtro del panel y no se blanquea con el resto de los heredados.
+ */
+describe("Coleccion - solo ofertas", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    llamadasSetSearchParams.length = 0;
+    categoriasApi.getCategorias.mockResolvedValue(CATEGORIAS);
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+  });
+
+  it("con ?conDescuento=1 pide solo los productos rebajados", async () => {
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+
+    renderPagina("/coleccion?conDescuento=1");
+
+    await waitFor(() =>
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ conDescuento: true }),
+      ),
+    );
+  });
+
+  it("sin el param NO lo manda", async () => {
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+
+    renderPagina("/coleccion");
+
+    await waitFor(() => expect(productsApi.getProducts).toHaveBeenCalled());
+    expect(productsApi.getProducts).not.toHaveBeenCalledWith(
+      expect.objectContaining({ conDescuento: true }),
+    );
+  });
+
+  it("muestra un rótulo que dice qué se está viendo", async () => {
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+
+    renderPagina("/coleccion?conDescuento=1");
+
+    expect(await screen.findByText(/Ofertas/i)).toBeInTheDocument();
+  });
+});

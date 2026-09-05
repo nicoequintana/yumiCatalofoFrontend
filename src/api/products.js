@@ -181,6 +181,9 @@ export const MAX_IDS_POR_CONSULTA = 100;
  * `destacado: true` trae solo los productos destacados (el bento), y
  * `orden: "vistas"` ordena por más visto (la pantalla de métricas).
  *
+ * `conDescuento: true` trae solo los productos con una promoción vigente — es
+ * lo que alimenta el riel de ofertas de la home y su grilla en `/coleccion`.
+ *
  * `ids` (array de números) restringe la respuesta a esos productos concretos
  * y saltea la paginación: se compone con el resto de los filtros y con las
  * guardas públicas de visibilidad/stock del backend, así que "no vino en la
@@ -195,6 +198,7 @@ export async function getProducts({
   maxPrecio,
   ids,
   destacado,
+  conDescuento,
   orden,
   page,
   pageSize,
@@ -207,6 +211,9 @@ export async function getProducts({
   if (admin) params.set("admin", "1");
   if (Array.isArray(ids)) params.set("ids", ids.join(","));
   if (destacado) params.set("destacado", "1");
+  // "Lo que está rebajado ahora". Flag de presencia, como `destacado`: el
+  // backend solo mira que el parámetro esté.
+  if (conDescuento) params.set("conDescuento", "1");
   if (orden !== undefined && orden !== null && orden !== "") params.set("orden", orden);
   if (page !== undefined && page !== null && page !== "") params.set("page", String(page));
   if (pageSize !== undefined && pageSize !== null && pageSize !== "") {

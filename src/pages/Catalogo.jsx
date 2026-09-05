@@ -3,6 +3,7 @@ import BannerCampania from "../components/BannerCampania.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import CarruselDestacados from "../components/CarruselDestacados.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
+import RielOfertas from "../components/RielOfertas.jsx";
 import useContextoComercial from "../hooks/useContextoComercial.js";
 import useDestacados from "../hooks/useDestacados.js";
 import CategoriasDestacadas from "../components/CategoriasDestacadas.jsx";
@@ -255,6 +256,14 @@ function Catalogo() {
           recién ahí la vidriera. Sin campaña con banner prendido, esto no
           renderiza nada. */}
       <BannerCampania banner={banner} />
+
+      {/* El diseño final pone el riel "entre el carrusel [comercial, todavía
+          por construir] y CarruselDestacados", pero ese primer carrusel no
+          existe todavía en esta página (task bloqueada por una migración
+          pendiente). Se lo monta acá, inmediatamente antes de
+          `CarruselDestacados` (que sí existe): el orden definitivo de la home
+          lo fija esa otra task, no esta. */}
+      <RielOfertas />
 
       <CarruselDestacados productos={destacados} />
 

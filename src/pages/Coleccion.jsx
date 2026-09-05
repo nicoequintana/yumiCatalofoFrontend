@@ -48,8 +48,8 @@ const MAX_RESTAURACION = 100;
  * PURA a nivel de módulo (no un closure del componente) para poder usarse
  * dentro del efecto de fetch sin entrar en sus dependencias.
  */
-function claveDeFetch(categoria, search, minPrecio, maxPrecio, campania, tandas) {
-  return `${categoria}|${search}|${minPrecio}|${maxPrecio}|${campania}|${tandas}`;
+function claveDeFetch(categoria, search, minPrecio, maxPrecio, campania, soloOfertas, tandas) {
+  return `${categoria}|${search}|${minPrecio}|${maxPrecio}|${campania}|${soloOfertas}|${tandas}`;
 }
 
 /**
@@ -143,6 +143,13 @@ function Coleccion() {
   // acaba de tocar. Blanquearla vaciaría la vitrina antes de mostrarla.
   const campaniaId = searchParams.get("campania") ?? "";
 
+  // `/coleccion?conDescuento=1` — a donde llevan el "Ver todas" del riel de
+  // ofertas de la home. Mismo camino que `campania`: se lee de `searchParams`
+  // y NO de `filtrosUrl`, porque no es un filtro que el visitante haya armado
+  // desde el panel (no tiene chip para quitar ni entra en "Limpiar"), sino la
+  // IDENTIDAD del link al que acaba de entrar.
+  const soloOfertas = searchParams.get("conDescuento") === "1";
+
   const [searchInput, setSearchInput] = useState("");
 
   // Último valor que el input de búsqueda emitió o adoptó — mismo patrón que
@@ -226,7 +233,11 @@ function Coleccion() {
   // vigente: el visitante llegó por su cartel y esa es la pantalla que pidió.
   // Sale del sobre de la respuesta, nunca de la URL — el frontend no tiene
   // diccionario de campañas y armarlo sería un espejo de un dato del backend.
-  const nombreVitrina = campaniaSobre?.nombre ?? categoriaDeRuta?.nombre ?? null;
+  //
+  // "Ofertas" es la excepción que SÍ sale de la URL y no del sobre: a
+  // diferencia de una campaña, `conDescuento` no tiene una entidad con nombre
+  // detrás — es un filtro de precio, no una vitrina identificada por id.
+  const nombreVitrina = campaniaSobre?.nombre ?? (soloOfertas ? "Ofertas" : null) ?? categoriaDeRuta?.nombre ?? null;
 
   const titulo = nombreVitrina ? `${nombreVitrina} — YIMA` : "Todos los productos — YIMA";
   const encabezado = nombreVitrina ?? "Todos los productos";
@@ -387,6 +398,10 @@ function Coleccion() {
         // no da ningún error: simplemente la segunda tanda trae el catálogo
         // entero y contamina la vitrina con productos que no son de la promo.
         campania: campaniaId,
+        // Mismo motivo que `campania`: sin esto la segunda tanda de "Ver
+        // todas" trae el catálogo entero en vez de seguir mostrando solo lo
+        // rebajado.
+        ...(soloOfertas ? { conDescuento: true } : {}),
         page: siguiente,
         pageSize: PRODUCTOS_POR_TANDA,
       });
@@ -404,6 +419,7 @@ function Coleccion() {
         minPrecio,
         maxPrecio,
         campaniaId,
+        soloOfertas,
         siguiente,
       );
       escribirTandas(siguiente);
@@ -469,6 +485,7 @@ function Coleccion() {
       minPrecio,
       maxPrecio,
       campaniaId,
+      soloOfertas,
       paginas,
     );
     if (clave === claveCargada.current) return;
@@ -482,6 +499,7 @@ function Coleccion() {
       minPrecio,
       maxPrecio,
       campania: campaniaId,
+      ...(soloOfertas ? { conDescuento: true } : {}),
       page: 1,
       // La restauración trae TODO lo acumulado en un solo request (volver de
       // una ficha con `?paginas=3` son 36 productos), topeado en el máximo
@@ -519,7 +537,16 @@ function Coleccion() {
     return () => {
       activo = false;
     };
-  }, [categoriaActiva, searchUrl, minPrecio, maxPrecio, campaniaId, paginas, categoriasListas]);
+  }, [
+    categoriaActiva,
+    searchUrl,
+    minPrecio,
+    maxPrecio,
+    campaniaId,
+    soloOfertas,
+    paginas,
+    categoriasListas,
+  ]);
 
   // Un link viejo o un catálogo que se achicó pueden dejar la URL pidiendo
   // más tandas de las que existen. Se corrige a las reales (con `replace`,
@@ -543,8 +570,11 @@ function Coleccion() {
   // `campaniaId` cuenta como filtro por el mismo motivo: una vitrina de campaña
   // sin stock diría "Todavía no hay productos" —o sea, que el catálogo ENTERO
   // está vacío— cuando lo que pasó es que esa promoción se quedó sin nada.
+  // `soloOfertas` es la misma trampa con otro nombre: sin promociones vigentes
+  // hoy, "Ver todas" mostraría "Todavía no hay productos" en vez de "Sin
+  // resultados".
   const hayFiltrosActivos = Boolean(
-    categoriaActiva || searchUrl || minPrecio || maxPrecio || campaniaId,
+    categoriaActiva || searchUrl || minPrecio || maxPrecio || campaniaId || soloOfertas,
   );
 
   // El link caducó: el id no corresponde a ninguna campaña, o la que había ya
