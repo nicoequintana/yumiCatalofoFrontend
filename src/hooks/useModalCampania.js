@@ -3,40 +3,71 @@ import { useEffect, useState } from "react";
 /**
  * Decide si el cartel de campaña se muestra.
  *
- * LA REGLA: se muestra en CADA carga de página. Antes había un tope de "una vez
- * por día por visitante" apoyado en `localStorage` y en la `claveDia` del
- * backend; se retiró porque el cartel es la vidriera de la campaña y silenciarlo
- * por una visita previa hacía que el visitante recurrente —justamente el que más
- * vuelve— no lo viera nunca.
+ * LA REGLA: **una vez por día por visitante**.
  *
- * ⚠️ "CADA CARGA" ES CADA CARGA COMPLETA DE PÁGINA, NO CADA NAVEGACIÓN DE LA
- * SPA. Dos piezas lo determinan y ninguna vive acá: `useContextoComercial`
- * cachea el contexto a nivel de módulo (un fetch por carga de página, compartido
- * entre todos los consumidores) y `CampaniaModalMontado` se monta una sola vez,
- * en `Layout`. O sea que después de cerrarlo, el cartel no reaparece navegando
- * dentro del sitio: vuelve recién con un F5.
+ * ⚠️ Esto REVIERTE la regla de "cada carga" del 04/09, y el motivo por el que
+ * se puede: cuando ese tope se retiró, el cartel era la ÚNICA puerta a la
+ * campaña, así que silenciarlo dejaba al visitante recurrente sin enterarse de
+ * nada. Con el carrusel siempre presente en la home eso dejó de ser cierto: la
+ * campaña sigue estando en cada visita, y lo único que el visitante deja de
+ * recibir es el portazo en cada recarga.
  *
- * NO PERSISTE NADA. `cerrar` solo apaga el estado local. Volver a escribir en
- * `localStorage` desde acá no daría ningún error ni test rojo de
- * comportamiento visible: simplemente el cartel dejaría de aparecer en la
- * recarga siguiente, en silencio. Por eso el guard de "no toca storage" vive en
- * `useModalCampania.test.jsx`.
+ * LA CLAVE ES CAMPAÑA + DÍA, no solo el día. Sin eso se perdería la conducta de
+ * que el cartel REABRE al cambiar de campaña: si el visitante cerró uno y
+ * después empieza otra, es otro mensaje y no una repetición.
  *
- * @param {{campaniaId: number, titulo: string}|null} modal - del contexto comercial
+ * EL DÍA LO MANDA EL BACKEND (`claveDia`, día argentino). Calcularlo con el
+ * reloj del navegador haría que alguien en otra zona horaria lo viera dos
+ * veces, o ninguna.
+ *
+ * DEGRADA A MOSTRARLO. Sin `claveDia` —porque `activas` falló— o con el storage
+ * bloqueado, el cartel se muestra y no se persiste nada: de más antes que de
+ * menos.
+ *
+ * @param {{campaniaId: number, titulo: string}|null} modal
+ * @param {string|null} claveDia - "AAAA-MM-DD" argentino, del backend
  * @returns {{visible: boolean, cerrar: () => void}}
  */
-export default function useModalCampania(modal) {
-  const [visible, setVisible] = useState(Boolean(modal));
 
-  // El efecto REABRE al cambiar de campaña: si el visitante cerró un cartel y el
-  // contexto trae otro distinto, es otro mensaje y no una repetición. Depender
-  // de `modal` (la identidad del objeto que emite el contexto) alcanza: el
-  // contexto se resuelve una vez por carga y no re-emite el mismo modal.
+const PREFIJO = "yima:cartel:";
+
+function claveDe(modal, claveDia) {
+  if (!modal || !claveDia) return null;
+  return `${PREFIJO}${modal.campaniaId}:${claveDia}`;
+}
+
+/** Storage puede tirar (incógnito, cookies bloqueadas): nunca rompe la home. */
+function yaLoVio(clave) {
+  if (!clave) return false;
+  try {
+    return localStorage.getItem(clave) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function marcarVisto(clave) {
+  if (!clave) return;
+  try {
+    localStorage.setItem(clave, "1");
+  } catch {
+    // Sin storage el cartel vuelve en la próxima carga. Es el modo de falla
+    // benigno: molesta, no rompe.
+  }
+}
+
+export default function useModalCampania(modal, claveDia) {
+  const [visible, setVisible] = useState(false);
+
+  // REABRE al cambiar de campaña o de día. Depender de los dos es lo que hace
+  // que la clave compuesta signifique algo.
   useEffect(() => {
-    setVisible(Boolean(modal));
-  }, [modal]);
+    const clave = claveDe(modal, claveDia);
+    setVisible(Boolean(modal) && !yaLoVio(clave));
+  }, [modal, claveDia]);
 
   function cerrar() {
+    marcarVisto(claveDe(modal, claveDia));
     setVisible(false);
   }
 

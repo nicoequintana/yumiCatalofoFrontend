@@ -14,9 +14,10 @@ import useModalCampania from "../hooks/useModalCampania.js";
  * Ponerlo en la home dejaría afuera a quien entra directo a una ficha desde una
  * búsqueda, que es por donde llega buena parte del tráfico.
  *
- * Ese montaje único es también lo que acota el "se muestra en cada carga" de
+ * Ese montaje único es también lo que acota el tope de "una vez por día" de
  * `useModalCampania`: como este componente no se desmonta al navegar dentro de
- * la SPA, un cartel cerrado no reaparece hasta la próxima carga completa.
+ * la SPA, cerrar el cartel no lo hace reaparecer navegando el sitio — hace
+ * falta una carga completa nueva Y que cambie el día (o la campaña).
  *
  * NO se muestra en el panel: `/catalogo/admin/*` usa este mismo `Layout` para
  * el login, y a alguien que va a laburar no se le interrumpe con la vidriera.
@@ -24,10 +25,10 @@ import useModalCampania from "../hooks/useModalCampania.js";
  */
 export default function CampaniaModalMontado() {
   const { pathname } = useLocation();
-  const { modal } = useContextoComercial();
+  const { modal, claveDia } = useContextoComercial();
 
   const esAdmin = pathname.startsWith("/catalogo/admin");
-  const { visible, cerrar } = useModalCampania(esAdmin ? null : modal);
+  const { visible, cerrar } = useModalCampania(esAdmin ? null : modal, claveDia);
 
   if (!visible || !modal) return null;
 

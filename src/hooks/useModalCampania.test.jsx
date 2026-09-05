@@ -1,19 +1,17 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import useModalCampania from "./useModalCampania.js";
 
 /**
- * Guard de la regla vigente: el cartel se muestra en CADA carga de página.
+ * Guard de la regla vigente: el cartel se muestra UNA VEZ POR DÍA POR
+ * VISITANTE (clave campaña + día).
  *
- * Antes había una regla de "máximo una vez por día por visitante" apoyada en
- * `localStorage` y en la `claveDia` del backend. Se retiró: la campaña es la
- * vidriera del catálogo y silenciarla por un registro previo hacía que un
- * visitante recurrente nunca la viera.
- *
- * Lo que este archivo protege es la CONSECUENCIA de esa decisión: el hook no
- * puede volver a persistir nada. Un `localStorage.setItem` reintroducido acá no
- * daría ningún error — simplemente el cartel dejaría de aparecer, en silencio.
+ * Hubo una versión anterior de esta regla que se retiró el 04/09: el cartel
+ * era la ÚNICA puerta a la campaña, así que silenciarlo por una visita previa
+ * dejaba al visitante recurrente sin verla nunca. Con el carrusel de la home
+ * siempre presente eso dejó de ser cierto — la campaña sigue estando en cada
+ * visita, y el tope solo evita el portazo en cada recarga.
  */
 
 /** Fake completo de localStorage, con espías. `globalThis.localStorage` es un
@@ -47,8 +45,8 @@ function instalarStorage() {
 
 let storage;
 
-function Sonda({ modal }) {
-  const { visible, cerrar } = useModalCampania(modal);
+function Sonda({ modal, claveDia }) {
+  const { visible, cerrar } = useModalCampania(modal, claveDia);
   return (
     <button type="button" onClick={cerrar} data-testid="estado">
       {visible ? "visible" : "oculto"}
@@ -69,19 +67,19 @@ afterEach(() => {
 
 describe("useModalCampania", () => {
   it("se muestra cuando hay modal", async () => {
-    render(<Sonda modal={MODAL} />);
+    render(<Sonda modal={MODAL} claveDia="2026-09-05" />);
 
     await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("visible"));
   });
 
   it("sin modal no se muestra nada", () => {
-    render(<Sonda modal={null} />);
+    render(<Sonda modal={null} claveDia="2026-09-05" />);
 
     expect(screen.getByTestId("estado")).toHaveTextContent("oculto");
   });
 
   it("cerrarlo lo oculta", async () => {
-    render(<Sonda modal={MODAL} />);
+    render(<Sonda modal={MODAL} claveDia="2026-09-05" />);
     await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("visible"));
 
     screen.getByTestId("estado").click();
@@ -92,30 +90,76 @@ describe("useModalCampania", () => {
   it("tras cerrarlo, un modal DISTINTO vuelve a mostrarse", async () => {
     // Es otro mensaje, no una repetición. Que el visitante haya cerrado el
     // cartel de una campaña no puede silenciar el estreno de otra.
-    const { rerender } = render(<Sonda modal={MODAL} />);
+    const { rerender } = render(<Sonda modal={MODAL} claveDia="2026-09-05" />);
     await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("visible"));
 
     screen.getByTestId("estado").click();
     await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("oculto"));
 
-    rerender(<Sonda modal={OTRO_MODAL} />);
+    rerender(<Sonda modal={OTRO_MODAL} claveDia="2026-09-05" />);
 
     await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("visible"));
   });
 
-  it("NO toca localStorage: el cartel se muestra en cada carga", async () => {
-    // El guard de la decisión. Volver a persistir "ya lo vio" no rompería
-    // ningún test de comportamiento visible —el hook seguiría devolviendo
-    // `visible` en el primer render de la sesión— pero silenciaría el cartel
-    // en la recarga siguiente, sin ningún error.
-    render(<Sonda modal={MODAL} />);
+  it("una vez por día por visitante: en la misma jornada no vuelve", async () => {
+    // REVIERTE la regla de "cada carga" (04/09). El argumento que la sostenía
+    // era que el cartel era la ÚNICA puerta a la campaña; con el carrusel
+    // siempre presente, eso dejó de ser cierto.
+    const { unmount } = render(<Sonda modal={MODAL} claveDia="2026-09-05" />);
     await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("visible"));
 
     screen.getByTestId("estado").click();
     await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("oculto"));
+    unmount();
 
-    expect(storage.fake.getItem).not.toHaveBeenCalled();
+    render(<Sonda modal={MODAL} claveDia="2026-09-05" />);
+
+    expect(screen.getByTestId("estado")).toHaveTextContent("oculto");
+  });
+
+  it("al día siguiente vuelve a mostrarse", async () => {
+    render(<Sonda modal={MODAL} claveDia="2026-09-05" />);
+    await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("visible"));
+    screen.getByTestId("estado").click();
+    cleanup();
+
+    render(<Sonda modal={MODAL} claveDia="2026-09-06" />);
+
+    await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("visible"));
+  });
+
+  it("otra campaña el MISMO día vuelve a mostrarse", async () => {
+    // La clave es campaña + día, no solo el día. Es otro mensaje, no una
+    // repetición: esta conducta ya existía y no se pierde con el tope.
+    render(<Sonda modal={MODAL} claveDia="2026-09-05" />);
+    await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("visible"));
+    screen.getByTestId("estado").click();
+    cleanup();
+
+    render(<Sonda modal={OTRO_MODAL} claveDia="2026-09-05" />);
+
+    await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("visible"));
+  });
+
+  it("sin claveDia NO persiste nada y se muestra igual", async () => {
+    // El día lo manda el backend. Si `activas` falló, `claveDia` es null:
+    // preferimos mostrarlo de más antes que escribir una clave inventada.
+    render(<Sonda modal={MODAL} claveDia={null} />);
+
+    await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("visible"));
+    screen.getByTestId("estado").click();
+
     expect(storage.fake.setItem).not.toHaveBeenCalled();
-    expect(storage.fake.removeItem).not.toHaveBeenCalled();
+  });
+
+  it("si localStorage falla, el cartel se muestra igual", async () => {
+    // Modo incógnito o storage bloqueado: degradar a "mostrarlo" es correcto.
+    storage.fake.getItem.mockImplementation(() => {
+      throw new Error("storage disabled");
+    });
+
+    render(<Sonda modal={MODAL} claveDia="2026-09-05" />);
+
+    await waitFor(() => expect(screen.getByTestId("estado")).toHaveTextContent("visible"));
   });
 });
