@@ -30,15 +30,16 @@ export default function SeccionBanner({
   editar,
   opciones,
   campania,
-  diasFaltantes,
   guardando,
 }) {
-  // Lo que va a ver el visitante, armado con lo que hay tipeado AHORA.
+  // Lo que va a ver el visitante, armado con lo que hay tipeado AHORA. Sin
+  // `diasFaltantes`: el banner no tiene contador (ese es del cartel, que tiene
+  // `modalFechaObjetivo` propio), y pasarle uno acá sería una previa mostrando
+  // algo que el cliente nunca ve.
   const bannerPreview = {
     doodleUrl: campania?.doodleUrl ?? null,
     titulo: valores.bannerTitulo || PLACEHOLDER_TITULO,
     texto: valores.bannerTexto,
-    diasFaltantes,
     // Con `interactivo` apagado el valor nunca se navega. Acá alcanza con decir
     // SI HAY botón; la ruta real la resuelve el backend al leer.
     ctaDestino: valores.modalCtaTipo ? "#" : null,
@@ -87,7 +88,7 @@ export default function SeccionBanner({
             <label htmlFor="campania-banner-texto" className={claseEtiqueta}>
               Texto del banner{" "}
               <span className="normal-case tracking-normal">
-                · <code className="text-secondary">{"{dias}"}</code> pone el contador · máx. 200
+                · el contador de días es del cartel · máx. 200
               </span>
             </label>
             <textarea

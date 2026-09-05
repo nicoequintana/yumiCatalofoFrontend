@@ -218,7 +218,6 @@ export default function AdminCampaniaEditor() {
                 editar={editar}
                 opciones={opciones}
                 campania={campania}
-                diasFaltantes={diasFaltantes}
                 guardando={guardando}
               />
 
