@@ -1,14 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-// `useCarrito` no expone un `vaciar` estático: es un método del objeto que
-// devuelve el hook. Mockeamos el módulo entero para controlar `cantidadTotal`
-// por caso, sin tocar `localStorage` (en este repo `globalThis.localStorage`
-// es un objeto vacío sin métodos). Mismo patrón que `Footer.test.jsx`.
-const carritoMock = vi.fn();
-vi.mock("../hooks/useCarrito.js", () => ({ default: () => carritoMock() }));
+import { describe, expect, it, vi } from "vitest";
 
 const { default: NavFlotante } = await import("./NavFlotante.jsx");
 
@@ -20,48 +13,26 @@ function montar(ruta = "/", props = {}) {
   );
 }
 
-beforeEach(() => {
-  carritoMock.mockReturnValue({ cantidadTotal: 0 });
-});
-
+// Reparto del 05/09/2026: Inicio, Buscar y Carrito se retiran de la isla.
+// Buscar y Carrito vuelven a la barra (`Navbar.test.jsx`, visible ahora
+// también en móvil); Carrito además se suma a `HojaMenu` (`HojaMenu.test.jsx`,
+// que es donde se migró la cobertura del globo). El `aria-current` de Inicio
+// NO se migra a ningún lado: era la marca de una ranura que se retiró entera,
+// no una feature que sobreviva bajo otra forma — el logo (link a "/") ya
+// cubre volver al inicio.
 describe("NavFlotante", () => {
-  it("tiene cuatro ranuras, en el orden acordado", () => {
+  it("tiene una sola ranura: la hamburguesa", () => {
     montar();
 
-    const nombres = screen
-      .getAllByRole("button")
-      .concat(screen.getAllByRole("link"))
-      .map((el) => el.getAttribute("aria-label"));
-
-    expect(nombres).toEqual(
-      expect.arrayContaining(["Inicio", "Buscar productos", "Ver carrito", "Abrir menú"]),
-    );
-  });
-
-  it("marca la ranura activa con aria-current, no solo con color", () => {
-    montar("/");
-
-    expect(screen.getByLabelText("Inicio")).toHaveAttribute("aria-current", "page");
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
+    expect(screen.getByRole("button")).toHaveAttribute("aria-controls", "hoja-menu");
   });
 
   it("no se muestra en el panel: /catalogo/admin/login usa el mismo Layout", () => {
     const { container } = montar("/catalogo/admin/login");
 
     expect(container).toBeEmptyDOMElement();
-  });
-
-  it("el globo del carrito no aparece con el carrito vacío", () => {
-    montar();
-
-    expect(screen.getByLabelText("Ver carrito")).not.toHaveTextContent(/\d/);
-  });
-
-  it("el globo del carrito aparece con el número de unidades", () => {
-    carritoMock.mockReturnValue({ cantidadTotal: 3 });
-
-    montar();
-
-    expect(screen.getByLabelText("Ver carrito")).toHaveTextContent("3");
   });
 
   it("el botón de menú avisa al padre y refleja el estado abierto", async () => {
@@ -80,8 +51,6 @@ describe("NavFlotante", () => {
     expect(screen.getByLabelText("Cerrar menú")).toHaveAttribute("aria-expanded", "true");
   });
 
-  // Migrado de `Navbar.test.jsx` ("el panel no está en el DOM hasta que se
-  // abre"): el botón vivía ahí antes de mudarse a la isla.
   it("en su estado inicial el botón no está expandido", () => {
     montar("/", { menuAbierto: false });
 
@@ -94,6 +63,13 @@ describe("NavFlotante", () => {
     expect(container.firstChild.className).toMatch(/\bmd:hidden\b/);
   });
 
+  it("flota a la derecha, no centrada: es donde cae el pulgar", () => {
+    const { container } = montar();
+
+    expect(container.firstChild).toHaveClass("justify-end");
+    expect(container.firstChild).not.toHaveClass("justify-center");
+  });
+
   // `HojaMenu` es `fixed … bottom-0` con el mismo z-index base que la isla, y
   // se monta DESPUÉS en el DOM: sin subir la isla, la hoja pinta encima y su
   // botón de cerrar (acá arriba) queda invisible y no clickeable.
@@ -104,5 +80,20 @@ describe("NavFlotante", () => {
 
     const { container: abierto } = montar("/", { menuAbierto: true });
     expect(abierto.firstChild.className).toMatch(/\bz-50\b/);
+  });
+
+  // El alfa tiene un PISO de contraste (ver `Navbar.jsx`, mismo cálculo): no
+  // puede bajar de `/70`. El desenfoque tiene que notarse más que el del
+  // header (acá el fondo es oscuro y el efecto vidrio es el único lenguaje
+  // visual de la isla).
+  it("el vidrio no baja del piso de contraste y lleva blur + borde", () => {
+    const { container } = montar();
+    const pastilla = container.querySelector(".vidrio-isla");
+
+    expect(pastilla).toHaveClass("bg-inverse-surface/70");
+    expect(pastilla).not.toHaveClass("bg-inverse-surface/90");
+    expect(pastilla).not.toHaveClass("bg-inverse-surface/50");
+    expect(pastilla.className).toMatch(/backdrop-blur/);
+    expect(pastilla.className).toMatch(/\bborder\b/);
   });
 });

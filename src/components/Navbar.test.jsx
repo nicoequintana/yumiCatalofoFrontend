@@ -121,6 +121,28 @@ describe("Navbar - se esconde en la ficha de producto (solo en móvil)", () => {
   });
 });
 
+// El reparto del 05/09/2026 devolvió lupa, favoritos y carrito a la barra
+// también por debajo de `md`: la isla (`NavFlotante`) se queda con un solo
+// control (la hamburguesa) y estas tres acciones necesitan un camino que no
+// dependa de abrir la hoja. El contenedor pasó de `hidden md:flex` a `flex`.
+describe("Navbar - acciones también en móvil", () => {
+  it("el contenedor de acciones no lleva `hidden`: se ve por debajo de md", () => {
+    renderNavbar();
+
+    const lupa = screen.getByRole("link", { name: "Buscar productos" });
+    expect(lupa.parentElement).not.toHaveClass("hidden");
+  });
+
+  it("lupa, favoritos y carrito están las tres en el DOM sin ancestro oculto", () => {
+    renderNavbar();
+
+    for (const nombre of ["Buscar productos", "Ver favoritos", "Ver carrito"]) {
+      const accion = screen.getByRole("link", { name: nombre });
+      expect(accion.parentElement).not.toHaveClass("hidden");
+    }
+  });
+});
+
 describe("Navbar - logo", () => {
   it("el logo YIMA es un link a la home", () => {
     renderNavbar();

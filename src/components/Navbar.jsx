@@ -25,11 +25,14 @@ const DESTINOS = [{ to: "/", texto: "Inicio", esActivo: (pathname) => pathname =
 
 /**
  * Header público: wordmark a la izquierda, navegación al centro y acciones a la
- * derecha, en escritorio (`md+`). **Por debajo de `md` la barra queda solo con
- * el logo, centrado**: la navegación, la lupa, favoritos, el carrito y el menú
- * viven en `NavFlotante` (la isla) y en `HojaMenu` (lo que abre), montados
- * aparte en `Layout.jsx` — este componente ya no tiene panel ni botón de menú
- * propios.
+ * derecha, en escritorio (`md+`). **Por debajo de `md` la barra queda con el
+ * logo y las tres acciones** (lupa, favoritos, carrito): son el único camino a
+ * esas tres pantallas en la ficha de producto, donde esta barra entera se
+ * esconde (ver `esFichaProducto`, más abajo) y la única navegación que queda es
+ * la hamburguesa. La navegación por destino ("Inicio", el dropdown de
+ * "Productos") y el propio botón de menú siguen viviendo solo en `NavFlotante`
+ * (la isla) y en `HojaMenu` (lo que abre), montados aparte en `Layout.jsx` —
+ * este componente ya no tiene panel ni botón de menú propios.
  *
  * **No hay ícono de cuenta**, aunque el mockup lo mostraba: este proyecto no
  * tiene login público — el checkout es de invitado por DNI. Un ícono de persona
@@ -170,7 +173,17 @@ function Navbar() {
           lleva la opacidad y el desenfoque. Un fondo sólido acá tapa ese
           vidrio en toda la franja del contenido — el blur se aplicaría igual,
           detrás de una capa opaca, y no se vería nada. */}
-      <div className="relative z-50 mx-auto flex h-navbar-height w-full max-w-container-max items-center justify-center gap-4 px-margin-mobile md:grid md:h-navbar-height-md md:grid-cols-[1fr_auto_1fr] md:px-margin-desktop">
+      <div
+        className={`relative z-50 mx-auto flex h-navbar-height w-full max-w-container-max items-center ${
+          // En admin solo se renderiza el logo (ver el `esAdmin ? null : …` de
+          // abajo), y ahí sigue centrado como siempre. En público hay logo Y
+          // acciones: `justify-between` los manda a los dos extremos. En
+          // `md+` esto no cambia nada — el `md:grid` de abajo pisa el
+          // `display` y las tres columnas explícitas ignoran `justify-content`
+          // porque sus `1fr` ya llenan el ancho entero.
+          esAdmin ? "justify-center" : "justify-between"
+        } gap-4 px-margin-mobile md:grid md:h-navbar-height-md md:grid-cols-[1fr_auto_1fr] md:px-margin-desktop`}
+      >
         {/* El Doodle de la campaña activa reemplaza al wordmark. Sin campaña
             —el caso normal— `doodle` es null y `LogoYima` pinta la marca de
             siempre. En el panel manda el Doodle del panel, que puede ser el de
@@ -225,9 +238,15 @@ function Navbar() {
               </ul>
             </nav>
 
-            {/* `hidden md:flex`: por debajo de `md` la lupa, favoritos y el
-                carrito viven en la isla flotante (`NavFlotante`), no acá. */}
-            <div className="hidden items-center gap-1 md:flex md:justify-end md:gap-2">
+            {/* SIN `hidden`: desde el reparto del 05/09/2026 la lupa, favoritos
+                y el carrito se ven también por debajo de `md` — la isla
+                flotante (`NavFlotante`) se quedó con un solo control, la
+                hamburguesa, y estas tres acciones necesitaban un camino que no
+                dependiera de abrirla. `md:justify-end` y `md:gap-2` son los
+                únicos ajustes propios de escritorio: en mobile alcanza con el
+                `gap-1` y la posición la resuelve el `justify-between` del
+                contenedor padre. */}
+            <div className="flex items-center gap-1 md:justify-end md:gap-2">
               <Link to="/coleccion" aria-label="Buscar productos" className={claseAccion}>
                 <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
                   search

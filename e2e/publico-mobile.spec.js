@@ -16,7 +16,7 @@ test.beforeEach(async ({ page }) => {
 test("la isla flotante está al alcance del pulgar y abre el menú", async ({ page }) => {
   await page.goto("/");
 
-  const isla = page.getByRole("navigation", { name: "Navegación rápida" });
+  const isla = page.getByTestId("isla-flotante");
   await expect(isla).toBeVisible();
 
   // Está en la mitad de abajo de la pantalla: es la razón de ser de la pieza.
@@ -53,9 +53,7 @@ test("la isla no tapa el final del catálogo", async ({ page }) => {
   await expect(footer).toBeVisible();
 
   const cajaFooter = await footer.boundingBox();
-  const cajaIsla = await page
-    .getByRole("navigation", { name: "Navegación rápida" })
-    .boundingBox();
+  const cajaIsla = await page.getByTestId("isla-flotante").boundingBox();
   // El footer tiene que terminar ANTES de donde empieza la isla (o justo
   // donde empieza): la aserción vieja pedía lo contrario del comentario de
   // arriba y afirmaba el solapamiento en vez de descartarlo.

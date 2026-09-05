@@ -1,25 +1,28 @@
-import { Link, useLocation } from "react-router-dom";
-import useCarrito from "../hooks/useCarrito.js";
+import { useLocation } from "react-router-dom";
 
 /**
- * La navegación del catálogo en celular: una isla flotante al alcance del
- * pulgar.
+ * La isla flotante del catálogo en celular: desde el reparto del 05/09/2026 es
+ * un único botón — la hamburguesa que abre `HojaMenu`.
  *
  * POR QUÉ ABAJO. El header es sticky y alcanzarlo pide estirar el pulgar hasta
  * el borde superior en cada movimiento. La isla vive donde la mano ya está.
+ *
+ * POR QUÉ UN SOLO CONTROL. Inicio, Buscar y Carrito volvieron al `Navbar`
+ * (visible ahora también por debajo de `md`) y Carrito además se sumó a
+ * `HojaMenu`: cuatro ranuras hacían de esto una segunda barra completa, y con
+ * las acciones ya en el header arriba, la isla solo necesitaba seguir abriendo
+ * el menú.
+ *
+ * A LA DERECHA, NO CENTRADA: es donde cae el pulgar en una mano que sostiene el
+ * teléfono, y con un solo control ya no hace falta el ancho de una fila para
+ * distribuir varias ranuras.
  *
  * SOLO POR DEBAJO DE `md`. En escritorio la navegación está en el `Navbar`, que
  * ahí tiene el ancho para mostrarla entera.
  *
  * **El guard `esAdmin` no es cosmético**: `/catalogo/admin/login` se renderiza
- * dentro del mismo `Layout` público, y la lupa de acá lleva el `aria-label`
- * "Buscar productos" — el mismo que un campo del editor de campañas. Montarla en
- * una vista de admin volvería ambiguo ese selector y rompería un E2E por una
- * razón que no tiene nada que ver con lo que prueba.
- *
- * El activo se marca con FORMA (una cápsula detrás del ícono) y no con color: la
- * isla es monocroma y el único color que lleva es el globo del carrito. Sobre un
- * fondo oscuro, el color como única señal es lo primero que se pierde.
+ * dentro del mismo `Layout` público, y sin él esta isla —y su hoja— se
+ * montarían encima de esa pantalla aunque nadie las haya abierto desde ahí.
  */
 
 /** El fondo de la ranura activa. Cápsula, no color. */
@@ -29,16 +32,17 @@ const CLASE_ACTIVA = "bg-background/20";
 
 export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
   const { pathname } = useLocation();
-  const { cantidadTotal } = useCarrito();
 
   if (pathname.startsWith("/catalogo/admin")) return null;
 
-  const enInicio = pathname === "/";
-  const enColeccion = pathname.startsWith("/coleccion");
-
   return (
-    <nav
-      aria-label="Navegación rápida"
+    <div
+      // `data-testid`, no un rol: con un solo botón adentro este `<div>` ya no
+      // es una región de navegación con nombre propio (ver el JSDoc de
+      // arriba) — `publico-mobile.spec.js` necesita igual un locator estable
+      // para medir su posición, y este es el mismo patrón que ya usa
+      // `CintaAmbiente.jsx`.
+      data-testid="isla-flotante"
       // Las tres capas fixed del pie, de abajo hacia arriba:
       //   1. La isla, normalmente `z-40` — mismo nivel que `HojaMenu`.
       //   2. La isla EN `z-50` mientras la hoja está abierta: `HojaMenu` es
@@ -49,50 +53,33 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
       //   3. El cartel de campaña (`ModalCampania` vía `VeloModal`), `z-[60]`
       //      SIEMPRE: es el único elemento que interrumpe sin que lo pidan, y
       //      tiene que poder taparlo todo, isla abierta o no.
-      className={`fixed inset-x-0 bottom-0 flex justify-center px-margin-mobile pb-[calc(1rem+env(safe-area-inset-bottom))] md:hidden ${
+      className={`fixed inset-x-0 bottom-0 flex justify-end px-margin-mobile pb-[calc(1rem+env(safe-area-inset-bottom))] md:hidden ${
         menuAbierto ? "z-50" : "z-40"
       }`}
     >
-      {/* `bg-inverse-surface/90`: el token vive en CANALES, así que Tailwind
-          puede componerle alfa. Con un hex adentro de la variable esta clase no
-          emitiría NINGUNA regla y la isla quedaría transparente — sin error,
-          sin warning y sin test rojo. */}
-      <div className="flex items-center gap-1 rounded-full bg-inverse-surface/90 p-2 shadow-ambient backdrop-blur-[10px]">
-        <Link
-          to="/"
-          aria-label="Inicio"
-          aria-current={enInicio ? "page" : undefined}
-          className={`${CLASE_RANURA} ${enInicio ? CLASE_ACTIVA : ""}`}
-        >
-          <span aria-hidden="true" className="material-symbols-outlined text-[25px]">
-            home
-          </span>
-        </Link>
+      {/* VIDRIO DE VERDAD, no una píldora casi opaca. El token vive en
+          CANALES (`bg-inverse-surface/70`), así que Tailwind puede componerle
+          alfa — un hex adentro de la variable descartaría la clase entera sin
+          avisar y la isla quedaría transparente.
 
-        <Link
-          to="/coleccion"
-          aria-label="Buscar productos"
-          aria-current={enColeccion ? "page" : undefined}
-          className={`${CLASE_RANURA} ${enColeccion ? CLASE_ACTIVA : ""}`}
-        >
-          <span aria-hidden="true" className="material-symbols-outlined text-[25px]">
-            search
-          </span>
-        </Link>
+          El `/70` NO es una preferencia, es el mismo piso de contraste que ya
+          usa `vidrio-header` en `Navbar.jsx`: los íconos son `text-background`
+          (crema `#fff8f5`) sobre este fondo oscuro, y el blur difumina lo que
+          pasa por detrás pero no lo ACLARA — el peor caso sigue siendo una
+          foto clara pareja. Contra blanco, `/70` compone a `~#4c4a48` y deja
+          el crema en ~7:1; `/60` baja a ~4,8:1; `/50` cae de 4,5:1 y rompe
+          WCAG AA. Bajar de acá exige recalcular, no ajustar a ojo.
 
-        <Link to="/carrito" aria-label="Ver carrito" className={CLASE_RANURA}>
-          <span aria-hidden="true" className="material-symbols-outlined text-[25px]">
-            shopping_bag
-          </span>
-          {/* Solo con algo adentro: un "0" permanente es ruido. Misma regla que
-              ya tenía el carrito del header. */}
-          {cantidadTotal > 0 ? (
-            <span className="font-label-sm text-label-sm absolute right-2 top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-primary px-1 text-on-primary">
-              {cantidadTotal}
-            </span>
-          ) : null}
-        </Link>
+          `border-background/10`: un pixel del mismo crema, casi invisible,
+          que insinúa el canto del vidrio — sin él la píldora se lee como una
+          mancha de color y no como una superficie.
 
+          `.vidrio-isla` (en `index.css`) es el fallback: donde no hay
+          `backdrop-filter` (Firefox con la flag apagada, entornos sin GPU), el
+          alfa se aplicaría igual pero el desenfoque no, y quedaría una
+          píldora semitransparente con el contenido NÍTIDO por detrás — peor
+          que no haber intentado el efecto. Ahí el fondo pasa a opaco. */}
+      <div className="vidrio-isla flex items-center rounded-full border border-background/10 bg-inverse-surface/70 p-2 shadow-ambient backdrop-blur-xl">
         <button
           type="button"
           aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
@@ -106,6 +93,6 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
           </span>
         </button>
       </div>
-    </nav>
+    </div>
   );
 }

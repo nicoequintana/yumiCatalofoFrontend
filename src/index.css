@@ -379,6 +379,21 @@ h6 {
   }
 }
 
+/*
+  Fallback del vidrio de la isla flotante (`NavFlotante.jsx`).
+
+  Mismo criterio que `.vidrio-header`, un fondo oscuro en vez de uno claro: la
+  píldora es `bg-inverse-surface/70` + `backdrop-blur-xl`, y donde no hay
+  `backdrop-filter` el alfa se aplicaría igual pero el desenfoque no — texto
+  crema sobre lo que sea que pase por detrás, sin nada que lo separe. Ahí el
+  fondo vuelve a ser opaco.
+*/
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .vidrio-isla {
+    background-color: rgb(var(--color-inverse-surface));
+  }
+}
+
 /* Tabla apilada del panel admin (`.tabla-apilada`; contrato de atributos en
    components/admin/clasesTabla.js). Va fuera de @layer y con un elemento de
    más en cada selector: tiene que ganarle a utilidades de escritorio de las
