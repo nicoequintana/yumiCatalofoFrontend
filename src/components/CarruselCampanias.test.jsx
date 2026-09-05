@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -115,21 +115,24 @@ describe("CarruselCampanias", () => {
     expect(screen.getAllByRole("tab")[0]).toHaveAttribute("aria-current", "true");
   });
 
-  it("una flecha REINICIA el temporizador", async () => {
+  it("una flecha REINICIA el temporizador", () => {
     // Si adelantás a mano y 200 ms después el salto automático te saca de la
     // pantalla lo que fuiste a buscar, el carrusel te está peleando.
-    // `{ advanceTimers: vi.advanceTimersByTime }` cuelga la interaccion con
-    // esta version de user-event: el click nunca resuelve. El mismo problema
-    // que Coleccion.test.jsx ya esquiva con `shouldAdvanceTime` y un
-    // `userEvent.setup()` sin esa opcion.
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const usuario = userEvent.setup();
+    //
+    // `fireEvent.click`, NO `usuario.click` de user-event: `usuario.click`
+    // sintetiza un hover ANTES del click (dispara `pointerenter` sobre la
+    // `<section>`), lo que frena el carrusel por `frenado = true` y hace que
+    // el test "pase" aunque alguien saque `indice` de las dependencias del
+    // efecto de rotación — el clamp del temporizador nunca se ejercita
+    // porque el `useEffect` ya cortó por el `if (!hayControles || frenado)`.
+    // `fireEvent.click` dispara el evento pelado, sin puntero de por medio.
+    vi.useFakeTimers();
     renderCarrusel([slide(1), slide(2), slide(3)]);
 
     act(() => {
       vi.advanceTimersByTime(4800);
     });
-    await usuario.click(screen.getByRole("button", { name: /siguiente/i }));
+    fireEvent.click(screen.getByRole("button", { name: /siguiente/i }));
     expect(screen.getAllByRole("tab")[1]).toHaveAttribute("aria-current", "true");
 
     // Si el temporizador NO se reinició, a los 200 ms ya estaría en el tercero.
@@ -144,6 +147,50 @@ describe("CarruselCampanias", () => {
 
     expect(screen.getByRole("tab", { name: "Ir al slide 1 de 2" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Ir al slide 2 de 2" })).toBeInTheDocument();
+  });
+
+  it("se frena al entrar el puntero y retoma al salir", () => {
+    // Los cuatro handlers (`onPointerEnter/Leave`, `onFocus/Blur`) no tenían
+    // ningún test: si alguien los borrara, la suite seguía verde y el
+    // carrusel le pisaría al visitante el slide que está mirando o tocando.
+    vi.useFakeTimers();
+    renderCarrusel([slide(1), slide(2)]);
+    const seccion = screen.getByRole("region", { name: "Campañas y ofertas" });
+
+    fireEvent.pointerEnter(seccion);
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    // Frenado: pasaron los 5 s y sigue en el primero.
+    expect(screen.getAllByRole("tab")[0]).toHaveAttribute("aria-current", "true");
+
+    fireEvent.pointerLeave(seccion);
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    // Al salir el puntero, retoma la rotación.
+    expect(screen.getAllByRole("tab")[1]).toHaveAttribute("aria-current", "true");
+  });
+
+  it("si la lista se acorta, un índice que quedó afuera cae al primero", () => {
+    // El invariante del plan: la campaña que estaba tercera puede terminar
+    // entre dos cargas de la home. Sin el clamp, el carrusel se queda
+    // apuntando a un slide que ya no existe y no pinta nada.
+    const { rerender } = renderCarrusel([slide(1), slide(2), slide(3)]);
+
+    fireEvent.click(screen.getByRole("button", { name: /siguiente/i }));
+    fireEvent.click(screen.getByRole("button", { name: /siguiente/i }));
+    expect(screen.getAllByRole("tab")[2]).toHaveAttribute("aria-current", "true");
+
+    // La campaña que ocupaba el tercer lugar terminó: la próxima carga llega
+    // con dos slides nomás.
+    rerender(
+      <MemoryRouter>
+        <CarruselCampanias slides={[slide(1), slide(2)]} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getAllByRole("tab")[0]).toHaveAttribute("aria-current", "true");
   });
 
   it("el slide oculto queda inert; el activo no", () => {
