@@ -8,28 +8,14 @@ import { Link } from "react-router-dom";
  * la vitrina de la campaña: quien lo cerraba —o sea, casi todo el mundo— perdía
  * el destino y no había forma de volver desde ninguna pantalla.
  *
- * NO CALCULA NADA. El destino llega resuelto a una ruta, el texto del botón con
- * su default aplicado y los días ya contados contra el día argentino. Acá solo
- * se sustituye `{dias}` en el texto, que es presentación.
+ * NO CALCULA NADA. El destino llega resuelto a una ruta y el texto del botón
+ * con su default aplicado. El banner NO tiene contador de días —ese es del
+ * cartel, que conserva `modalFechaObjetivo`—, así que el texto se muestra tal
+ * cual, sin buscar ningún marcador.
  *
  * `interactivo={false}` dibuja el CTA como `<span>`: lo usa `PreviewBanner` en
  * el editor del panel, donde el botón se tiene que VER pero no navegar.
  */
-
-/** El marcador que el admin escribe en el texto para que entre el contador. */
-const MARCADOR_DIAS = /\{dias\}/g;
-
-function conDias(texto, diasFaltantes) {
-  if (!texto) return null;
-  // Sin contador, el marcador se saca en vez de mostrarse crudo: "{dias}" en la
-  // home es basura visible para el cliente. Sacarlo dejaba el espacio de cada
-  // lado ("Faltan  días."): se colapsan los espacios repetidos y se recortan
-  // las puntas.
-  return texto
-    .replace(MARCADOR_DIAS, diasFaltantes === null ? "" : String(diasFaltantes))
-    .replace(/ {2,}/g, " ")
-    .trim();
-}
 
 export default function BannerCampania({ banner, interactivo = true }) {
   // Una foto que ya no está en Cloudinary solo se descubre en runtime, igual
@@ -38,7 +24,6 @@ export default function BannerCampania({ banner, interactivo = true }) {
 
   if (!banner) return null;
 
-  const texto = conDias(banner.texto, banner.diasFaltantes);
   const hayArte = Boolean(banner.doodleUrl) && !arteRoto;
   const hayCta = Boolean(banner.ctaDestino) && Boolean(banner.ctaTexto);
 
@@ -74,19 +59,6 @@ export default function BannerCampania({ banner, interactivo = true }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          {/* `modalFechaObjetivo` es independiente de `hasta`: una campaña
-              vigente con el objetivo ya pasado es legal, y el backend puede
-              mandar un `diasFaltantes` negativo. "-3 días" no es un dato que
-              el cliente pueda leer, así que la píldora se apaga con `null` o
-              con cualquier valor negativo — solo `0` en adelante cuenta. */}
-          {banner.diasFaltantes === null || banner.diasFaltantes < 0 ? null : (
-            <p className="font-label-sm text-label-sm mb-2 inline-flex items-center rounded-full bg-primary px-3 py-1 uppercase text-on-primary">
-              {banner.diasFaltantes === 0
-                ? "Último día"
-                : `${banner.diasFaltantes} ${banner.diasFaltantes === 1 ? "día" : "días"}`}
-            </p>
-          )}
-
           <h2
             id="titulo-banner-campania"
             className="font-headline-sm text-headline-sm text-on-surface"
@@ -94,8 +66,8 @@ export default function BannerCampania({ banner, interactivo = true }) {
             {banner.titulo}
           </h2>
 
-          {texto ? (
-            <p className="font-body-md text-body-md mt-1 text-on-surface-variant">{texto}</p>
+          {banner.texto ? (
+            <p className="font-body-md text-body-md mt-1 text-on-surface-variant">{banner.texto}</p>
           ) : null}
         </div>
 

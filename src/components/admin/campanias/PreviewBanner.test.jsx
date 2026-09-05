@@ -5,7 +5,6 @@ import PreviewBanner from "./PreviewBanner.jsx";
 const BANNER = {
   titulo: "Semana del Hogar",
   texto: "Hasta 30 % en cocina, deco e iluminación.",
-  diasFaltantes: 6,
   ctaTexto: "Ver la selección",
   ctaDestino: "/coleccion",
   doodleUrl: null,

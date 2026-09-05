@@ -7,10 +7,9 @@ const BANNER = {
   campaniaId: 7,
   doodleUrl: "https://res.cloudinary.com/demo/primavera.png",
   titulo: "Semana del Hogar",
-  texto: "Faltan {dias} días para que termine.",
+  texto: "Hasta agotar stock.",
   ctaTexto: "Ver la selección",
   ctaDestino: "/coleccion?campania=7",
-  diasFaltantes: 6,
 };
 
 function montar(banner, props = {}) {
@@ -28,27 +27,21 @@ describe("BannerCampania", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("sustituye {dias} por el número que YA resolvió el backend", () => {
+  it("muestra el texto del banner tal cual, sin buscar ningún marcador", () => {
     montar(BANNER);
 
-    expect(screen.getByText("Faltan 6 días para que termine.")).toBeInTheDocument();
+    expect(screen.getByText("Hasta agotar stock.")).toBeInTheDocument();
   });
 
-  it("sin dias faltantes, el marcador no queda escrito en pantalla", () => {
-    montar({ ...BANNER, texto: "Faltan {dias} días.", diasFaltantes: null });
+  // El banner ya NO trae `diasFaltantes` (ese contador es del cartel, que
+  // conserva `modalFechaObjetivo`). Sin la columna, un banner viejo que
+  // todavía dependiera de esa clave pintaría "undefined días": la píldora se
+  // saca del todo, no se la deja adivinar un valor ausente.
+  it("no pinta ninguna píldora de días: el banner no tiene contador", () => {
+    montar(BANNER);
 
-    expect(screen.queryByText(/\{dias\}/)).toBeNull();
-  });
-
-  it("sin contador, sacar el marcador no deja doble espacio", () => {
-    // `getByText` normaliza espacios en la búsqueda, así que un `toBeInTheDocument`
-    // pasaría igual con el bug adentro: se lee el `textContent` crudo.
-    const { container } = montar({ ...BANNER, texto: "Faltan {dias} días.", diasFaltantes: null });
-
-    const parrafo = Array.from(container.querySelectorAll("p")).find((p) =>
-      p.textContent.includes("días"),
-    );
-    expect(parrafo.textContent).toBe("Faltan días.");
+    expect(screen.queryByText(/día/)).toBeNull();
+    expect(screen.queryByText(/undefined/)).toBeNull();
   });
 
   it("el CTA lleva al destino que resolvió el backend", () => {
@@ -87,18 +80,5 @@ describe("BannerCampania", () => {
 
     expect(container.querySelector("img")).toBeNull();
     expect(screen.getByText("Semana del Hogar")).toBeInTheDocument();
-  });
-
-  // M6: `modalFechaObjetivo` es independiente de `hasta`, así que una campaña
-  // vigente con objetivo ya pasado es legal — el backend puede mandar un
-  // `diasFaltantes` negativo, y "-3 días" no es un dato que el cliente pueda
-  // leer.
-  it("con diasFaltantes negativo no muestra la píldora", () => {
-    // Texto sin `{dias}` para no confundir la píldora (ausente) con la
-    // sustitución del cuerpo (que sí puede mostrar el número, si lo llevara).
-    montar({ ...BANNER, diasFaltantes: -3, texto: "Última semana." });
-
-    expect(screen.queryByText(/-3/)).toBeNull();
-    expect(screen.queryByText(/día/)).toBeNull();
   });
 });
