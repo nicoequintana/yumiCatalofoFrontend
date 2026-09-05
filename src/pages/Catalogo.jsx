@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import BannerCampania from "../components/BannerCampania.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
+import CarruselCampanias from "../components/CarruselCampanias.jsx";
 import CarruselDestacados from "../components/CarruselDestacados.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import RielOfertas from "../components/RielOfertas.jsx";
@@ -91,7 +91,7 @@ function SenalesConfianza({ compacto = false }) {
  */
 function Catalogo() {
   const { productos: destacados } = useDestacados();
-  const { banner } = useContextoComercial();
+  const { slides } = useContextoComercial();
 
   return (
     <>
@@ -253,9 +253,9 @@ function Catalogo() {
       </section>
 
       {/* Primero la promesa de marca (el hero), después la oferta puntual, y
-          recién ahí la vidriera. Sin campaña con banner prendido, esto no
-          renderiza nada. */}
-      <BannerCampania banner={banner} />
+          recién ahí la vidriera. Sin campañas ni ofertas, esto no renderiza
+          nada. El ORDEN de la home cambia en la Fase I. */}
+      <CarruselCampanias slides={slides} />
 
       {/* El diseño final pone el riel "entre el carrusel [comercial, todavía
           por construir] y CarruselDestacados", pero ese primer carrusel no

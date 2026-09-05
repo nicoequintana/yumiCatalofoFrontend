@@ -18,10 +18,9 @@ import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
  *
  * ⚠️ El fallback del título en el preview reutiliza el MISMO placeholder que el
  * `<input>` (`PLACEHOLDER_TITULO`), nunca el texto de la etiqueta: la etiqueta
- * del campo es "Título del banner" y el preview lleva un `<h2>` con
- * `aria-labelledby` sobre su `<section>` (`BannerCampania.jsx`), así que si el
- * fallback repitiera esa misma frase, `getByLabel("Título del banner")`
- * resolvería DOS elementos —el campo real y esa sección— en vez de uno solo.
+ * del campo es "Título del banner" y repetir esa misma frase en el preview
+ * haría que `getByLabel("Título del banner")` resolviera DOS elementos —el
+ * campo real y el título del slide— en vez de uno solo.
  */
 const PLACEHOLDER_TITULO = "Semana del Hogar";
 
@@ -32,18 +31,28 @@ export default function SeccionBanner({
   campania,
   guardando,
 }) {
-  // Lo que va a ver el visitante, armado con lo que hay tipeado AHORA. Sin
-  // `diasFaltantes`: el banner no tiene contador (ese es del cartel, que tiene
-  // `modalFechaObjetivo` propio), y pasarle uno acá sería una previa mostrando
-  // algo que el cliente nunca ve.
-  const bannerPreview = {
-    doodleUrl: campania?.doodleUrl ?? null,
+  // Lo que va a ver el visitante, en la MISMA forma que arma el backend en
+  // `aSlideCampania` — con los mismos defaults ya aplicados, para que la
+  // previa nunca muestre algo distinto de lo publicado (el bug que ya pasó
+  // con el tema oscuro, pero de dato). Sin `diasFaltantes`: el banner no tiene
+  // contador (ese es del cartel, que tiene `modalFechaObjetivo` propio).
+  const slidePreview = {
+    tipo: "CAMPANIA",
+    campaniaId: campania?.id ?? null,
     titulo: valores.bannerTitulo || PLACEHOLDER_TITULO,
     texto: valores.bannerTexto,
     // Con `interactivo` apagado el valor nunca se navega. Acá alcanza con decir
     // SI HAY botón; la ruta real la resuelve el backend al leer.
     ctaDestino: valores.modalCtaTipo ? "#" : null,
     ctaTexto: valores.bannerCtaTexto.trim() || opciones?.ctaTextoPorDefecto || "",
+    // El arte del slide todavía no tiene campo en este formulario (falta la
+    // sección de subida, como la del Doodle) — se prepara igual el campo para
+    // que agregarla no exija tocar de nuevo la forma del preview.
+    arteUrl: campania?.bannerArteUrl ?? null,
+    doodleUrl: campania?.doodleUrl ?? null,
+    // Mismo default que aplica el backend al leer (`COLOR_SLIDE_POR_DEFECTO`):
+    // una campaña que todavía no eligió color sale en el de la marca.
+    color: campania?.bannerColor ?? "TERRACOTA",
   };
 
   return (
@@ -118,7 +127,7 @@ export default function SeccionBanner({
           </div>
         </div>
 
-        <PreviewBanner banner={bannerPreview} />
+        <PreviewBanner slide={slidePreview} />
       </div>
     </section>
   );

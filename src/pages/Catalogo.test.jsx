@@ -11,6 +11,12 @@ import * as categoriasApi from "../api/categorias.js";
 vi.mock("../api/products.js");
 vi.mock("../api/categorias.js");
 
+// El carrusel de campañas reemplazó al banner: `useContextoComercial` se
+// mockea para no depender de una request real, mismo patrón que
+// `Footer.test.jsx`.
+const contextoMock = vi.fn();
+vi.mock("../hooks/useContextoComercial.js", () => ({ default: () => contextoMock() }));
+
 const PRODUCTO = {
   id: 1,
   nombre: "Reloj Clásico",
@@ -48,6 +54,15 @@ describe("Catalogo - home editorial", () => {
     // harness, no del producto: la API real siempre devuelve una promesa.
     // Cada test que necesite categorías concretas pisa este valor.
     categoriasApi.getCategorias.mockResolvedValue([]);
+    // Default sin campañas ni ofertas: el carrusel no dibuja nada, mismo
+    // estado inicial que el catálogo real sin contexto comercial cargado.
+    contextoMock.mockReturnValue({
+      slides: [],
+      modal: null,
+      doodle: null,
+      claveDia: null,
+      resuelto: true,
+    });
   });
 
   it("muestra el hero con el copy de marca", () => {
@@ -188,5 +203,45 @@ describe("Catalogo - home editorial", () => {
     renderPagina();
 
     expect(await screen.findByText("Hallazgos del día")).toBeInTheDocument();
+  });
+
+  it("muestra el carrusel de campañas", async () => {
+    contextoMock.mockReturnValue({
+      slides: [
+        {
+          tipo: "CAMPANIA",
+          campaniaId: 7,
+          titulo: "Primavera YIMA",
+          texto: null,
+          ctaTexto: null,
+          ctaDestino: null,
+          arteUrl: null,
+          doodleUrl: null,
+          color: "VERDE",
+        },
+      ],
+      modal: null,
+      doodle: null,
+      claveDia: "2026-09-05",
+      resuelto: true,
+    });
+
+    renderPagina();
+
+    expect(await screen.findByText("Primavera YIMA")).toBeInTheDocument();
+  });
+
+  it("sin slides, la home no dibuja el carrusel", () => {
+    contextoMock.mockReturnValue({
+      slides: [],
+      modal: null,
+      doodle: null,
+      claveDia: "2026-09-05",
+      resuelto: true,
+    });
+
+    renderPagina();
+
+    expect(screen.queryByRole("region", { name: "Campañas y ofertas" })).toBeNull();
   });
 });
