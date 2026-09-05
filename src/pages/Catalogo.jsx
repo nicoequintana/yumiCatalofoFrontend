@@ -6,7 +6,7 @@ import MetaSeo from "../components/MetaSeo.jsx";
 import RielOfertas from "../components/RielOfertas.jsx";
 import useContextoComercial from "../hooks/useContextoComercial.js";
 import useDestacados from "../hooks/useDestacados.js";
-import CategoriasDestacadas from "../components/CategoriasDestacadas.jsx";
+import CirculosCategoria from "../components/CirculosCategoria.jsx";
 import { SENALES_CONFIANZA } from "../constants/hero.js";
 import { urlAbsoluta } from "../constants/seo.js";
 import heroImg from "../assets/hero.jpg";
@@ -271,7 +271,7 @@ function Catalogo() {
           y antes del manifiesto: primero la vidriera (productos concretos),
           después el mapa (por dónde seguir mirando), y recién al final el
           cierre editorial de marca. */}
-      <CategoriasDestacadas />
+      <CirculosCategoria />
 
       {/* Manifiesto de marca — cierre editorial antes del footer.
           Sin botón CTA: no existe una página "Sobre nosotros" en el

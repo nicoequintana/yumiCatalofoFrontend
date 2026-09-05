@@ -48,7 +48,7 @@ describe("Catalogo - home editorial", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
-    // La home monta `CategoriasDestacadas`, que pide las categorías. Sin este
+    // La home monta `CirculosCategoria`, que pide las categorías. Sin este
     // default el auto-mock devuelve `undefined` y el hook revienta con un
     // `undefined.then(...)` síncrono dentro del efecto — un artefacto de la
     // harness, no del producto: la API real siempre devuelve una promesa.

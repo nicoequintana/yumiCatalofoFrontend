@@ -4,12 +4,11 @@ import { getCategorias } from "../api/categorias.js";
 /**
  * El cache CRUDO de `GET /categorias`, compartido por TODO consumidor público:
  * el dropdown de escritorio y la hoja del menú móvil (vía `useCategoriasNavbar`,
- * abajo) y la sección de categorías destacadas de la home
- * (`useCategoriasDestacadas`, que importa `useCategoriasCrudas` de este mismo
- * archivo). Mismo endpoint, mismo payload — lo único que cambia entre
- * consumidores es el FILTRO: `cantidadPublicados` acá, `destacadaEnHome` allá.
- * Antes cada uno tenía su propio fetch y la home pedía la lista dos veces por
- * carga.
+ * abajo) y los accesos circulares de la home (`useCategoriasHome`, más abajo en
+ * este mismo archivo). Mismo endpoint, mismo payload — lo único que cambia
+ * entre consumidores es el FILTRO y el orden: `cantidadPublicados` acá,
+ * `destacadaEnHome` allá. Antes cada uno tenía su propio fetch y la home pedía
+ * la lista dos veces por carga.
  *
  * PATRÓN MODULE-LEVEL, como `useContextoComercial`: un valor cacheado a nivel de
  * módulo, un set de listeners y una única promesa en vuelo.
@@ -101,4 +100,40 @@ export function reiniciarCategoriasNavbar() {
   resueltoActual = false;
   promesaEnVuelo = null;
   listeners.clear();
+}
+
+/**
+ * Las categorías que muestran los accesos circulares de la home.
+ *
+ * **`destacadaEnHome` cambió de significado y no quedó muerto.** Antes decidía
+ * QUIÉN entraba a la home, con un tope de tres, porque tres tarjetas grandes
+ * era lo que entraba. Con los círculos esa restricción desaparece: entran todas
+ * las que tienen algo publicado, y el flag pasa a decidir QUIÉN VA PRIMERO.
+ *
+ * Eso importa: un interruptor del panel que se puede prender y ya no hace nada
+ * es el peor modo de falla posible — no da error, no da test rojo, y el admin
+ * cree que hizo algo.
+ *
+ * ⚠️ Filtra por `cantidadPublicados`, NUNCA por `cantidadProductos`. El segundo
+ * cuenta ocultos y agotados; ofrecer una categoría así manda al visitante a una
+ * grilla vacía.
+ */
+export function ordenarParaHome(crudas) {
+  const publicadas = crudas.filter((categoria) => (categoria.cantidadPublicados ?? 0) > 0);
+
+  const destacadas = publicadas
+    .filter((categoria) => categoria.destacadaEnHome)
+    .sort((a, b) => (a.ordenHome ?? 0) - (b.ordenHome ?? 0));
+
+  const resto = publicadas
+    .filter((categoria) => !categoria.destacadaEnHome)
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+
+  return [...destacadas, ...resto];
+}
+
+/** El hook que consume la home. */
+export function useCategoriasHome(opciones) {
+  const { categorias, resuelto } = useCategoriasCrudas(opciones);
+  return { categorias: ordenarParaHome(categorias), resuelto };
 }
