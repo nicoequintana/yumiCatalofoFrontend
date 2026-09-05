@@ -39,16 +39,24 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
   return (
     <nav
       aria-label="Navegación rápida"
-      className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-margin-mobile pb-[calc(1rem+env(safe-area-inset-bottom))] md:hidden"
+      // Las tres capas fixed del pie, de abajo hacia arriba:
+      //   1. La isla, normalmente `z-40` — mismo nivel que `HojaMenu`.
+      //   2. La isla EN `z-50` mientras la hoja está abierta: `HojaMenu` es
+      //      `fixed … bottom-0` con `z-40` y se monta DESPUÉS en el DOM, así
+      //      que sin este salto pinta encima y su botón de cerrar (acá abajo)
+      //      queda tapado — no clickeable y, para un lector de pantalla, un
+      //      control que "existe" pero no se puede activar.
+      //   3. El cartel de campaña (`ModalCampania` vía `VeloModal`), `z-[60]`
+      //      SIEMPRE: es el único elemento que interrumpe sin que lo pidan, y
+      //      tiene que poder taparlo todo, isla abierta o no.
+      className={`fixed inset-x-0 bottom-0 flex justify-center px-margin-mobile pb-[calc(1rem+env(safe-area-inset-bottom))] md:hidden ${
+        menuAbierto ? "z-50" : "z-40"
+      }`}
     >
       {/* `bg-inverse-surface/90`: el token vive en CANALES, así que Tailwind
           puede componerle alfa. Con un hex adentro de la variable esta clase no
           emitiría NINGUNA regla y la isla quedaría transparente — sin error,
-          sin warning y sin test rojo.
-
-          `z-40` y no `z-50`: el cartel de campaña es `fixed inset-0` con
-          `z-[60]`, y la isla tiene que quedar por debajo. Si no, su botón de
-          cerrar compite con la hamburguesa. */}
+          sin warning y sin test rojo. */}
       <div className="flex items-center gap-1 rounded-full bg-inverse-surface/90 p-2 shadow-ambient backdrop-blur-[10px]">
         <Link
           to="/"

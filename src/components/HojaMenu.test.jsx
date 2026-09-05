@@ -12,9 +12,9 @@ vi.mock("../hooks/useCategoriasNavbar.js", () => ({
 
 const { default: HojaMenu } = await import("./HojaMenu.jsx");
 
-function montar(props = {}) {
+function montar(props = {}, ruta = "/") {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[ruta]}>
       <HojaMenu abierta onCerrar={vi.fn()} {...props} />
     </MemoryRouter>,
   );
@@ -88,5 +88,14 @@ describe("HojaMenu", () => {
 
     expect(screen.getByRole("link", { name: "Favoritos" })).toHaveAttribute("href", "/favoritos");
     expect(screen.queryByRole("link", { name: /ver favoritos/i })).not.toBeInTheDocument();
+  });
+
+  // Mismo guard que `NavFlotante`: `/catalogo/admin/login` se renderiza dentro
+  // del mismo `Layout` público, y sin este guard la hoja se montaría encima
+  // de esa pantalla aunque nadie la haya abierto desde ahí.
+  it("no se monta en el panel: /catalogo/admin/login usa el mismo Layout", () => {
+    const { container } = montar({}, "/catalogo/admin/login");
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

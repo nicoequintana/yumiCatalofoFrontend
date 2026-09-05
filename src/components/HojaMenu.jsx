@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import PanelCategorias from "./PanelCategorias.jsx";
 import useBloquearScroll from "../hooks/useBloquearScroll.js";
 import useCategoriasNavbar from "../hooks/useCategoriasNavbar.js";
@@ -30,12 +30,17 @@ const CLASE_FILA =
   "flex min-h-12 items-center gap-3 border-b border-outline-variant py-3 font-body-lg text-body-lg text-on-surface";
 
 export default function HojaMenu({ abierta, onCerrar }) {
+  const { pathname } = useLocation();
+  const esAdmin = pathname.startsWith("/catalogo/admin");
   const hojaRef = useDialogo({ abierto: abierta, onCerrar });
   const { categorias } = useCategoriasNavbar();
 
   useBloquearScroll(abierta);
 
-  if (!abierta) return null;
+  // Mismo guard que `NavFlotante`: `/catalogo/admin/login` cuelga de este
+  // mismo `Layout` público, y sin este chequeo la hoja se montaría encima de
+  // esa pantalla de login.
+  if (esAdmin || !abierta) return null;
 
   return (
     <>

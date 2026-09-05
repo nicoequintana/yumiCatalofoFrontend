@@ -56,5 +56,8 @@ test("la isla no tapa el final del catálogo", async ({ page }) => {
   const cajaIsla = await page
     .getByRole("navigation", { name: "Navegación rápida" })
     .boundingBox();
-  expect(cajaFooter.y + cajaFooter.height).toBeGreaterThan(cajaIsla.y);
+  // El footer tiene que terminar ANTES de donde empieza la isla (o justo
+  // donde empieza): la aserción vieja pedía lo contrario del comentario de
+  // arriba y afirmaba el solapamiento en vez de descartarlo.
+  expect(cajaFooter.y + cajaFooter.height).toBeLessThanOrEqual(cajaIsla.y);
 });

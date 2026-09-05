@@ -93,4 +93,16 @@ describe("NavFlotante", () => {
 
     expect(container.firstChild.className).toMatch(/\bmd:hidden\b/);
   });
+
+  // `HojaMenu` es `fixed … bottom-0` con el mismo z-index base que la isla, y
+  // se monta DESPUÉS en el DOM: sin subir la isla, la hoja pinta encima y su
+  // botón de cerrar (acá arriba) queda invisible y no clickeable.
+  it("con el menú abierto sube de z-index para ganarle a la hoja", () => {
+    const { container: cerrado } = montar("/", { menuAbierto: false });
+    expect(cerrado.firstChild.className).toMatch(/\bz-40\b/);
+    expect(cerrado.firstChild.className).not.toMatch(/\bz-50\b/);
+
+    const { container: abierto } = montar("/", { menuAbierto: true });
+    expect(abierto.firstChild.className).toMatch(/\bz-50\b/);
+  });
 });
