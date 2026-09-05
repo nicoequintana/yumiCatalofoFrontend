@@ -93,9 +93,17 @@ export default function CarruselCampanias({ slides = [] }) {
           <div
             key={slide.campaniaId ?? slide.tipo}
             aria-hidden={i === indice ? undefined : "true"}
-            // `inert` saca del tabulado los slides ocultos. jsdom no lo
-            // implementa, así que el test verifica el atributo, no la conducta.
-            inert={i === indice ? undefined : ""}
+            // `inert` saca del tabulado los slides ocultos, booleano — no
+            // string — porque React lo trata como atributo booleano de
+            // primera clase, igual que `disabled` o `hidden`.
+            //
+            // jsdom y Testing Library NO lo implementan: `getByRole` sigue
+            // encontrando botones y links dentro de un subárbol inerte, así
+            // que el test de abajo verifica el ATRIBUTO en el DOM, nunca la
+            // conducta (que un click no navegue, que Tab lo salte). Esa
+            // conducta real se confirma en navegador, mismo criterio que el
+            // resto del repo con este gotcha.
+            inert={i !== indice}
             className={`absolute inset-0 transition-opacity duration-500 motion-reduce:transition-none ${
               i === indice ? "opacity-100" : "opacity-0"
             }`}

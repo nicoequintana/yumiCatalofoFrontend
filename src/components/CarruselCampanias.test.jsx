@@ -145,4 +145,23 @@ describe("CarruselCampanias", () => {
     expect(screen.getByRole("tab", { name: "Ir al slide 1 de 2" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Ir al slide 2 de 2" })).toBeInTheDocument();
   });
+
+  it("el slide oculto queda inert; el activo no", () => {
+    // jsdom y Testing Library no implementan `inert`: `getByRole` encuentra
+    // igual el link dentro del subárbol inerte. Por eso esto verifica el
+    // ATRIBUTO en el DOM, no que el link sea intabulable de verdad.
+    renderCarrusel([
+      slide(1, { ctaTexto: "Ver campaña", ctaDestino: "/coleccion" }),
+      slide(2, { ctaTexto: "Ver ofertas", ctaDestino: "/coleccion" }),
+    ]);
+
+    const linkActivo = screen.getByRole("link", { name: "Ver campaña" });
+    // `hidden: true` porque el slide oculto lleva `aria-hidden`, que SÍ lo
+    // saca del árbol de accesibilidad que consulta `getByRole` por defecto —
+    // eso es independiente del gotcha de `inert` y siempre se comportó así.
+    const linkOculto = screen.getByRole("link", { name: "Ver ofertas", hidden: true });
+
+    expect(linkActivo.closest("[inert]")).toBeNull();
+    expect(linkOculto.closest("[inert]")).not.toBeNull();
+  });
 });
