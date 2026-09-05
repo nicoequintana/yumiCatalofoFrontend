@@ -1,6 +1,5 @@
 import Interruptor from "./Interruptor.jsx";
 import PreviewCartel from "./PreviewCartel.jsx";
-import SelectorDestinoCta from "./SelectorDestinoCta.jsx";
 import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
 
 /**
@@ -25,14 +24,10 @@ import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
 export default function SeccionCartel({
   valores,
   editar,
-  editarDestinoCta,
   opciones,
   campania,
   diasFaltantes,
-  guardando,
 }) {
-  const productos = campania?.productos ?? [];
-
   // Lo que va a ver el visitante, armado con lo que hay tipeado AHORA.
   const modalPreview = {
     doodleUrl: campania?.doodleUrl ?? null,
@@ -131,17 +126,6 @@ export default function SeccionCartel({
 
         <PreviewCartel modal={modalPreview} />
       </div>
-
-      <SelectorDestinoCta
-        destinos={opciones?.destinos}
-        tipo={valores.modalCtaTipo}
-        referenciaId={valores.modalCtaReferenciaId}
-        referenciaNombre={campania?.modalCtaReferencia?.nombre}
-        cantidadEnVitrina={productos.length}
-        onCambiarTipo={editarDestinoCta}
-        onCambiarReferencia={(valor) => editar("modalCtaReferenciaId", valor)}
-        disabled={guardando}
-      />
     </section>
   );
 }

@@ -7,6 +7,7 @@ import EditorCampaniaHeader from "../../components/admin/campanias/EditorCampani
 import PromocionesDeCampania from "../../components/admin/campanias/PromocionesDeCampania.jsx";
 import SeccionCampania from "../../components/admin/campanias/SeccionCampania.jsx";
 import SeccionCartel from "../../components/admin/campanias/SeccionCartel.jsx";
+import SeccionDestinoCta from "../../components/admin/campanias/SeccionDestinoCta.jsx";
 import SelectorProductos from "../../components/admin/campanias/SelectorProductos.jsx";
 import useCampaniaEditor from "../../hooks/useCampaniaEditor.js";
 
@@ -206,10 +207,17 @@ export default function AdminCampaniaEditor() {
               <SeccionCartel
                 valores={valores}
                 editar={editar}
-                editarDestinoCta={editarDestinoCta}
                 opciones={opciones}
                 campania={campania}
                 diasFaltantes={diasFaltantes}
+              />
+
+              <SeccionDestinoCta
+                valores={valores}
+                editar={editar}
+                editarDestinoCta={editarDestinoCta}
+                opciones={opciones}
+                campania={campania}
                 guardando={guardando}
               />
             </fieldset>
