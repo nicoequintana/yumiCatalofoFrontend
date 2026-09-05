@@ -247,6 +247,16 @@ function Navbar() {
                 `gap-1` y la posición la resuelve el `justify-between` del
                 contenedor padre. */}
             <div className="flex items-center gap-1 md:justify-end md:gap-2">
+              {/* DECISIÓN: la lupa NO marca `/coleccion` como activa, aunque
+                  lleve ahí. Antes del reparto del 05/09/2026, la ranura de
+                  Buscar de la isla SÍ lo hacía (`aria-current="page"` +
+                  cápsula cuando `pathname` empezaba con `/coleccion`) — esa
+                  lógica no migró, y es a propósito, no un olvido: la lupa es
+                  una ACCIÓN ("andá a buscar"), no un destino de sección, y en
+                  escritorio ese mismo estado ya lo lleva el disparador
+                  "Productos" de más arriba (`pathname.startsWith("/coleccion")`).
+                  Agregarle `aria-current` acá duplicaría esa señal en dos
+                  controles con roles distintos por la misma ruta. */}
               <Link to="/coleccion" aria-label="Buscar productos" className={claseAccion}>
                 <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
                   search

@@ -64,11 +64,14 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
 
           El `/70` NO es una preferencia, es el mismo piso de contraste que ya
           usa `vidrio-header` en `Navbar.jsx`: los íconos son `text-background`
-          (crema `#fff8f5`) sobre este fondo oscuro, y el blur difumina lo que
-          pasa por detrás pero no lo ACLARA — el peor caso sigue siendo una
-          foto clara pareja. Contra blanco, `/70` compone a `~#4c4a48` y deja
-          el crema en ~7:1; `/60` baja a ~4,8:1; `/50` cae de 4,5:1 y rompe
-          WCAG AA. Bajar de acá exige recalcular, no ajustar a ojo.
+          (crema `#fff8f5`) sobre este fondo oscuro (`inverse-surface`,
+          `#1d1b1a`), y el blur difumina lo que pasa por detrás pero no lo
+          ACLARA — el peor caso sigue siendo una foto clara pareja. Contra
+          blanco, `/70` compone a `#615f5f` y deja el crema en 6,04:1. **Ya el
+          primer escalón hacia abajo rompe**: `/60` compone a `#777676` y cae a
+          4,31:1, por debajo del 4,5:1 que pide WCAG AA — no hace falta llegar
+          a `/50` (3,15:1) para perder el piso. Bajar de acá exige recalcular
+          con la fórmula real, no ajustar a ojo.
 
           `border-background/10`: un pixel del mismo crema, casi invisible,
           que insinúa el canto del vidrio — sin él la píldora se lee como una

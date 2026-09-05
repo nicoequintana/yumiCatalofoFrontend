@@ -38,12 +38,20 @@ function montarEnFicha() {
 }
 
 describe("Navegación móvil de la ficha de producto", () => {
-  it("el carrito es alcanzable desde la hoja aunque el header esté oculto", () => {
-    montarEnFicha();
+  it("el carrito es alcanzable desde la hoja mientras el header está oculto", () => {
+    const { container } = montarEnFicha();
 
-    // El header sigue en el DOM (jsdom no aplica `@media`), pero por debajo
-    // de `md` es `display: none` en un navegador real — el camino real al
-    // carrito en la ficha pasa por la hoja, no por el header.
+    // Las dos puntas atadas en UNA aserción, no dos afirmaciones sueltas: sin
+    // esto el test "integra" solo de nombre — la mitad ya la cubre
+    // `HojaMenu.test.jsx` (que el link existe) y la otra mitad, sin nada del
+    // otro lado, no prueba que el header sea de verdad el que se esconde acá.
+    // jsdom no aplica `@media` (no puede confirmar el `display: none` real),
+    // pero SÍ puede confirmar la clase que lo produce: `header` lleva `hidden`
+    // en esta ruta (ver `esFichaProducto` en `Navbar.jsx`). Si alguien saca la
+    // fila de la hoja, o el guard de `esFichaProducto` deja de esconder el
+    // header, esta aserción cae en cualquiera de los dos casos.
+    const header = container.querySelector("header");
+    expect(header).toHaveClass("hidden");
     expect(screen.getByRole("link", { name: "Carrito" })).toHaveAttribute("href", "/carrito");
   });
 
