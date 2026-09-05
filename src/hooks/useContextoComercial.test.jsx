@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, renderHook, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getContextoComercialMock = vi.fn();
@@ -203,5 +203,28 @@ describe("useContextoComercial", () => {
     await waitFor(() => expect(screen.getByTestId("a")).toHaveTextContent("2026-09-15"));
 
     expect(() => vista.unmount()).not.toThrow();
+  });
+
+  it("expone el banner que emite el backend", async () => {
+    getContextoComercialMock.mockResolvedValue({
+      claveDia: "2026-09-04",
+      doodle: null,
+      modal: null,
+      banner: { campaniaId: 7, titulo: "Semana del Hogar", ctaDestino: "/coleccion?campania=7" },
+    });
+
+    const { result } = renderHook(() => useContextoComercial());
+
+    await waitFor(() => expect(result.current.resuelto).toBe(true));
+    expect(result.current.banner).toMatchObject({ campaniaId: 7, titulo: "Semana del Hogar" });
+  });
+
+  it("un backend caído deja el banner en null, no rompe el catálogo", async () => {
+    getContextoComercialMock.mockRejectedValue(new Error("boom"));
+
+    const { result } = renderHook(() => useContextoComercial());
+
+    await waitFor(() => expect(result.current.resuelto).toBe(true));
+    expect(result.current.banner).toBeNull();
   });
 });
