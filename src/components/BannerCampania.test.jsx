@@ -40,6 +40,17 @@ describe("BannerCampania", () => {
     expect(screen.queryByText(/\{dias\}/)).toBeNull();
   });
 
+  it("sin contador, sacar el marcador no deja doble espacio", () => {
+    // `getByText` normaliza espacios en la búsqueda, así que un `toBeInTheDocument`
+    // pasaría igual con el bug adentro: se lee el `textContent` crudo.
+    const { container } = montar({ ...BANNER, texto: "Faltan {dias} días.", diasFaltantes: null });
+
+    const parrafo = Array.from(container.querySelectorAll("p")).find((p) =>
+      p.textContent.includes("días"),
+    );
+    expect(parrafo.textContent).toBe("Faltan días.");
+  });
+
   it("el CTA lleva al destino que resolvió el backend", () => {
     montar(BANNER);
 
@@ -76,5 +87,18 @@ describe("BannerCampania", () => {
 
     expect(container.querySelector("img")).toBeNull();
     expect(screen.getByText("Semana del Hogar")).toBeInTheDocument();
+  });
+
+  // M6: `modalFechaObjetivo` es independiente de `hasta`, así que una campaña
+  // vigente con objetivo ya pasado es legal — el backend puede mandar un
+  // `diasFaltantes` negativo, y "-3 días" no es un dato que el cliente pueda
+  // leer.
+  it("con diasFaltantes negativo no muestra la píldora", () => {
+    // Texto sin `{dias}` para no confundir la píldora (ausente) con la
+    // sustitución del cuerpo (que sí puede mostrar el número, si lo llevara).
+    montar({ ...BANNER, diasFaltantes: -3, texto: "Última semana." });
+
+    expect(screen.queryByText(/-3/)).toBeNull();
+    expect(screen.queryByText(/día/)).toBeNull();
   });
 });

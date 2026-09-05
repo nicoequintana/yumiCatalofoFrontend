@@ -22,8 +22,13 @@ const MARCADOR_DIAS = /\{dias\}/g;
 function conDias(texto, diasFaltantes) {
   if (!texto) return null;
   // Sin contador, el marcador se saca en vez de mostrarse crudo: "{dias}" en la
-  // home es basura visible para el cliente.
-  return texto.replace(MARCADOR_DIAS, diasFaltantes === null ? "" : String(diasFaltantes));
+  // home es basura visible para el cliente. Sacarlo dejaba el espacio de cada
+  // lado ("Faltan  días."): se colapsan los espacios repetidos y se recortan
+  // las puntas.
+  return texto
+    .replace(MARCADOR_DIAS, diasFaltantes === null ? "" : String(diasFaltantes))
+    .replace(/ {2,}/g, " ")
+    .trim();
 }
 
 export default function BannerCampania({ banner, interactivo = true }) {
@@ -69,7 +74,12 @@ export default function BannerCampania({ banner, interactivo = true }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          {banner.diasFaltantes === null ? null : (
+          {/* `modalFechaObjetivo` es independiente de `hasta`: una campaña
+              vigente con el objetivo ya pasado es legal, y el backend puede
+              mandar un `diasFaltantes` negativo. "-3 días" no es un dato que
+              el cliente pueda leer, así que la píldora se apaga con `null` o
+              con cualquier valor negativo — solo `0` en adelante cuenta. */}
+          {banner.diasFaltantes === null || banner.diasFaltantes < 0 ? null : (
             <p className="font-label-sm text-label-sm mb-2 inline-flex items-center rounded-full bg-primary px-3 py-1 uppercase text-on-primary">
               {banner.diasFaltantes === 0
                 ? "Último día"
