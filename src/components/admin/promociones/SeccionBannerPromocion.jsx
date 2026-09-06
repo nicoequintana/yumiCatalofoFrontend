@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Interruptor from "../campanias/Interruptor.jsx";
 import PreviewBanner from "../campanias/PreviewBanner.jsx";
 import { MUESTRA_COLOR } from "../campanias/muestraColor.js";
+import { MEDIDA_SUGERIDA, avisoProporcionArte } from "../campanias/proporcionArte.js";
 import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
 
 /**
@@ -80,6 +81,9 @@ export default function SeccionBannerPromocion({
 }) {
   const [valores, setValores] = useState(() => valoresIniciales(promocion));
   const [errorArte, setErrorArte] = useState(null);
+  // La proporción del arte YA guardado: se mide al cargar la miniatura,
+  // porque es la pieza que está en producción ahora mismo.
+  const [avisoArte, setAvisoArte] = useState(null);
   const inputArte = useRef(null);
 
   // Cambiar de promoción abierta no puede arrastrar un borrador sin guardar
@@ -278,6 +282,11 @@ export default function SeccionBannerPromocion({
                 <img
                   src={promocion.bannerArteUrl}
                   alt={`Arte del slide de ${promocion.nombre}`}
+                  onLoad={(e) =>
+                    setAvisoArte(
+                      avisoProporcionArte(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight),
+                    )
+                  }
                   className="h-16 w-auto rounded-lg bg-surface-container p-2"
                 />
               ) : (
@@ -316,6 +325,18 @@ export default function SeccionBannerPromocion({
             {errorArte ? (
               <p className="font-body-sm text-body-sm mt-3 rounded-lg bg-error-container px-3 py-2 text-on-error-container">
                 {errorArte}
+              </p>
+            ) : null}
+            {/* La medida sugerida va SIEMPRE, no solo cuando algo sale mal: es
+                más barato acertar la pieza que descubrir el recorte en la home.
+                El aviso de abajo aparece cuando la que ya está guardada no da. */}
+            <p className="font-body-sm text-body-sm mt-3 text-on-surface-variant">
+              El slide es una franja apaisada. Medida recomendada: <strong>{MEDIDA_SUGERIDA}</strong>.
+              El copy se lee sobre el tercio izquierdo, así que dejá esa zona despejada.
+            </p>
+            {avisoArte ? (
+              <p className="font-body-sm text-body-sm mt-2 rounded-lg bg-tertiary-container px-3 py-2 text-on-tertiary-container">
+                {avisoArte}
               </p>
             ) : null}
           </div>
