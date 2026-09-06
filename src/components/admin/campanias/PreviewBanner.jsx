@@ -26,7 +26,17 @@ export default function PreviewBanner({ slide }) {
         <div aria-hidden="true" className="h-4 w-24 rounded bg-surface-container-high" />
 
         {slide?.titulo ? (
-          <div className="aspect-[2.9/1] w-full overflow-hidden rounded-xl">
+          <div
+            // ⚠️ LA PROPORCIÓN ESPEJA A `CarruselCampanias.jsx` EXACTO, con su
+            // breakpoint incluido: 2,9:1 en móvil y 3,6:1 en escritorio.
+            //
+            // Hasta el 06/09/2026 acá había un `aspect-[2.9/1]` fijo, así que
+            // el panel mostraba SIEMPRE el encuadre de móvil — y el recorte del
+            // arte es justamente lo que difiere entre los dos breakpoints. Un
+            // preview que recorta distinto que la home es peor que no tenerlo:
+            // da confianza sobre un encuadre que nadie va a ver.
+            className="aspect-[2.9/1] w-full overflow-hidden rounded-xl md:aspect-[3.6/1]"
+          >
             <SlideCampania slide={slide} interactivo={false} />
           </div>
         ) : null}
