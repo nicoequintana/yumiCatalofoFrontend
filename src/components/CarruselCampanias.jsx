@@ -87,7 +87,7 @@ export default function CarruselCampanias({ slides = [] }) {
           eso la zona segura del copy es el tercio izquierdo. */}
       <div
         aria-roledescription="carrusel"
-        className="relative aspect-[2.9/1] w-full overflow-hidden rounded-xl border border-outline-variant md:aspect-[3.6/1]"
+        className="relative aspect-[2.9/1] w-full overflow-hidden rounded-xl md:aspect-[3.6/1]"
       >
         {slides.map((slide, i) => (
           <div
