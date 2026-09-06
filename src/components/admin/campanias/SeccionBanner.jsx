@@ -69,34 +69,19 @@ export default function SeccionBanner({
   onSubirArte,
   onQuitarArte,
 }) {
-  // Buffer LOCAL de estos dos campos, desacoplado de `valores` después del
-  // montaje. Existe solo para el aviso del marcador mientras se tipea: si el
-  // aviso leyera directo de `valores`, dependería de que el PADRE reescriba el
-  // estado en cada tecla para poder reaccionar. Acá alcanza con saber qué hay
-  // escrito AHORA MISMO, y `editar` se sigue llamando en cada cambio — la
-  // campaña se sigue guardando con el dato de siempre.
-  //
-  // Es seguro inicializarlo una sola vez: `SeccionBanner` no se monta hasta
-  // que la campaña ya cargó (el editor muestra un spinner mientras tanto), y
-  // nada vuelve a pisar `bannerTitulo`/`bannerTexto` desde afuera mientras
-  // sigue montado.
-  const [tituloLocal, setTituloLocal] = useState(valores.bannerTitulo);
-  const [textoLocal, setTextoLocal] = useState(valores.bannerTexto);
   const [errorArte, setErrorArte] = useState(null);
   const inputArte = useRef(null);
 
-  function cambiarTitulo(valor) {
-    setTituloLocal(valor);
-    editar("bannerTitulo", valor);
-  }
-
-  function cambiarTexto(valor) {
-    setTextoLocal(valor);
-    editar("bannerTexto", valor);
-  }
-
-  const avisoTitulo = avisoMarcadorDias(tituloLocal, "bannerTitulo");
-  const avisoTexto = avisoMarcadorDias(textoLocal, "bannerTexto");
+  // Derivado directo de `valores`, como el resto de los campos: `editar(...)`
+  // hace `setValores` en el editor real, así que cada tecla YA dispara un
+  // re-render con el prop nuevo. Un buffer local acá sería redundante —y
+  // peligroso: `duplicar()` navega a la misma forma de ruta
+  // (`/campanias/:id/editar`) sin cambiar de árbol de componentes, así que
+  // React NO remonta este componente al pasar de una campaña a otra. Un
+  // estado inicializado "una sola vez" quedaría congelado con el texto de la
+  // campaña ANTERIOR, y el admin editaría creyendo que ve la nueva.
+  const avisoTitulo = avisoMarcadorDias(valores.bannerTitulo, "bannerTitulo");
+  const avisoTexto = avisoMarcadorDias(valores.bannerTexto, "bannerTexto");
 
   /**
    * Valida tipo y tamaño ANTES de subir. Es una cortesía, no la defensa: el
@@ -130,8 +115,8 @@ export default function SeccionBanner({
   const slidePreview = {
     tipo: "CAMPANIA",
     campaniaId: campania?.id ?? null,
-    titulo: tituloLocal || PLACEHOLDER_TITULO,
-    texto: textoLocal,
+    titulo: valores.bannerTitulo || PLACEHOLDER_TITULO,
+    texto: valores.bannerTexto,
     // Con `interactivo` apagado el valor nunca se navega. Acá alcanza con decir
     // SI HAY botón; la ruta real la resuelve el backend al leer.
     ctaDestino: valores.modalCtaTipo ? "#" : null,
@@ -184,8 +169,8 @@ export default function SeccionBanner({
               id="campania-banner-titulo"
               type="text"
               maxLength={120}
-              value={tituloLocal}
-              onChange={(e) => cambiarTitulo(e.target.value)}
+              value={valores.bannerTitulo}
+              onChange={(e) => editar("bannerTitulo", e.target.value)}
               className={claseCampo}
               placeholder={PLACEHOLDER_TITULO}
             />
@@ -205,8 +190,8 @@ export default function SeccionBanner({
               id="campania-banner-texto"
               rows={2}
               maxLength={200}
-              value={textoLocal}
-              onChange={(e) => cambiarTexto(e.target.value)}
+              value={valores.bannerTexto}
+              onChange={(e) => editar("bannerTexto", e.target.value)}
               className={claseCampo}
               placeholder="Hasta 30 % en cocina, deco e iluminación."
             />
@@ -284,6 +269,7 @@ export default function SeccionBanner({
                   <input
                     ref={inputArte}
                     type="file"
+                    aria-label={campania?.bannerArteUrl ? "Reemplazar arte del slide" : "Subir arte del slide"}
                     accept={TIPOS_ARTE.join(",")}
                     onChange={elegirArte}
                     className="sr-only"
