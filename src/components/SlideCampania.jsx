@@ -25,6 +25,13 @@ import { Link } from "react-router-dom";
  * oscuro es `bg-inverse-surface` + `text-background`, igual que el CTA del
  * hero. Una clase que no existe no emite ninguna regla: el color queda
  * heredado y el texto puede volverse invisible, sin error y sin test rojo.
+ *
+ * ⚠️ **No exportado a propósito.** `SeccionBanner` necesita solo el fondo (la
+ * pastilla de muestra no lleva texto encima) y tiene su propia copia,
+ * `MUESTRA_COLOR` — exportar este mapa acá rompe el Fast Refresh del archivo
+ * (`oxlint` avisa `react/only-export-components`) porque deja de exportar
+ * solo un componente. La sincronización manual entre los dos mapas está
+ * registrada en el censo de `CLAUDE.md`.
  */
 const COLORES = {
   TERRACOTA: "bg-primary text-on-primary",

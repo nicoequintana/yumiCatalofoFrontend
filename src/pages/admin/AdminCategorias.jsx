@@ -459,16 +459,18 @@ function AdminCategorias() {
 
                     {/* Para esto existe `cantidadPublicados` aparte de
                         `cantidadProductos`: cuenta sólo lo visible y con
-                        stock. Una categoría marcada sin nada publicado se ve
-                        perfecta en la home y su "Ver productos" cae en una
-                        grilla vacía. No se bloquea —la selección es del
-                        admin— pero no puede pasar en silencio. */}
+                        stock. Marcar como destacada una categoría sin nada
+                        publicado no rompe nada —`ordenarParaHome`
+                        (`useCategoriasNavbar.js`) la filtra antes de
+                        renderizar los círculos—, pero es un interruptor que
+                        el admin prendió y que hoy no hace nada: ese silencio
+                        es el aviso. No se bloquea, la selección es del admin. */}
                     {categoria.destacadaEnHome && categoria.cantidadPublicados === 0 ? (
                       <p className="font-body-md mt-1 flex items-start gap-1 text-[11px] leading-tight text-error">
                         <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
                           warning
                         </span>
-                        Sin productos publicados: la card lleva a una grilla vacía.
+                        Sin productos publicados: no aparece en la home.
                       </p>
                     ) : null}
                   </td>

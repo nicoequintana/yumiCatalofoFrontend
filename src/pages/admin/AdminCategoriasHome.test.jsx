@@ -90,9 +90,10 @@ describe("AdminCategorias — selección para la home", () => {
   });
 
   it("avisa cuando una destacada no tiene productos publicados", async () => {
-    // Para esto existe `cantidadPublicados` aparte de `cantidadProductos`: la
-    // card se vería perfecta en la home y su "Ver productos" caería en una
-    // grilla vacía. No se bloquea —la selección es del admin— pero no puede
+    // Para esto existe `cantidadPublicados` aparte de `cantidadProductos`:
+    // `ordenarParaHome` filtra esta categoría antes de renderizar los
+    // círculos, así que marcarla como destacada es un interruptor que hoy no
+    // hace nada. No se bloquea —la selección es del admin— pero no puede
     // pasar en silencio.
     categoriasApi.getCategorias.mockResolvedValue([
       categoria("Vacía", { id: 1, destacada: true, publicados: 0 }),
@@ -100,7 +101,7 @@ describe("AdminCategorias — selección para la home", () => {
 
     renderPagina();
 
-    expect(await screen.findByText(/lleva a una grilla vacía/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no aparece en la home/i)).toBeInTheDocument();
   });
 
   it("no avisa si la destacada sí tiene productos publicados", async () => {
@@ -111,7 +112,7 @@ describe("AdminCategorias — selección para la home", () => {
     renderPagina();
 
     await screen.findByText("Llena");
-    expect(screen.queryByText(/lleva a una grilla vacía/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no aparece en la home/i)).not.toBeInTheDocument();
   });
 
   it("no avisa sobre una categoría vacía que NO está destacada", async () => {
@@ -122,7 +123,7 @@ describe("AdminCategorias — selección para la home", () => {
     renderPagina();
 
     await screen.findByText("Vacía");
-    expect(screen.queryByText(/lleva a una grilla vacía/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no aparece en la home/i)).not.toBeInTheDocument();
   });
 
   it("el control es un SWITCH, no un checkbox", async () => {

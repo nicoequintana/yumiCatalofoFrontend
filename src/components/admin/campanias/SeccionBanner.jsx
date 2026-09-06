@@ -27,7 +27,15 @@ const PLACEHOLDER_TITULO = "Semana del Hogar";
 
 /**
  * Solo la PASTILLA de la muestra. El par fondo/texto real del slide vive en
- * `SlideCampania` — acá alcanza con el fondo, porque no hay texto encima.
+ * `SlideCampania` (`COLORES`) — acá alcanza con el fondo, porque no hay texto
+ * encima.
+ *
+ * ⚠️ **Es una CUARTA casa del mismo mapa** (censo de sincronizaciones,
+ * `CLAUDE.md`): `SlideCampania` no exporta su versión porque hacerlo le rompe
+ * el Fast Refresh (deja de exportar solo un componente). El fallback de acá
+ * es un color SIEMPRE VISIBLE (`COLOR_SLIDE_POR_DEFECTO` del backend) y no
+ * `""`: con `""` un sexto color que el backend sumara mañana saldría con la
+ * etiqueta correcta en la lista y la pastilla transparente, sin ningún error.
  */
 const MUESTRA_COLOR = {
   TERRACOTA: "bg-primary",
@@ -133,9 +141,10 @@ export default function SeccionBanner({
     // `<form>` que recién viaja al servidor en el submit. Leerlo de `campania`
     // congelaría la previa en el último color GUARDADO — el admin clickea
     // otro color y no pasa nada hasta guardar y recargar, que es justo lo
-    // contrario de para qué existe una previa. Mismo default que aplica el
-    // backend al leer (`COLOR_SLIDE_POR_DEFECTO`).
-    color: valores.bannerColor ?? "TERRACOTA",
+    // contrario de para qué existe una previa. Va CRUDO, sin default acá:
+    // `SlideCampania` ya cae a `COLOR_SLIDE_POR_DEFECTO` cuando `color` viene
+    // vacío, y aplicarlo dos veces era una tercera copia del mismo valor.
+    color: valores.bannerColor,
   };
 
   return (
@@ -236,7 +245,9 @@ export default function SeccionBanner({
                   />
                   <span
                     aria-hidden="true"
-                    className={`h-4 w-4 rounded-full ${MUESTRA_COLOR[color.valor] ?? ""}`}
+                    className={`h-4 w-4 rounded-full ${
+                      MUESTRA_COLOR[color.valor] ?? MUESTRA_COLOR.TERRACOTA
+                    }`}
                   />
                   <span className="font-label-md text-label-md text-on-surface">{color.etiqueta}</span>
                 </label>
