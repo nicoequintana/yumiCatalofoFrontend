@@ -96,8 +96,43 @@ export default function SlideCampania({ slide, interactivo = true }) {
           {/* El velo va de izquierda a derecha porque la ZONA SEGURA del copy
               es el tercio izquierdo: es lo que hace que la misma pieza
               sobreviva al recorte de 2,9:1 en móvil y al de 3,6:1 en
-              escritorio. */}
-          <div className="absolute inset-0 bg-gradient-to-r from-inverse-surface via-inverse-surface/70 to-transparent" />
+              escritorio.
+
+              ⚠️ EL VIDRIO ES UNA COPIA DESENFOCADA DE LA FOTO, NO UN
+              `backdrop-filter`. Y ES POR RENDIMIENTO, no por gusto.
+
+              `backdrop-filter` muestrea lo que tiene DETRÁS, así que hay que
+              recalcularlo en cada frame en el que el fondo o el propio elemento
+              cambian. El carrusel cruza los slides con `transition-opacity` de
+              500 ms (`CarruselCampanias.jsx`), y una opacidad menor que 1 crea
+              un stacking context: durante medio segundo el navegador
+              recomponía DOS backdrops a la vez sobre un fondo que también se
+              estaba moviendo. Se veía como que el vidrio "tardaba en cargar".
+
+              `filter: blur()` sobre esta copia no mira el fondo: se rasteriza
+              una vez y la transición de opacidad la mueve como a cualquier
+              otra capa. El resultado en pantalla es el mismo.
+
+              El `scale-110` no es decorativo: `blur()` samplea más allá del
+              borde del elemento, y sin sobredimensionar la copia el desenfoque
+              se degrada a transparente en los bordes y deja una orla clara.
+
+              La máscara —duplicada con `-webkit-` para Safari— es lo que hace
+              que el vidrio se desvanezca hacia la derecha y deje el arte
+              nítido donde no hay texto. */}
+          <img
+            src={slide.arteUrl}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-110 object-cover blur-md [-webkit-mask-image:linear-gradient(to_right,#000_0%,#000_42%,transparent_74%)] [mask-image:linear-gradient(to_right,#000_0%,#000_42%,transparent_74%)]"
+          />
+          {/* El TINTE, que es lo que garantiza el contraste del texto claro: el
+              desenfoque no oscurece, así que sobre un arte claro el copy
+              quedaría ilegible con vidrio solo. `on-surface-variant` y no
+              `inverse-surface`: el segundo es el casi-negro (#1d1b1a) y sobre
+              una foto se leía como una mancha; éste (#56423c) deja pasar el
+              color del arte. */}
+          <div className="absolute inset-0 bg-gradient-to-r from-on-surface-variant/75 via-on-surface-variant/40 to-transparent" />
         </>
       ) : hayDoodle ? (
         /* El doodle solo aparece SIN arte. Con arte, dos imágenes en 135 px de

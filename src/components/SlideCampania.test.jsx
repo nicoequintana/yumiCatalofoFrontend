@@ -36,12 +36,38 @@ describe("SlideCampania", () => {
 
   it("con arte, la pieza llena la caja y el doodle NO se muestra", () => {
     // Dos imágenes en 135 px de alto es ruido: con arte, el doodle sobra.
-    const { container } = renderSlide({ ...SLIDE, arteUrl: "https://cdn.test/arte.jpg" });
+    const { container } = renderSlide({
+      ...SLIDE,
+      arteUrl: "https://cdn.test/arte.jpg",
+      doodleUrl: "https://cdn.test/doodle.png",
+    });
 
     // Decorativas (`alt=""`): sin rol "img", se cuentan por el DOM.
-    const imagenes = container.querySelectorAll("img");
-    expect(imagenes).toHaveLength(1);
-    expect(imagenes[0]).toHaveAttribute("src", "https://cdn.test/arte.jpg");
+    //
+    // Este test afirmaba `toHaveLength(1)` hasta el 06/09/2026, y contar dejó
+    // de servir: el vidrio es una COPIA desenfocada del arte, así que con arte
+    // hay DOS `<img>` del mismo `src`. Lo que el test protege no es el número
+    // sino que el doodle no se cuele — así que ahora eso es lo que afirma.
+    const imagenes = [...container.querySelectorAll("img")];
+    expect(imagenes.length).toBeGreaterThan(0);
+    expect(imagenes.every((i) => i.getAttribute("src") === "https://cdn.test/arte.jpg")).toBe(true);
+    expect(container.querySelector('img[src="https://cdn.test/doodle.png"]')).toBeNull();
+  });
+
+  it("con arte, el vidrio es una copia desenfocada y no un backdrop-filter", () => {
+    // `backdrop-filter` muestrea el fondo, así que se recalcula en cada frame
+    // de la transición de opacidad del carrusel (500 ms, dos slides a la vez):
+    // el vidrio se veía llegar tarde. `filter: blur()` sobre una copia se
+    // rasteriza una vez. Este guard existe para que nadie lo revierta por
+    // "simplificar" a una sola capa.
+    const { container } = renderSlide({ ...SLIDE, arteUrl: "https://cdn.test/arte.jpg" });
+
+    const copia = container.querySelector('img[aria-hidden="true"]');
+    expect(copia).not.toBeNull();
+    expect(copia.className).toContain("blur-md");
+    // El `scale-110` cubre el sangrado del blur en los bordes.
+    expect(copia.className).toContain("scale-110");
+    expect(container.innerHTML).not.toContain("backdrop-blur");
   });
 
   it("el arte va absolute inset-0", () => {
