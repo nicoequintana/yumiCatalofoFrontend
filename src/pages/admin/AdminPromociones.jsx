@@ -4,9 +4,11 @@ import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import SoloEscritorio from "../../components/admin/SoloEscritorio.jsx";
 import EditorPromocion from "../../components/admin/promociones/EditorPromocion.jsx";
+import SeccionBannerPromocion from "../../components/admin/promociones/SeccionBannerPromocion.jsx";
 import TablaComercial from "../../components/admin/promociones/TablaComercial.jsx";
 import AlertaConflictos from "../../components/admin/promociones/AlertaConflictos.jsx";
 import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
+import { getOpcionesCampania } from "../../api/campanias.js";
 import {
   actualizarPromocion,
   crearPromocion,
@@ -16,7 +18,9 @@ import {
   getListadoComercial,
   getPromocion,
   getPromociones,
+  guardarArtePromocion,
   guardarItemsPromocion,
+  quitarArtePromocion,
 } from "../../api/promociones.js";
 
 /**
@@ -44,6 +48,11 @@ export default function AdminPromociones() {
   const [abierta, setAbierta] = useState(null);
   const [comercial, setComercial] = useState({ data: [], page: 1, total: 0, pageSize: 20 });
   const [conflictos, setConflictos] = useState([]);
+  // El diccionario de colores del slide (`coloresSlide`) es de campañas, pero
+  // lo comparte el banner de promoción: es el MISMO backend el que valida
+  // `bannerColor` para las dos, así que es la misma lista. Falla blanda —sin
+  // ella el selector queda vacío, pero el resto del editor sigue andando.
+  const [opcionesCampania, setOpcionesCampania] = useState(null);
   const [seleccionados, setSeleccionados] = useState(new Set());
   const [pagina, setPagina] = useState(1);
 
@@ -78,6 +87,23 @@ export default function AdminPromociones() {
       activo = false;
     };
   }, [pagina]);
+
+  // Aparte del Promise.all de arriba: es la lista de colores del SLIDE, no
+  // del listado de promociones — un fallo acá no puede tumbar la pantalla
+  // entera, solo dejar el selector de color del banner sin opciones.
+  useEffect(() => {
+    let activo = true;
+    getOpcionesCampania()
+      .then((datos) => {
+        if (activo) setOpcionesCampania(datos);
+      })
+      .catch(() => {
+        if (activo) setOpcionesCampania(null);
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   /**
    * Ejecuta una mutación y refresca.
@@ -143,6 +169,43 @@ export default function AdminPromociones() {
   async function guardarItems(items) {
     await conGuardado(async () => {
       setAbierta(await guardarItemsPromocion(abierta.id, items));
+    });
+  }
+
+  /**
+   * El banner del carrusel. `datos` ya viene armado por
+   * `SeccionBannerPromocion` con SOLO los cinco campos del banner — nunca con
+   * `activa`, que es de otra acción (`alternarActiva`).
+   *
+   * ⚠️ **`nombre` va SIEMPRE, aunque esta acción no lo toque.** A diferencia
+   * de las cinco claves del banner (donde ausente = "no la toques"),
+   * `parsearNombre` del backend EXIGE la clave en todo `PUT` —una promoción
+   * sin nombre no es un estado válido— así que un body sin `nombre` responde
+   * 400 "El nombre de la promoción es obligatorio", incluso si lo único que
+   * se quiso cambiar fue el banner. Mismo motivo por el que `alternarActiva`
+   * también lo re-manda.
+   */
+  async function guardarBanner(datos) {
+    await conGuardado(async () => {
+      setAbierta(
+        await actualizarPromocion(abierta.id, {
+          nombre: abierta.nombre,
+          descripcion: abierta.descripcion,
+          ...datos,
+        }),
+      );
+    });
+  }
+
+  async function subirArteBanner(archivo) {
+    await conGuardado(async () => {
+      setAbierta(await guardarArtePromocion(abierta.id, archivo));
+    });
+  }
+
+  async function quitarArteBanner() {
+    await conGuardado(async () => {
+      setAbierta(await quitarArtePromocion(abierta.id));
     });
   }
 
@@ -440,6 +503,18 @@ export default function AdminPromociones() {
                     onGuardarItems={guardarItems}
                     onQuitar={quitar}
                   />
+
+                  <div className="mt-6">
+                    <SeccionBannerPromocion
+                      promocion={abierta}
+                      colores={opcionesCampania?.coloresSlide}
+                      ctaTextoPorDefecto={opcionesCampania?.ctaTextoPorDefecto}
+                      guardando={guardando}
+                      onGuardar={guardarBanner}
+                      onSubirArte={subirArteBanner}
+                      onQuitarArte={quitarArteBanner}
+                    />
+                  </div>
                 </div>
               ) : null}
             </section>

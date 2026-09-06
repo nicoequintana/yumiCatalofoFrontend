@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import Interruptor from "./Interruptor.jsx";
 import PreviewBanner from "./PreviewBanner.jsx";
+import { MUESTRA_COLOR } from "./muestraColor.js";
 import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
 
 /**
@@ -24,28 +25,6 @@ import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
  * campo real y el título del slide— en vez de uno solo.
  */
 const PLACEHOLDER_TITULO = "Semana del Hogar";
-
-/**
- * Solo la PASTILLA de la muestra. El par fondo/texto real del slide vive en
- * `SlideCampania` (`COLORES`) — acá alcanza con el fondo, porque no hay texto
- * encima.
- *
- * ⚠️ **Es la TERCERA casa del mismo mapa** (censo de sincronizaciones,
- * `CLAUDE.md`) — las tres son `lib/campanias.js` (`COLORES_SLIDE`),
- * `SlideCampania.jsx` (`COLORES`) y esta. Este comentario decía "CUARTA" hasta
- * el 06/09/2026, contra el censo de `CLAUDE.md`, que dice tres y tiene razón: `SlideCampania` no exporta su versión porque hacerlo le rompe
- * el Fast Refresh (deja de exportar solo un componente). El fallback de acá
- * es un color SIEMPRE VISIBLE (`COLOR_SLIDE_POR_DEFECTO` del backend) y no
- * `""`: con `""` un sexto color que el backend sumara mañana saldría con la
- * etiqueta correcta en la lista y la pastilla transparente, sin ningún error.
- */
-const MUESTRA_COLOR = {
-  TERRACOTA: "bg-primary",
-  VERDE: "bg-secondary",
-  OCRE: "bg-tertiary-container",
-  TINTA: "bg-inverse-surface",
-  ARENA: "bg-surface-container-high",
-};
 
 /**
  * El mismo marcador que usa el cartel para su contador, pero PROHIBIDO acá: el
