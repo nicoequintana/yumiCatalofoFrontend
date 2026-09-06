@@ -152,10 +152,44 @@ describe("Catalogo - home editorial", () => {
     expect(screen.queryByText("El Manifiesto YIMA")).not.toBeInTheDocument();
   });
 
-  it("muestra el bloque de manifiesto de marca", () => {
+  it("el manifiesto no se renderiza", () => {
     renderPagina();
 
-    expect(screen.getByText("El Manifiesto YIMA")).toBeInTheDocument();
+    expect(screen.queryByText("El Manifiesto YIMA")).toBeNull();
+  });
+
+  it("el hero conserva el h1 y va DESPUÉS de los productos", () => {
+    // Necesita al menos un slide: sin campañas ni ofertas
+    // `CarruselCampanias` no monta el `<section>` y no habría contra qué
+    // comparar la posición del hero.
+    contextoMock.mockReturnValue({
+      slides: [
+        {
+          tipo: "CAMPANIA",
+          campaniaId: 7,
+          titulo: "Primavera YIMA",
+          texto: null,
+          ctaTexto: null,
+          ctaDestino: null,
+          arteUrl: null,
+          doodleUrl: null,
+          color: "VERDE",
+        },
+      ],
+      modal: null,
+      doodle: null,
+      claveDia: "2026-09-05",
+      resuelto: true,
+    });
+
+    renderPagina();
+
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1).toHaveTextContent("Descubrí cosas que te hacen la vida más fácil.");
+
+    // El orden importa: la home abre con mercadería, no con marca.
+    const carrusel = screen.getByRole("region", { name: "Campañas y ofertas" });
+    expect(carrusel.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("no renderiza la barra de filtros ni el grid de productos", async () => {

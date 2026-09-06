@@ -82,8 +82,11 @@ function SenalesConfianza({ compacto = false }) {
  * `/` — home editorial, per design doc
  * 2026-08-19-separacion-home-coleccion.md.
  *
- * Esta página es la vidriera de marca: Hero + carrusel de destacados +
- * manifiesto. El catálogo completo con filtros vive ahora en `/coleccion`
+ * Esta página es la vidriera de marca: Hero + carrusel de destacados. El
+ * bloque del manifiesto que cerraba la página se sacó del render (Task 19,
+ * 05/09/2026) — decisión del usuario de invisibilizarlo por ahora, no de
+ * retirarlo del repo.
+ * El catálogo completo con filtros vive ahora en `/coleccion`
  * (`Coleccion.jsx`) — antes ambas cosas compartían un solo scroll acá, lo
  * que mezclaba dos trabajos distintos (enganchar vs. buscar) e impedía
  * compartir un link de productos filtrados sin arrastrar todo el contenido
@@ -101,7 +104,29 @@ function Catalogo() {
         canonical={urlAbsoluta("/")}
       />
 
-      {/* Hero — dos columnas con la foto a sangre contra el borde derecho.
+      {/* La home abre con MERCADERÍA, no con marca. Medido: con el hero
+          arriba, el primer producto entraba a los 1.430 px en un teléfono de
+          412 px — una pantalla y media antes de ver algo comprable. */}
+      <CarruselCampanias slides={slides} />
+
+      {/* Puertas de entrada al catálogo por categoría: el mapa del catálogo.
+          Va ANTES de la mercadería (ofertas y destacados) — quien ya sabe qué
+          categoría busca no tiene que scrollear los rieles primero. */}
+      <CirculosCategoria />
+
+      {/* Entre el mapa de categorías y los hallazgos: la oferta puntual antes
+          de la vidriera general de destacados. */}
+      <RielOfertas />
+
+      <CarruselDestacados productos={destacados} />
+
+      {/* El hero, al pie. NO se achica ni se reescribe: se mueve, y se lleva el
+          único <h1> de la home — por eso no hace falta promover ningún otro
+          texto a encabezado principal.
+
+          ⚠️ Su copy está espejado en `seo.controller.js` (HERO_TITULO /
+          HERO_PARRAFO). Cambiar una punta sin la otra es cloaking.
+
           La `<section>` NO lleva `max-w-container-max`: si lo llevara, la foto
           se cortaría en el borde del contenedor en vez de llegar al borde de la
           ventana. La alineación del contenido con el resto de la página se
@@ -250,50 +275,6 @@ function Catalogo() {
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Primero la promesa de marca (el hero), después la oferta puntual, y
-          recién ahí la vidriera. Sin campañas ni ofertas, esto no renderiza
-          nada. El ORDEN de la home cambia en la Fase I. */}
-      <CarruselCampanias slides={slides} />
-
-      {/* El diseño final pone el riel "entre el carrusel [comercial, todavía
-          por construir] y CarruselDestacados", pero ese primer carrusel no
-          existe todavía en esta página (task bloqueada por una migración
-          pendiente). Se lo monta acá, inmediatamente antes de
-          `CarruselDestacados` (que sí existe): el orden definitivo de la home
-          lo fija esa otra task, no esta. */}
-      <RielOfertas />
-
-      <CarruselDestacados productos={destacados} />
-
-      {/* Puertas de entrada al catálogo por categoría. Va DESPUÉS del carrusel
-          y antes del manifiesto: primero la vidriera (productos concretos),
-          después el mapa (por dónde seguir mirando), y recién al final el
-          cierre editorial de marca. */}
-      <CirculosCategoria />
-
-      {/* Manifiesto de marca — cierre editorial antes del footer.
-          Sin botón CTA: no existe una página "Sobre nosotros" en el
-          proyecto (ver design doc 2026-08-19), un link ahí sería un enlace
-          roto o alcance nuevo fuera de esta spec. */}
-      <section className="relative w-full overflow-hidden bg-cream-base px-margin-mobile py-32 md:px-margin-desktop">
-        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-8 text-center">
-          <span className="material-symbols-outlined text-4xl text-moss-green opacity-50">
-            auto_awesome
-          </span>
-          <h2 className="font-headline-lg text-headline-lg italic text-on-surface">
-            El Manifiesto YIMA
-          </h2>
-          <p className="font-body-lg text-body-lg leading-relaxed text-on-surface-variant">
-            No vendemos productos: elegimos piezas que valen la pena tener cerca.
-            Cada cosa que entra al catálogo pasó antes por la misma pregunta que
-            te hacemos a vos — ¿esto suma o solo ocupa lugar? Encontrá lo que
-            buscabas, y de paso, algo que no sabías que te hacía falta.
-          </p>
-        </div>
-        <div className="absolute -z-0 left-10 top-10 h-64 w-64 rounded-full bg-terracotta-warm/5 blur-3xl" />
-        <div className="absolute -z-0 bottom-10 right-10 h-96 w-96 rounded-full bg-golden-sand/10 blur-3xl" />
       </section>
 
       <BotonWhatsapp contexto={{ tipo: "home" }} />
