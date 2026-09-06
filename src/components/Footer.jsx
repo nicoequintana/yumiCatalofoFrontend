@@ -24,8 +24,30 @@ function Footer() {
   const doodleDelPie = (esAdmin ? doodleAdmin : doodle)?.url ?? null;
 
   return (
-    <footer className="mt-24 w-full border-t border-outline-variant bg-surface-container-lowest">
-      <div className="mx-auto flex w-full max-w-container-max flex-col items-center justify-between px-margin-mobile py-8 md:flex-row md:px-margin-desktop">
+    // Sin `mt-24`: el aire hasta el pie lo pone la última sección, con el mismo
+    // ritmo que separa a todas las demás. Un margen propio acá lo duplicaba.
+    <footer className="w-full border-t border-outline-variant bg-surface-container-lowest">
+      {/* El zócalo de la isla flotante vive ACÁ, como padding del pie, y no
+          como un `<div>` separado después de él: la isla es `fixed` y tapa el
+          final del contenido, pero un separador suelto no tiene fondo y se lee
+          como una franja vacía debajo del pie. Metido adentro, el mismo espacio
+          queda cubierto por el fondo y el borde del pie.
+
+          Solo en móvil y solo fuera del admin, por el mismo motivo que el
+          separador anterior: `/catalogo/admin/login` cuelga de este Layout y
+          ahí `NavFlotante` devuelve `null`, así que no hay isla que esquivar.
+
+          ⚠️ `NavFlotante` también devuelve `null` en `/producto/:id`, y ese caso
+          NO está contemplado acá — igual que no lo estaba en el separador que
+          esto reemplaza. Son 96 px de más al pie de una ficha. Contemplarlo
+          exige una segunda copia de la regla de "¿se ve la isla acá?", que hoy
+          vive sola en `NavFlotante`; el día que haga falta, va un helper
+          compartido, no un `startsWith` duplicado. */}
+      <div
+        className={`mx-auto flex w-full max-w-container-max flex-col items-center justify-between px-margin-mobile pt-8 md:flex-row md:px-margin-desktop md:pb-8 ${
+          esAdmin ? "pb-8" : "pb-24"
+        }`}
+      >
         <div className="mb-6 md:mb-0">
           <LogoYima
             className="h-8 opacity-80 transition-opacity hover:opacity-100"
