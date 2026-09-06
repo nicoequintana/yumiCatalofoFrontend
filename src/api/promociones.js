@@ -1,5 +1,6 @@
 import { fetchAutenticado } from "./authClient.js";
 import { parsearCuerpo } from "./parseo.js";
+import { TIMEOUT_SUBIDA_MS } from "./http.js";
 
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api`;
 
@@ -8,8 +9,8 @@ const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/ap
  * pública acá. Los descuentos que el catálogo necesita ya viajan resueltos en
  * `GET /products`, así que este módulo solo lo consume el panel.
  */
-async function pedir(url, opciones) {
-  const res = await fetchAutenticado(url, opciones);
+async function pedir(url, opciones, timeoutMs) {
+  const res = await fetchAutenticado(url, opciones, timeoutMs);
   const body = parsearCuerpo(await res.text());
   if (!res.ok) {
     throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
@@ -33,6 +34,17 @@ export async function crearPromocion(datos) {
   });
 }
 
+/**
+ * `PUT /promociones/:id` — full-replace del lado del backend, PERO no para
+ * las cinco claves del banner (`bannerEnHome`, `bannerTitulo`, `bannerTexto`,
+ * `bannerCtaTexto`, `bannerColor`): el backend (`parsearBannerPromocion`)
+ * distingue una clave AUSENTE del body ("no la toques") de una PRESENTE con
+ * `null` ("borrala"). Por eso `datos` viaja tal cual lo arma el llamador —
+ * **nunca completes acá las claves que falten con `null`**. Hacerlo es
+ * exactamente el bug de `updateCategoria` (`categorias.js`), que fuerza
+ * `icono = null` por default y lo borra en cada edición donde el llamador no
+ * lo pasa.
+ */
 export async function actualizarPromocion(id, datos) {
   return pedir(`${BASE}/promociones/${id}`, {
     method: "PUT",
@@ -128,4 +140,21 @@ export async function eliminarProgramacion(programacionId) {
  */
 export async function getConflictos() {
   return pedir(`${BASE}/promociones/conflictos`);
+}
+
+/**
+ * Sube o reemplaza el arte del slide del banner. Mismo patrón que
+ * `subirArte` de campañas (`campanias.js`) — timeout largo de subidas
+ * (120 s) y no el de 15 s del resto: una imagen por una conexión lenta tarda
+ * más que cualquier request de JSON.
+ */
+export async function guardarArtePromocion(id, archivo) {
+  const cuerpo = new FormData();
+  cuerpo.append("arte", archivo);
+  return pedir(`${BASE}/promociones/${id}/arte`, { method: "PUT", body: cuerpo }, TIMEOUT_SUBIDA_MS);
+}
+
+/** `DELETE /promociones/:id/arte` — el slide vuelve al molde compuesto. */
+export async function quitarArtePromocion(id) {
+  return pedir(`${BASE}/promociones/${id}/arte`, { method: "DELETE" });
 }
