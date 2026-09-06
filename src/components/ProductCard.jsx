@@ -54,7 +54,13 @@ function ProductCard({ producto }) {
   ) : null;
 
   return (
-    <Link to={href} className={shell}>
+    // `draggable={false}` acá y en la `<img>` de abajo: `CarruselDestacados.jsx`
+    // reutiliza esta card y mueve la pista con eventos de puntero sobre el
+    // mismo envoltorio. Sin esto el navegador arranca su propio drag nativo de
+    // enlace/imagen apenas el gesto empieza sobre la foto —la superficie más
+    // grande de la tarjeta— y el arrastre por puntero que gira el carrusel se
+    // corta a la mitad.
+    <Link to={href} className={shell} draggable={false}>
       <div className="relative aspect-square w-full bg-surface-container-lowest">
         <BotonFavorito productoId={producto.id} className="absolute top-2 right-2 z-10 rounded-full bg-surface-container-lowest/90 shadow-sm" />
         {foto ? (
@@ -73,6 +79,7 @@ function ProductCard({ producto }) {
             alt={producto.nombre}
             loading="lazy"
             decoding="async"
+            draggable={false}
           />
         ) : null}
         {destacadoChip}
