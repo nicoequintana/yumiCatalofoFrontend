@@ -87,11 +87,33 @@ export default function SlideCampania({ slide, interactivo = true }) {
               navegador cae a `height: auto` y la CAJA toma el ratio del
               archivo — el carrusel entero se estira. Cambiar `object-fit` no lo
               arregla: el problema es el tamaño de la caja. */}
+          {/* ⚠️ EL `scale-[1.03]` NO ES UN AJUSTE ESTÉTICO: se come el marco
+              claro con el que salen exportadas muchas piezas.
+
+              `object-cover` ya llena el contenedor al 100 % (medido: 1152×320
+              exactos, cero huecos). El problema no es que sobre espacio sino
+              que el ARCHIVO trae un borde blanco: las dos piezas del 06/09/2026
+              tenían luminancia 254 en los cuatro bordes contra 236 en el centro
+              de la foto.
+
+              Y solo se veía de un lado: a la izquierda el vidrio y el tinte lo
+              tapan, a la derecha el arte va limpio y el marco quedaba a la
+              vista contra el fondo crema, leyéndose como un borde y como un
+              corte mal hecho.
+
+              El 3 % recorta ~17 px del contenedor por lado (≈32 px del arte
+              original), suficiente para los ~12 px de marco observados. Es el
+              MÍNIMO que resuelve: subirlo recorta de más las piezas que están
+              bien.
+
+              ⚠️ Esto ESCONDE el problema, no lo arregla. Una pieza con marco
+              más grueso vuelve a fallar y ya nadie va a saber por qué. La
+              solución de fondo es exportar el arte a sangre, sin margen. */}
           <img
             src={slide.arteUrl}
             alt=""
             onError={() => setArteRoto(true)}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full scale-[1.03] object-cover"
           />
           {/* El velo va de izquierda a derecha porque la ZONA SEGURA del copy
               es el tercio izquierdo: es lo que hace que la misma pieza
