@@ -22,10 +22,11 @@ const ICONO_GENERICO = "category";
  * del catálogo.
  *
  * **Foto, no ícono.** Cada círculo muestra la foto de la categoría
- * (`imagenUrl`) recortada al círculo. Sin foto —o si la que tenía dejó de
- * resolver— cae al mismo `ICONO_GENERICO` para todas: no hay ícono por
- * categoría que cargar, así que una categoría recién creada nunca rompe la
- * fila.
+ * (`imagenUrl`), dibujada más grande que el disco y DESBORDÁNDOLO por arriba:
+ * el producto se despega del círculo en vez de quedar recortado contra él. Sin
+ * foto —o si la que tenía dejó de resolver— cae al mismo `ICONO_GENERICO` para
+ * todas: no hay ícono por categoría que cargar, así que una categoría recién
+ * creada nunca rompe la fila.
  *
  * La última tarjeta cortada al borde derecho es la señal de "hay más": no hace
  * falta ningún texto que lo diga.
@@ -55,21 +56,37 @@ function CirculoCategoria({ categoria }) {
       to={rutaCategoria(categoria)}
       className="flex w-16 flex-col items-center gap-1.5 text-center md:w-20"
     >
+      {/* SIN `overflow-hidden`, y eso es el efecto entero: la foto se dibuja
+          más grande que el círculo y lo desborda por arriba, así el producto
+          sale del disco en vez de quedar recortado contra él.
+
+          ⚠️ DEPENDE DE QUE LAS FOTOS SEAN RECORTES CON FONDO TRANSPARENTE.
+          Las ocho actuales son PNG de 224×224 con alfa 0 en las cuatro
+          esquinas —verificado—, así que lo único que asoma es la silueta. Una
+          foto con fondo opaco cargada desde el panel mostraría un RECTÁNGULO
+          saliendo del círculo. No hay forma de validarlo al subir (el alfa de
+          las esquinas no dice nada del resto), así que es un acuerdo sobre el
+          material, no una garantía del código. */}
       <span
-        className={`relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border bg-surface-container-lowest md:h-16 md:w-16 ${
+        className={`relative flex h-14 w-14 items-center justify-center rounded-full border bg-surface-container-lowest shadow-ambient md:h-16 md:w-16 ${
           categoria.destacadaEnHome ? "border-primary" : "border-outline-variant"
         }`}
       >
         {hayFoto ? (
-          // `absolute inset-0`, NUNCA `h-full w-full` en flujo normal: la caja
-          // es un círculo de tamaño fijo, no un `aspect-*`, pero el mismo
-          // problema aplica — un `<img>` en flujo normal no llena la caja,
-          // así que se posiciona y se recorta con `object-cover`.
+          // `object-contain` y no `object-cover`: `cover` recorta la foto para
+          // llenar la caja, que es justo lo contrario de lo que se busca acá —
+          // queremos la silueta ENTERA, más grande que el disco.
+          //
+          // El 128 % con desplazamiento asimétrico (más arriba que a la
+          // izquierda) empuja el producto hacia el borde superior: por arriba
+          // se sale, por abajo la silueta todavía cae dentro del disco. Con un
+          // centrado simétrico (-14 % en ambos ejes) también desbordaría hacia
+          // abajo, encima del nombre de la categoría.
           <img
             src={categoria.imagenUrl}
             alt=""
             onError={() => setFotoRota(true)}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute -left-[14%] -top-[22%] h-[128%] w-[128%] object-contain drop-shadow-[0_3px_4px_rgb(26_26_26_/_0.22)]"
           />
         ) : (
           /* Sin foto —o rota—, el ícono genérico. Ídem para todas: no hay
@@ -120,7 +137,7 @@ export default function CirculosCategoria() {
             to="/coleccion"
             className="flex w-16 flex-col items-center gap-1.5 text-center md:w-20"
           >
-            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-outline-variant bg-surface-container-lowest md:h-16 md:w-16">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-outline-variant bg-surface-container-lowest shadow-ambient md:h-16 md:w-16">
               <span aria-hidden="true" className="material-symbols-outlined text-[24px] text-primary">
                 grid_view
               </span>
