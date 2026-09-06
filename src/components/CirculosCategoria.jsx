@@ -22,7 +22,7 @@ const ICONO_GENERICO = "category";
  * del catálogo.
  *
  * **Foto, no ícono.** Cada círculo muestra la foto de la categoría
- * (`imagenUrl`), dibujada más grande que el disco y DESBORDÁNDOLO por arriba:
+ * (`imagenUrl`), CENTRADA y dibujada más grande que el disco, así lo desborda:
  * el producto se despega del círculo en vez de quedar recortado contra él. Sin
  * foto —o si la que tenía dejó de resolver— cae al mismo `ICONO_GENERICO` para
  * todas: no hay ícono por categoría que cargar, así que una categoría recién
@@ -57,8 +57,8 @@ function CirculoCategoria({ categoria }) {
       className="flex w-16 flex-col items-center gap-1.5 text-center md:w-20"
     >
       {/* SIN `overflow-hidden`, y eso es el efecto entero: la foto se dibuja
-          más grande que el círculo y lo desborda por arriba, así el producto
-          sale del disco en vez de quedar recortado contra él.
+          más grande que el círculo y lo desborda por los cuatro lados, así el
+          producto sale del disco en vez de quedar recortado contra él.
 
           ⚠️ DEPENDE DE QUE LAS FOTOS SEAN RECORTES CON FONDO TRANSPARENTE.
           Las ocho actuales son PNG de 224×224 con alfa 0 en las cuatro
@@ -77,16 +77,15 @@ function CirculoCategoria({ categoria }) {
           // llenar la caja, que es justo lo contrario de lo que se busca acá —
           // queremos la silueta ENTERA, más grande que el disco.
           //
-          // El 128 % con desplazamiento asimétrico (más arriba que a la
-          // izquierda) empuja el producto hacia el borde superior: por arriba
-          // se sale, por abajo la silueta todavía cae dentro del disco. Con un
-          // centrado simétrico (-14 % en ambos ejes) también desbordaría hacia
-          // abajo, encima del nombre de la categoría.
+          // 128 % CENTRADO sobre el círculo: el -14 % es la mitad del excedente
+          // (128 - 100), así que la foto sobresale lo mismo por los cuatro
+          // lados y su centro sigue siendo el del disco. El tamaño es lo único
+          // que produce el efecto; desplazarla sería descentrarla.
           <img
             src={categoria.imagenUrl}
             alt=""
             onError={() => setFotoRota(true)}
-            className="absolute -left-[14%] -top-[22%] h-[128%] w-[128%] object-contain drop-shadow-[0_3px_4px_rgb(26_26_26_/_0.22)]"
+            className="absolute -left-[14%] -top-[14%] h-[128%] w-[128%] object-contain drop-shadow-[0_3px_4px_rgb(26_26_26_/_0.22)]"
           />
         ) : (
           /* Sin foto —o rota—, el ícono genérico. Ídem para todas: no hay
