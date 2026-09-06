@@ -18,6 +18,12 @@ import { rutaCategoria } from "../utils/slug.js";
  *
  * La última tarjeta cortada al borde derecho es la señal de "hay más": no hace
  * falta ningún texto que lo diga.
+ *
+ * **"Ver todas" cierra la fila.** Sin ella no había ningún acceso al catálogo
+ * completo desde acá — cada círculo llevaba a UNA categoría, nunca a todas.
+ * Va al final, después de las categorías reales, con el mismo tratamiento
+ * visual que un círculo sin destacar: es la salida del recorrido, no un
+ * atajo antes de él.
  */
 export default function CirculosCategoria() {
   const { categorias } = useCategoriasHome();
@@ -61,6 +67,26 @@ export default function CirculosCategoria() {
             </Link>
           </li>
         ))}
+        {/* Acceso al catálogo completo, al final de la fila. Mismo tamaño y
+            mismo borde que un círculo sin destacar (`border-outline-variant`):
+            tiene que leerse como parte del recorrido, no como un agregado
+            aparte. El nombre accesible sale del texto visible "Ver todas", no
+            del ícono, que va `aria-hidden` como el resto de los íconos de acá. */}
+        <li>
+          <Link
+            to="/coleccion"
+            className="flex w-16 flex-col items-center gap-1.5 text-center md:w-20"
+          >
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-outline-variant bg-surface-container-lowest md:h-16 md:w-16">
+              <span aria-hidden="true" className="material-symbols-outlined text-[24px] text-primary">
+                grid_view
+              </span>
+            </span>
+            <span className="font-label-sm text-label-sm leading-tight text-on-surface-variant">
+              Ver todas
+            </span>
+          </Link>
+        </li>
       </ul>
     </nav>
   );
