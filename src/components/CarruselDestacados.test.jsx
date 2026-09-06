@@ -84,16 +84,21 @@ describe("CarruselDestacados", () => {
     }
   });
 
-  it("no duplica los botones de favorito, que actúan sobre el mismo producto", () => {
+  it("no expone el corazón dos veces a asistencia, aunque el clon lo duplique en el DOM", () => {
     renderComponente(cuatroDestacados());
 
-    // Un corazón por producto, no dos: el juego clonado los omite para no
-    // repetir controles con el mismo `aria-label` sobre el mismo producto.
-    const corazones = screen.getAllByRole("button", {
-      name: /favoritos/i,
-      hidden: true,
-    });
-    expect(corazones).toHaveLength(4);
+    // `ProductCard` es compartido y no tiene una variante "sin corazón": el
+    // juego decorativo SÍ repite el botón en el DOM (uno por cada
+    // `ProductCard` clonado). Lo que sigue valiendo es que a un lector de
+    // pantalla o al tabulado le llegue uno solo por producto — eso lo cubre
+    // el `aria-hidden`/`inert` del envoltorio del clon, no la ausencia del
+    // botón.
+    const corazonesAccesibles = screen.getAllByRole("button", { name: /favoritos/i });
+    expect(corazonesAccesibles).toHaveLength(4);
+
+    // Con `hidden: true` sí aparece el doble: 4 reales + 4 del juego clonado.
+    const corazonesEnElDom = screen.getAllByRole("button", { name: /favoritos/i, hidden: true });
+    expect(corazonesEnElDom).toHaveLength(8);
   });
 
   it("solo muestra el badge de etiqueta cuando el producto la tiene", () => {
@@ -199,19 +204,23 @@ describe("CarruselDestacados — pausa y arrastre", () => {
     expect(rutaAhora()).toBe("/producto/1-set-de-cafe");
   });
 
-  it("las tarjetas son las que pausan, no la banda que las contiene", () => {
+  it("el envoltorio de la tarjeta es el que pausa, no la banda que lo contiene", () => {
     renderComponente(cuatroDestacados());
     const tarjeta = screen.getAllByRole("link")[0];
+    // `ProductCard` solo acepta `{ producto }`: no puede llevar sus propios
+    // handlers. La pausa vive en el DIV que envuelve a cada tarjeta, un nivel
+    // por encima del `<a>` que arma el propio componente.
+    const envoltorio = tarjeta.parentElement;
 
     // El bug reportado: con el handler en el contenedor de ancho completo, el
     // carrusel se congelaba con el puntero quieto en cualquier hueco de la
-    // franja. El hover tiene que vivir en la tarjeta.
-    expect(tarjeta).toHaveProperty("onmouseenter");
-    fireEvent.mouseEnter(tarjeta);
-    fireEvent.mouseLeave(tarjeta);
+    // franja. El hover tiene que vivir en el envoltorio de CADA tarjeta.
+    expect(envoltorio).toHaveProperty("onmouseenter");
+    fireEvent.mouseEnter(envoltorio);
+    fireEvent.mouseLeave(envoltorio);
     // No hay assertion de movimiento acá (rAF no corre en jsdom): lo que se
-    // fija es que el gesto se recibe en la tarjeta sin romper el render.
-    expect(tarjeta).toBeInTheDocument();
+    // fija es que el gesto se recibe en el envoltorio sin romper el render.
+    expect(envoltorio).toBeInTheDocument();
   });
 });
 

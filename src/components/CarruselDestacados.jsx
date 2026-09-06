@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import BotonFavorito from "./BotonFavorito.jsx";
+import ProductCard from "./ProductCard.jsx";
 import { MIN_DESTACADOS } from "../hooks/useDestacados.js";
-import { rutaProducto } from "../utils/slug.js";
-import PrecioProducto from "./PrecioProducto.jsx";
 
 /** Píxeles por segundo del desplazamiento automático. */
 const VELOCIDAD_PX_POR_SEGUNDO = 40;
@@ -34,122 +31,6 @@ const FRICCION_POR_FRAME = 0.94;
 const VELOCIDAD_FIN_INERCIA_PX_S = VELOCIDAD_PX_POR_SEGUNDO;
 
 /**
- * Tarjeta de un producto destacado dentro del carrusel.
- *
- * Hereda el lenguaje visual del bento que reemplazó a este componente:
- * imagen full-bleed, gradiente de abajo hacia arriba para que el texto se lea
- * sobre cualquier foto, chip de etiqueta, nombre y precio.
- *
- * Ancho fijo y `shrink-0`: el track es un flex sin wrap, y una tarjeta que se
- * encoge rompería el cálculo del punto de rebobinado (la mitad exacta del
- * ancho scrolleable) del que depende el loop sin costura.
- *
- * `decorativa` marca las tarjetas del juego duplicado: se ocultan al lector
- * de pantalla y salen del orden de tabulación, porque son el mismo contenido
- * repetido para dar continuidad visual, no productos adicionales.
- *
- * `onPausar` / `onReanudar` se disparan sobre LA TARJETA, no sobre la banda
- * que la contiene: el usuario pidió que el carrusel se frene al apuntar una
- * card concreta. Cablearlo en el contenedor —que ocupa el ancho completo de
- * la pantalla, huecos incluidos— dejaba el carrusel congelado con solo tener
- * el puntero quieto en cualquier parte de la franja.
- */
-function TarjetaDestacado({ producto, decorativa = false, onPausar, onReanudar, onClickCapture }) {
-  const foto = producto.fotos?.[0];
-
-  return (
-    <Link
-      to={rutaProducto(producto)}
-      className="group relative h-[320px] w-[280px] shrink-0 overflow-hidden rounded-xl bg-surface-container md:h-[380px] md:w-[320px]"
-      tabIndex={decorativa ? -1 : undefined}
-      aria-hidden={decorativa ? "true" : undefined}
-      onMouseEnter={onPausar}
-      onMouseLeave={onReanudar}
-      onFocus={onPausar}
-      onBlur={onReanudar}
-      onClickCapture={onClickCapture}
-      // El arrastre se maneja con eventos de puntero en el contenedor; sin
-      // esto el navegador inicia su propio drag de imagen/enlace y el gesto
-      // se corta a la mitad.
-      draggable={false}
-    >
-      {foto ? (
-        <img
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          src={foto.url}
-          alt={producto.nombre}
-          loading="lazy"
-          decoding="async"
-          draggable={false}
-        />
-      ) : null}
-      {/* El gradiente se aliviana a /50: con el panel de vidrio debajo, el
-          /80 anterior sumaba una segunda capa oscura y la foto quedaba
-          apagada. Se conserva porque suaviza el borde superior del panel. */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-inverse-surface/50 via-transparent to-transparent" />
-      {/* El corazón se omite por completo en el juego duplicado, en vez de
-          intentar sacarlo del tabulado: `BotonFavorito` no acepta `tabIndex`
-          (su firma es `{ productoId, className, textoGuardar }`), así que
-          pasárselo lo descartaría en silencio y el clon quedaría tabulable.
-          Omitirlo además evita dos botones con el mismo `aria-label` para el
-          mismo producto. */}
-      {decorativa ? null : (
-        <BotonFavorito
-          productoId={producto.id}
-          className="absolute right-2 top-2 z-10 rounded-full bg-surface-container-lowest/90 shadow-sm"
-        />
-      )}
-      {/* Panel de vidrio esmerilado sobre la foto.
-          
-          `inset-x-0` y no `left-0`: el bloque se estiraba al ancho de su
-          contenido, así que un panel con fondo propio quedaría como un
-          recuadro irregular cortado a media tarjeta. Como banda al ancho
-          completo se lee como una capa de la tarjeta, no como un parche.
-
-          La mezcla es deliberada: el desenfoque —no la opacidad— hace el
-          grueso del trabajo. El fondo del panel es a su vez un degradado
-          (`/85` abajo → `/50` arriba) en lugar de un velo parejo: la parte
-          baja, donde vive el precio, necesita más respaldo, mientras que el
-          borde superior se funde con la foto en vez de cortarla con una
-          línea dura. Va en negro puro (`black`), no en `inverse-surface`: con
-          fotos muy claras el texto blanco seguía perdiendo contraste incluso
-          con el degradado, así que hace falta el respaldo más oscuro posible
-          debajo del blur.
-
-          `backdrop-blur-md` y no `-xl`: el panel viaja a 40 px/s dentro del
-          carrusel y el navegador recalcula el desenfoque en cada frame.
-          `md` es el punto donde el texto ya se lee sin que el scroll pierda
-          fluidez. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-1.5 border-t border-surface/20 bg-gradient-to-t from-black/85 to-black/50 px-5 pb-5 pt-4 backdrop-blur-md">
-        {producto.etiqueta ? (
-          /* Chip en blanco sobre vidrio, no en crema con texto oscuro.
-             Dentro del panel esmerilado, el texto casi negro sobre
-             `surface/70` se leía como un bloque gris apagado: pierde contra
-             la foto y rompe la coherencia con el nombre y el precio, que ya
-             son blancos. Acá es un borde claro translúcido con la misma
-             tinta que el resto del bloque. */
-          <span className="font-label-md text-label-md w-max rounded-full border border-surface/40 bg-surface/15 px-3 py-1 uppercase tracking-wide text-surface backdrop-blur-sm [text-shadow:0_1px_2px_rgb(0_0_0/0.4)]">
-            {producto.etiqueta}
-          </span>
-        ) : null}
-        {/* `line-clamp-2`: un nombre largo empujaba el precio fuera de la
-            tarjeta. */}
-        <h3 className="font-body-lg text-[19px] font-semibold leading-snug tracking-[-0.01em] text-surface line-clamp-2 [text-shadow:0_1px_3px_rgb(0_0_0/0.5)]">
-          {producto.nombre}
-        </h3>
-        {/* El precio es lo que la gente busca primero: gana peso y tamaño
-            para que el ojo lo encuentre sin leer el nombre entero. */}
-        <PrecioProducto
-          producto={producto}
-          className="font-body-lg text-[22px] font-bold leading-none tracking-[-0.01em] text-surface [text-shadow:0_2px_4px_rgb(0_0_0/0.55)]"
-          claseAnterior="text-surface/80 [text-shadow:0_1px_3px_rgb(0_0_0/0.55)]"
-        />
-      </div>
-    </Link>
-  );
-}
-
-/**
  * Carrusel de productos destacados — "Hallazgos del día".
  *
  * **Por qué mueve `scrollLeft` y no una animación CSS.** La versión anterior
@@ -163,12 +44,19 @@ function TarjetaDestacado({ producto, decorativa = false, onPausar, onReanudar, 
  * **Loop sin costura**: la lista se renderiza dos veces. El segundo juego
  * empieza exactamente en la mitad del ancho scrolleable, así que al llegar
  * ahí se resta esa mitad y la vista queda idéntica: el rebobinado no se ve.
- * El duplicado es puramente visual (ver `decorativa` en `TarjetaDestacado`).
+ * El duplicado es puramente visual: cada tarjeta clonada usa el mismo
+ * `ProductCard` compartido con el resto del sitio (`RielOfertas.jsx`,
+ * `/coleccion`, favoritos), envuelto en un DIV que lleva `aria-hidden="true"`
+ * e `inert` — `ProductCard` no acepta una variante "decorativa" (solo recibe
+ * `{ producto }`), así que sacar el clon del árbol de accesibilidad y del
+ * tabulado es responsabilidad del envoltorio, no de la tarjeta.
  *
- * **Pausa**: solo al apuntar (o enfocar) UNA TARJETA, y en móvil solo
+ * **Pausa**: solo al apuntar (o enfocar) UN ENVOLTORIO, y en móvil solo
  * mientras se mantiene presionada. No al pasar por la banda: ese era el
  * comportamiento anterior y dejaba el carrusel congelado con el puntero
- * quieto en cualquier hueco.
+ * quieto en cualquier hueco. Los handlers viven en el DIV que envuelve a cada
+ * `ProductCard`, por el mismo motivo que el `aria-hidden`/`inert`: el
+ * componente compartido no admite props propias.
  *
  * **`prefers-reduced-motion`**: sin movimiento automático; el carrusel queda
  * como una tira que se arrastra o scrollea a mano. El movimiento automático
@@ -486,23 +374,36 @@ function CarruselDestacados({ productos }) {
       >
         <div className="flex w-max gap-gutter px-margin-mobile md:px-margin-desktop">
           {destacados.map((producto) => (
-            <TarjetaDestacado
+            <div
               key={producto.id}
-              producto={producto}
-              onPausar={pausar}
-              onReanudar={reanudar}
+              className="w-[220px] shrink-0 md:w-[260px]"
+              onMouseEnter={pausar}
+              onMouseLeave={reanudar}
+              onFocus={pausar}
+              onBlur={reanudar}
               onClickCapture={handleClickCapture}
-            />
+            >
+              <ProductCard producto={producto} />
+            </div>
           ))}
           {destacados.map((producto) => (
-            <TarjetaDestacado
+            <div
               key={`clon-${producto.id}`}
-              producto={producto}
-              decorativa
-              onPausar={pausar}
-              onReanudar={reanudar}
+              aria-hidden="true"
+              // Booleano, no string: en React 19 `inert` es un atributo
+              // booleano de primera clase (mismo criterio que
+              // `CarruselCampanias.jsx`) — pasarlo como texto dispara un
+              // warning.
+              inert={true}
+              className="w-[220px] shrink-0 md:w-[260px]"
+              onMouseEnter={pausar}
+              onMouseLeave={reanudar}
+              onFocus={pausar}
+              onBlur={reanudar}
               onClickCapture={handleClickCapture}
-            />
+            >
+              <ProductCard producto={producto} />
+            </div>
           ))}
         </div>
       </div>
