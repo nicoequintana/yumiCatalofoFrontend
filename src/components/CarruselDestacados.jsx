@@ -344,7 +344,10 @@ function CarruselDestacados({ productos }) {
   return (
     <section className="w-full bg-surface-container-lowest">
       <div className="mx-auto w-full max-w-container-max px-margin-mobile pt-16 md:px-margin-desktop md:pt-24">
-        <div className="mb-12 flex flex-col gap-2">
+        {/* Sin margen inferior: el aire hasta las tarjetas lo pone ahora el
+            `py-8` de la pista, que entró para que el anillo de los destacados
+            no se corte. Con los dos, el encabezado quedaba desprendido. */}
+        <div className="flex flex-col gap-2">
           <h2 className="font-headline-md text-headline-md text-on-surface">Hallazgos del día</h2>
           <p className="font-body-lg text-body-lg max-w-2xl text-on-surface-variant">
             Nuestra selección del momento — piezas destacadas que no vas a querer perderte.
