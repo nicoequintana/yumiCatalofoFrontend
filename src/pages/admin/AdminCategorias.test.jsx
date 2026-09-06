@@ -39,20 +39,47 @@ describe("AdminCategorias", () => {
     expect(await screen.findByText("Todavía no hay categorías")).toBeInTheDocument();
   });
 
-  // `PUT /categorias/:id` es FULL-REPLACE: si el payload no manda `icono`, el
-  // backend lo escribe como `null` y lo borra en silencio. Este test es el que
-  // frena que una edición que sólo toca el nombre le vuele el ícono a la
-  // categoría.
-  it("al renombrar sin tocar el ícono, no se lo borra", async () => {
+  // El ícono por categoría se retiró (29/09/2026): la foto lo reemplaza en
+  // los círculos de la home y un selector que ya no se muestra en ningún
+  // lado es una opción del panel que no hace nada. Estos dos tests son el
+  // guard de que no vuelva a colarse en el formulario ni en los payloads.
+  it("no muestra el selector de ícono", async () => {
+    categoriasApi.getCategorias.mockResolvedValue([
+      { id: 1, nombre: "Iluminación", cantidadProductos: 4 },
+    ]);
+
+    renderPagina();
+    await screen.findByText("Iluminación");
+
+    expect(screen.queryByText(/Ícono de la categoría/i)).not.toBeInTheDocument();
+  });
+
+  it("al crear, no manda ningún ícono", async () => {
+    const usuario = userEvent.setup();
+    categoriasApi.getCategorias.mockResolvedValueOnce([]);
+    categoriasApi.createCategoria.mockResolvedValue({ id: 6, nombre: "Deco", cantidadProductos: 0 });
+    categoriasApi.getCategorias.mockResolvedValueOnce([
+      { id: 6, nombre: "Deco", cantidadProductos: 0 },
+    ]);
+
+    renderPagina();
+    await screen.findByText("Todavía no hay categorías");
+
+    await usuario.type(screen.getByPlaceholderText("Nombre de la nueva categoría"), "Deco");
+    await usuario.click(screen.getByRole("button", { name: /Agregar/i }));
+
+    expect(categoriasApi.createCategoria).toHaveBeenCalledWith("Deco");
+  });
+
+  it("al renombrar, no manda ningún ícono", async () => {
     const usuario = userEvent.setup();
     categoriasApi.getCategorias.mockResolvedValue([
-      { id: 1, nombre: "Iluminación", cantidadProductos: 4, icono: "lightbulb" },
+      { id: 1, nombre: "Iluminación", cantidadProductos: 4 },
     ]);
     categoriasApi.updateCategoria.mockResolvedValue({
       id: 1,
       nombre: "Luces",
       cantidadProductos: 4,
-      icono: "lightbulb",
     });
 
     renderPagina();
@@ -64,7 +91,7 @@ describe("AdminCategorias", () => {
     await usuario.type(input, "Luces");
     await usuario.click(screen.getByRole("button", { name: /Guardar/i }));
 
-    expect(categoriasApi.updateCategoria).toHaveBeenCalledWith(1, "Luces", "lightbulb");
+    expect(categoriasApi.updateCategoria).toHaveBeenCalledWith(1, "Luces");
   });
 
   it("la tabla está apilable: cada celda declara su columna o su tipo", async () => {

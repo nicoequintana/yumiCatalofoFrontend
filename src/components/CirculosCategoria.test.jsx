@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
@@ -13,31 +13,46 @@ vi.mock("../hooks/useCategoriasNavbar.js", () => ({
 const { default: CirculosCategoria } = await import("./CirculosCategoria.jsx");
 
 describe("CirculosCategoria", () => {
-  it("pinta el ícono cuando la categoría lo tiene", () => {
+  it("con imagenUrl, muestra la foto de la categoría", () => {
     categoriasMock.mockReturnValue({
-      categorias: [{ id: 3, nombre: "Hogar", icono: "chair" }],
+      categorias: [{ id: 3, nombre: "Hogar", imagenUrl: "https://cdn.test/hogar.jpg" }],
       resuelto: true,
     });
 
-    render(<CirculosCategoria />, { wrapper: MemoryRouter });
+    const { container } = render(<CirculosCategoria />, { wrapper: MemoryRouter });
 
-    expect(screen.getByText("chair")).toBeInTheDocument();
+    // Decorativa (`alt=""`): sin rol "img", se busca por el DOM.
+    expect(container.querySelector("img")).toHaveAttribute("src", "https://cdn.test/hogar.jpg");
   });
 
-  it("sin ícono cae a la inicial, y no rompe la fila", () => {
+  it("sin imagenUrl, muestra el ícono genérico", () => {
     categoriasMock.mockReturnValue({
-      categorias: [{ id: 5, nombre: "Mascotas", icono: null }],
+      categorias: [{ id: 5, nombre: "Mascotas", imagenUrl: null }],
       resuelto: true,
     });
 
     render(<CirculosCategoria />, { wrapper: MemoryRouter });
 
-    expect(screen.getByText("M")).toBeInTheDocument();
+    expect(screen.getByText("category")).toBeInTheDocument();
+  });
+
+  it("si la foto falla al cargar, cae al ícono genérico", () => {
+    categoriasMock.mockReturnValue({
+      categorias: [{ id: 3, nombre: "Hogar", imagenUrl: "https://cdn.test/rota.jpg" }],
+      resuelto: true,
+    });
+
+    const { container } = render(<CirculosCategoria />, { wrapper: MemoryRouter });
+
+    fireEvent.error(container.querySelector("img"));
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText("category")).toBeInTheDocument();
   });
 
   it("cada círculo linkea a su categoría", () => {
     categoriasMock.mockReturnValue({
-      categorias: [{ id: 3, nombre: "Hogar", icono: "chair" }],
+      categorias: [{ id: 3, nombre: "Hogar", imagenUrl: null }],
       resuelto: true,
     });
 
@@ -60,8 +75,8 @@ describe("CirculosCategoria", () => {
   it("agrega un círculo 'Ver todas' al final que lleva a /coleccion", () => {
     categoriasMock.mockReturnValue({
       categorias: [
-        { id: 3, nombre: "Hogar", icono: "chair" },
-        { id: 5, nombre: "Mascotas", icono: null },
+        { id: 3, nombre: "Hogar", imagenUrl: null },
+        { id: 5, nombre: "Mascotas", imagenUrl: null },
       ],
       resuelto: true,
     });
@@ -80,7 +95,7 @@ describe("CirculosCategoria", () => {
 
   it("el círculo 'Ver todas' usa el ícono grid_view", () => {
     categoriasMock.mockReturnValue({
-      categorias: [{ id: 3, nombre: "Hogar", icono: "chair" }],
+      categorias: [{ id: 3, nombre: "Hogar", imagenUrl: null }],
       resuelto: true,
     });
 

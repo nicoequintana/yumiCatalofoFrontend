@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
-import SelectorIcono from "../../components/admin/SelectorIcono.jsx";
 import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import {
   createCategoria,
@@ -26,7 +25,8 @@ const MAX_CATEGORIAS_HOME = 3;
 /**
  * `/catalogo/admin/configuracion/categorias` — la lista de categorías y, desde
  * el 29/08/2026, también lo que alimenta la fila de accesos por categoría de
- * la home pública: el ícono de cada círculo y cuáles van primero.
+ * la home pública: la foto de cada círculo y cuáles van primero. Sin foto, el
+ * círculo cae al mismo ícono genérico para todas (`CirculosCategoria.jsx`).
  *
  * Las categorías se asignan a productos desde el desplegable de
  * `AdminProductoForm.jsx`; esta pantalla maneja la lista en sí.
@@ -37,12 +37,10 @@ function AdminCategorias() {
   const [error, setError] = useState(null);
 
   const [nombreNuevo, setNombreNuevo] = useState("");
-  const [iconoNuevo, setIconoNuevo] = useState(null);
   const [creando, setCreando] = useState(false);
 
   const [editandoId, setEditandoId] = useState(null);
   const [nombreEditado, setNombreEditado] = useState("");
-  const [iconoEditado, setIconoEditado] = useState(null);
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   const [confirmandoId, setConfirmandoId] = useState(null);
@@ -113,9 +111,8 @@ function AdminCategorias() {
     setError(null);
     setCreando(true);
     try {
-      await createCategoria(nombre, iconoNuevo);
+      await createCategoria(nombre);
       setNombreNuevo("");
-      setIconoNuevo(null);
       await cargarCategorias();
     } catch (err) {
       setError(err.message ?? "No se pudo crear la categoría.");
@@ -128,7 +125,6 @@ function AdminCategorias() {
     setConfirmandoId(null);
     setEditandoId(categoria.id);
     setNombreEditado(categoria.nombre);
-    setIconoEditado(categoria.icono ?? null);
   }
 
   async function handleGuardarEdicion(id) {
@@ -138,10 +134,7 @@ function AdminCategorias() {
     setError(null);
     setGuardandoEdicion(true);
     try {
-      // `icono` viaja SIEMPRE, aunque esta edición sólo haya tocado el nombre:
-      // el PUT es full-replace y omitirlo borraría en silencio el ícono que la
-      // categoría ya tenía.
-      await updateCategoria(id, nombre, iconoEditado);
+      await updateCategoria(id, nombre);
       setEditandoId(null);
       await cargarCategorias();
     } catch (err) {
@@ -222,8 +215,9 @@ function AdminCategorias() {
         <p className="font-body-md text-body-md mt-2 max-w-2xl text-on-surface-variant">
           Además de organizar los productos, acá se arma la fila de accesos por
           categoría de la home: aparecen ahí todas las categorías con
-          productos publicados, a cada una se le puede asignar un ícono, y
-          marcar hasta {MAX_CATEGORIAS_HOME} hace que esas vayan primero.{" "}
+          productos publicados, a cada una se le puede subir una foto —sin
+          foto se muestra un ícono genérico—, y marcar hasta{" "}
+          {MAX_CATEGORIAS_HOME} hace que esas vayan primero.{" "}
           {cantidadDestacadas === 0
             ? "Todavía no marcaste ninguna: se muestran en el orden por defecto."
             : `Marcadas: ${cantidadDestacadas} de ${MAX_CATEGORIAS_HOME}.`}
@@ -248,8 +242,6 @@ function AdminCategorias() {
             Agregar
           </button>
         </div>
-
-        <SelectorIcono valor={iconoNuevo} onCambiar={setIconoNuevo} />
       </form>
 
       {error ? (
@@ -324,15 +316,12 @@ function AdminCategorias() {
                     className="font-body-md text-body-md px-4 py-3 text-on-surface"
                   >
                     {editandoId === categoria.id ? (
-                      <div className="flex flex-col gap-3">
-                        <input
-                          type="text"
-                          value={nombreEditado}
-                          onChange={(e) => setNombreEditado(e.target.value)}
-                          className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
-                        />
-                        <SelectorIcono valor={iconoEditado} onCambiar={setIconoEditado} />
-                      </div>
+                      <input
+                        type="text"
+                        value={nombreEditado}
+                        onChange={(e) => setNombreEditado(e.target.value)}
+                        className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
+                      />
                     ) : (
                       categoria.nombre
                     )}
