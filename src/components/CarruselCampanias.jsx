@@ -93,8 +93,11 @@ export default function CarruselCampanias({ slides = [] }) {
           <div
             // `promocionId` primero: un slide PROMOCION viaja con
             // `campaniaId: null`, así que caer directo a `campaniaId` colisiona
-            // "PROMOCION" entre todos ellos. `tipo` queda de último recurso
-            // para el sintético OFERTAS, que es el único slide sin ningún id.
+            // "PROMOCION" entre todos ellos. `tipo` queda de último recurso:
+            // hoy todos los slides traen uno de los dos ids —el sintético
+            // OFERTAS, que era el único sin ninguno, se eliminó el
+            // 06/09/2026— pero se deja como red por si vuelve a existir un
+            // slide sin identidad propia.
             key={slide.promocionId ?? slide.campaniaId ?? slide.tipo}
             aria-hidden={i === indice ? undefined : "true"}
             // `inert` saca del tabulado los slides ocultos, booleano — no
