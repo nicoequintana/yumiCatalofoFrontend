@@ -19,6 +19,24 @@ function slide(n, extra = {}) {
   };
 }
 
+function slidePromocion(n, extra = {}) {
+  // Todo slide de promoción viaja con `campaniaId: null`: es el backend el
+  // que discrimina campaña de promoción por `tipo`, nunca por `campaniaId`.
+  return {
+    tipo: "PROMOCION",
+    campaniaId: null,
+    promocionId: n,
+    titulo: `Promoción ${n}`,
+    texto: null,
+    ctaTexto: null,
+    ctaDestino: null,
+    arteUrl: null,
+    doodleUrl: null,
+    color: "TERRACOTA",
+    ...extra,
+  };
+}
+
 function renderCarrusel(slides) {
   return render(
     <MemoryRouter>
@@ -210,5 +228,19 @@ describe("CarruselCampanias", () => {
 
     expect(linkActivo.closest("[inert]")).toBeNull();
     expect(linkOculto.closest("[inert]")).not.toBeNull();
+  });
+
+  it("dos slides de promoción (mismo campaniaId null) usan promocionId como key y renderizan los dos", () => {
+    // Regresión: antes de usar `promocionId`, la key era
+    // `campaniaId ?? tipo`, y dos slides PROMOCION comparten `campaniaId:
+    // null` y `tipo: "PROMOCION"` → la misma key literal "PROMOCION" para los
+    // dos. React no lanza por eso, pero deja de garantizar que reconcilie
+    // cada nodo por separado; lo que sí podemos afirmar sin depender de eso
+    // es que los DOS títulos llegan al DOM y hay dos tabs, uno por slide.
+    renderCarrusel([slidePromocion(10), slidePromocion(20)]);
+
+    expect(screen.getByText("Promoción 10")).toBeInTheDocument();
+    expect(screen.getByText("Promoción 20", { selector: "p" })).toBeInTheDocument();
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
   });
 });

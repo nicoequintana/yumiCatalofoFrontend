@@ -91,7 +91,11 @@ export default function CarruselCampanias({ slides = [] }) {
       >
         {slides.map((slide, i) => (
           <div
-            key={slide.campaniaId ?? slide.tipo}
+            // `promocionId` primero: un slide PROMOCION viaja con
+            // `campaniaId: null`, así que caer directo a `campaniaId` colisiona
+            // "PROMOCION" entre todos ellos. `tipo` queda de último recurso
+            // para el sintético OFERTAS, que es el único slide sin ningún id.
+            key={slide.promocionId ?? slide.campaniaId ?? slide.tipo}
             aria-hidden={i === indice ? undefined : "true"}
             // `inert` saca del tabulado los slides ocultos, booleano — no
             // string — porque React lo trata como atributo booleano de
@@ -132,7 +136,8 @@ export default function CarruselCampanias({ slides = [] }) {
           <div role="tablist" aria-label="Ir a un slide" className="flex items-center gap-2">
             {slides.map((slide, i) => (
               <button
-                key={slide.campaniaId ?? slide.tipo}
+                // Mismo orden que la key del slide, ver comentario arriba.
+                key={slide.promocionId ?? slide.campaniaId ?? slide.tipo}
                 type="button"
                 role="tab"
                 onClick={() => setIndice(i)}
