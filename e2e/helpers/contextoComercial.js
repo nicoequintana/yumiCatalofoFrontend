@@ -19,16 +19,22 @@
  * tienen sus tests unitarios—, así que estabilizar esta respuesta los aísla en
  * vez de recortarles cobertura.
  *
- * ⚠️ **Hace MÁS falta desde que el cartel se muestra en cada carga.** El tope de
- * "una vez por día por visitante" se retiró: ya no hay ningún `localStorage` que
- * silencie el segundo `goto` de un spec.
+ * ⚠️ **El tope de "una vez por día por visitante" VOLVIÓ (05/09/2026) y es la
+ * regla vigente** — `useModalCampania` guarda en `localStorage` con clave
+ * `campaniaId + claveDia`. Sin este helper, dos specs seguidos que compartan
+ * corrida y campaña activa verían el cartel solo en el primero: el segundo
+ * `goto` heredaría el `localStorage` ya marcado y fallaría por "no aparece el
+ * modal" en vez de por lo que realmente prueba. Devolver `modal: null` es lo
+ * que saca esa variable de la ecuación.
  *
  * `claveDia` viaja igual y con un valor real —lo consume el calendario del
  * panel—: devolverlo en `null` sería un estado que la API nunca produce cuando
  * responde bien.
  *
- * La excepción es `admin-campania-editor.spec.js`, que NO llama a este helper
- * porque el cartel es justamente lo que prueba.
+ * Dos specs NO llaman a este helper, a propósito: `admin-campania-editor.spec.js`,
+ * porque el cartel es justamente lo que prueba, y `home-carrusel.spec.js`,
+ * porque el carrusel "muestra lo que haya, sea de quien sea" y necesita ver la
+ * campaña real de la base de datos.
  */
 export async function neutralizarContextoComercial(page) {
   await page.route("**/api/campanias/activas*", async (route) => {
