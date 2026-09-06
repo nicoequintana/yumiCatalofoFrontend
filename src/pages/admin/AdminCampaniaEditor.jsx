@@ -221,7 +221,6 @@ export default function AdminCampaniaEditor() {
               <SeccionBanner
                 valores={valores}
                 editar={editar}
-                opciones={opciones}
                 campania={campania}
                 guardando={guardando}
                 esEdicion={esEdicion}

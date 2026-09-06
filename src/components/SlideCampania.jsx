@@ -5,50 +5,44 @@ import { Link } from "react-router-dom";
  * UN slide del carrusel de la home. No rota, no sabe que hay otros: la
  * rotación es de `CarruselCampanias`.
  *
- * NO CALCULA NADA. El destino llega resuelto a una ruta, el texto del botón con
- * su default aplicado y el color con el suyo. Este componente decide cómo se
- * VE, nunca qué dice.
+ * NO CALCULA NADA. El destino llega resuelto a una ruta. Este componente decide
+ * cómo se VE, nunca a dónde lleva.
  *
- * `interactivo={false}` dibuja el CTA como `<span>`: lo usa la vista previa del
- * editor, donde el botón se tiene que ver pero no navegar.
+ * **El slide ENTERO es el enlace**, no un botón adentro. `interactivo={false}`
+ * lo baja a un `<div>`: lo usa la vista previa del editor, donde el slide se
+ * tiene que ver igual pero no navegar.
  */
 
 /**
- * El par fondo/texto de cada color de la lista cerrada del backend.
+ * El copy de la señal de que el slide lleva a algún lado.
  *
- * ⚠️ **Los dos salen juntos, y esa es toda la gracia.** Emparejarlos acá es lo
- * que garantiza que nunca exista una combinación ilegible; si el color viniera
- * suelto y el texto se eligiera aparte, alguien terminaría con blanco sobre
- * ocre sin que nada falle.
+ * **Es FIJO y no un dato del slide.** Hasta el 06/09/2026 el admin lo escribía
+ * por campaña (`bannerCtaTexto`) y el backend lo emitía en `ctaTexto`; con el
+ * slide entero convertido en enlace, esa señal dejó de ser un control y pasó a
+ * ser presentación — no hay una decisión editorial que tomar sobre el texto de
+ * un subrayado con flecha. La columna sigue en la base, inerte.
  *
- * ⚠️ **`inverse-on-surface` no existe en este proyecto.** El par del tono
- * oscuro es `bg-inverse-surface` + `text-background`, igual que el CTA del
- * hero. Una clase que no existe no emite ninguna regla: el color queda
- * heredado y el texto puede volverse invisible, sin error y sin test rojo.
- *
- * ⚠️ **No exportado a propósito.** `SeccionBanner` (campañas) y
- * `SeccionBannerPromocion` (promociones) necesitan solo el fondo (la
- * pastilla de muestra no lleva texto encima); lo importan de
- * `components/admin/campanias/muestraColor.js` (`MUESTRA_COLOR`), NO de acá
- * — exportar este mapa rompería el Fast Refresh del archivo (`oxlint` avisa
- * `react/only-export-components`) porque dejaría de exportar solo un
- * componente. `muestraColor.js` sigue siendo una copia manual de la mitad
- * "fondo" de este mapa (06/09/2026): la sincronización entre los dos está
- * registrada en el censo de `CLAUDE.md`, que sigue contando TRES casas
- * (backend, este archivo y `muestraColor.js`) — compartir el módulo entre
- * `SeccionBanner` y `SeccionBannerPromocion` evitó una CUARTA copia por
- * consumidor, no eliminó la tercera.
+ * ⚠️ **No espeja `CTA_TEXTO_POR_DEFECTO` del backend.** Coinciden en el string
+ * de hoy, pero aquél sigue siendo el default del CARTEL —una superficie que sí
+ * se edita— y este no viaja en ninguna respuesta: no hay contrato entre los
+ * dos, y cambiar uno no obliga a tocar el otro.
  */
-const COLORES = {
-  TERRACOTA: "bg-primary text-on-primary",
-  VERDE: "bg-secondary text-on-secondary",
-  OCRE: "bg-tertiary-container text-on-tertiary-container",
-  TINTA: "bg-inverse-surface text-background",
-  ARENA: "bg-surface-container-high text-on-surface",
-};
+const TEXTO_CTA = "Ver más";
 
-/** El de la marca. Espeja `COLOR_SLIDE_POR_DEFECTO` de `lib/campanias.js`. */
-const COLOR_POR_DEFECTO = "TERRACOTA";
+/**
+ * El fondo del molde compuesto (el slide SIN arte): SIEMPRE el color de marca.
+ *
+ * Hubo una lista cerrada de cinco pares fondo/texto que el admin elegía por
+ * campaña. Se fue el 06/09/2026 junto con el botón: sin un control adentro, un
+ * fondo por campaña era una decisión de marca tomada campaña por campaña, que
+ * es justamente lo que una identidad visual no quiere. La columna `bannerColor`
+ * quedó inerte en la base y el backend ya no emite `color`.
+ *
+ * ⚠️ El par va JUNTO (`bg-primary` + `text-on-primary`). Elegir el fondo de un
+ * lado y el color del texto de otro es como se llega a blanco sobre ocre sin
+ * que nada falle.
+ */
+const CLASES_MOLDE = "bg-primary text-on-primary";
 
 export default function SlideCampania({ slide, interactivo = true }) {
   // Una foto que ya no está en Cloudinary solo se descubre en runtime, igual
@@ -68,17 +62,40 @@ export default function SlideCampania({ slide, interactivo = true }) {
 
   const hayArte = Boolean(slide.arteUrl) && !arteRoto;
   const hayDoodle = Boolean(slide.doodleUrl) && !doodleRoto;
-  const hayCta = Boolean(slide.ctaDestino) && Boolean(slide.ctaTexto);
-  const clasesColor = COLORES[slide.color] ?? COLORES[COLOR_POR_DEFECTO];
+  // El destino es la ÚNICA condición: el texto dejó de venir en el slide. Sin
+  // ruta la señal no se dibuja — una flecha que promete un enlace inexistente
+  // es peor que no mostrar nada.
+  const hayCta = Boolean(slide.ctaDestino);
 
-  const claseCta =
-    "mt-2 inline-flex w-max items-center rounded-full bg-surface-container-lowest px-5 py-2 font-label-md text-label-md text-on-surface";
+  // EL SLIDE ENTERO ES EL ENLACE, no un botón dentro de él.
+  //
+  // Un banner es una superficie publicitaria: la expectativa de cualquiera que
+  // lo ve es que se toca en cualquier lado, y un botón chico dentro de una
+  // franja de 357 px obliga a apuntarle en móvil. Además liberó los ~32 px de
+  // alto que ese botón ocupaba, que en un banner de 123 px era una cuarta parte.
+  //
+  // `interactivo={false}` es la vista previa del panel: ahí NO navega, porque
+  // el admin está editando, no visitando. Cae a un `<div>` y se ve igual.
+  const Envoltorio = interactivo && slide.ctaDestino ? Link : "div";
+  const propsEnvoltorio =
+    Envoltorio === Link
+      ? {
+          to: slide.ctaDestino,
+          // El nombre accesible sale del TÍTULO, no del copy del CTA: un lector
+          // de pantalla que anuncia "Ver más" no dice a dónde va. Con el
+          // título, dice "Primavera, enlace".
+          "aria-label": slide.titulo,
+        }
+      : {};
 
   return (
-    <div
+    <Envoltorio
+      {...propsEnvoltorio}
       className={`relative flex h-full w-full items-center gap-4 overflow-hidden ${
-        hayArte ? "text-background" : `${clasesColor} px-4 md:px-10`
-      }`}
+        interactivo && slide.ctaDestino
+          ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-background"
+          : ""
+      } ${hayArte ? "text-background" : `${CLASES_MOLDE} px-4 md:px-10`}`}
     >
       {hayArte ? (
         <>
@@ -183,22 +200,40 @@ export default function SlideCampania({ slide, interactivo = true }) {
           hayArte ? "relative max-w-[64%] px-4 md:max-w-[52%] md:px-10" : ""
         }`}
       >
-        <p className="font-headline-sm text-headline-sm md:font-headline-lg md:text-headline-lg">
+        {/* ⚠️ EL `line-clamp` NO ES ESTÉTICA: sin él el copy NO ENTRA en móvil.
+            Medido a 412 px: el banner mide 357×123 y el bloque de texto llegaba
+            a 156 px de alto — un 127 % del banner, sobresaliendo 16 px por
+            abajo. Como el contenedor es `overflow-hidden`, la señal del CTA
+            quedaba cortada contra el borde.
+            Dos líneas para el título y dos para el texto es lo que entra junto
+            a esa señal en 123 px de alto. En `md+` se suelta (`line-clamp-none`):
+            ahí sobran 320 px de alto y recortar sería perder copy sin motivo.
+            Se corta con puntos suspensivos, que es honesto: avisa que hay más.
+            Lo que NO se hace es achicar la tipografía hasta que entre — a 12 px
+            sobre una foto el copy deja de leerse, y el problema vuelve con un
+            texto un poco más largo. */}
+        <p className="font-headline-sm text-headline-sm line-clamp-2 md:font-headline-lg md:text-headline-lg md:line-clamp-none">
           {slide.titulo}
         </p>
         {slide.texto ? (
-          <p className="font-body-md text-body-md mt-1 opacity-90">{slide.texto}</p>
+          <p className="font-body-sm text-body-sm mt-1 line-clamp-2 opacity-90 md:font-body-md md:text-body-md md:line-clamp-none">
+            {slide.texto}
+          </p>
         ) : null}
+        {/* ⚠️ NO ES UN BOTÓN, y no puede serlo: el slide ENTERO es el enlace
+            (ver `Envoltorio`, arriba), así que un `<Link>` acá
+            adentro sería un ancla dentro de otra ancla — HTML inválido, que los
+            navegadores "arreglan" cerrando la primera y dejando media tarjeta
+            sin clickear.
+            Queda como señal visual de que el slide lleva a algún lado. El
+            subrayado y la flecha hacen ese trabajo sin fingir un control. */}
         {hayCta ? (
-          interactivo ? (
-            <Link to={slide.ctaDestino} className={claseCta}>
-              {slide.ctaTexto}
-            </Link>
-          ) : (
-            <span className={claseCta}>{slide.ctaTexto}</span>
-          )
+          <span className="font-label-md text-label-md mt-2 inline-flex w-max items-center gap-1 underline underline-offset-4">
+            {TEXTO_CTA}
+            <span aria-hidden="true">→</span>
+          </span>
         ) : null}
       </div>
-    </div>
+    </Envoltorio>
   );
 }

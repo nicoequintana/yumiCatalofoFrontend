@@ -44,7 +44,6 @@ const DETALLE = {
   bannerEnHome: true,
   bannerTitulo: "Semana del Hogar",
   bannerTexto: "Hasta 30 %.",
-  bannerCtaTexto: "Ver la selección",
 };
 
 beforeEach(() => {
@@ -54,7 +53,7 @@ beforeEach(() => {
 });
 
 describe("useCampaniaEditor — el bloque del banner", () => {
-  it("precarga las cuatro columnas del detalle", async () => {
+  it("precarga las columnas del detalle que todavía se editan", async () => {
     const { result } = renderHook(() => useCampaniaEditor(), { wrapper: envoltorio });
 
     await waitFor(() => expect(result.current.cargando).toBe(false));
@@ -63,7 +62,6 @@ describe("useCampaniaEditor — el bloque del banner", () => {
       bannerEnHome: true,
       bannerTitulo: "Semana del Hogar",
       bannerTexto: "Hasta 30 %.",
-      bannerCtaTexto: "Ver la selección",
     });
   });
 
@@ -80,16 +78,18 @@ describe("useCampaniaEditor — el bloque del banner", () => {
     );
   });
 
-  it("manda el color elegido en el payload", async () => {
+  it("el payload NO lleva color ni texto de botón: dejaron de editarse", async () => {
+    // Son columnas inertes desde el 06/09/2026. Mandarlas escribiría un dato
+    // que ninguna pantalla lee — y `editar` acepta cualquier clave, así que sin
+    // este guard alcanza con que alguien vuelva a listarlas en el payload para
+    // que la escritura vuelva sin que nada falle.
     const { result } = renderHook(() => useCampaniaEditor(), { wrapper: envoltorio });
     await waitFor(() => expect(result.current.cargando).toBe(false));
 
-    act(() => result.current.editar("bannerColor", "OCRE"));
     await act(() => result.current.guardar());
 
-    expect(actualizarCampaniaMock).toHaveBeenCalledWith(
-      1,
-      expect.objectContaining({ bannerColor: "OCRE" }),
-    );
+    const [, payload] = actualizarCampaniaMock.mock.calls[0];
+    expect(payload).not.toHaveProperty("bannerColor");
+    expect(payload).not.toHaveProperty("bannerCtaTexto");
   });
 });

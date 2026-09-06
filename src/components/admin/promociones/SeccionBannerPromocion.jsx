@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Interruptor from "../campanias/Interruptor.jsx";
 import PreviewBanner from "../campanias/PreviewBanner.jsx";
-import { MUESTRA_COLOR } from "../campanias/muestraColor.js";
 import { MEDIDA_SUGERIDA, avisoProporcionArte } from "../campanias/proporcionArte.js";
 import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
 
@@ -23,11 +22,11 @@ import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
  *    censo de `CLAUDE.md`.
  * 3. El preview usa `SlideCampania`, el mismo componente del carrusel real.
  *
- * ⚠️ **A diferencia de campañas, acá el backend valida el marcador en TRES
- * campos y no dos**: además de `bannerTitulo`/`bannerTexto`,
- * `promociones.controller.js` también rechaza `{dias}` en `bannerCtaTexto`
- * (campañas no lo hace). El aviso de acá cubre los tres, siguiendo el
- * contrato real y no una copia literal de campañas.
+ * **Sin texto del botón ni color** desde el 06/09/2026, igual que
+ * `SeccionBanner`: el slide entero es el enlace, su CTA quedó como una señal de
+ * copy fijo y el molde sin arte va siempre en el color de marca. Las columnas
+ * `bannerCtaTexto` / `bannerColor` siguen en la base pero quedaron INERTES —
+ * nadie las lee ni las escribe.
  *
  * **A diferencia de `SeccionBanner`, no hay modo "alta sin guardar".** Esta
  * sección solo se monta con una promoción ya `abierta` en
@@ -62,18 +61,11 @@ function valoresIniciales(promocion) {
     bannerEnHome: promocion?.bannerEnHome ?? false,
     bannerTitulo: promocion?.bannerTitulo ?? "",
     bannerTexto: promocion?.bannerTexto ?? "",
-    bannerCtaTexto: promocion?.bannerCtaTexto ?? "",
-    // `null` y no una de las cinco opciones: una promoción que todavía no
-    // eligió color no "es" TERRACOTA, el default lo aplica el backend AL LEER
-    // — mismo criterio que `bannerColor` en `useCampaniaEditor`.
-    bannerColor: promocion?.bannerColor ?? null,
   };
 }
 
 export default function SeccionBannerPromocion({
   promocion,
-  colores = [],
-  ctaTextoPorDefecto,
   guardando,
   onGuardar,
   onSubirArte,
@@ -98,7 +90,6 @@ export default function SeccionBannerPromocion({
 
   const avisoTitulo = avisoMarcadorDias(valores.bannerTitulo, "bannerTitulo");
   const avisoTexto = avisoMarcadorDias(valores.bannerTexto, "bannerTexto");
-  const avisoCta = avisoMarcadorDias(valores.bannerCtaTexto, "bannerCtaTexto");
 
   function editar(campo, valor) {
     setValores((actuales) => ({ ...actuales, [campo]: valor }));
@@ -109,8 +100,6 @@ export default function SeccionBannerPromocion({
       bannerEnHome: valores.bannerEnHome,
       bannerTitulo: valores.bannerTitulo.trim() || null,
       bannerTexto: valores.bannerTexto.trim() || null,
-      bannerCtaTexto: valores.bannerCtaTexto.trim() || null,
-      bannerColor: valores.bannerColor,
     });
   }
 
@@ -138,9 +127,9 @@ export default function SeccionBannerPromocion({
   }
 
   // Lo que va a ver el visitante, en la MISMA forma que arma el backend en
-  // `aSlidePromocion` — con `ctaTexto`/`ctaDestino` SIEMPRE presentes (a
-  // diferencia del banner de campaña, una promoción no tiene "sin botón": el
-  // destino sale del id, no de una elección).
+  // `aSlidePromocion` — con `ctaDestino` SIEMPRE presente (a diferencia del
+  // banner de campaña, una promoción no tiene "sin destino": sale del id, no de
+  // una elección).
   const slidePreview = {
     tipo: "PROMOCION",
     campaniaId: null,
@@ -148,13 +137,11 @@ export default function SeccionBannerPromocion({
     titulo: valores.bannerTitulo || PLACEHOLDER_TITULO,
     texto: valores.bannerTexto,
     ctaDestino: promocion?.id ? "#" : null,
-    ctaTexto: valores.bannerCtaTexto.trim() || ctaTextoPorDefecto || "",
     // El arte sale de `promocion` y no de `valores`: se sube por su propio
     // endpoint (`onSubirArte`) y queda persistido EN EL ACTO, mismo criterio
     // que `SeccionBanner`.
     arteUrl: promocion?.bannerArteUrl ?? null,
     doodleUrl: null,
-    color: valores.bannerColor,
   };
 
   return (
@@ -169,7 +156,7 @@ export default function SeccionBannerPromocion({
         Banner de la home
       </h2>
       <p className="font-body-sm text-body-sm mb-5 text-on-surface-variant">
-        El botón siempre lleva a los productos de esta promoción — acá no se elige a dónde va.
+        El slide siempre lleva a los productos de esta promoción — acá no se elige a dónde va.
       </p>
 
       <div className="mb-5">
@@ -219,56 +206,6 @@ export default function SeccionBannerPromocion({
             ) : null}
           </div>
 
-          <div>
-            <label htmlFor="promocion-banner-cta" className={claseEtiqueta}>
-              Texto del botón del banner
-            </label>
-            <input
-              id="promocion-banner-cta"
-              type="text"
-              maxLength={60}
-              value={valores.bannerCtaTexto}
-              onChange={(e) => editar("bannerCtaTexto", e.target.value)}
-              className={claseCampo}
-              placeholder={ctaTextoPorDefecto ?? ""}
-            />
-            {avisoCta ? (
-              <p className="font-body-sm text-body-sm mt-1 text-error">{avisoCta}</p>
-            ) : null}
-          </div>
-
-          <div>
-            <label htmlFor="promocion-banner-color" className={claseEtiqueta}>
-              Color del slide
-            </label>
-            {/* Los valores salen de `colores` (`coloresSlide` de
-                `GET /campanias/opciones`), que emite el backend. El panel NO
-                tiene copia: un diccionario duplicado a mano falla mudo. */}
-            <div className="flex items-center gap-3">
-              <select
-                id="promocion-banner-color"
-                value={valores.bannerColor ?? ""}
-                onChange={(e) => editar("bannerColor", e.target.value)}
-                className={claseCampo}
-              >
-                <option value="" disabled>
-                  Elegí un color
-                </option>
-                {colores.map((color) => (
-                  <option key={color.valor} value={color.valor}>
-                    {color.etiqueta}
-                  </option>
-                ))}
-              </select>
-              <span
-                aria-hidden="true"
-                className={`h-8 w-8 shrink-0 rounded-full ${
-                  MUESTRA_COLOR[valores.bannerColor] ?? MUESTRA_COLOR.TERRACOTA
-                }`}
-              />
-            </div>
-          </div>
-
           {/* El arte sube a `PUT /promociones/:id/arte`. A diferencia de
               campañas, esta sección solo existe con una promoción que ya
               tiene id, así que no hace falta ningún candado de "guardá
@@ -291,7 +228,7 @@ export default function SeccionBannerPromocion({
                 />
               ) : (
                 <p className="font-body-sm text-body-sm text-on-surface-variant">
-                  Sin arte: el slide sale solo con el color de fondo.
+                  Sin arte: el slide sale con el color de la marca y el copy encima.
                 </p>
               )}
 

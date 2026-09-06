@@ -74,21 +74,18 @@ describe("actualizarPromocion", () => {
     expect(opciones.method).toBe("PUT");
     const body = JSON.parse(opciones.body);
     expect(body).toEqual({ nombre: "Verano", bannerEnHome: true });
-    // No debe inventar bannerTitulo/bannerTexto/bannerCtaTexto/bannerColor:
-    // el backend distingue clave AUSENTE ("no la toques") de `null`
-    // explícito ("borrala"), y completar acá con null borraría datos que el
-    // llamador no quiso tocar.
+    // No debe inventar bannerTitulo/bannerTexto: el backend distingue clave
+    // AUSENTE ("no la toques") de `null` explícito ("borrala"), y completar acá
+    // con null borraría datos que el llamador no quiso tocar.
     expect(body).not.toHaveProperty("bannerTitulo");
     expect(body).not.toHaveProperty("bannerTexto");
-    expect(body).not.toHaveProperty("bannerCtaTexto");
-    expect(body).not.toHaveProperty("bannerColor");
   });
 
   it("propaga el error del backend", async () => {
-    mockRespuesta({ error: "`bannerColor` debe ser uno de: TERRACOTA, ..." }, false);
+    mockRespuesta({ error: "Un banner activo necesita un título." }, false);
 
-    await expect(actualizarPromocion(3, { bannerColor: "ROSA" })).rejects.toThrow(
-      "`bannerColor` debe ser uno de: TERRACOTA, ...",
+    await expect(actualizarPromocion(3, { bannerEnHome: true })).rejects.toThrow(
+      "Un banner activo necesita un título.",
     );
   });
 });

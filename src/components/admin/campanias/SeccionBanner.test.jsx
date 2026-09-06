@@ -8,20 +8,15 @@ const VALORES = {
   bannerEnHome: false,
   bannerTitulo: "",
   bannerTexto: "",
-  bannerCtaTexto: "",
-  bannerColor: "TERRACOTA",
   modalCtaTipo: "CATALOGO",
 };
 
+/**
+ * `ctaTextoPorDefecto` sigue llegando porque es del CARTEL, que conserva su
+ * campo editable. El banner ya no lo usa: su CTA es copy fijo del componente.
+ */
 const OPCIONES = {
   ctaTextoPorDefecto: "Ver más",
-  coloresSlide: [
-    { valor: "TERRACOTA", etiqueta: "Terracota" },
-    { valor: "VERDE", etiqueta: "Verde" },
-    { valor: "OCRE", etiqueta: "Ocre" },
-    { valor: "TINTA", etiqueta: "Tinta" },
-    { valor: "ARENA", etiqueta: "Arena" },
-  ],
 };
 
 function montar(props = {}) {
@@ -72,33 +67,17 @@ describe("SeccionBanner", () => {
     expect(screen.queryByText(/\{dias\}/)).toBeNull();
   });
 
-  it("ofrece los colores que manda el backend, sin copia local", () => {
-    // Mismo criterio que los tipos y los estados: un diccionario duplicado a mano
-    // falla MUDO — se agrega un color, el backend lo acepta, el selector no lo
-    // ofrece, y ningún test se pone rojo.
-    render(
-      <SeccionBanner
-        valores={{ ...VALORES, bannerColor: "VERDE" }}
-        opciones={{ coloresSlide: [
-          { valor: "TERRACOTA", etiqueta: "Terracota" },
-          { valor: "VERDE", etiqueta: "Verde" },
-        ] }}
-        editar={() => {}}
-      />,
-    );
+  it("ya no hay selector de color ni campo de texto del botón", () => {
+    // 06/09/2026: el slide entero pasó a ser el enlace, así que el CTA quedó
+    // como una señal de copy fijo y el molde sin arte va siempre en el color de
+    // marca. Los dos campos dejaron de ser decisiones, y dejarlos en el
+    // formulario haría que el admin edite algo que nadie lee: el guardado
+    // pasaría igual y el cambio simplemente no aparecería en la home.
+    montar();
 
-    expect(screen.getByRole("radio", { name: "Terracota" })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Verde" })).toBeChecked();
-  });
-
-  it("avisa el color elegido", async () => {
-    const usuario = userEvent.setup();
-    const editar = vi.fn();
-    render(<SeccionBanner valores={VALORES} opciones={OPCIONES} editar={editar} />);
-
-    await usuario.click(screen.getByRole("radio", { name: "Ocre" }));
-
-    expect(editar).toHaveBeenCalledWith("bannerColor", "OCRE");
+    expect(screen.queryByLabelText(/Texto del botón del banner/i)).toBeNull();
+    expect(screen.queryByText(/Color del slide/i)).toBeNull();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
   });
 
   it("el marcador {dias} en el texto avisa antes de guardar", async () => {

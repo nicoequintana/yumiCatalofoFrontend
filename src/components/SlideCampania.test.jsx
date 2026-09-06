@@ -3,16 +3,20 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import SlideCampania from "./SlideCampania.jsx";
 
+/**
+ * La forma EXACTA que emite `aSlideCampania` desde el 06/09/2026: sin
+ * `ctaTexto` y sin `color`. Los dos dejaron de viajar cuando el slide entero
+ * pasó a ser el enlace — el copy de la señal es fijo acá y el molde sin arte va
+ * siempre en el color de marca.
+ */
 const SLIDE = {
   tipo: "CAMPANIA",
   campaniaId: 7,
   titulo: "Primavera YIMA",
   texto: "Renovamos la casa",
-  ctaTexto: "Ver la selección",
   ctaDestino: "/coleccion?campania=7",
   arteUrl: null,
   doodleUrl: "https://cdn.test/doodle.png",
-  color: "VERDE",
 };
 
 function renderSlide(slide, props) {
@@ -24,14 +28,14 @@ function renderSlide(slide, props) {
 }
 
 describe("SlideCampania", () => {
-  it("sin arte, pinta el color y muestra el doodle", () => {
+  it("sin arte, pinta el color de marca y muestra el doodle", () => {
     const { container } = renderSlide(SLIDE);
 
     expect(screen.getByText("Primavera YIMA")).toBeInTheDocument();
     // Decorativa (`alt=""`): no tiene rol "img" en el árbol de accesibilidad,
     // así que se busca por el DOM, no por rol.
     expect(container.querySelector("img")).toHaveAttribute("src", SLIDE.doodleUrl);
-    expect(container.querySelector(".bg-secondary")).not.toBeNull();
+    expect(container.querySelector(".bg-primary")).not.toBeNull();
   });
 
   it("con arte, la pieza llena la caja y el doodle NO se muestra", () => {
@@ -100,35 +104,59 @@ describe("SlideCampania", () => {
     expect(arte.className).toContain("inset-0");
   });
 
-  it("un color desconocido cae al de la marca en vez de romper", () => {
-    const { container } = renderSlide({ ...SLIDE, color: "FUCSIA" });
+  it("un `color` que llegue de una respuesta vieja no cambia nada", () => {
+    // El backend dejó de emitir `color` el 06/09/2026, pero una pestaña abierta
+    // desde antes puede tener slides cacheados que todavía lo traigan. El molde
+    // sin arte se pinta con el color de marca IGUAL: el dato ya no se lee.
+    const { container } = renderSlide({ ...SLIDE, color: "VERDE" });
 
     expect(container.querySelector(".bg-primary")).not.toBeNull();
+    expect(container.querySelector(".bg-secondary")).toBeNull();
   });
 
-  it("el CTA es un link cuando hay destino y texto", () => {
+  it("el slide ENTERO es el link, y su nombre accesible es el título", () => {
+    // No es el `ctaTexto`: un lector de pantalla que anuncia "Ver más" no dice a
+    // dónde va. Con el título, dice "Primavera YIMA, enlace".
     renderSlide(SLIDE);
 
-    expect(screen.getByRole("link", { name: "Ver la selección" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Primavera YIMA" })).toHaveAttribute(
       "href",
       "/coleccion?campania=7",
     );
   });
 
-  it("sin destino no hay botón", () => {
-    // Sin `ctaTexto` el backend ya no manda destino: dibujar un botón que no
-    // lleva a ningún lado es peor que no dibujar ninguno.
-    renderSlide({ ...SLIDE, ctaTexto: null, ctaDestino: null });
+  it("hay UN solo link por slide: la señal del CTA no es un ancla adentro de otra", () => {
+    // Un `<a>` dentro de otro `<a>` es HTML inválido, y los navegadores lo
+    // "arreglan" cerrando la primera: media tarjeta deja de ser clickeable, sin
+    // ningún error. La señal del CTA tiene que ser un `<span>`.
+    renderSlide(SLIDE);
+
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+  });
+
+  it("el CTA usa un copy fijo, no uno que venga en el slide", () => {
+    // Dejó de ser editable: el backend no manda `ctaTexto` y el componente pone
+    // siempre el mismo texto.
+    renderSlide(SLIDE);
+
+    expect(screen.getByText("Ver más")).toBeInTheDocument();
+  });
+
+  it("sin destino no hay señal de CTA", () => {
+    // Sin `ctaDestino` el slide no navega: dibujar una flecha que promete un
+    // enlace inexistente es peor que no dibujar nada.
+    renderSlide({ ...SLIDE, ctaDestino: null });
 
     expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByText("Ver más")).toBeNull();
   });
 
   it("interactivo={false} dibuja el CTA sin navegar", () => {
-    // La vista previa del panel: el botón se ve, pero no es un link.
+    // La vista previa del panel: la señal se ve, pero el slide no es un link.
     renderSlide(SLIDE, { interactivo: false });
 
     expect(screen.queryByRole("link")).toBeNull();
-    expect(screen.getByText("Ver la selección")).toBeInTheDocument();
+    expect(screen.getByText("Ver más")).toBeInTheDocument();
   });
 
   it("las imágenes son decorativas: el título no se anuncia dos veces", () => {

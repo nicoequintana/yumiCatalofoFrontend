@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import Interruptor from "./Interruptor.jsx";
 import PreviewBanner from "./PreviewBanner.jsx";
-import { MUESTRA_COLOR } from "./muestraColor.js";
 import { MEDIDA_SUGERIDA, avisoProporcionArte } from "./proporcionArte.js";
 import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
 
@@ -14,6 +13,12 @@ import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
  *
  * **No tiene selector de destino.** El destino es de la campaña y vive en
  * `SeccionDestinoCta`, que el cartel y el banner comparten.
+ *
+ * **Tampoco tiene texto del botón ni color** desde el 06/09/2026: con el slide
+ * entero convertido en enlace, el CTA quedó como una señal de copy fijo y el
+ * molde sin arte va siempre en el color de marca. Los dos dejaron de ser
+ * decisiones, así que el formulario dejó de ofrecerlas — un campo que se guarda
+ * y que ninguna pantalla lee es peor que no tenerlo.
  *
  * Los campos se muestran SIEMPRE, no solo con el banner prendido: se puede
  * escribir con calma y prenderlo después. El backend solo exige el título
@@ -52,7 +57,6 @@ const MAX_ARTE_BYTES = 15 * 1024 * 1024;
 export default function SeccionBanner({
   valores,
   editar,
-  opciones,
   campania,
   guardando,
   esEdicion,
@@ -111,9 +115,10 @@ export default function SeccionBanner({
     titulo: valores.bannerTitulo || PLACEHOLDER_TITULO,
     texto: valores.bannerTexto,
     // Con `interactivo` apagado el valor nunca se navega. Acá alcanza con decir
-    // SI HAY botón; la ruta real la resuelve el backend al leer.
+    // SI HAY destino; la ruta real la resuelve el backend al leer. Y es lo
+    // ÚNICO que decide si el slide dibuja la señal del CTA: el copy es fijo en
+    // `SlideCampania` desde el 06/09/2026.
     ctaDestino: valores.modalCtaTipo ? "#" : null,
-    ctaTexto: valores.bannerCtaTexto.trim() || opciones?.ctaTextoPorDefecto || "",
     // El arte SÍ sale de `campania` y no de `valores`: se sube por su propio
     // endpoint (`onSubirArte`) y queda persistido EN EL ACTO — `cambiarArte`
     // reescribe `campania` con la respuesta del PUT apenas termina la subida.
@@ -122,14 +127,6 @@ export default function SeccionBanner({
     // guardado".
     arteUrl: campania?.bannerArteUrl ?? null,
     doodleUrl: campania?.doodleUrl ?? null,
-    // El color, en cambio, SÍ tiene que salir de `valores`: es un campo del
-    // `<form>` que recién viaja al servidor en el submit. Leerlo de `campania`
-    // congelaría la previa en el último color GUARDADO — el admin clickea
-    // otro color y no pasa nada hasta guardar y recargar, que es justo lo
-    // contrario de para qué existe una previa. Va CRUDO, sin default acá:
-    // `SlideCampania` ya cae a `COLOR_SLIDE_POR_DEFECTO` cuando `color` viene
-    // vacío, y aplicarlo dos veces era una tercera copia del mismo valor.
-    color: valores.bannerColor,
   };
 
   return (
@@ -194,52 +191,6 @@ export default function SeccionBanner({
             ) : null}
           </div>
 
-          <div>
-            <label htmlFor="campania-banner-cta" className={claseEtiqueta}>
-              Texto del botón del banner
-            </label>
-            <input
-              id="campania-banner-cta"
-              type="text"
-              maxLength={60}
-              value={valores.bannerCtaTexto}
-              onChange={(e) => editar("bannerCtaTexto", e.target.value)}
-              className={claseCampo}
-              placeholder={opciones?.ctaTextoPorDefecto ?? ""}
-            />
-          </div>
-
-          <fieldset className="flex flex-col gap-2">
-            <legend className={claseEtiqueta}>Color del slide</legend>
-            {/* Los valores salen de `opciones.coloresSlide`, que emite el backend.
-                El panel NO tiene copia: un diccionario duplicado a mano falla mudo. */}
-            <div className="flex flex-wrap gap-2">
-              {(opciones?.coloresSlide ?? []).map((color) => (
-                <label
-                  key={color.valor}
-                  className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-2 ${
-                    valores.bannerColor === color.valor ? "border-primary" : "border-outline-variant"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="bannerColor"
-                    className="sr-only"
-                    checked={valores.bannerColor === color.valor}
-                    onChange={() => editar("bannerColor", color.valor)}
-                  />
-                  <span
-                    aria-hidden="true"
-                    className={`h-4 w-4 rounded-full ${
-                      MUESTRA_COLOR[color.valor] ?? MUESTRA_COLOR.TERRACOTA
-                    }`}
-                  />
-                  <span className="font-label-md text-label-md text-on-surface">{color.etiqueta}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
           {/* El bloque se muestra SIEMPRE; en el alta espera. Sube a
               `PUT /:id/arte`, así que no puede operar hasta que la campaña
               exista — mismo patrón que el Doodle de `SeccionCampania`. */}
@@ -266,7 +217,7 @@ export default function SeccionBanner({
                     />
                   ) : (
                     <p className="font-body-sm text-body-sm text-on-surface-variant">
-                      Sin arte: el slide sale solo con el color de fondo.
+                      Sin arte: el slide sale con el color de la marca y el copy encima.
                     </p>
                   )}
 

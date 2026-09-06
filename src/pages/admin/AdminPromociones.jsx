@@ -8,7 +8,6 @@ import SeccionBannerPromocion from "../../components/admin/promociones/SeccionBa
 import TablaComercial from "../../components/admin/promociones/TablaComercial.jsx";
 import AlertaConflictos from "../../components/admin/promociones/AlertaConflictos.jsx";
 import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
-import { getOpcionesCampania } from "../../api/campanias.js";
 import {
   actualizarPromocion,
   crearPromocion,
@@ -48,11 +47,6 @@ export default function AdminPromociones() {
   const [abierta, setAbierta] = useState(null);
   const [comercial, setComercial] = useState({ data: [], page: 1, total: 0, pageSize: 20 });
   const [conflictos, setConflictos] = useState([]);
-  // El diccionario de colores del slide (`coloresSlide`) es de campañas, pero
-  // lo comparte el banner de promoción: es el MISMO backend el que valida
-  // `bannerColor` para las dos, así que es la misma lista. Falla blanda —sin
-  // ella el selector queda vacío, pero el resto del editor sigue andando.
-  const [opcionesCampania, setOpcionesCampania] = useState(null);
   const [seleccionados, setSeleccionados] = useState(new Set());
   const [pagina, setPagina] = useState(1);
 
@@ -87,23 +81,6 @@ export default function AdminPromociones() {
       activo = false;
     };
   }, [pagina]);
-
-  // Aparte del Promise.all de arriba: es la lista de colores del SLIDE, no
-  // del listado de promociones — un fallo acá no puede tumbar la pantalla
-  // entera, solo dejar el selector de color del banner sin opciones.
-  useEffect(() => {
-    let activo = true;
-    getOpcionesCampania()
-      .then((datos) => {
-        if (activo) setOpcionesCampania(datos);
-      })
-      .catch(() => {
-        if (activo) setOpcionesCampania(null);
-      });
-    return () => {
-      activo = false;
-    };
-  }, []);
 
   /**
    * Ejecuta una mutación y refresca.
@@ -516,8 +493,6 @@ export default function AdminPromociones() {
                   <div className="mt-6">
                     <SeccionBannerPromocion
                       promocion={abierta}
-                      colores={opcionesCampania?.coloresSlide}
-                      ctaTextoPorDefecto={opcionesCampania?.ctaTextoPorDefecto}
                       guardando={guardando}
                       onGuardar={guardarBanner}
                       onSubirArte={subirArteBanner}

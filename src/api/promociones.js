@@ -36,8 +36,8 @@ export async function crearPromocion(datos) {
 
 /**
  * `PUT /promociones/:id` — full-replace del lado del backend, PERO no para
- * las cinco claves del banner (`bannerEnHome`, `bannerTitulo`, `bannerTexto`,
- * `bannerCtaTexto`, `bannerColor`): el backend (`parsearBannerPromocion`)
+ * las tres claves del banner (`bannerEnHome`, `bannerTitulo`, `bannerTexto`):
+ * el backend (`parsearBannerPromocion`)
  * distingue una clave AUSENTE del body ("no la toques") de una PRESENTE con
  * `null` ("borrala"). Por eso `datos` viaja tal cual lo arma el llamador —
  * **nunca completes acá las claves que falten con `null`**. Hacerlo es

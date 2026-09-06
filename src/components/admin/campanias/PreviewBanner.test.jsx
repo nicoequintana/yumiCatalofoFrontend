@@ -7,12 +7,13 @@ const SLIDE = {
   campaniaId: 7,
   titulo: "Semana del Hogar",
   texto: "Hasta 30 % en cocina, deco e iluminación.",
-  ctaTexto: "Ver la selección",
   ctaDestino: "/coleccion",
   arteUrl: null,
   doodleUrl: null,
-  color: "TERRACOTA",
 };
+
+/** El copy fijo del CTA, que `SlideCampania` pone sin que nadie lo elija. */
+const CTA = "Ver más";
 
 describe("PreviewBanner", () => {
   it("muestra el slide con el copy tipeado", () => {
@@ -25,7 +26,7 @@ describe("PreviewBanner", () => {
   it("el CTA se dibuja pero NO navega: es un preview, no la home", () => {
     const { container } = render(<PreviewBanner slide={SLIDE} />);
 
-    expect(screen.getByText("Ver la selección")).toBeInTheDocument();
+    expect(screen.getByText(CTA)).toBeInTheDocument();
     expect(container.querySelector("a")).toBeNull();
   });
 
@@ -46,6 +47,6 @@ describe("PreviewBanner", () => {
     const { container } = render(<PreviewBanner slide={{ ...SLIDE, titulo: "" }} />);
 
     expect(container.querySelector('[data-testid="preview-banner"]')).not.toBeNull();
-    expect(screen.queryByText("Ver la selección")).toBeNull();
+    expect(screen.queryByText(CTA)).toBeNull();
   });
 });

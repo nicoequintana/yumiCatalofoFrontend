@@ -23,27 +23,15 @@ function promo(overrides = {}) {
     bannerEnHome: false,
     bannerTitulo: "",
     bannerTexto: "",
-    bannerCtaTexto: "",
-    bannerColor: "TERRACOTA",
     bannerArteUrl: null,
     ...overrides,
   };
 }
 
-const COLORES = [
-  { valor: "TERRACOTA", etiqueta: "Terracota" },
-  { valor: "VERDE", etiqueta: "Verde" },
-  { valor: "OCRE", etiqueta: "Ocre" },
-  { valor: "TINTA", etiqueta: "Tinta" },
-  { valor: "ARENA", etiqueta: "Arena" },
-];
-
 function montar(props = {}) {
   return render(
     <SeccionBannerPromocion
       promocion={promo()}
-      colores={COLORES}
-      ctaTextoPorDefecto="Ver más"
       guardando={false}
       onGuardar={vi.fn()}
       {...props}
@@ -99,28 +87,16 @@ describe("SeccionBannerPromocion", () => {
     expect(await screen.findByText(/no del banner/i)).toBeInTheDocument();
   });
 
-  it("también avisa el marcador {dias} en el texto del botón (a diferencia de campañas, acá el backend valida los tres)", async () => {
-    // `promociones.controller.js` (`exigirSinMarcadorDeDias`, invocado sobre
-    // `bannerTitulo`, `bannerTexto` Y `bannerCtaTexto`) rechaza el marcador en
-    // los TRES campos — campañas solo valida los dos primeros. Sin este aviso
-    // acá, tipear `{dias}` en el botón pasaría desapercibido hasta el 400 real.
-    const usuario = userEvent.setup();
-    render(<SeccionBannerPromocion promocion={promo()} onGuardar={vi.fn()} />);
+  it("ya no hay selector de color ni campo de texto del botón", () => {
+    // 06/09/2026: el slide entero pasó a ser el enlace, así que el CTA quedó
+    // como una señal de copy fijo y el molde sin arte va siempre en el color de
+    // marca. Mismo borrado que en `SeccionBanner` (campañas): dejarlos en el
+    // formulario haría que el admin edite algo que ninguna pantalla lee.
+    montar();
 
-    await usuario.type(screen.getByLabelText(/texto del botón/i), "Faltan {{dias}} dias");
-
-    expect(await screen.findByText(/no del banner/i)).toBeInTheDocument();
-  });
-
-  it("el selector de color sale de la API, sin copia local", () => {
-    render(
-      <SeccionBannerPromocion
-        promocion={promo()}
-        colores={[{ valor: "VERDE", etiqueta: "Verde" }]}
-        onGuardar={vi.fn()}
-      />,
-    );
-    expect(screen.getByRole("option", { name: "Verde" })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/texto del botón/i)).toBeNull();
+    expect(screen.queryByLabelText(/color del slide/i)).toBeNull();
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
   });
 
   it("no ofrece ningún selector de destino del CTA", () => {
@@ -132,13 +108,13 @@ describe("SeccionBannerPromocion", () => {
     expect(screen.queryByText(/destino/i)).not.toBeInTheDocument();
   });
 
-  it("guarda solo los cinco campos del banner al confirmar", async () => {
+  it("guarda solo los tres campos que quedaron del banner", async () => {
+    // El payload es un literal explícito, no un spread de `valores`: mandar
+    // `bannerCtaTexto`/`bannerColor` sería escribir columnas inertes desde una
+    // pantalla que ya no las edita.
     const usuario = userEvent.setup();
     const onGuardar = vi.fn();
-    montar({
-      promocion: promo({ bannerTitulo: "Hogar", bannerColor: "OCRE" }),
-      onGuardar,
-    });
+    montar({ promocion: promo({ bannerTitulo: "Hogar" }), onGuardar });
 
     await usuario.click(screen.getByRole("button", { name: /guardar/i }));
 
@@ -146,8 +122,6 @@ describe("SeccionBannerPromocion", () => {
       bannerEnHome: false,
       bannerTitulo: "Hogar",
       bannerTexto: null,
-      bannerCtaTexto: null,
-      bannerColor: "OCRE",
     });
   });
 

@@ -4,17 +4,20 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import CarruselCampanias from "./CarruselCampanias.jsx";
 
+/**
+ * La forma que emite `aSlideCampania` desde el 06/09/2026: sin `ctaTexto` y sin
+ * `color`. El slide entero es el enlace, así que lo único que decide si navega
+ * es `ctaDestino`.
+ */
 function slide(n, extra = {}) {
   return {
     tipo: "CAMPANIA",
     campaniaId: n,
     titulo: `Campaña ${n}`,
     texto: null,
-    ctaTexto: null,
     ctaDestino: null,
     arteUrl: null,
     doodleUrl: null,
-    color: "TERRACOTA",
     ...extra,
   };
 }
@@ -28,11 +31,9 @@ function slidePromocion(n, extra = {}) {
     promocionId: n,
     titulo: `Promoción ${n}`,
     texto: null,
-    ctaTexto: null,
     ctaDestino: null,
     arteUrl: null,
     doodleUrl: null,
-    color: "TERRACOTA",
     ...extra,
   };
 }
@@ -215,19 +216,30 @@ describe("CarruselCampanias", () => {
     // jsdom y Testing Library no implementan `inert`: `getByRole` encuentra
     // igual el link dentro del subárbol inerte. Por eso esto verifica el
     // ATRIBUTO en el DOM, no que el link sea intabulable de verdad.
-    renderCarrusel([
-      slide(1, { ctaTexto: "Ver campaña", ctaDestino: "/coleccion" }),
-      slide(2, { ctaTexto: "Ver ofertas", ctaDestino: "/coleccion" }),
-    ]);
+    //
+    // El link se busca por el TÍTULO: desde el 06/09/2026 el enlace es el slide
+    // entero y su nombre accesible sale de `aria-label={slide.titulo}`, no del
+    // texto del CTA.
+    renderCarrusel([slide(1, { ctaDestino: "/coleccion" }), slide(2, { ctaDestino: "/coleccion" })]);
 
-    const linkActivo = screen.getByRole("link", { name: "Ver campaña" });
+    const linkActivo = screen.getByRole("link", { name: "Campaña 1" });
     // `hidden: true` porque el slide oculto lleva `aria-hidden`, que SÍ lo
     // saca del árbol de accesibilidad que consulta `getByRole` por defecto —
     // eso es independiente del gotcha de `inert` y siempre se comportó así.
-    const linkOculto = screen.getByRole("link", { name: "Ver ofertas", hidden: true });
+    const linkOculto = screen.getByRole("link", { name: "Campaña 2", hidden: true });
 
     expect(linkActivo.closest("[inert]")).toBeNull();
     expect(linkOculto.closest("[inert]")).not.toBeNull();
+  });
+
+  it("cada slide con destino aporta UN solo link, nunca uno anidado", () => {
+    // El CTA quedó como texto subrayado dentro del enlace grande. Si alguien lo
+    // vuelve a envolver en un `<Link>`, el ancla anidada es HTML inválido y el
+    // navegador cierra la primera: el slide deja de ser clickeable entero, sin
+    // ningún error visible.
+    renderCarrusel([slide(1, { ctaDestino: "/coleccion" }), slide(2, { ctaDestino: "/coleccion" })]);
+
+    expect(screen.getAllByRole("link", { hidden: true })).toHaveLength(2);
   });
 
   it("dos slides de promoción (mismo campaniaId null) usan promocionId como key y renderizan los dos", () => {

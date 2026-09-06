@@ -70,11 +70,6 @@ function valoresIniciales(campania, diaElegido) {
     bannerEnHome: campania?.bannerEnHome ?? false,
     bannerTitulo: campania?.bannerTitulo ?? "",
     bannerTexto: campania?.bannerTexto ?? "",
-    bannerCtaTexto: campania?.bannerCtaTexto ?? "",
-    // `null` y no una de las cinco opciones: una campaña que todavía no eligió
-    // color no "es" TERRACOTA, el default lo aplica el backend AL LEER
-    // (`COLOR_SLIDE_POR_DEFECTO`) — mismo criterio que `modalCtaTipo` vacío.
-    bannerColor: campania?.bannerColor ?? null,
   };
 }
 
@@ -112,8 +107,9 @@ function construirPayload(valores) {
     // cadena vacía que después hay que distinguir de no haber cargado nada.
     bannerTitulo: valores.bannerTitulo.trim() || null,
     bannerTexto: valores.bannerTexto.trim() || null,
-    bannerCtaTexto: valores.bannerCtaTexto.trim() || null,
-    bannerColor: valores.bannerColor,
+    // `bannerCtaTexto` y `bannerColor` NO viajan: dejaron de ser editables el
+    // 06/09/2026 y sus columnas quedaron inertes. Volver a listarlas acá las
+    // reescribiría desde una pantalla que ya no las muestra.
   };
 }
 
