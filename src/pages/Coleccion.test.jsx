@@ -110,6 +110,7 @@ describe("Coleccion - filtros y grid", () => {
         minPrecio: "",
         maxPrecio: "",
         campania: "",
+        promocion: "",
         page: 1,
         pageSize: 12,
       });
@@ -333,6 +334,7 @@ describe("Coleccion - filtros y grid", () => {
       minPrecio: "",
       maxPrecio: "",
       campania: "",
+      promocion: "",
       page: 1,
       pageSize: 12,
     });
@@ -348,6 +350,7 @@ describe("Coleccion - filtros y grid", () => {
       minPrecio: "",
       maxPrecio: "",
       campania: "",
+      promocion: "",
       page: 1,
       pageSize: 12,
     });
@@ -852,5 +855,73 @@ describe("Coleccion - solo ofertas", () => {
     renderPagina("/coleccion?conDescuento=1");
 
     expect(await screen.findByText(/Ofertas/i)).toBeInTheDocument();
+  });
+});
+
+/**
+ * `/coleccion?promocion=ID` — a donde manda el CTA del slide de una
+ * promoción (`GET /products?promocion=`, Task 6). A diferencia de
+ * `campania`, el backend no devuelve un sobre propio para esto: no hay
+ * nombre que mostrar, solo el filtro que compone con las guardas públicas.
+ *
+ * Mismo camino que `campania` y `conDescuento`: se lee de `searchParams`,
+ * nunca de `filtrosUrl` (vacío a propósito en el primer render con filtros
+ * heredados), y NO entra en `CLAVES_FILTRO` — llegar por el link del slide
+ * tiene que mostrar esa promoción, no un catálogo blanqueado.
+ */
+describe("Coleccion - promoción del slide", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    llamadasSetSearchParams.length = 0;
+    categoriasApi.getCategorias.mockResolvedValue(CATEGORIAS);
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+  });
+
+  it("pasa ?promocion= al listado", async () => {
+    renderPagina("/coleccion?promocion=7");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ promocion: "7" }),
+      );
+    });
+  });
+
+  it("sin el param NO lo manda", async () => {
+    renderPagina("/coleccion");
+
+    await waitFor(() => expect(productsApi.getProducts).toHaveBeenCalled());
+    expect(productsApi.getProducts).not.toHaveBeenCalledWith(
+      expect.objectContaining({ promocion: "7" }),
+    );
+  });
+
+  it("sobrevive al blanqueo de filtros heredados: la categoría se va, la promoción queda", async () => {
+    // Mismo test que atrapa el bug de leer `campania` de `filtrosUrl`: en el
+    // primer render con filtros heredados ese objeto está vacío a propósito,
+    // así que el valor se perdería justo en el fetch inicial.
+    renderPagina("/coleccion?promocion=7&categoria=2");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ promocion: "7", categoria: "" }),
+      );
+    });
+  });
+
+  it("Mostrar más también manda la promoción", async () => {
+    const user = userEvent.setup();
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }], { total: 40 }));
+
+    renderPagina("/coleccion?promocion=7");
+    await screen.findByText("Reloj Clásico");
+
+    await user.click(screen.getByRole("button", { name: "Mostrar más" }));
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ promocion: "7", page: 2 }),
+      );
+    });
   });
 });

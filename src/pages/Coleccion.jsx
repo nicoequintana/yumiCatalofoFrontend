@@ -48,8 +48,17 @@ const MAX_RESTAURACION = 100;
  * PURA a nivel de módulo (no un closure del componente) para poder usarse
  * dentro del efecto de fetch sin entrar en sus dependencias.
  */
-function claveDeFetch(categoria, search, minPrecio, maxPrecio, campania, soloOfertas, tandas) {
-  return `${categoria}|${search}|${minPrecio}|${maxPrecio}|${campania}|${soloOfertas}|${tandas}`;
+function claveDeFetch(
+  categoria,
+  search,
+  minPrecio,
+  maxPrecio,
+  campania,
+  soloOfertas,
+  promocion,
+  tandas,
+) {
+  return `${categoria}|${search}|${minPrecio}|${maxPrecio}|${campania}|${soloOfertas}|${promocion}|${tandas}`;
 }
 
 /**
@@ -149,6 +158,18 @@ function Coleccion() {
   // desde el panel (no tiene chip para quitar ni entra en "Limpiar"), sino la
   // IDENTIDAD del link al que acaba de entrar.
   const soloOfertas = searchParams.get("conDescuento") === "1";
+
+  // `/coleccion?promocion=7` — a donde manda el CTA del slide de una
+  // promoción (`GET /products?promocion=`, backend). Mismo camino que
+  // `campania` y `soloOfertas`: se lee de `searchParams` y NO de
+  // `filtrosUrl`, y no entra en `CLAVES_FILTRO` — es la IDENTIDAD del link
+  // al que se acaba de entrar, no un filtro armado desde el panel que
+  // convenga blanquear.
+  //
+  // A diferencia de `campania`, el backend no devuelve un sobre propio para
+  // esto: no hay nombre de promoción que mostrar, solo el filtro que
+  // compone con las guardas públicas.
+  const promocionId = searchParams.get("promocion") ?? "";
 
   const [searchInput, setSearchInput] = useState("");
 
@@ -402,6 +423,10 @@ function Coleccion() {
         // todas" trae el catálogo entero en vez de seguir mostrando solo lo
         // rebajado.
         ...(soloOfertas ? { conDescuento: true } : {}),
+        // Misma trampa otra vez: sin esto la segunda tanda del slide de una
+        // promoción trae el catálogo entero en vez de seguir acotada a esa
+        // promoción.
+        promocion: promocionId,
         page: siguiente,
         pageSize: PRODUCTOS_POR_TANDA,
       });
@@ -420,6 +445,7 @@ function Coleccion() {
         maxPrecio,
         campaniaId,
         soloOfertas,
+        promocionId,
         siguiente,
       );
       escribirTandas(siguiente);
@@ -486,6 +512,7 @@ function Coleccion() {
       maxPrecio,
       campaniaId,
       soloOfertas,
+      promocionId,
       paginas,
     );
     if (clave === claveCargada.current) return;
@@ -500,6 +527,7 @@ function Coleccion() {
       maxPrecio,
       campania: campaniaId,
       ...(soloOfertas ? { conDescuento: true } : {}),
+      promocion: promocionId,
       page: 1,
       // La restauración trae TODO lo acumulado en un solo request (volver de
       // una ficha con `?paginas=3` son 36 productos), topeado en el máximo
@@ -544,6 +572,7 @@ function Coleccion() {
     maxPrecio,
     campaniaId,
     soloOfertas,
+    promocionId,
     paginas,
     categoriasListas,
   ]);
@@ -572,9 +601,11 @@ function Coleccion() {
   // está vacío— cuando lo que pasó es que esa promoción se quedó sin nada.
   // `soloOfertas` es la misma trampa con otro nombre: sin promociones vigentes
   // hoy, "Ver todas" mostraría "Todavía no hay productos" en vez de "Sin
-  // resultados".
+  // resultados". `promocionId` es la tercera repetición: el slide de una
+  // promoción sin nada rebajado hoy es "Sin resultados", no "el catálogo
+  // entero está vacío".
   const hayFiltrosActivos = Boolean(
-    categoriaActiva || searchUrl || minPrecio || maxPrecio || campaniaId || soloOfertas,
+    categoriaActiva || searchUrl || minPrecio || maxPrecio || campaniaId || soloOfertas || promocionId,
   );
 
   // El link caducó: el id no corresponde a ninguna campaña, o la que había ya

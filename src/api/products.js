@@ -184,6 +184,11 @@ export const MAX_IDS_POR_CONSULTA = 100;
  * `conDescuento: true` trae solo los productos con una promoción vigente — es
  * lo que alimenta el riel de ofertas de la home y su grilla en `/coleccion`.
  *
+ * `promocion` (id) restringe a los productos de ESA promoción que hoy tienen
+ * descuento vigente — es a donde manda el CTA del slide de una promoción.
+ * A diferencia de `campania`, no cambia la forma del sobre: el backend ya
+ * resuelve la vigencia y solo filtra, sin agregar ningún campo a la respuesta.
+ *
  * `ids` (array de números) restringe la respuesta a esos productos concretos
  * y saltea la paginación: se compone con el resto de los filtros y con las
  * guardas públicas de visibilidad/stock del backend, así que "no vino en la
@@ -205,6 +210,7 @@ export async function getProducts({
   etiqueta,
   stock,
   campania,
+  promocion,
 } = {}) {
   const params = new URLSearchParams();
 
@@ -245,6 +251,12 @@ export async function getProducts({
   // distinguir los tres estados.
   if (campania !== undefined && campania !== null && campania !== "") {
     params.set("campania", campania);
+  }
+  // La vitrina de una promoción. A diferencia de `campania`, no cambia la
+  // forma del sobre: el backend ya resuelve la vigencia dentro del filtro y
+  // no agrega ningún campo a la respuesta.
+  if (promocion !== undefined && promocion !== null && promocion !== "") {
+    params.set("promocion", promocion);
   }
 
   const query = params.toString();
