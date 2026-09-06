@@ -124,7 +124,7 @@ export default function SlideCampania({ slide, interactivo = true }) {
             src={slide.arteUrl}
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 h-full w-full scale-110 object-cover blur-md [-webkit-mask-image:linear-gradient(to_right,#000_0%,#000_42%,transparent_74%)] [mask-image:linear-gradient(to_right,#000_0%,#000_42%,transparent_74%)]"
+            className="absolute inset-0 h-full w-full scale-110 object-cover blur-md [-webkit-mask-image:linear-gradient(to_right,#000_0%,#000_55%,transparent_85%)] [mask-image:linear-gradient(to_right,#000_0%,#000_55%,transparent_85%)]"
           />
           {/* El TINTE, que es lo que garantiza el contraste del texto claro: el
               desenfoque no oscurece, así que sobre un arte claro el copy
@@ -132,7 +132,7 @@ export default function SlideCampania({ slide, interactivo = true }) {
               `inverse-surface`: el segundo es el casi-negro (#1d1b1a) y sobre
               una foto se leía como una mancha; éste (#56423c) deja pasar el
               color del arte. */}
-          <div className="absolute inset-0 bg-gradient-to-r from-on-surface-variant/75 via-on-surface-variant/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-on-surface-variant/75 from-40% via-on-surface-variant/40 via-70% to-transparent" />
         </>
       ) : hayDoodle ? (
         /* El doodle solo aparece SIN arte. Con arte, dos imágenes en 135 px de
@@ -147,7 +147,18 @@ export default function SlideCampania({ slide, interactivo = true }) {
         </div>
       ) : null}
 
-      <div className={`min-w-0 ${hayArte ? "relative px-4 md:px-10" : ""}`}>
+      {/* ⚠️ EL ANCHO MÁXIMO NO ES DECORATIVO: es la mitad del par que mantiene
+          el copy legible. La otra mitad es la máscara del vidrio, que protege
+          hasta el 55 % del ancho.
+          Sin este tope, un título largo crece hasta donde le alcance y termina
+          sobre la zona NÍTIDA de la derecha, que es justo donde el vidrio ya no
+          lo separa del arte. Los dos números se mueven juntos: si la máscara
+          cambia, este tope la sigue.
+          En móvil el tope es más generoso (64 %) porque la caja es más angosta
+          —2,9:1 contra 3,6:1— y a la mitad de 372 px no entra un título. */}
+      <div
+        className={`min-w-0 ${hayArte ? "relative max-w-[64%] px-4 md:max-w-[52%] md:px-10" : ""}`}
+      >
         <p className="font-headline-sm text-headline-sm md:font-headline-lg md:text-headline-lg">
           {slide.titulo}
         </p>
