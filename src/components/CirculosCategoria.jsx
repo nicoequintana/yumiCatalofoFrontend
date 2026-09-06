@@ -81,11 +81,21 @@ function CirculoCategoria({ categoria }) {
           // (128 - 100), así que la foto sobresale lo mismo por los cuatro
           // lados y su centro sigue siendo el del disco. El tamaño es lo único
           // que produce el efecto; desplazarla sería descentrarla.
+          //
+          // ⚠️ `max-w-none` NO ES OPCIONAL — sin él la foto se ve CORRIDA A LA
+          // IZQUIERDA. El Preflight de Tailwind trae `img { max-width: 100% }`,
+          // que clampea este `w-[128%]` al ancho del disco; el alto NO se
+          // clampea porque el reset no declara `max-height`. Queda una caja
+          // alta y angosta (62,9 × 80,5 px medidos), y `object-contain` ajusta
+          // la silueta al lado menor: sobresale 8 px por la izquierda y le
+          // faltan 9 px para llegar al borde derecho. Ningún test lo atrapa —
+          // jsdom no aplica el reset — y en pantalla se lee como "el PNG está
+          // mal centrado", que manda a corregir el archivo equivocado.
           <img
             src={categoria.imagenUrl}
             alt=""
             onError={() => setFotoRota(true)}
-            className="absolute -left-[14%] -top-[14%] h-[128%] w-[128%] object-contain drop-shadow-[0_3px_4px_rgb(26_26_26_/_0.22)]"
+            className="absolute -left-[14%] -top-[14%] h-[128%] w-[128%] max-w-none object-contain drop-shadow-[0_3px_4px_rgb(26_26_26_/_0.22)]"
           />
         ) : (
           /* Sin foto —o rota—, el ícono genérico. Ídem para todas: no hay
