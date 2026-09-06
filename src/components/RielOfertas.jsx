@@ -57,7 +57,12 @@ export default function RielOfertas() {
       {/* La pista va a ancho completo, fuera del contenedor centrado, para que
           la tarjeta cortada al borde derecho se lea como "hay más" — la señal
           de scroll que no necesita ningún texto. */}
-      <div className="w-full overflow-x-auto overscroll-x-contain pb-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* `py-8` y no solo `pb-*`: `overflow-x-auto` obliga al navegador a
+          calcular `overflow-y: auto`, así que este contenedor RECORTA también
+          en vertical. Sin padding arriba, el anillo que `ProductCard` le pone a
+          los destacados (`ring-2`, que dibuja fuera de la caja) se corta justo
+          en el borde superior. */}
+      <div className="w-full overflow-x-auto overscroll-x-contain py-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex w-max gap-gutter px-margin-mobile pt-6 md:px-margin-desktop">
           {productos.map((producto) => (
             <div key={producto.id} className="w-[220px] shrink-0 md:w-[260px]">
