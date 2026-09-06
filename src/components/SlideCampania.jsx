@@ -26,12 +26,18 @@ import { Link } from "react-router-dom";
  * hero. Una clase que no existe no emite ninguna regla: el color queda
  * heredado y el texto puede volverse invisible, sin error y sin test rojo.
  *
- * ⚠️ **No exportado a propósito.** `SeccionBanner` necesita solo el fondo (la
- * pastilla de muestra no lleva texto encima) y tiene su propia copia,
- * `MUESTRA_COLOR` — exportar este mapa acá rompe el Fast Refresh del archivo
- * (`oxlint` avisa `react/only-export-components`) porque deja de exportar
- * solo un componente. La sincronización manual entre los dos mapas está
- * registrada en el censo de `CLAUDE.md`.
+ * ⚠️ **No exportado a propósito.** `SeccionBanner` (campañas) y
+ * `SeccionBannerPromocion` (promociones) necesitan solo el fondo (la
+ * pastilla de muestra no lleva texto encima); lo importan de
+ * `components/admin/campanias/muestraColor.js` (`MUESTRA_COLOR`), NO de acá
+ * — exportar este mapa rompería el Fast Refresh del archivo (`oxlint` avisa
+ * `react/only-export-components`) porque dejaría de exportar solo un
+ * componente. `muestraColor.js` sigue siendo una copia manual de la mitad
+ * "fondo" de este mapa (06/09/2026): la sincronización entre los dos está
+ * registrada en el censo de `CLAUDE.md`, que sigue contando TRES casas
+ * (backend, este archivo y `muestraColor.js`) — compartir el módulo entre
+ * `SeccionBanner` y `SeccionBannerPromocion` evitó una CUARTA copia por
+ * consumidor, no eliminó la tercera.
  */
 const COLORES = {
   TERRACOTA: "bg-primary text-on-primary",

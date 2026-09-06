@@ -99,6 +99,19 @@ describe("SeccionBannerPromocion", () => {
     expect(await screen.findByText(/no del banner/i)).toBeInTheDocument();
   });
 
+  it("también avisa el marcador {dias} en el texto del botón (a diferencia de campañas, acá el backend valida los tres)", async () => {
+    // `promociones.controller.js` (`exigirSinMarcadorDeDias`, invocado sobre
+    // `bannerTitulo`, `bannerTexto` Y `bannerCtaTexto`) rechaza el marcador en
+    // los TRES campos — campañas solo valida los dos primeros. Sin este aviso
+    // acá, tipear `{dias}` en el botón pasaría desapercibido hasta el 400 real.
+    const usuario = userEvent.setup();
+    render(<SeccionBannerPromocion promocion={promo()} onGuardar={vi.fn()} />);
+
+    await usuario.type(screen.getByLabelText(/texto del botón/i), "Faltan {{dias}} dias");
+
+    expect(await screen.findByText(/no del banner/i)).toBeInTheDocument();
+  });
+
   it("el selector de color sale de la API, sin copia local", () => {
     render(
       <SeccionBannerPromocion

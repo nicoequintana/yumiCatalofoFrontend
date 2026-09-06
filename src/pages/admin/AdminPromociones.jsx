@@ -177,13 +177,22 @@ export default function AdminPromociones() {
    * `SeccionBannerPromocion` con SOLO los cinco campos del banner — nunca con
    * `activa`, que es de otra acción (`alternarActiva`).
    *
-   * ⚠️ **`nombre` va SIEMPRE, aunque esta acción no lo toque.** A diferencia
-   * de las cinco claves del banner (donde ausente = "no la toques"),
-   * `parsearNombre` del backend EXIGE la clave en todo `PUT` —una promoción
-   * sin nombre no es un estado válido— así que un body sin `nombre` responde
-   * 400 "El nombre de la promoción es obligatorio", incluso si lo único que
-   * se quiso cambiar fue el banner. Mismo motivo por el que `alternarActiva`
-   * también lo re-manda.
+   * ⚠️ **`nombre` y `descripcion` van SIEMPRE, aunque esta acción no los
+   * toque** — y son DOS motivos distintos, no el mismo repetido:
+   *
+   * - `nombre`: `parsearNombre` del backend EXIGE la clave en todo `PUT` —una
+   *   promoción sin nombre no es un estado válido— así que un body sin
+   *   `nombre` responde 400 "El nombre de la promoción es obligatorio",
+   *   incluso si lo único que se quiso cambiar fue el banner. Falla RUIDOSO:
+   *   se nota en el acto.
+   * - `descripcion`: acá el peligro es el opuesto. `parsearDescripcion`
+   *   trata la clave AUSENTE igual que `null` —no distingue "no la toques"
+   *   de "bórrala", a diferencia de las cinco claves del banner— así que un
+   *   `PUT` sin `descripcion` la BORRA en silencio, sin 400 y sin aviso.
+   *   Reenviarla acá no es cortesía: es lo único que evita que guardar el
+   *   banner le vacíe la nota interna a la promoción.
+   *
+   * Mismo motivo por el que `alternarActiva` también re-manda las dos.
    */
   async function guardarBanner(datos) {
     await conGuardado(async () => {
