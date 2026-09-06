@@ -30,8 +30,10 @@ const PLACEHOLDER_TITULO = "Semana del Hogar";
  * `SlideCampania` (`COLORES`) — acá alcanza con el fondo, porque no hay texto
  * encima.
  *
- * ⚠️ **Es una CUARTA casa del mismo mapa** (censo de sincronizaciones,
- * `CLAUDE.md`): `SlideCampania` no exporta su versión porque hacerlo le rompe
+ * ⚠️ **Es la TERCERA casa del mismo mapa** (censo de sincronizaciones,
+ * `CLAUDE.md`) — las tres son `lib/campanias.js` (`COLORES_SLIDE`),
+ * `SlideCampania.jsx` (`COLORES`) y esta. Este comentario decía "CUARTA" hasta
+ * el 06/09/2026, contra el censo de `CLAUDE.md`, que dice tres y tiene razón: `SlideCampania` no exporta su versión porque hacerlo le rompe
  * el Fast Refresh (deja de exportar solo un componente). El fallback de acá
  * es un color SIEMPRE VISIBLE (`COLOR_SLIDE_POR_DEFECTO` del backend) y no
  * `""`: con `""` un sexto color que el backend sumara mañana saldría con la

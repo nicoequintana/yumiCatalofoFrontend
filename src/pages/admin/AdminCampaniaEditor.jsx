@@ -29,15 +29,18 @@ import useCampaniaEditor from "../../hooks/useCampaniaEditor.js";
  * de 1400 px es tan malo como un formulario de tres pantallas: la línea deja de
  * poder recorrerse de un vistazo.
  *
- * ⚠️ **Las secciones 3 y 4 van FUERA del `<form>`.** Guardan por endpoint propio
- * y en el acto; adentro, cualquier botón al que se le escape el `type="button"`
- * dispararía el submit del formulario entero.
+ * ⚠️ **Productos y Promociones van FUERA del `<form>`.** Guardan por endpoint
+ * propio y en el acto; adentro, cualquier botón al que se le escape el
+ * `type="button"` dispararía el submit del formulario entero. Se nombran por lo
+ * que son y no por su número de orden: hasta el 06/09/2026 este comentario
+ * decía "las secciones 3 y 4", que dejó de ser cierto al insertarse Banner.
  *
- * ⚠️ **Las cuatro secciones son HERMANAS, así que sus títulos son los cuatro
- * `<h2>`.** El `<h1>` es el nombre de la campaña, en el encabezado. Productos y
- * Promociones llegaron a ser `<h3>`: para la vista da igual —las cuatro usan la
+ * ⚠️ **Todas las secciones son HERMANAS, así que sus títulos son todos `<h2>`.**
+ * El `<h1>` es el nombre de la campaña, en el encabezado. Productos y
+ * Promociones llegaron a ser `<h3>`: para la vista da igual —todas usan la
  * misma clase—, pero un lector de pantalla las anunciaba como subsecciones del
- * Cartel, que es donde nada de eso vive.
+ * Cartel, que es donde nada de eso vive. Hoy son SEIS: Campaña, Cartel, Banner,
+ * Destino del CTA, Productos y Promociones.
  *
  * ⚠️ **Doodle, Productos y Promociones solo existen con id.** En `/nueva` no se
  * renderizan: el Doodle sube a `PUT /:id/doodle` y no se le puede subir una

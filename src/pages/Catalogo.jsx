@@ -84,8 +84,9 @@ function SenalesConfianza({ compacto = false }) {
  *
  * Esta página es la vidriera de marca: Hero + carrusel de destacados. El
  * bloque del manifiesto que cerraba la página se sacó del render (Task 19,
- * 05/09/2026) — decisión del usuario de invisibilizarlo por ahora, no de
- * retirarlo del repo.
+ * 05/09/2026) y después se RETIRÓ del repo (`fb05e68`). Este comentario decía
+ * "no de retirarlo del repo" hasta el 06/09/2026; hoy tres tests afirman su
+ * ausencia, acá y en `Coleccion`.
  * El catálogo completo con filtros vive ahora en `/coleccion`
  * (`Coleccion.jsx`) — antes ambas cosas compartían un solo scroll acá, lo
  * que mezclaba dos trabajos distintos (enganchar vs. buscar) e impedía

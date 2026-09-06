@@ -26,11 +26,14 @@ import useDialogo from "../hooks/useDialogo.js";
  * Las categorías van anidadas y SIN acordeón: la hoja scrollea, y un acordeón
  * sería un toque extra para esconder ocho links.
  *
- * **Carrito y Buscar se sumaron el 05/09/2026.** En la ficha de producto
- * (`esFichaProducto`, ver `Navbar.jsx`) el header entero se esconde por debajo
- * de `md`, así que esta hoja pasa a ser la ÚNICA navegación ahí: sin una fila
- * de Carrito, alguien que agrega algo al carrito desde la ficha no tenía
- * ningún camino de vuelta.
+ * **Carrito y Buscar se sumaron el 05/09/2026.** ⚠️ Este comentario decía que
+ * en la ficha de producto "el header entero se esconde por debajo de `md`"
+ * mediante un `esFichaProducto` de `Navbar.jsx`: **ni esa variable ni ese guard
+ * existen**, y esconder la barra en la ficha ya se probó y salió mal (dejó la
+ * pantalla sin carrito). El `Navbar` se muestra en TODAS las rutas públicas.
+ * Lo que sí devuelve `null` en `/producto/` es `NavFlotante`, así que en la
+ * ficha esta hoja no se puede abrir — y las filas de Carrito y Buscar valen
+ * igual, por el resto de las rutas móviles.
  *
  * **Sus nombres accesibles NO copian los del header** (`Ver carrito`, `Buscar
  * productos`) — mismo criterio que ya resolvía Favoritos (`Favoritos` acá,

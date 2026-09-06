@@ -84,11 +84,11 @@ function CirculoCategoria({ categoria }) {
           //
           // ⚠️ `max-w-none` NO ES OPCIONAL — sin él la foto se ve CORRIDA A LA
           // IZQUIERDA. El Preflight de Tailwind trae `img { max-width: 100% }`,
-          // que clampea este `w-[128%]` al ancho del disco; el alto NO se
+          // que clampea este `w-[116%]` al ancho del disco; el alto NO se
           // clampea porque el reset no declara `max-height`. Queda una caja
           // alta y angosta, y `object-contain` ajusta
-          // la silueta al lado menor: sobresale 8 px por la izquierda y le
-          // faltan 9 px para llegar al borde derecho. Ningún test lo atrapa —
+          // la silueta al lado menor y aparece corrida hacia la izquierda,
+          // dejando una franja muerta a la derecha. Ningún test lo atrapa —
           // jsdom no aplica el reset — y en pantalla se lee como "el PNG está
           // mal centrado", que manda a corregir el archivo equivocado.
           <img
