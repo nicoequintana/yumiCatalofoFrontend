@@ -388,7 +388,7 @@ h6 {
   crema sobre lo que sea que pase por detrás, sin nada que lo separe. Ahí el
   fondo vuelve a ser opaco.
 */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
   .vidrio-isla {
     background-color: rgb(var(--color-inverse-surface));
   }
