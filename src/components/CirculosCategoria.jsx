@@ -43,7 +43,7 @@ export default function CirculosCategoria() {
           supera el ancho del contenedor, los márgenes automáticos se resuelven
           en cero, y la fila vuelve a scrollear normalmente sin perder ninguna
           categoría por la izquierda. */}
-      <ul className="mx-auto flex w-max gap-4 px-margin-mobile py-4 md:gap-6 md:px-margin-desktop">
+      <ul className="mx-auto flex w-max gap-4 px-margin-mobile py-8 md:gap-6 md:px-margin-desktop">
         {categorias.map((categoria) => (
           <li key={categoria.id}>
             <Link

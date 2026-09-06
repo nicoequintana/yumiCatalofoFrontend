@@ -343,7 +343,7 @@ function CarruselDestacados({ productos }) {
 
   return (
     <section className="w-full bg-surface-container-lowest">
-      <div className="mx-auto w-full max-w-container-max px-margin-mobile pt-16 md:px-margin-desktop md:pt-24">
+      <div className="mx-auto w-full max-w-container-max px-margin-mobile pt-12 md:px-margin-desktop md:pt-16">
         {/* Sin margen inferior: el aire hasta las tarjetas lo pone ahora el
             `py-8` de la pista, que entró para que el anillo de los destacados
             no se corte. Con los dos, el encabezado quedaba desprendido. */}

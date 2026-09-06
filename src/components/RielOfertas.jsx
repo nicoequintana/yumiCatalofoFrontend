@@ -35,7 +35,10 @@ export default function RielOfertas() {
 
   return (
     <section className="w-full bg-surface-container-lowest">
-      <div className="mx-auto w-full max-w-container-max px-margin-mobile pt-10 md:px-margin-desktop">
+      {/* `pt-12 md:pt-16` es el ritmo de TODA sección de la home. El aire entre
+          dos secciones lo pone el padding superior de la de abajo, así que si
+          este valor difiere del de las hermanas, la página se lee despareja. */}
+      <div className="mx-auto w-full max-w-container-max px-margin-mobile pt-12 md:px-margin-desktop md:pt-16">
         <div className="flex items-end justify-between gap-4">
           <div>
             <h2 className="font-headline-md text-headline-md text-on-surface">
@@ -63,7 +66,7 @@ export default function RielOfertas() {
           los destacados (`ring-2`, que dibuja fuera de la caja) se corta justo
           en el borde superior. */}
       <div className="w-full overflow-x-auto overscroll-x-contain py-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex w-max gap-gutter px-margin-mobile pt-6 md:px-margin-desktop">
+        <div className="flex w-max gap-gutter px-margin-mobile md:px-margin-desktop">
           {productos.map((producto) => (
             <div key={producto.id} className="w-[220px] shrink-0 md:w-[260px]">
               <ProductCard producto={producto} />

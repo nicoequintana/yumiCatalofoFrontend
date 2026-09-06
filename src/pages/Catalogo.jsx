@@ -137,7 +137,7 @@ function Catalogo() {
               la foto desborda su columna y se mete por debajo de este bloque.
               Sin contexto de apilado propio, la foto —que va después en el
               DOM— se pintaría ENCIMA del titular. */}
-          <div className="relative z-10 flex items-center px-margin-mobile py-14 lg:px-margin-desktop lg:py-20">
+          <div className="relative z-10 flex items-center px-margin-mobile py-12 lg:px-margin-desktop lg:py-16">
             {/* 36rem = 576px = (1280px de container-max ÷ 2) − 64px de margen.
                 Con `lg:ml-auto` el borde izquierdo de este bloque cae exactamente
                 sobre el margen del contenedor, así el texto queda alineado con el
