@@ -179,7 +179,9 @@ export default function SlideCampania({ slide, interactivo = true }) {
           En móvil el tope es más generoso (64 %) porque la caja es más angosta
           —2,9:1 contra 3,6:1— y a la mitad de 372 px no entra un título. */}
       <div
-        className={`min-w-0 ${hayArte ? "relative max-w-[64%] px-4 md:max-w-[52%] md:px-10" : ""}`}
+        className={`min-w-0 break-words ${
+          hayArte ? "relative max-w-[64%] px-4 md:max-w-[52%] md:px-10" : ""
+        }`}
       >
         <p className="font-headline-sm text-headline-sm md:font-headline-lg md:text-headline-lg">
           {slide.titulo}

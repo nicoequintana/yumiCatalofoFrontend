@@ -54,6 +54,25 @@ describe("SlideCampania", () => {
     expect(container.querySelector('img[src="https://cdn.test/doodle.png"]')).toBeNull();
   });
 
+  it("el bloque de texto parte las palabras largas en vez de desbordar", () => {
+    // Una palabra sin espacios NO se puede cortar por defecto: el navegador la
+    // deja salir de su caja. Con un texto pegado (una URL, un "productosss…"),
+    // el copy se iba por encima del arte atravesando el banner entero — el
+    // `max-w-[52%]` limita la CAJA, no una palabra indivisible.
+    const { container } = renderSlide({
+      ...SLIDE,
+      arteUrl: "https://cdn.test/arte.jpg",
+      texto: `Hasta 30% de descuento en productos${"s".repeat(60)}`,
+    });
+
+    const bloque = container.querySelector("div.min-w-0");
+    expect(bloque.className).toContain("break-words");
+    // El tope de ancho es la otra mitad del par: sin él, partir palabras no
+    // alcanza porque la caja crecería igual.
+    expect(bloque.className).toContain("max-w-[64%]");
+    expect(bloque.className).toContain("md:max-w-[52%]");
+  });
+
   it("con arte, el vidrio es una copia desenfocada y no un backdrop-filter", () => {
     // `backdrop-filter` muestrea el fondo, así que se recalcula en cada frame
     // de la transición de opacidad del carrusel (500 ms, dos slides a la vez):
