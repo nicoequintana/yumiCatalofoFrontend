@@ -91,10 +91,9 @@ function PaletaColores({ etiqueta, colores, usoPorColor, onElegir, deshabilitado
               </span>
             ) : null}
             {enUso && !seleccionado ? (
-              <span
-                aria-hidden="true"
-                className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-current"
-              />
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                close
+              </span>
             ) : null}
             <span className="sr-only">{leyenda}</span>
           </button>
