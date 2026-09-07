@@ -247,7 +247,7 @@ describe("FichaProducto — plantilla completa", () => {
     renderFicha(
       {
         ...PRODUCTO_BASE,
-        etiqueta: "Nuevo",
+        etiqueta: { id: 1, nombre: "Nuevo", colorFondo: null, colorTexto: null },
         fraseComercial: "Frase",
         porQueLoVasAQuerer: "Porque sí",
         tePasaEsto: "Te pasa",
@@ -263,6 +263,7 @@ describe("FichaProducto — plantilla completa", () => {
     );
 
     expect(screen.queryAllByTestId("bloque-vacio")).toHaveLength(0);
+    expect(screen.getByText("Nuevo")).toBeInTheDocument();
   });
 
   it("la plantilla completa solo aplica en preview, nunca en la ficha pública", () => {
