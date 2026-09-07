@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -67,7 +67,12 @@ describe("AdminProductos - filtros de la tabla", () => {
     productsApi.getProducts.mockResolvedValue(
       pagina([{ ...PRODUCTO }], { total: 200, pageSize: 50 }),
     );
-    productsApi.getEtiquetas.mockResolvedValue({ etiquetas: ["Nuevo", "Oferta"] });
+    productsApi.getEtiquetas.mockResolvedValue({
+      etiquetas: [
+        { id: 2, nombre: "Nuevo" },
+        { id: 5, nombre: "Oferta" },
+      ],
+    });
     categoriasApi.getCategorias.mockResolvedValue([
       { id: 3, nombre: "Cocina" },
       { id: 7, nombre: "Deco" },
@@ -177,20 +182,32 @@ describe("AdminProductos - filtros de la tabla", () => {
     });
   });
 
-  it("el select de etiquetas se llena con las etiquetas EN USO, no con sugerencias", async () => {
-    const user = userEvent.setup();
-    renderPagina();
-    await screen.findByText("Reloj Clásico");
-
-    // "Oferta" no está en ninguna lista de sugeridas: solo puede venir del
-    // endpoint de etiquetas en uso.
-    await user.selectOptions(await screen.findByLabelText("Etiqueta"), "Oferta");
-
-    await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalledWith(
-        expect.objectContaining({ admin: true, etiqueta: "Oferta", page: 1 }),
-      );
+  it("el select de etiquetas se llena con las etiquetas EN USO, no con todas las creadas", async () => {
+    productsApi.getEtiquetas.mockResolvedValue({
+      etiquetas: [
+        { id: 2, nombre: "Exclusivo" },
+        { id: 5, nombre: "Nuevo" },
+      ],
     });
+
+    renderPagina();
+
+    const select = await screen.findByLabelText(/etiqueta/i);
+    expect(within(select).getByRole("option", { name: "Exclusivo" })).toHaveValue("2");
+    expect(within(select).getByRole("option", { name: "Nuevo" })).toHaveValue("5");
+  });
+
+  it("filtrar por etiqueta manda el ID al backend", async () => {
+    productsApi.getEtiquetas.mockResolvedValue({ etiquetas: [{ id: 5, nombre: "Nuevo" }] });
+    renderPagina();
+
+    await userEvent.selectOptions(await screen.findByLabelText(/etiqueta/i), "5");
+
+    await waitFor(() =>
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ etiqueta: "5" }),
+      ),
+    );
   });
 
   it("cambiar un filtro limpia la selección de checkboxes", async () => {

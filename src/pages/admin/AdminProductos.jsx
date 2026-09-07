@@ -679,9 +679,9 @@ function AdminProductos() {
               className="w-full rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
             >
               <option value="">Todas</option>
-              {etiquetas.map((valor) => (
-                <option key={valor} value={valor}>
-                  {valor}
+              {etiquetas.map((et) => (
+                <option key={et.id} value={String(et.id)}>
+                  {et.nombre}
                 </option>
               ))}
             </select>

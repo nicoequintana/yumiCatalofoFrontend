@@ -209,9 +209,9 @@ export default function SelectorProductos({
             className={claseCampo}
           >
             <option value="">Todas</option>
-            {etiquetas.map((valor) => (
-              <option key={valor} value={valor}>
-                {valor}
+            {etiquetas.map((et) => (
+              <option key={et.id} value={String(et.id)}>
+                {et.nombre}
               </option>
             ))}
           </select>
