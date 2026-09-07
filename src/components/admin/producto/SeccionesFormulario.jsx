@@ -8,16 +8,16 @@ import {
 } from "../../../utils/formato.js";
 import { ESTADOS_PRECIO } from "../../../utils/precios.js";
 
-const SUGERENCIAS_ETIQUETA = ["Exclusivo", "Nuevo", "Best Seller", "Trending", "Popular"];
-
 /**
  * Columna izquierda del editor: el `<form>` completo, campo por campo.
  *
  * Es presentacional — todo el estado y las acciones llegan por props desde
  * `useProductoForm`. No hace fetch ni guarda nada por su cuenta.
  *
- * `etiqueta` is free-text — an `<input>` with a `<datalist>` of suggestions,
- * not a hard enum.
+ * `etiqueta` es una lista cerrada, administrada desde Configuración ›
+ * Etiquetas: el campo del formulario es un `<select>` sobre `etiquetas`
+ * (cargadas por `useProductoForm`, mismo camino que `categorias`), y lo que
+ * se edita es `etiquetaId`, nunca texto libre.
  *
  * El botón Guardar no está acá: vive en `EditorHeader` y alcanza este
  * formulario por `form="form-producto"`, así que el `id` es parte del
@@ -37,6 +37,7 @@ function SeccionesFormulario({
   editar,
   precio,
   categorias,
+  etiquetas,
   errorCategorias,
   error,
   esEdicion,
@@ -228,19 +229,19 @@ function SeccionesFormulario({
             <label htmlFor="etiqueta" className="font-label-md text-label-md mb-2 block uppercase tracking-widest text-on-surface">
               Etiqueta (opcional)
             </label>
-            <input
+            <select
               id="etiqueta"
-              type="text"
-              list="sugerencias-etiqueta"
-              value={valores.etiqueta}
-              onChange={(e) => editar("etiqueta")(e.target.value)}
+              value={valores.etiquetaId}
+              onChange={(e) => editar("etiquetaId")(e.target.value)}
               className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
-            />
-            <datalist id="sugerencias-etiqueta">
-              {SUGERENCIAS_ETIQUETA.map((sugerencia) => (
-                <option key={sugerencia} value={sugerencia} />
+            >
+              <option value="">Sin etiqueta</option>
+              {etiquetas.map((etiqueta) => (
+                <option key={etiqueta.id} value={String(etiqueta.id)}>
+                  {etiqueta.nombre}
+                </option>
               ))}
-            </datalist>
+            </select>
           </div>
         </div>
 

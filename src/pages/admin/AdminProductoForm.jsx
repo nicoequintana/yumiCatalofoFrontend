@@ -48,6 +48,7 @@ function AdminProductoForm() {
     sucio,
     valores,
     categorias,
+    etiquetas,
     productoPreview,
     borradores,
     editar,
@@ -185,6 +186,7 @@ function AdminProductoForm() {
             editar={editar}
             precio={precio}
             categorias={categorias}
+            etiquetas={etiquetas}
             errorCategorias={errorCategorias}
             error={error}
             esEdicion={esEdicion}

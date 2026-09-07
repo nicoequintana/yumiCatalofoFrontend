@@ -8,6 +8,7 @@ import {
   updateProduct,
 } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
+import { getEtiquetasAdmin } from "../api/etiquetas.js";
 import { formatearPrecioParaEdicion } from "../utils/formato.js";
 import { calcularPrecio, estadoDePrecio } from "../utils/precios.js";
 import { nuevoIdTemporal } from "../utils/idTemporal.js";
@@ -44,7 +45,7 @@ const VALORES_INICIALES = {
   // El neutro: sin tocarlo, el precio queda igual al costo. Nunca un margen
   // que nadie eligió. Espejo de `COEFICIENTE_POR_DEFECTO` del backend.
   coeficiente: "1",
-  etiqueta: "",
+  etiquetaId: "",
   categoriaId: "",
   stock: "0",
   fraseComercial: "",
@@ -87,7 +88,12 @@ function reducirValores(valores, accion) {
           : "",
         costo: producto.costo ?? "",
         coeficiente: producto.coeficiente ?? "1",
-        etiqueta: producto.etiqueta ?? "",
+        // El backend emite `etiqueta` como objeto (`{id, nombre, colorFondo,
+        // colorTexto}`) o `null`: la lista dejó de ser texto libre. El
+        // formulario solo edita el id — el resto del objeto se resuelve al
+        // vuelo contra `etiquetas` para la vista previa (ver
+        // `construirProductoPreview`).
+        etiquetaId: producto.etiqueta?.id ? String(producto.etiqueta.id) : "",
         categoriaId: producto.categoria?.id ? String(producto.categoria.id) : "",
         stock: String(producto.stock ?? 0),
         fraseComercial: producto.fraseComercial ?? "",
@@ -143,10 +149,11 @@ function precioCalculadoDe(valores) {
  * from `URL.createObjectURL` inside MediaUploader), so the preview shows
  * not-yet-uploaded images with no extra work.
  *
- * Es una función pura de `valores`, así que la vista previa depende de un
- * único valor y no puede quedar desincronizada por una dependencia olvidada.
+ * Es una función pura de `valores` y `etiquetas`, así que la vista previa
+ * depende de dos valores conocidos y no puede quedar desincronizada por una
+ * dependencia olvidada.
  */
-function construirProductoPreview(valores) {
+function construirProductoPreview(valores, etiquetas) {
   return {
     id: valores.id,
     nombre: valores.nombre,
@@ -155,7 +162,10 @@ function construirProductoPreview(valores) {
     // la ficha con lo que se está editando. `FichaProducto` espera un string,
     // y `calcularPrecio` devuelve `null` cuando falta el costo.
     precio: precioCalculadoDe(valores) ?? "",
-    etiqueta: valores.etiqueta.trim() === "" ? null : valores.etiqueta.trim(),
+    // La vista previa recibe el MISMO objeto que emite el mapper: `Badge`
+    // espera `{nombre, colorFondo, colorTexto}` y con un string mostraría
+    // `[object Object]` o nada.
+    etiqueta: etiquetas.find((e) => String(e.id) === valores.etiquetaId) ?? null,
     stock: valores.stock === "" ? 0 : Number(valores.stock),
     fraseComercial: valores.fraseComercial.trim() === "" ? null : valores.fraseComercial.trim(),
     porQueLoVasAQuerer:
@@ -184,7 +194,7 @@ function construirPayload(valores) {
     costo: valores.costo,
     coeficiente: valores.coeficiente,
     categoriaId: valores.categoriaId === "" ? null : valores.categoriaId,
-    etiqueta: valores.etiqueta.trim() === "" ? null : valores.etiqueta.trim(),
+    etiquetaId: valores.etiquetaId === "" ? null : valores.etiquetaId,
     stock: valores.stock,
     fraseComercial: valores.fraseComercial.trim() === "" ? null : valores.fraseComercial.trim(),
     porQueLoVasAQuerer:
@@ -334,6 +344,12 @@ export default function useProductoForm() {
   // se traen aparte y no se envían en el submit.
   const [categorias, setCategorias] = useState([]);
 
+  // Mismo criterio que `categorias`: se trae aparte, no se envía en el
+  // submit (el payload manda `etiquetaId`, no la lista completa). Alimenta el
+  // `<select>` del formulario y la resolución del objeto que necesita la
+  // vista previa (`construirProductoPreview`).
+  const [etiquetas, setEtiquetas] = useState([]);
+
   // Borradores de los campos "agregar": no son parte del producto hasta que
   // se confirman, así que no viven en `valores`.
   const [nuevaCaracteristica, setNuevaCaracteristica] = useState("");
@@ -442,6 +458,21 @@ export default function useProductoForm() {
     };
   }, []);
 
+  useEffect(() => {
+    let activo = true;
+    getEtiquetasAdmin()
+      .then((data) => {
+        if (activo) setEtiquetas(data);
+      })
+      // Falla blanda, mismo criterio que `categorias`: el <select> queda con
+      // la única opción "Sin etiqueta", pero el resto del formulario sigue
+      // siendo usable.
+      .catch(() => {});
+    return () => {
+      activo = false;
+    };
+  }, []);
+
   /**
    * Wraps a field update so any edit also flags the form dirty. With a preview
    * this convincing, an admin can easily believe a change is already saved —
@@ -454,7 +485,10 @@ export default function useProductoForm() {
     };
   }
 
-  const productoPreview = useMemo(() => construirProductoPreview(valores), [valores]);
+  const productoPreview = useMemo(
+    () => construirProductoPreview(valores, etiquetas),
+    [valores, etiquetas],
+  );
 
   /**
    * El precio de venta que corresponde a lo que hay tipeado, con el estado
@@ -624,6 +658,7 @@ export default function useProductoForm() {
     valores,
     precio,
     categorias,
+    etiquetas,
     productoPreview,
     // Agrupados: los tres campos "agregar" son un mismo tipo de estado y
     // viajan juntos al formulario, no sueltos entre las acciones.

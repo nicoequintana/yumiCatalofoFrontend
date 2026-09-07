@@ -1,5 +1,135 @@
-import { describe, expect, it } from "vitest";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { createElement } from "react";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fusionarFotosPorPosicion } from "./useProductoForm.js";
+
+/**
+ * Mocks de las APIs y de react-router-dom, mismo patrón que
+ * `useCampaniaEditor.test.jsx` — la única otra suite de este repo que ejercita
+ * un hook con `useParams`/`useNavigate` vía `renderHook`. Se define acá y no
+ * en un `<MemoryRouter>` con JSX porque este archivo es `.js`: el wrapper se
+ * arma con `createElement` para no requerir la extensión `.jsx`.
+ */
+const createProductMock = vi.fn();
+const updateProductMock = vi.fn();
+const getProductByIdMock = vi.fn();
+
+vi.mock("../api/products.js", () => ({
+  createProduct: (...args) => createProductMock(...args),
+  updateProduct: (...args) => updateProductMock(...args),
+  getProductById: (...args) => getProductByIdMock(...args),
+  deletePhoto: vi.fn(),
+  deleteProduct: vi.fn(),
+}));
+
+const getCategoriasMock = vi.fn();
+vi.mock("../api/categorias.js", () => ({
+  getCategorias: (...args) => getCategoriasMock(...args),
+}));
+
+const getEtiquetasAdminMock = vi.fn();
+vi.mock("../api/etiquetas.js", () => ({
+  getEtiquetasAdmin: (...args) => getEtiquetasAdminMock(...args),
+}));
+
+// Por default, modo ALTA (sin `:id`). Los tests de edición lo pisan con
+// `useParamsMock.mockReturnValue({ id: "1" })`.
+const useParamsMock = vi.fn(() => ({}));
+vi.mock("react-router-dom", async (importarOriginal) => ({
+  ...(await importarOriginal()),
+  useParams: () => useParamsMock(),
+  useNavigate: () => vi.fn(),
+}));
+
+const { default: useProductoForm } = await import("./useProductoForm.js");
+
+const envoltorio = ({ children }) => createElement(MemoryRouter, null, children);
+
+/** Producto mínimo válido para la rama `cargar` del reducer (modo edición). */
+const PRODUCTO_BASE = {
+  id: 1,
+  nombre: "Lámpara",
+  descripcion: "Descripción",
+  precio: "1000",
+  costo: "1000",
+  coeficiente: "1",
+  categoria: null,
+  stock: 5,
+  fraseComercial: null,
+  porQueLoVasAQuerer: null,
+  tePasaEsto: null,
+  beneficios: [],
+  usos: [],
+  idealPara: [],
+  incluye: [],
+  especificaciones: [],
+  caracteristicas: [],
+  fotos: [],
+  video: null,
+  sku: null,
+  visibleEnCatalogo: true,
+  destacado: false,
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  useParamsMock.mockReturnValue({});
+  getCategoriasMock.mockResolvedValue([]);
+  getEtiquetasAdminMock.mockResolvedValue([]);
+});
+
+/**
+ * La etiqueta pasó de texto libre a lista cerrada: el formulario manda
+ * `etiquetaId` (el entero como string), nunca el texto de la etiqueta.
+ */
+describe("useProductoForm — etiquetaId", () => {
+  it("al guardar manda etiquetaId, nunca el texto de la etiqueta", async () => {
+    createProductMock.mockResolvedValue({ id: 1 });
+    const { result } = renderHook(() => useProductoForm(), { wrapper: envoltorio });
+
+    act(() => result.current.editar("etiquetaId")("3"));
+    await act(() => result.current.handleSubmit({ preventDefault: () => {} }));
+
+    expect(createProductMock).toHaveBeenCalledWith(
+      expect.objectContaining({ etiquetaId: "3" }),
+    );
+    expect(createProductMock.mock.calls[0][0]).not.toHaveProperty("etiqueta");
+  });
+
+  it("sin etiqueta elegida manda null", async () => {
+    createProductMock.mockResolvedValue({ id: 1 });
+    const { result } = renderHook(() => useProductoForm(), { wrapper: envoltorio });
+
+    await act(() => result.current.handleSubmit({ preventDefault: () => {} }));
+
+    expect(createProductMock).toHaveBeenCalledWith(
+      expect.objectContaining({ etiquetaId: null }),
+    );
+  });
+
+  it("al editar un producto, hidrata etiquetaId desde el objeto que manda el backend", async () => {
+    useParamsMock.mockReturnValue({ id: "1" });
+    getProductByIdMock.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      etiqueta: { id: 3, nombre: "Nuevo", colorFondo: null, colorTexto: null },
+    });
+
+    const { result } = renderHook(() => useProductoForm(), { wrapper: envoltorio });
+
+    await waitFor(() => expect(result.current.valores.etiquetaId).toBe("3"));
+  });
+
+  it("sin etiqueta, hidrata etiquetaId en cadena vacía", async () => {
+    useParamsMock.mockReturnValue({ id: "1" });
+    getProductByIdMock.mockResolvedValue({ ...PRODUCTO_BASE, etiqueta: null });
+
+    const { result } = renderHook(() => useProductoForm(), { wrapper: envoltorio });
+
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    expect(result.current.valores.etiquetaId).toBe("");
+  });
+});
 
 /**
  * `fusionarFotosPorPosicion` es el corazón del fix del CRÍTICO 1 del review:
