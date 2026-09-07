@@ -12,8 +12,6 @@ const SLIDE = {
   doodleUrl: null,
 };
 
-/** El copy fijo del CTA, que `SlideCampania` pone sin que nadie lo elija. */
-const CTA = "Ver más";
 
 describe("PreviewBanner", () => {
   it("muestra el slide con el copy tipeado", () => {
@@ -23,10 +21,12 @@ describe("PreviewBanner", () => {
     expect(screen.getByText(/Hasta 30 %/)).toBeInTheDocument();
   });
 
-  it("el CTA se dibuja pero NO navega: es un preview, no la home", () => {
+  it("NO navega: es un preview, no la home", () => {
+    // El slide entero es un `<Link>` en la home; acá el admin está editando, así
+    // que `PreviewBanner` pasa `interactivo={false}` y no tiene que haber
+    // ningún ancla — un click accidental no puede sacarlo del editor.
     const { container } = render(<PreviewBanner slide={SLIDE} />);
 
-    expect(screen.getByText(CTA)).toBeInTheDocument();
     expect(container.querySelector("a")).toBeNull();
   });
 
@@ -47,6 +47,6 @@ describe("PreviewBanner", () => {
     const { container } = render(<PreviewBanner slide={{ ...SLIDE, titulo: "" }} />);
 
     expect(container.querySelector('[data-testid="preview-banner"]')).not.toBeNull();
-    expect(screen.queryByText(CTA)).toBeNull();
+    expect(screen.queryByText(SLIDE.texto)).toBeNull();
   });
 });

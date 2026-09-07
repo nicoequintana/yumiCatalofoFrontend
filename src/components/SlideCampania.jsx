@@ -14,22 +14,6 @@ import { Link } from "react-router-dom";
  */
 
 /**
- * El copy de la señal de que el slide lleva a algún lado.
- *
- * **Es FIJO y no un dato del slide.** Hasta el 06/09/2026 el admin lo escribía
- * por campaña (`bannerCtaTexto`) y el backend lo emitía en `ctaTexto`; con el
- * slide entero convertido en enlace, esa señal dejó de ser un control y pasó a
- * ser presentación — no hay una decisión editorial que tomar sobre el texto de
- * un subrayado con flecha. La columna sigue en la base, inerte.
- *
- * ⚠️ **No espeja `CTA_TEXTO_POR_DEFECTO` del backend.** Coinciden en el string
- * de hoy, pero aquél sigue siendo el default del CARTEL —una superficie que sí
- * se edita— y este no viaja en ninguna respuesta: no hay contrato entre los
- * dos, y cambiar uno no obliga a tocar el otro.
- */
-const TEXTO_CTA = "Ver más";
-
-/**
  * El fondo del molde compuesto (el slide SIN arte): SIEMPRE el color de marca.
  *
  * Hubo una lista cerrada de cinco pares fondo/texto que el admin elegía por
@@ -62,10 +46,6 @@ export default function SlideCampania({ slide, interactivo = true }) {
 
   const hayArte = Boolean(slide.arteUrl) && !arteRoto;
   const hayDoodle = Boolean(slide.doodleUrl) && !doodleRoto;
-  // El destino es la ÚNICA condición: el texto dejó de venir en el slide. Sin
-  // ruta la señal no se dibuja — una flecha que promete un enlace inexistente
-  // es peor que no mostrar nada.
-  const hayCta = Boolean(slide.ctaDestino);
 
   // EL SLIDE ENTERO ES EL ENLACE, no un botón dentro de él.
   //
@@ -201,14 +181,16 @@ export default function SlideCampania({ slide, interactivo = true }) {
         }`}
       >
         {/* ⚠️ EL `line-clamp` NO ES ESTÉTICA: sin él el copy NO ENTRA en móvil.
-            Medido a 412 px: el banner mide 357×123 y el bloque de texto llegaba
-            a 156 px de alto — un 127 % del banner, sobresaliendo 16 px por
-            abajo. Como el contenedor es `overflow-hidden`, la señal del CTA
-            quedaba cortada contra el borde.
-            Dos líneas para el título y dos para el texto es lo que entra junto
-            a esa señal en 123 px de alto. En `md+` se suelta (`line-clamp-none`):
-            ahí sobran 320 px de alto y recortar sería perder copy sin motivo.
-            Se corta con puntos suspensivos, que es honesto: avisa que hay más.
+            Medido a 412 px con el CTA todavía puesto: el banner mide 357×123 y
+            el bloque de texto llegaba a 156 px de alto — un 127 %,
+            sobresaliendo 16 px por abajo, y como el contenedor es
+            `overflow-hidden` quedaba cortado contra el borde. Sacar el CTA
+            (06/09/2026) devolvió ~32 px, o sea que el margen hoy es de un par
+            de píxeles: un título de tres líneas vuelve a desbordar.
+            Dos líneas para el título y dos para el texto es lo que entra. En
+            `md+` se suelta (`line-clamp-none`): ahí sobran 320 px de alto y
+            recortar sería perder copy sin motivo. Se corta con puntos
+            suspensivos, que es honesto: avisa que hay más.
             Lo que NO se hace es achicar la tipografía hasta que entre — a 12 px
             sobre una foto el copy deja de leerse, y el problema vuelve con un
             texto un poco más largo. */}
@@ -219,19 +201,6 @@ export default function SlideCampania({ slide, interactivo = true }) {
           <p className="font-body-sm text-body-sm mt-1 line-clamp-2 opacity-90 md:font-body-md md:text-body-md md:line-clamp-none">
             {slide.texto}
           </p>
-        ) : null}
-        {/* ⚠️ NO ES UN BOTÓN, y no puede serlo: el slide ENTERO es el enlace
-            (ver `Envoltorio`, arriba), así que un `<Link>` acá
-            adentro sería un ancla dentro de otra ancla — HTML inválido, que los
-            navegadores "arreglan" cerrando la primera y dejando media tarjeta
-            sin clickear.
-            Queda como señal visual de que el slide lleva a algún lado. El
-            subrayado y la flecha hacen ese trabajo sin fingir un control. */}
-        {hayCta ? (
-          <span className="font-label-md text-label-md mt-2 inline-flex w-max items-center gap-1 underline underline-offset-4">
-            {TEXTO_CTA}
-            <span aria-hidden="true">→</span>
-          </span>
         ) : null}
       </div>
     </Envoltorio>

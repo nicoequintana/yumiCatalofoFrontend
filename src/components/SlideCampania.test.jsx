@@ -134,29 +134,31 @@ describe("SlideCampania", () => {
     expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 
-  it("el CTA usa un copy fijo, no uno que venga en el slide", () => {
-    // Dejó de ser editable: el backend no manda `ctaTexto` y el componente pone
-    // siempre el mismo texto.
+  it("NO hay señal de CTA: ni texto ni flecha, el banner entero es el botón", () => {
+    // Hubo un "Ver más →" subrayado, primero como botón y después como señal
+    // visual. Se fue el 06/09/2026: con el slide entero convertido en enlace,
+    // una etiqueta que repite lo que ya hace toda la superficie es ruido, y en
+    // móvil se comía alto de una franja de 123 px.
     renderSlide(SLIDE);
 
-    expect(screen.getByText("Ver más")).toBeInTheDocument();
+    expect(screen.queryByText(/ver más/i)).toBeNull();
+    expect(screen.queryByText("→")).toBeNull();
   });
 
-  it("sin destino no hay señal de CTA", () => {
-    // Sin `ctaDestino` el slide no navega: dibujar una flecha que promete un
-    // enlace inexistente es peor que no dibujar nada.
+  it("sin destino el slide no navega", () => {
+    // No hay nada visual que sacar —ya no existe la señal—, lo que cambia es
+    // que el envoltorio deja de ser un `<Link>` y baja a un `<div>`.
     renderSlide({ ...SLIDE, ctaDestino: null });
 
     expect(screen.queryByRole("link")).toBeNull();
-    expect(screen.queryByText("Ver más")).toBeNull();
   });
 
-  it("interactivo={false} dibuja el CTA sin navegar", () => {
-    // La vista previa del panel: la señal se ve, pero el slide no es un link.
+  it("interactivo={false} no navega: es la vista previa del panel", () => {
     renderSlide(SLIDE, { interactivo: false });
 
     expect(screen.queryByRole("link")).toBeNull();
-    expect(screen.getByText("Ver más")).toBeInTheDocument();
+    // El copy sí se ve: el admin tiene que poder leer lo que escribió.
+    expect(screen.getByText(SLIDE.titulo)).toBeInTheDocument();
   });
 
   it("las imágenes son decorativas: el título no se anuncia dos veces", () => {
