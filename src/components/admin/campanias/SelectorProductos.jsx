@@ -211,7 +211,7 @@ export default function SelectorProductos({
             <option value="">Todas</option>
             {etiquetas.map((et) => (
               <option key={et.id} value={String(et.id)}>
-                {et.nombre}
+                {et.nombre} ({et.cantidadProductos})
               </option>
             ))}
           </select>

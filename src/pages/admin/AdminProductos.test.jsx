@@ -69,8 +69,8 @@ describe("AdminProductos - filtros de la tabla", () => {
     );
     productsApi.getEtiquetas.mockResolvedValue({
       etiquetas: [
-        { id: 2, nombre: "Nuevo" },
-        { id: 5, nombre: "Oferta" },
+        { id: 2, nombre: "Nuevo", cantidadProductos: 4 },
+        { id: 5, nombre: "Oferta", cantidadProductos: 2 },
       ],
     });
     categoriasApi.getCategorias.mockResolvedValue([
@@ -182,23 +182,25 @@ describe("AdminProductos - filtros de la tabla", () => {
     });
   });
 
-  it("el select de etiquetas se llena con las etiquetas EN USO, no con todas las creadas", async () => {
+  it("el select de etiquetas se llena con TODAS las creadas, incluida una sin productos, y muestra el conteo", async () => {
     productsApi.getEtiquetas.mockResolvedValue({
       etiquetas: [
-        { id: 2, nombre: "Exclusivo" },
-        { id: 5, nombre: "Nuevo" },
+        { id: 2, nombre: "Exclusivo", cantidadProductos: 3 },
+        { id: 9, nombre: "Primavera", cantidadProductos: 0 },
       ],
     });
 
     renderPagina();
 
     const select = await screen.findByLabelText(/etiqueta/i);
-    expect(within(select).getByRole("option", { name: "Exclusivo" })).toHaveValue("2");
-    expect(within(select).getByRole("option", { name: "Nuevo" })).toHaveValue("5");
+    expect(within(select).getByRole("option", { name: "Exclusivo (3)" })).toHaveValue("2");
+    expect(within(select).getByRole("option", { name: "Primavera (0)" })).toHaveValue("9");
   });
 
   it("filtrar por etiqueta manda el ID al backend", async () => {
-    productsApi.getEtiquetas.mockResolvedValue({ etiquetas: [{ id: 5, nombre: "Nuevo" }] });
+    productsApi.getEtiquetas.mockResolvedValue({
+      etiquetas: [{ id: 5, nombre: "Nuevo", cantidadProductos: 4 }],
+    });
     renderPagina();
 
     await userEvent.selectOptions(await screen.findByLabelText(/etiqueta/i), "5");

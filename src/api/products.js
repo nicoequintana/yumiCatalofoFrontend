@@ -266,13 +266,16 @@ export async function getProducts({
 }
 
 /**
- * Las etiquetas EN USO (con al menos un producto), para el filtro del listado
- * del admin y para la vitrina de una campaña. `Product.etiqueta` es hoy una
- * FK a una lista cerrada administrada desde Configuración › Etiquetas, así
- * que las opciones del filtro tienen que salir de lo que existe en la base:
- * un select armado de constantes podría ofrecer una etiqueta que nadie usa.
+ * TODAS las etiquetas creadas (tengan o no productos), para el filtro del
+ * listado del admin y para la vitrina de una campaña. `Product.etiqueta` es
+ * hoy una FK a una lista cerrada administrada desde Configuración ›
+ * Etiquetas, así que las opciones del filtro tienen que salir de lo que
+ * existe en la base: un select armado de constantes podría ofrecer una
+ * etiqueta que nadie usa. Cada etiqueta trae `cantidadProductos`, así el
+ * select puede avisar de antemano ("Primavera (0)") en vez de mandar a una
+ * grilla vacía sin decirlo.
  *
- * @returns {Promise<{etiquetas: Array<{id: number, nombre: string}>}>}
+ * @returns {Promise<{etiquetas: Array<{id: number, nombre: string, cantidadProductos: number}>}>}
  */
 export async function getEtiquetas() {
   return pedirAutenticado(`${BASE}/products/etiquetas`);

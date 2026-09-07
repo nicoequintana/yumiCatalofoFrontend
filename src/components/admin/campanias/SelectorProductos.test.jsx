@@ -48,24 +48,26 @@ describe("SelectorProductos — filtro de etiqueta", () => {
     getProductsMock.mockResolvedValue({ data: [] });
   });
 
-  it("el select de etiqueta se llena con el id como value y el nombre como label", async () => {
+  it("el select de etiqueta se llena con el id como value y el nombre + conteo como label", async () => {
     getEtiquetasMock.mockResolvedValue({
       etiquetas: [
-        { id: 2, nombre: "Exclusivo" },
-        { id: 5, nombre: "Nuevo" },
+        { id: 2, nombre: "Exclusivo", cantidadProductos: 3 },
+        { id: 5, nombre: "Nuevo", cantidadProductos: 0 },
       ],
     });
 
     montar();
 
     const select = await screen.findByLabelText(/filtrar por etiqueta/i);
-    expect(within(select).getByRole("option", { name: "Exclusivo" })).toHaveValue("2");
-    expect(within(select).getByRole("option", { name: "Nuevo" })).toHaveValue("5");
+    expect(within(select).getByRole("option", { name: "Exclusivo (3)" })).toHaveValue("2");
+    expect(within(select).getByRole("option", { name: "Nuevo (0)" })).toHaveValue("5");
   });
 
   it("elegir una etiqueta manda el ID a getProducts, no el nombre", async () => {
     const user = userEvent.setup();
-    getEtiquetasMock.mockResolvedValue({ etiquetas: [{ id: 5, nombre: "Nuevo" }] });
+    getEtiquetasMock.mockResolvedValue({
+      etiquetas: [{ id: 5, nombre: "Nuevo", cantidadProductos: 0 }],
+    });
 
     montar();
 

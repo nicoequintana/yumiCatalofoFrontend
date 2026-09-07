@@ -223,9 +223,11 @@ function AdminProductos() {
   const [productos, setProductos] = useState([]);
   const [totalPaginas, setTotalPaginas] = useState(1);
 
-  // Opciones de los selects de filtro. Las etiquetas salen de las EN USO
-  // (GET /products/etiquetas), no de las sugeridas del formulario: un select
-  // de constantes no puede ofrecer una etiqueta que existe solo en la base.
+  // Opciones de los selects de filtro. Las etiquetas salen de TODAS las
+  // creadas (GET /products/etiquetas), no de las sugeridas del formulario: un
+  // select de constantes no puede ofrecer una etiqueta que existe solo en la
+  // base. Cada opción muestra el conteo al lado del nombre, así una etiqueta
+  // sin productos avisa de antemano en vez de mandar a una grilla vacía.
   const [categorias, setCategorias] = useState([]);
   const [etiquetas, setEtiquetas] = useState([]);
 
@@ -681,7 +683,7 @@ function AdminProductos() {
               <option value="">Todas</option>
               {etiquetas.map((et) => (
                 <option key={et.id} value={String(et.id)}>
-                  {et.nombre}
+                  {et.nombre} ({et.cantidadProductos})
                 </option>
               ))}
             </select>
