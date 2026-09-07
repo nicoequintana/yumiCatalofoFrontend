@@ -37,6 +37,21 @@ function renderPagina() {
 }
 
 /**
+ * Renderiza la home y espera a que el loader de carga inicial se levante.
+ *
+ * Desde el 07/09/2026 la home se tapa con un velo hasta que sus cuatro fuentes
+ * resuelven (ver `Catalogo.carga.test.jsx`), así que NINGÚN aserto sobre el
+ * contenido puede ser síncrono: el primer render solo tiene el spinner. El
+ * `<h1>` del hero es la señal de que ya está todo dibujado — es lo ÚLTIMO de
+ * la página, así que si está él está todo lo de arriba.
+ */
+async function renderPaginaLista() {
+  const utils = renderPagina();
+  await screen.findByRole("heading", { level: 1 });
+  return utils;
+}
+
+/**
  * Sobre de página que devuelve `GET /products`. Los tests declaran las filas y
  * el helper arma el `{ data, page, pageSize, total }` alrededor.
  */
@@ -65,8 +80,8 @@ describe("Catalogo - home editorial", () => {
     });
   });
 
-  it("muestra el hero con el copy de marca", () => {
-    renderPagina();
+  it("muestra el hero con el copy de marca", async () => {
+    await renderPaginaLista();
 
     // El texto del eyebrow va en minúsculas en el DOM y lo pasa a mayúsculas el
     // CSS (`uppercase`). Es a propósito: el aserto —y un lector de pantalla—
@@ -84,8 +99,8 @@ describe("Catalogo - home editorial", () => {
     ).toBeInTheDocument();
   });
 
-  it("el hero tiene UN solo CTA, que navega a /coleccion", () => {
-    renderPagina();
+  it("el hero tiene UN solo CTA, que navega a /coleccion", async () => {
+    await renderPaginaLista();
 
     // Nombre por regex y no por igualdad: el link lleva un ícono de flecha
     // adentro, y atarse al texto exacto rompería el test si el ícono cambia de
@@ -107,8 +122,8 @@ describe("Catalogo - home editorial", () => {
   // visible; en jsdom no hay CSS, así que las dos están en el DOM. Este test
   // fija esa duplicación a propósito: si alguien la "arregla" dejando un solo
   // nodo, o si las dos copias se separan, falla acá y no en producción.
-  it("las señales de confianza se renderizan en sus dos variantes con el mismo origen", () => {
-    renderPagina();
+  it("las señales de confianza se renderizan en sus dos variantes con el mismo origen", async () => {
+    await renderPaginaLista();
 
     // Un ítem sin variante compacta aparece igual en las dos.
     expect(screen.getAllByText("Diferentes")).toHaveLength(2);
@@ -144,7 +159,9 @@ describe("Catalogo - home editorial", () => {
       </StrictMode>,
     );
 
-    await user.click(screen.getByRole("link", { name: /ver productos/i }));
+    // `findBy` y no `getBy`: la home arranca tapada por el loader de carga
+    // inicial, así que el CTA del hero todavía no está en el primer render.
+    await user.click(await screen.findByRole("link", { name: /ver productos/i }));
 
     // Contenido propio de /coleccion, que la home ya no renderiza.
     expect(await screen.findByLabelText("Buscar")).toBeInTheDocument();
@@ -152,13 +169,13 @@ describe("Catalogo - home editorial", () => {
     expect(screen.queryByText("El Manifiesto YIMA")).not.toBeInTheDocument();
   });
 
-  it("el manifiesto no se renderiza", () => {
-    renderPagina();
+  it("el manifiesto no se renderiza", async () => {
+    await renderPaginaLista();
 
     expect(screen.queryByText("El Manifiesto YIMA")).toBeNull();
   });
 
-  it("el hero conserva el h1 y va DESPUÉS de los productos", () => {
+  it("el hero conserva el h1 y va DESPUÉS de los productos", async () => {
     // Necesita al menos un slide: sin campañas ni ofertas
     // `CarruselCampanias` no monta el `<section>` y no habría contra qué
     // comparar la posición del hero.
@@ -180,7 +197,7 @@ describe("Catalogo - home editorial", () => {
       resuelto: true,
     });
 
-    renderPagina();
+    await renderPaginaLista();
 
     const h1 = screen.getByRole("heading", { level: 1 });
     expect(h1).toHaveTextContent("Descubrí cosas que te hacen la vida más fácil.");
@@ -191,7 +208,7 @@ describe("Catalogo - home editorial", () => {
   });
 
   it("no renderiza la barra de filtros ni el grid de productos", async () => {
-    renderPagina();
+    await renderPaginaLista();
 
     await waitFor(() => {
       expect(productsApi.getProducts).toHaveBeenCalled();
@@ -261,7 +278,7 @@ describe("Catalogo - home editorial", () => {
     expect(await screen.findByText("Primavera YIMA")).toBeInTheDocument();
   });
 
-  it("sin slides, la home no dibuja el carrusel", () => {
+  it("sin slides, la home no dibuja el carrusel", async () => {
     contextoMock.mockReturnValue({
       slides: [],
       modal: null,
@@ -270,7 +287,7 @@ describe("Catalogo - home editorial", () => {
       resuelto: true,
     });
 
-    renderPagina();
+    await renderPaginaLista();
 
     expect(screen.queryByRole("region", { name: "Campañas y ofertas" })).toBeNull();
   });

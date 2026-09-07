@@ -22,6 +22,11 @@ export const MENSAJE_ERROR_CARGA = "Revisá tu conexión e intentá de nuevo.";
 export default function useOfertas() {
   const [productos, setProductos] = useState([]);
   const [error, setError] = useState(null);
+  // `resuelto` responde "¿este hook TERMINÓ?", nunca "¿salió bien?" — para lo
+  // segundo está `error`, que es un dato aparte y sigue poblándose igual. Lo
+  // pide el loader de carga de la home (`pages/Catalogo.jsx`), que se levanta
+  // recién cuando sus cuatro fuentes contestaron que sí.
+  const [resuelto, setResuelto] = useState(false);
 
   useEffect(() => {
     let activo = true;
@@ -32,11 +37,19 @@ export default function useOfertas() {
         setProductos(data ?? []);
         // Un fetch exitoso posterior limpia el error: el contrato lo pide.
         setError(null);
+        setResuelto(true);
       })
       .catch(() => {
         if (!activo) return;
         setProductos([]);
         setError(MENSAJE_ERROR_CARGA);
+        // ⚠️ `resuelto` PASA A `true` IGUAL, y esto no es opcional: es la misma
+        // regla que documenta `useContextoComercial`. Si un fetch fallido
+        // dejara `resuelto` en `false`, "todavía no llegó" y "falló y no va a
+        // llegar" serían el mismo estado, el loader de la home no se
+        // levantaría nunca y el catálogo entero quedaría en blanco. El guard
+        // vive en `useOfertas.test.jsx`.
+        setResuelto(true);
       });
 
     return () => {
@@ -44,5 +57,5 @@ export default function useOfertas() {
     };
   }, []);
 
-  return { productos, error };
+  return { productos, error, resuelto };
 }

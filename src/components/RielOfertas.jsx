@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import EstadoVacio from "./EstadoVacio.jsx";
 import ProductCard from "./ProductCard.jsx";
-import useOfertas from "../hooks/useOfertas.js";
 
 /**
  * "Ofertas de la semana" — los productos con descuento vigente.
@@ -13,12 +12,24 @@ import useOfertas from "../hooks/useOfertas.js";
  * NO CALCULA NADA: `ProductCard` ya recibe `precioEfectivo` y `descuento`
  * resueltos por el backend.
  *
+ * **PRESENTACIONAL: recibe los datos, no los pide.** Llamaba a `useOfertas`
+ * adentro hasta el 07/09/2026; el dato subió a `Catalogo.jsx` porque el loader
+ * de carga de la home necesita saber si las ofertas ya resolvieron, y ese hook
+ * fetchea POR INSTANCIA — con una llamada acá y otra en la página serían dos
+ * requests idénticas por carga. Queda igual que sus dos hermanas del mismo
+ * scroll, `CarruselCampanias` y `CarruselDestacados`, que ya recibían props.
+ *
+ * (`CirculosCategoria` es la excepción y sigue pidiendo lo suyo: su hook
+ * cachea a nivel de módulo, así que la segunda llamada desde la página no
+ * cuesta ninguna request.)
+ *
  * Sin ofertas y sin error no se renderiza — y esa es la MISMA condición que
  * apaga el slide automático del carrusel, no dos.
+ *
+ * @param {Array} [productos] las ofertas ya resueltas
+ * @param {string|null} [error] el mensaje de "falló la carga", si falló
  */
-export default function RielOfertas() {
-  const { productos, error } = useOfertas();
-
+export default function RielOfertas({ productos = [], error = null }) {
   if (error) {
     return (
       <section className="mx-auto w-full max-w-container-max px-margin-mobile md:px-margin-desktop">

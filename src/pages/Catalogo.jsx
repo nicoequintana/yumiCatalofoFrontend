@@ -1,11 +1,15 @@
 import { Link } from "react-router-dom";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
+import CargandoPagina from "../components/CargandoPagina.jsx";
 import CarruselCampanias from "../components/CarruselCampanias.jsx";
 import CarruselDestacados from "../components/CarruselDestacados.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import RielOfertas from "../components/RielOfertas.jsx";
+import { useCategoriasHome } from "../hooks/useCategoriasNavbar.js";
 import useContextoComercial from "../hooks/useContextoComercial.js";
 import useDestacados from "../hooks/useDestacados.js";
+import useOfertas from "../hooks/useOfertas.js";
+import useTechoDeEspera from "../hooks/useTechoDeEspera.js";
 import CirculosCategoria from "../components/CirculosCategoria.jsx";
 import { SENALES_CONFIANZA } from "../constants/hero.js";
 import { urlAbsoluta } from "../constants/seo.js";
@@ -94,16 +98,81 @@ function SenalesConfianza({ compacto = false }) {
  * editorial.
  */
 function Catalogo() {
-  const { productos: destacados } = useDestacados();
-  const { slides } = useContextoComercial();
+  const { productos: destacados, resuelto: destacadosResueltos } = useDestacados();
+  const { slides, resuelto: contextoResuelto } = useContextoComercial();
+  // El mismo hook que consume `CirculosCategoria` puertas adentro. Llamarlo
+  // DOS veces no cuesta una segunda request: cachea a nivel de módulo, con una
+  // sola promesa en vuelo compartida por todos los montajes. Por eso este
+  // componente sigue pidiendo lo suyo mientras `RielOfertas` pasó a recibirlo
+  // por prop — su hook fetchea por instancia y ahí sí habría dos requests.
+  const { resuelto: categoriasResueltas } = useCategoriasHome();
+  const { productos: ofertas, error: errorOfertas, resuelto: ofertasResueltas } = useOfertas();
+
+  /**
+   * ⚠️ **ESTE LOADER ESCONDE UN PROBLEMA, NO LO ARREGLA.**
+   *
+   * Medido en producción con Playwright el 07/09/2026 contra
+   * `https://yima-productos.com/`: **el hero salta 792 px y el CLS de la home
+   * da 0,407** (Google llama "malo" a todo lo que pase de 0,25). La causa es
+   * el orden de render de más abajo, que se conserva a propósito: el hero va
+   * al PIE, y las cuatro secciones de arriba devuelven `null` mientras no
+   * tienen datos, así que arranca pegado al tope y lo empujan hacia abajo
+   * cuando los fetch aterrizan.
+   *
+   * Tapar la página hasta que las cuatro fuentes contesten hace que ese
+   * empujón ocurra sin nadie mirando. **La causa queda intacta**: quien sume
+   * una quinta sección que también empiece en `null` va a agrandar el salto
+   * escondido, no a producir ningún síntoma. Arreglarlo de verdad es reservar
+   * el alto final de cada sección o subir el hero — las dos se evaluaron y se
+   * descartaron por decisión de producto, con esta información sobre la mesa.
+   *
+   * Las cuatro fuentes van enumeradas y no derivadas de una lista: si mañana
+   * hay una quinta, tiene que aparecer acá a mano, y eso es deliberado — una
+   * fuente nueva sin su `resuelto` es justo lo que el techo de abajo cubre.
+   */
+  const fuentesResueltas =
+    contextoResuelto && categoriasResueltas && ofertasResueltas && destacadosResueltos;
+
+  // La red de seguridad: pasado el techo la home se dibuja con lo que haya.
+  // Un loader sin techo es un sitio caído — ver `useTechoDeEspera.js`.
+  const techoVencido = useTechoDeEspera();
+  const listo = fuentesResueltas || techoVencido;
+
+  /**
+   * Los meta tags quedan FUERA del gate a propósito, y por eso viven en una
+   * constante en vez de repetirse en las dos ramas: no producen layout —así
+   * que taparlos no evitaría ningún salto— y dejarlos afuera hace que el
+   * `<title>`, el canonical y las tarjetas de OpenGraph estén bien desde el
+   * primer render en vez de aparecer dos segundos tarde. Van en la misma
+   * posición de los dos fragmentos, así que React reconcilia el MISMO
+   * `MetaSeo` al levantarse el velo, sin desmontarlo ni volver a montarlo.
+   */
+  const metaHome = (
+    <MetaSeo
+      titulo="YIMA — Productos útiles, innovadores y con diseño"
+      descripcion="Productos útiles, innovadores y con diseño que simplifican tu rutina y suman estilo a tu hogar, tu trabajo y tus momentos."
+      canonical={urlAbsoluta("/")}
+    />
+  );
+
+  if (!listo) {
+    return (
+      <>
+        {metaHome}
+        {/* Mitiga el costo que el loader le cobra al LCP: la foto del hero es
+            el elemento LCP de la home, y sin esto su descarga recién arrancaría
+            al levantarse el velo. Con el preload viaja EN PARALELO a los cuatro
+            fetch, así que cuando el velo se suelta ya está en caché. React 19
+            hoistea los `<link>` al `<head>` solo. */}
+        <link rel="preload" as="image" href={heroImg} fetchPriority="high" />
+        <CargandoPagina />
+      </>
+    );
+  }
 
   return (
     <>
-      <MetaSeo
-        titulo="YIMA — Productos útiles, innovadores y con diseño"
-        descripcion="Productos útiles, innovadores y con diseño que simplifican tu rutina y suman estilo a tu hogar, tu trabajo y tus momentos."
-        canonical={urlAbsoluta("/")}
-      />
+      {metaHome}
 
       {/* La home abre con MERCADERÍA, no con marca. Medido: con el hero
           arriba, el primer producto entraba a los 1.430 px en un teléfono de
@@ -117,7 +186,7 @@ function Catalogo() {
 
       {/* Entre el mapa de categorías y los hallazgos: la oferta puntual antes
           de la vidriera general de destacados. */}
-      <RielOfertas />
+      <RielOfertas productos={ofertas} error={errorOfertas} />
 
       <CarruselDestacados productos={destacados} />
 

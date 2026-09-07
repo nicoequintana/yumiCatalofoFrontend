@@ -36,23 +36,37 @@ export const MIN_DESTACADOS = 4;
  */
 function useDestacados() {
   const [productos, setProductos] = useState([]);
+  // `resuelto` responde "¿este hook TERMINÓ?", nunca "¿salió bien?". Lo pide el
+  // loader de carga de la home (`pages/Catalogo.jsx`), que se levanta recién
+  // cuando sus cuatro fuentes contestaron que sí.
+  //
+  // Este comentario decía que no hacía falta un estado de carga porque ningún
+  // consumidor lo usaba y la sección no muestra esqueleto. Eso valía cuando la
+  // única pregunta era "¿dibujo el carrusel?"; con el loader, la home pregunta
+  // además "¿puedo empezar a maquetar?", y para ESA no alcanza con la lista.
+  const [resuelto, setResuelto] = useState(false);
 
   useEffect(() => {
     let activo = true;
 
     getProducts({ destacado: true, pageSize: MAX_DESTACADOS })
       .then(({ data }) => {
-        if (activo) setProductos(data);
+        if (!activo) return;
+        setProductos(data);
+        setResuelto(true);
       })
       .catch(() => {
         // Soft feature — la sección ya se oculta si no llega a
         // `MIN_DESTACADOS`, así que ante un fetch fallido preferimos degradar
         // a lista vacía (sección oculta) antes que romper la página.
         //
-        // No hay estado de carga: ningún consumidor lo usaba (ambos
-        // desestructuran solo `productos`) porque la sección no muestra
-        // esqueleto — o hay destacados suficientes o no existe, así que un
-        // flag de carga no cambiaba nada de lo que se renderiza.
+        // ⚠️ PERO `resuelto` PASA A `true` IGUAL, y esto no es opcional: es la
+        // misma regla que documenta `useContextoComercial`. Si un fetch fallido
+        // dejara `resuelto` en `false`, "todavía no llegó" y "falló y no va a
+        // llegar" serían el mismo estado, el loader de la home no se levantaría
+        // nunca y el catálogo entero quedaría en blanco. El guard vive en
+        // `useDestacados.test.jsx`.
+        if (activo) setResuelto(true);
       });
 
     return () => {
@@ -60,7 +74,7 @@ function useDestacados() {
     };
   }, []);
 
-  return { productos };
+  return { productos, resuelto };
 }
 
 export default useDestacados;
