@@ -286,6 +286,28 @@ describe("construirFormData — campos comerciales de texto", () => {
   });
 });
 
+describe("construirFormData — etiquetaId", () => {
+  // Bug crítico (review final de la tanda de Etiqueta): `construirPayload`
+  // de `useProductoForm.js` ya emite `etiquetaId`, pero `construirFormData`
+  // todavía mandaba la clave vieja `etiqueta` y no tenía rama para
+  // `etiquetaId`. Resultado: ni el alta ni la edición viajaban la etiqueta
+  // al backend. Mismo tratamiento que `categoriaId`, dos líneas más arriba.
+  it("manda el id cuando está presente", () => {
+    const fd = construirFormData({ etiquetaId: "3" });
+    expect(fd.get("etiquetaId")).toBe("3");
+  });
+
+  it("manda string vacío (no omite el campo) cuando es null, para poder sacar la etiqueta en edición", () => {
+    const fd = construirFormData({ etiquetaId: null });
+    expect(fd.get("etiquetaId")).toBe("");
+  });
+
+  it("omite el campo del todo cuando es undefined (no se tocó ese campo)", () => {
+    const fd = construirFormData({});
+    expect(fd.has("etiquetaId")).toBe(false);
+  });
+});
+
 describe("getProductsByIds", () => {
   function mockFetchPorLlamada(cuerpos) {
     let llamada = 0;
