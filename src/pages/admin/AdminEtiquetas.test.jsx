@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { esperarTablaApilada } from "../../test/tablaApilada.js";
@@ -51,6 +51,88 @@ beforeEach(() => {
   vi.clearAllMocks();
   api.getEtiquetasAdmin.mockResolvedValue(FILAS);
   api.getOpcionesColor.mockResolvedValue({ colores: COLORES });
+});
+
+// La paleta reemplazó a un `<select>` que NUNCA tuvo test: el control central
+// de la pantalla estaba sin cubrir, y por eso cambiarlo entero no puso nada en
+// rojo. Estos casos existen para que eso no se repita.
+describe("AdminEtiquetas — paleta de colores", () => {
+  /** Los swatches de una fila, por el `aria-label` del grupo que los contiene. */
+  function paletaDe(nombre) {
+    return screen.getByRole("group", { name: `Color de ${nombre}` });
+  }
+
+  it("ofrece un swatch por color más el de por defecto", async () => {
+    montar();
+    await screen.findByText("Nuevo");
+
+    const botones = within(paletaDe("Nuevo")).getAllByRole("button");
+    expect(botones).toHaveLength(COLORES.length + 1);
+    expect(within(paletaDe("Nuevo")).getByRole("button", { name: /por defecto/i })).toBeVisible();
+  });
+
+  it("marca como presionado SOLO el color de esa etiqueta", async () => {
+    montar();
+    await screen.findByText("Nuevo");
+
+    // "Nuevo" está en VERDE.
+    expect(within(paletaDe("Nuevo")).getByRole("button", { name: "Verde" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(within(paletaDe("Nuevo")).getByRole("button", { name: "Terracota" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    // "Exclusivo" no tiene color: el presionado es "Por defecto".
+    expect(
+      within(paletaDe("Exclusivo")).getByRole("button", { name: /por defecto/i }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("avisa qué color ya usa OTRA etiqueta, nombrándola", async () => {
+    montar();
+    await screen.findByText("Nuevo");
+
+    // Desde la fila de "Exclusivo", el verde está tomado por "Nuevo".
+    expect(
+      within(paletaDe("Exclusivo")).getByRole("button", { name: /verde — en uso por Nuevo/i }),
+    ).toBeVisible();
+  });
+
+  it("NO marca como en uso el color propio de la fila", async () => {
+    montar();
+    await screen.findByText("Nuevo");
+
+    // En su propia fila, el verde es "seleccionado", no "en uso por otra".
+    const propio = within(paletaDe("Nuevo")).getByRole("button", { name: "Verde" });
+    expect(propio).toBeVisible();
+    expect(
+      within(paletaDe("Nuevo")).queryByRole("button", { name: /en uso por Nuevo/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("al elegir un color lo guarda con el id de la paleta", async () => {
+    api.updateEtiqueta.mockResolvedValue({ id: 2 });
+    montar();
+    await screen.findByText("Exclusivo");
+
+    await userEvent.click(
+      within(paletaDe("Exclusivo")).getByRole("button", { name: "Terracota" }),
+    );
+
+    await waitFor(() => expect(api.updateEtiqueta).toHaveBeenCalledWith(2, { color: "TERRACOTA" }));
+  });
+
+  it("al elegir «Por defecto» manda null explícito, no cadena vacía", async () => {
+    api.updateEtiqueta.mockResolvedValue({ id: 1 });
+    montar();
+    await screen.findByText("Nuevo");
+
+    await userEvent.click(within(paletaDe("Nuevo")).getByRole("button", { name: /por defecto/i }));
+
+    await waitFor(() => expect(api.updateEtiqueta).toHaveBeenCalledWith(1, { color: null }));
+  });
 });
 
 describe("AdminEtiquetas", () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
@@ -32,6 +32,78 @@ const LARGO_MAX = 40;
  * `style` y el mismo fallback al token por defecto, en la misma feature que
  * vino a reducir casas.
  */
+/**
+ * La paleta de una fila: un botón por color, con el color puesto.
+ *
+ * Reemplazó a un `<select>` de 21 opciones. Un desplegable obliga a leer
+ * nombres ("Ciruela", "Vino", "Ocre") para adivinar un color, que es
+ * exactamente lo que un selector de color no debería pedir.
+ *
+ * **La marca de "en uso" se pinta con el color de TEXTO de cada swatch**, que
+ * el backend ya emite emparejado con su fondo y con contraste WCAG medido. Es
+ * lo que garantiza que el tilde y el punto se vean sobre los veinte fondos, sin
+ * inventar un color de marca que sobre `ARENA` o `CELESTE` desaparecería.
+ *
+ * Un color ya usado por otra etiqueta se MARCA, no se bloquea: dos etiquetas
+ * con el mismo color son legales, y el panel no está para decidir eso.
+ */
+function PaletaColores({ etiqueta, colores, usoPorColor, onElegir, deshabilitado }) {
+  const opciones = [{ id: "", nombre: "Por defecto", fondo: null, texto: null }, ...colores];
+
+  return (
+    <div
+      role="group"
+      aria-label={`Color de ${etiqueta.nombre}`}
+      className="flex max-w-xs flex-wrap gap-2"
+    >
+      {opciones.map((opcion) => {
+        const seleccionado = (etiqueta.color ?? "") === opcion.id;
+        const otras = (usoPorColor.get(opcion.id) ?? []).filter((n) => n !== etiqueta.nombre);
+        const enUso = otras.length > 0;
+        const leyenda = enUso ? `${opcion.nombre} — en uso por ${otras.join(", ")}` : opcion.nombre;
+
+        return (
+          <button
+            key={opcion.id || "defecto"}
+            type="button"
+            disabled={deshabilitado}
+            aria-pressed={seleccionado}
+            title={leyenda}
+            onClick={() => onElegir(opcion.id)}
+            style={
+              opcion.fondo
+                ? { backgroundColor: `rgb(${opcion.fondo})`, color: `rgb(${opcion.texto})` }
+                : undefined
+            }
+            className={`relative inline-flex h-8 w-8 items-center justify-center rounded-full transition disabled:opacity-40 max-md:h-11 max-md:w-11 ${
+              // "Por defecto" NO es un color más de la paleta, y no puede
+              // parecerlo: pinta con `tertiary`, que a ojo es igual a `ARENA`,
+              // la de al lado. El borde punteado y la separación lo sacan de la
+              // fila de veinte y lo leen como "ninguno".
+              opcion.fondo
+                ? "bg-transparent"
+                : "mr-2 border-2 border-dashed border-outline bg-tertiary/40 text-on-surface"
+            } ${seleccionado ? "ring-2 ring-primary" : "ring-1 ring-outline-variant"}`}
+          >
+            {seleccionado ? (
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
+                check
+              </span>
+            ) : null}
+            {enUso && !seleccionado ? (
+              <span
+                aria-hidden="true"
+                className="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-current"
+              />
+            ) : null}
+            <span className="sr-only">{leyenda}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function AdminEtiquetas() {
   const [etiquetas, setEtiquetas] = useState([]);
   const [colores, setColores] = useState([]);
@@ -153,6 +225,26 @@ function AdminEtiquetas() {
       setOcupadoId(null);
     }
   }
+
+  /**
+   * Qué etiqueta usa cada color, para marcar los ocupados en la paleta.
+   *
+   * Se deriva ACÁ y no en el backend, y no contradice la regla de que el
+   * frontend no recalcula lo que el backend sabe: no hay ninguna regla de
+   * negocio que espejar, es una agrupación de la MISMA lista que esta pantalla
+   * está renderizando. Como sale del array que ya se dibuja, no puede
+   * desincronizarse de lo que se ve. Pedirlo por API sería un endpoint nuevo
+   * para contestar algo que ya está en memoria.
+   */
+  const usoPorColor = useMemo(() => {
+    const mapa = new Map();
+    for (const e of etiquetas) {
+      const clave = e.color ?? "";
+      if (!mapa.has(clave)) mapa.set(clave, []);
+      mapa.get(clave).push(e.nombre);
+    }
+    return mapa;
+  }, [etiquetas]);
 
   const claseCelda = "px-4 py-3 align-middle";
   const claseAccion =
@@ -300,20 +392,13 @@ function AdminEtiquetas() {
                   </td>
 
                   <td role="cell" data-label="Color" className={claseCelda}>
-                    <select
-                      value={etiqueta.color ?? ""}
-                      onChange={(e) => handleCambiarColor(etiqueta, e.target.value)}
-                      disabled={ocupadoId === etiqueta.id}
-                      aria-label={`Color de ${etiqueta.nombre}`}
-                      className="font-body-md text-body-md rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none disabled:opacity-60"
-                    >
-                      <option value="">Por defecto</option>
-                      {colores.map((opcion) => (
-                        <option key={opcion.id} value={opcion.id}>
-                          {opcion.nombre}
-                        </option>
-                      ))}
-                    </select>
+                    <PaletaColores
+                      etiqueta={etiqueta}
+                      colores={colores}
+                      usoPorColor={usoPorColor}
+                      deshabilitado={ocupadoId === etiqueta.id}
+                      onElegir={(valor) => handleCambiarColor(etiqueta, valor)}
+                    />
                   </td>
 
                   <td
