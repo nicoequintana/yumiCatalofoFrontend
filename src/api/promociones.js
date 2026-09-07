@@ -91,10 +91,14 @@ export async function eliminarPromocion(id) {
 /**
  * El listado comercial: cada producto con sus vistas, ventas, conversión,
  * costo, coeficiente, precio y en qué promociones participa.
+ *
+ * `categoria` y `etiqueta` son los ids (no el texto): el backend los parsea
+ * con `parsearIdEntero` y un valor que no parsea simplemente no filtra.
  */
-export async function getListadoComercial({ page = 1, pageSize = 20, categoria } = {}) {
+export async function getListadoComercial({ page = 1, pageSize = 20, categoria, etiqueta } = {}) {
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
   if (categoria) params.set("categoria", String(categoria));
+  if (etiqueta) params.set("etiqueta", String(etiqueta));
   return pedir(`${BASE}/promociones/productos?${params}`);
 }
 

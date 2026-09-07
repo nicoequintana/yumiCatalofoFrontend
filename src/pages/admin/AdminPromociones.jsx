@@ -8,6 +8,7 @@ import SeccionBannerPromocion from "../../components/admin/promociones/SeccionBa
 import TablaComercial from "../../components/admin/promociones/TablaComercial.jsx";
 import AlertaConflictos from "../../components/admin/promociones/AlertaConflictos.jsx";
 import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
+import { useTablaAdmin } from "../../hooks/useTablaAdmin.js";
 import {
   actualizarPromocion,
   crearPromocion,
@@ -21,6 +22,8 @@ import {
   guardarItemsPromocion,
   quitarArtePromocion,
 } from "../../api/promociones.js";
+import { getCategorias } from "../../api/categorias.js";
+import { getEtiquetas } from "../../api/products.js";
 
 /**
  * ADMIN → Promociones: QUÉ productos tienen QUÉ descuento.
@@ -47,8 +50,28 @@ export default function AdminPromociones() {
   const [abierta, setAbierta] = useState(null);
   const [comercial, setComercial] = useState({ data: [], page: 1, total: 0, pageSize: 20 });
   const [conflictos, setConflictos] = useState([]);
-  const [seleccionados, setSeleccionados] = useState(new Set());
-  const [pagina, setPagina] = useState(1);
+
+  // El estado compartido de la tabla —página, selección múltiple y el escape
+  // hatch de `searchParams` para los filtros propios— vive en `useTablaAdmin`,
+  // mismo patrón que `AdminProductos` y `AdminPrecios`. Esta pantalla NO
+  // ordena (ver el §14 del pedido: dos columnas se calculan en memoria
+  // DESPUÉS de paginar, así que ordenar por ellas daría un ranking falso), así
+  // que se llama SIN `ordenPorDefecto` y no se usan `busqueda`/`orden`.
+  const { pagina, irAPagina, seleccionados, setSeleccionados, searchParams, setSearchParams } =
+    useTablaAdmin();
+
+  // Los DOS filtros propios de esta tabla —categoría y etiqueta— viven en la
+  // URL, igual que en `AdminProductos`: un listado filtrado se comparte, se
+  // recarga, y no se pierde al volver de abrir una promoción.
+  const categoria = searchParams.get("categoria") ?? "";
+  const etiqueta = searchParams.get("etiqueta") ?? "";
+
+  // Opciones de los selects de filtro. Mismo criterio que `AdminProductos`:
+  // las etiquetas salen de TODAS las creadas (no de una lista cerrada), cada
+  // una con su conteo. Fallo blando a `[]`: filtrar sigue siendo posible por
+  // URL, y la tabla —lo que esta pantalla existe para mostrar— no se entera.
+  const [categorias, setCategorias] = useState([]);
+  const [etiquetas, setEtiquetas] = useState([]);
 
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -59,7 +82,11 @@ export default function AdminPromociones() {
   useEffect(() => {
     let activo = true;
     setCargando(true);
-    Promise.all([getPromociones(), getListadoComercial({ page: pagina }), getConflictos()])
+    Promise.all([
+      getPromociones(),
+      getListadoComercial({ page: pagina, categoria: categoria || undefined, etiqueta: etiqueta || undefined }),
+      getConflictos(),
+    ])
       .then(([lista, listado, choques]) => {
         if (!activo) return;
         setPromociones(lista);
@@ -80,7 +107,62 @@ export default function AdminPromociones() {
     return () => {
       activo = false;
     };
-  }, [pagina]);
+  }, [pagina, categoria, etiqueta]);
+
+  // Las opciones de los selects se piden una sola vez, al montar. Mismo
+  // patrón que `AdminProductos`: un fallo deja el select con "Todas" como
+  // única opción, sin tocar la tabla de abajo.
+  useEffect(() => {
+    let activo = true;
+
+    (async () => {
+      try {
+        const datos = await getCategorias();
+        if (activo) setCategorias(Array.isArray(datos) ? datos : []);
+      } catch {
+        if (activo) setCategorias([]);
+      }
+      try {
+        const datos = await getEtiquetas();
+        if (activo) setEtiquetas(datos?.etiquetas ?? []);
+      } catch {
+        if (activo) setEtiquetas([]);
+      }
+    })();
+
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  // La selección NO sobrevive a un cambio de los filtros: las filas cambian
+  // bajo los pies, y ejecutar "Agregar a la promoción" sobre ids que ya no se
+  // ven es el mismo accidente que `AdminProductos` evita con su efecto
+  // equivalente. `useTablaAdmin` no lo cubre solo porque no conoce estos dos
+  // filtros propios de esta pantalla.
+  useEffect(() => {
+    setSeleccionados(new Set());
+  }, [categoria, etiqueta, setSeleccionados]);
+
+  /**
+   * Commitea un filtro propio de esta tabla (categoría o etiqueta) a la URL.
+   * Mismo criterio que `cambiarFiltro` de `AdminProductos`: borra `page` (la
+   * página 2 del resultado anterior puede no existir en el nuevo) y va con
+   * `replace` porque filtrar es seguir en la misma pantalla. El valor vacío
+   * quita el parámetro.
+   */
+  function cambiarFiltro(clave, valor) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (valor) next.set(clave, valor);
+        else next.delete(clave);
+        next.delete("page");
+        return next;
+      },
+      { replace: true },
+    );
+  }
 
   /**
    * Ejecuta una mutación y refresca.
@@ -105,7 +187,11 @@ export default function AdminPromociones() {
     try {
       const [lista, listado, choques] = await Promise.all([
         getPromociones(),
-        getListadoComercial({ page: pagina }),
+        getListadoComercial({
+          page: pagina,
+          categoria: categoria || undefined,
+          etiqueta: etiqueta || undefined,
+        }),
         getConflictos(),
       ]);
       setPromociones(lista);
@@ -531,6 +617,57 @@ export default function AdminPromociones() {
                 </button>
               </div>
 
+              {/* Molde EXACTO de los filtros de `AdminProductos` (categoría y
+                  etiqueta): mismo markup, mismas clases, misma forma de
+                  cargar las opciones. Sin el tercer filtro de stock, que esta
+                  pantalla no tiene, y sin el select de orden: acá NO se
+                  ordena. */}
+              <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="filtro-categoria"
+                    className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
+                  >
+                    Categoría
+                  </label>
+                  <select
+                    id="filtro-categoria"
+                    value={categoria}
+                    onChange={(e) => cambiarFiltro("categoria", e.target.value)}
+                    className="w-full rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
+                  >
+                    <option value="">Todas</option>
+                    {categorias.map((cat) => (
+                      <option key={cat.id} value={String(cat.id)}>
+                        {cat.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="filtro-etiqueta"
+                    className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
+                  >
+                    Etiqueta
+                  </label>
+                  <select
+                    id="filtro-etiqueta"
+                    value={etiqueta}
+                    onChange={(e) => cambiarFiltro("etiqueta", e.target.value)}
+                    className="w-full rounded-lg border border-outline-variant bg-surface px-3 py-3 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
+                  >
+                    <option value="">Todas</option>
+                    {etiquetas.map((et) => (
+                      <option key={et.id} value={String(et.id)}>
+                        {et.nombre} ({et.cantidadProductos})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <TablaComercial
                 filas={comercial.data}
                 seleccionados={seleccionados}
@@ -543,7 +680,7 @@ export default function AdminPromociones() {
                   <button
                     type="button"
                     disabled={pagina <= 1}
-                    onClick={() => setPagina((p) => p - 1)}
+                    onClick={() => irAPagina(pagina - 1)}
                     className="font-label-md text-label-md rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40"
                   >
                     Anterior
@@ -554,7 +691,7 @@ export default function AdminPromociones() {
                   <button
                     type="button"
                     disabled={pagina >= totalPaginas}
-                    onClick={() => setPagina((p) => p + 1)}
+                    onClick={() => irAPagina(pagina + 1)}
                     className="font-label-md text-label-md rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40"
                   >
                     Siguiente
