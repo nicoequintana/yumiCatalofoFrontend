@@ -70,6 +70,34 @@ describe("HojaMenu", () => {
     expect(screen.getByRole("dialog", { name: "Menú" }).className).toMatch(/\bbottom-0\b/);
   });
 
+  // Antes la hoja era `max-h-[85vh]` anclada abajo, así que su borde superior lo
+  // decidía el alto del viewport y no el header: quedaba una franja del fondo
+  // oscurecido entre el navbar y la hoja (23 px en un Pixel 7) que se lee como
+  // un hueco. Ahora el tope se MIDE contra el header, porque su posición cambia
+  // con el scroll (al tope cuelga bajo la cinta de anuncios; scrolleado queda
+  // pegado bajo la cinta de ambiente).
+  it("arranca justo donde termina el header, sin dejar hueco", () => {
+    const header = document.createElement("header");
+    document.body.appendChild(header);
+    header.getBoundingClientRect = () => ({ bottom: 114, top: 38, height: 76 });
+
+    montar();
+
+    const hoja = screen.getByRole("dialog", { name: "Menú" });
+    expect(hoja).toHaveStyle({ top: "114px" });
+    // El alto ya no lo fija el viewport: lo define la distancia entre ese tope
+    // y el borde inferior.
+    expect(hoja.className).not.toMatch(/max-h-\[85vh\]/);
+
+    header.remove();
+  });
+
+  it("sin header cae a cero en vez de romperse", () => {
+    montar();
+
+    expect(screen.getByRole("dialog", { name: "Menú" })).toHaveStyle({ top: "0px" });
+  });
+
   // Migrado de `Navbar.test.jsx` ("cerrar el panel devuelve el scroll del
   // documento"): el panel móvil vivía ahí y bloqueaba el scroll del body con
   // el mismo `useBloquearScroll` que usa ahora esta hoja.

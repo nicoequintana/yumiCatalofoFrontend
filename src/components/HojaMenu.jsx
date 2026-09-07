@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import PanelCategorias from "./PanelCategorias.jsx";
 import useBloquearScroll from "../hooks/useBloquearScroll.js";
@@ -61,6 +62,31 @@ export default function HojaMenu({ abierta, onCerrar }) {
 
   useBloquearScroll(abierta);
 
+  /**
+   * Dónde termina el header, para que la hoja arranque JUSTO ahí.
+   *
+   * Antes la hoja era `max-h-[85vh]` anclada abajo, así que su borde superior
+   * lo decidía el alto del viewport y no el header: quedaba una franja del
+   * fondo oscurecido entre el navbar y la hoja —23 px en un Pixel 7— que se
+   * lee como un hueco, no como un diseño.
+   *
+   * Se MIDE en vez de calcularse con una fórmula de CSS porque el tope del
+   * header es móvil: al tope de la página cuelga debajo de la cinta de
+   * anuncios, y con scroll queda pegado bajo la cinta de ambiente. La medición
+   * es estable porque `useBloquearScroll` congela la página mientras la hoja
+   * está abierta: lo que se mide al abrir sigue valiendo hasta que se cierra.
+   *
+   * Sin header (no debería pasar en una ruta pública, pero por las dudas) cae
+   * a `0` y la hoja ocupa la pantalla entera, que es peor pero no roto.
+   */
+  const [topeHoja, setTopeHoja] = useState(0);
+
+  useEffect(() => {
+    if (!abierta) return;
+    const header = document.querySelector("header");
+    setTopeHoja(header ? Math.max(0, Math.round(header.getBoundingClientRect().bottom)) : 0);
+  }, [abierta]);
+
   // Mismo guard que `NavFlotante`: `/catalogo/admin/login` cuelga de este
   // mismo `Layout` público, y sin este chequeo la hoja se montaría encima de
   // esa pantalla de login.
@@ -85,7 +111,8 @@ export default function HojaMenu({ abierta, onCerrar }) {
         aria-modal="true"
         aria-label="Menú"
         tabIndex={-1}
-        className="fixed inset-x-0 bottom-0 z-40 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-outline-variant bg-background px-margin-mobile pb-[calc(6rem+env(safe-area-inset-bottom))] pt-3 outline-none md:hidden"
+        style={{ top: `${topeHoja}px` }}
+        className="fixed inset-x-0 bottom-0 z-40 overflow-y-auto border-t border-outline-variant bg-background px-margin-mobile pb-[calc(6rem+env(safe-area-inset-bottom))] pt-3 outline-none md:hidden"
       >
         {/* El agarre: la señal de que esto se puede arrastrar hacia abajo. Es
             decorativo — cerrar se hace con el botón, con Escape o tocando el
