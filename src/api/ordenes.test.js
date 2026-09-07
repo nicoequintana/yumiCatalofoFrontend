@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { crearOrden, getOrdenes, getOrdenById, actualizarEstadoOrden } from "./ordenes.js";
+import {
+  crearOrden,
+  getOrdenes,
+  getOrdenById,
+  getConteoOrdenesPorEstado,
+  actualizarEstadoOrden,
+} from "./ordenes.js";
 import { fetchAutenticado } from "./authClient.js";
 
 vi.mock("./authClient.js");
@@ -73,6 +79,7 @@ describe("getOrdenes", () => {
       hasta: "2026-01-31",
       dni: "12345678",
       nombre: "Ana",
+      dias: 7,
       page: 2,
       pageSize: 10,
     });
@@ -86,6 +93,10 @@ describe("getOrdenes", () => {
     expect(params.get("hasta")).toBe("2026-01-31");
     expect(params.get("dni")).toBe("12345678");
     expect(params.get("nombre")).toBe("Ana");
+    // `dias` es el preset del filtro de período de la grilla. Sin serializarlo,
+    // los chips "Hoy / 7 días / 30 días" escriben en la URL y el backend nunca
+    // se entera: la tabla sigue mostrando el histórico completo, sin error.
+    expect(params.get("dias")).toBe("7");
     expect(params.get("page")).toBe("2");
     expect(params.get("pageSize")).toBe("10");
   });
@@ -132,6 +143,63 @@ describe("getOrdenById", () => {
     mockFetchAutenticadoOnce({ error: "Orden no encontrada." }, false);
 
     await expect(getOrdenById(999)).rejects.toThrow("Orden no encontrada.");
+  });
+});
+
+describe("getConteoOrdenesPorEstado", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("hace GET a /ordenes/resumen vía fetchAutenticado", async () => {
+    const conteos = { PENDIENTE: 12, EN_PREPARACION: 4, ENTREGADA: 289, CANCELADA: 7 };
+    mockFetchAutenticadoOnce(conteos);
+
+    const resultado = await getConteoOrdenesPorEstado();
+
+    expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/ordenes/resumen`, undefined);
+    expect(resultado).toEqual(conteos);
+  });
+
+  it("manda los mismos filtros que el listado MENOS estado", async () => {
+    // El conteo de cada chip tiene que contar sobre el resto de los filtros
+    // vigentes: si además filtrara por estado, cada chip diría el total de su
+    // propio estado y "Todos" no podría existir.
+    mockFetchAutenticadoOnce({});
+
+    await getConteoOrdenesPorEstado({
+      estado: "PENDIENTE",
+      dni: "12345678",
+      nombre: "Ana",
+      desde: "2026-01-01",
+      hasta: "2026-01-31",
+      dias: 7,
+    });
+
+    const url = fetchAutenticado.mock.calls[0][0];
+    const [, query] = url.split("?");
+    const params = new URLSearchParams(query);
+
+    expect(params.get("estado")).toBeNull();
+    expect(params.get("dni")).toBe("12345678");
+    expect(params.get("nombre")).toBe("Ana");
+    expect(params.get("desde")).toBe("2026-01-01");
+    expect(params.get("hasta")).toBe("2026-01-31");
+    expect(params.get("dias")).toBe("7");
+  });
+
+  it("sin filtros no agrega querystring", async () => {
+    mockFetchAutenticadoOnce({});
+
+    await getConteoOrdenesPorEstado();
+
+    expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/ordenes/resumen`, undefined);
+  });
+
+  it("lanza Error con el mensaje del backend ante un error", async () => {
+    mockFetchAutenticadoOnce({ error: "No autorizado." }, false);
+
+    await expect(getConteoOrdenesPorEstado()).rejects.toThrow("No autorizado.");
   });
 });
 

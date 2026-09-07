@@ -10,12 +10,12 @@ import { formatFecha } from "../../utils/formato.js";
  * exactamente el "mentir en silencio" que las pantallas de analytics tienen
  * prohibido.
  *
- * **No es código muerto.** Hoy `SelectorPeriodo` ofrece 7/30/90 días, así que
- * desde la UI no se puede disparar el recorte: hace falta un request armado a
- * mano o un preset más largo que todavía no existe. Lo que importa es que el
- * backend PUEDE recortar, y si lo hace la pantalla no debe mentir. Borrarlo
- * por "inalcanzable" reabre el agujero en cuanto se agregue un período de un
- * año.
+ * **No es código muerto, y desde la grilla de órdenes tampoco es inalcanzable.**
+ * En las cuatro pantallas de analytics `SelectorPeriodo` ofrece 7/30/90 días
+ * fijos, así que ahí sigue haciendo falta un request armado a mano para
+ * disparar el recorte. Pero `AdminOrdenes` sumó un **rango libre** (dos inputs
+ * de fecha): pedir del 2020 a hoy lo dispara con dos clicks, sin salir de la
+ * UI. Ese es hoy el camino real de esta advertencia.
  *
  * Se lee con `?.` a propósito: frontend y backend se despliegan desde repos
  * separados, así que una respuesta sin `periodo` tiene que dar aviso vacío,

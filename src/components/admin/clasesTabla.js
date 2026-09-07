@@ -1,7 +1,7 @@
 /**
  * Clases compartidas de las tablas del panel admin.
  *
- * A propósito NO hay un componente `<TablaAdmin>`: las catorce pantallas con
+ * A propósito NO hay un componente `<TablaAdmin>`: las quince pantallas con
  * tabla, más el componente compartido `TablaErroresImportacion.jsx`, difieren
  * en cada celda (toggles, spinners, inputs inline, links al detalle), así que
  * un componente genérico necesitaría render-props por columna y terminaría
@@ -9,10 +9,14 @@
  * comparte son estos dos strings de clases, y —desde el mecanismo de tabla
  * apilada en mobile— `claseTablaApilada` más su contrato de atributos.
  *
- * Son 17 las instancias de `<table>` que apilan (`AdminOperacion`, `AdminLogs`
- * y `AdminPrecios` tienen más de una). Eran 18 hasta que `AdminOrdenes` dejó
- * de ser una tabla y pasó a ser el tablero Kanban. Hay DOS que no llevan
- * `claseTablaApilada`, cada una por su motivo:
+ * Son 19 las instancias de `<table>` que apilan (`AdminOperacion` y `AdminLogs`
+ * tienen más de una). Fueron 17 mientras `AdminOrdenes` era el tablero Kanban;
+ * el 07/09/2026 volvió a ser una tabla, y en el recuento apareció además
+ * `AdminEtiquetas`, que había entrado con su submódulo sin sumarse acá. De las
+ * 25 `<table>` del panel, 6 no llevan `claseTablaApilada`: las cuatro de
+ * promociones (`AdminPromociones`, `TablaComercial`, `EditorPromocion`,
+ * `AlertaConflictos`), que viven dentro de diálogos y cajas propias, más estas
+ * dos, cada una por su motivo:
  *
  * - la tabla de previsualización dentro del diálogo de confirmación de
  *   `AdminPrecios`: ya vive en una caja angosta con su propio scroll, no es el

@@ -14,11 +14,17 @@ import {
 /**
  * El calendario comercial: qué campaña ocupa qué días.
  *
- * SIN LIBRERÍA, y no por ahorro de bytes: el frontend tiene una sola
- * dependencia de runtime además de React (`@dnd-kit/core`), y una grilla
- * mensual con barras de período son ~150 líneas de matemática que ya vive
- * probada en `calendario.js`. Meter un `react-big-calendar` traería su propio
- * sistema de estilos para pelearse con los tokens del panel.
+ * SIN LIBRERÍA, y no por ahorro de bytes: el frontend no tiene NINGUNA
+ * dependencia de runtime además de React y el router, y una grilla mensual con
+ * barras de período son ~150 líneas de matemática que ya vive probada en
+ * `calendario.js`. Meter un `react-big-calendar` traería su propio sistema de
+ * estilos para pelearse con los tokens del panel.
+ *
+ * Este párrafo nombraba a `@dnd-kit/core` como esa única dependencia extra.
+ * Entró con el tablero Kanban de órdenes y se fue con él el 07/09/2026, cuando
+ * esa pantalla volvió a ser una grilla: era su único consumidor en todo el
+ * repo. El argumento de no sumar librerías queda ahora sin ninguna excepción
+ * que lo matice.
  *
  * CÓMO SE ARMA CADA SEMANA. Dos capas superpuestas:
  *

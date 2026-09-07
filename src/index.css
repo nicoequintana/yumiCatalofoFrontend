@@ -450,4 +450,32 @@ h6 {
   }
 
   .tabla-apilada [data-celda="secundaria"] { display: none; }
+
+  /* Fila de EXPANSIÓN (hoy: el resumen de productos de una orden, en
+     `AdminOrdenes`). Es la continuación de la tarjeta de arriba, no una
+     tarjeta más: sin esto el `gap` del tbody la despega y su propio borde la
+     dibuja como un cartel suelto debajo de la orden, que es exactamente lo que
+     el despliegue vino a evitar. El `td` va sin padding porque el que anima es
+     el grid de adentro (`grid-template-rows: 0fr → 1fr`): cualquier padding de
+     la celda sobrevive al `0fr` y deja el bloque cerrado con altura. */
+  .tabla-apilada > tbody > tr[data-fila="expansion"],
+  .tabla-apilada > tbody > tr[data-fila="expansion"]:last-child {
+    margin-top: -0.75rem;
+    padding-top: 0;
+    border-top-width: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  .tabla-apilada > tbody > tr[data-fila="expansion"] > td { padding: 0; }
+
+  /* Y la tarjeta de su orden pierde el borde que las separaba. `:has` no
+     existe en navegadores viejos; ahí la regla se ignora y queda una línea
+     entre las dos mitades, que es degradar, no romper. */
+  .tabla-apilada > tbody > tr:has(+ tr[data-fila="expansion"]),
+  .tabla-apilada > tbody > tr:has(+ tr[data-fila="expansion"]):last-child {
+    border-bottom-width: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
 }

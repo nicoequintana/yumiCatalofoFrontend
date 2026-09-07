@@ -55,24 +55,69 @@ export async function crearOrden(data) {
 }
 
 /**
+ * Agrega a `params` los filtros presentes, salteando los ausentes o vacíos.
+ *
+ * Vive acá y no repetido en cada función porque el listado y el resumen tienen
+ * que mandar EXACTAMENTE los mismos filtros: si divergen, el conteo de un chip
+ * cuenta sobre un universo distinto del que muestra la tabla de abajo.
+ */
+function agregarFiltros(params, filtros) {
+  for (const [clave, valor] of Object.entries(filtros)) {
+    if (valor === undefined || valor === null || valor === "") continue;
+    params.set(clave, valor);
+  }
+}
+
+/**
  * Listado paginado de órdenes para el panel admin. Requiere sesión.
- * @param {{estado?: string, desde?: string, hasta?: string, dni?: string, nombre?: string, page?: number, pageSize?: number}} filtros
- * @returns {Promise<{data: Array, page: number, pageSize: number, total: number}>}
+ *
+ * `dias` es el preset del filtro de período de la grilla (Hoy / 7 / 30). Las
+ * fechas explícitas le ganan del lado del backend, así que mandar los tres a
+ * la vez no es ambiguo — pero la pantalla igual borra `dias` al tipear una
+ * fecha, para que el chip activo no contradiga a los inputs.
+ *
+ * @param {{estado?: string, desde?: string, hasta?: string, dias?: number|string, dni?: string, nombre?: string, page?: number, pageSize?: number}} filtros
+ * @returns {Promise<{data: Array, page: number, pageSize: number, total: number, periodo?: {desde: string, hasta: string, recortado: boolean}}>}
+ *   `periodo` viaja SOLO cuando se mandó alguno de `desde`/`hasta`/`dias`.
  */
 export async function getOrdenes(filtros = {}) {
-  const { estado, desde, hasta, dni, nombre, page, pageSize } = filtros;
+  const { estado, desde, hasta, dias, dni, nombre, page, pageSize } = filtros;
   const params = new URLSearchParams();
 
-  if (estado !== undefined && estado !== null && estado !== "") params.set("estado", estado);
-  if (desde !== undefined && desde !== null && desde !== "") params.set("desde", desde);
-  if (hasta !== undefined && hasta !== null && hasta !== "") params.set("hasta", hasta);
-  if (dni !== undefined && dni !== null && dni !== "") params.set("dni", dni);
-  if (nombre !== undefined && nombre !== null && nombre !== "") params.set("nombre", nombre);
-  if (page !== undefined && page !== null && page !== "") params.set("page", page);
-  if (pageSize !== undefined && pageSize !== null && pageSize !== "") params.set("pageSize", pageSize);
+  agregarFiltros(params, { estado, desde, hasta, dias, dni, nombre, page, pageSize });
 
   const query = params.toString();
   return pedirAutenticado(`${BASE}/ordenes${query ? `?${query}` : ""}`);
+}
+
+/**
+ * Cuántas órdenes hay en cada estado: `{PENDIENTE, EN_PREPARACION, ENTREGADA,
+ * CANCELADA}`. Alimenta los conteos de los chips de estado de la grilla.
+ *
+ * ⚠️ **No se llama `getResumenOrdenes` aunque la ruta sea `/ordenes/resumen`.**
+ * En esta pantalla "resumen" ya significa otras dos cosas —el panel de
+ * productos de una orden y el campo `orden.resumen` que lo alimenta—, así que
+ * un tercer sentido para "los conteos por estado" se lee mal en cada call
+ * site. La ruta HTTP se queda como está: la nombra el backend.
+ *
+ * **Ésta es la ÚNICA casa de la regla "los mismos filtros que el listado MENOS
+ * `estado`"**: se descarta acá, por destructuring, aunque venga en el objeto.
+ * Con el estado adentro, cada chip contaría solo su propio estado y "Todos" no
+ * tendría de dónde salir. Recibe el objeto de filtros completo a propósito,
+ * así ningún llamador tiene que acordarse de desarmarlo — y por eso un
+ * `estado: undefined` en el call site no es defensa, es ruido.
+ *
+ * @param {{estado?: string, desde?: string, hasta?: string, dias?: number|string, dni?: string, nombre?: string}} filtros
+ * @returns {Promise<Record<string, number>>}
+ */
+export async function getConteoOrdenesPorEstado(filtros = {}) {
+  const { desde, hasta, dias, dni, nombre } = filtros;
+  const params = new URLSearchParams();
+
+  agregarFiltros(params, { desde, hasta, dias, dni, nombre });
+
+  const query = params.toString();
+  return pedirAutenticado(`${BASE}/ordenes/resumen${query ? `?${query}` : ""}`);
 }
 
 /**
