@@ -35,8 +35,20 @@ function ProductCard({ producto }) {
   ) : null;
 
   const etiquetaChip = producto.etiqueta ? (
-    <span className="font-label-sm text-label-sm absolute bottom-2 left-2 z-10 rounded bg-secondary-container px-2 py-1 uppercase tracking-wide text-on-secondary-container">
-      {producto.etiqueta}
+    <span
+      style={
+        producto.etiqueta.colorFondo
+          ? {
+              backgroundColor: `rgb(${producto.etiqueta.colorFondo})`,
+              color: `rgb(${producto.etiqueta.colorTexto})`,
+            }
+          : undefined
+      }
+      className={`font-label-sm text-label-sm absolute bottom-2 left-2 z-10 rounded px-2 py-1 uppercase tracking-wide ${
+        producto.etiqueta.colorFondo ? "" : "bg-secondary-container text-on-secondary-container"
+      }`}
+    >
+      {producto.etiqueta.nombre}
     </span>
   ) : null;
 

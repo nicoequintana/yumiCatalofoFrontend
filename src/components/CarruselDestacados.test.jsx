@@ -26,10 +26,16 @@ function producto(id, nombre, extra = {}) {
 /** Cuatro destacados: el mínimo con el que la sección se muestra. */
 function cuatroDestacados() {
   return [
-    producto(1, "Set de Café", { etiqueta: "Nuevo", fotos: [{ url: "http://x/1.jpg" }] }),
+    producto(1, "Set de Café", {
+      etiqueta: { id: 1, nombre: "Nuevo", colorFondo: null, colorTexto: null },
+      fotos: [{ url: "http://x/1.jpg" }],
+    }),
     producto(2, "Organizador Focus", { fotos: [{ url: "http://x/2.jpg" }] }),
     producto(3, "Lámpara Aura", { fotos: [{ url: "http://x/3.jpg" }] }),
-    producto(4, "Kit Regalo", { etiqueta: "Exclusivo", fotos: [{ url: "http://x/4.jpg" }] }),
+    producto(4, "Kit Regalo", {
+      etiqueta: { id: 2, nombre: "Exclusivo", colorFondo: null, colorTexto: null },
+      fotos: [{ url: "http://x/4.jpg" }],
+    }),
   ];
 }
 
