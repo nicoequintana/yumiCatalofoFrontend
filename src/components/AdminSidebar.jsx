@@ -60,6 +60,7 @@ const ITEMS_NAV_MOBILE = ITEMS_NAV.filter((item) => !item.soloEscritorio);
 
 const ITEMS_CONFIGURACION = [
   { to: "/catalogo/admin/configuracion/categorias", label: "Categorías" },
+  { to: "/catalogo/admin/configuracion/etiquetas", label: "Etiquetas" },
   { to: "/catalogo/admin/configuracion/anuncios", label: "Anuncios" },
   { to: "/catalogo/admin/configuracion/usuarios", label: "Usuarios" },
 ];
