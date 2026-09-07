@@ -35,10 +35,20 @@ export default function CargandoPagina({ mensaje = "Cargando la tienda…" }) {
       role="status"
       aria-live="polite"
       aria-busy="true"
-      // `min-h-[70vh]`: el velo tiene que ocupar aproximadamente lo que ocupará
-      // el contenido, o al levantarse produce su PROPIO salto — que es
-      // exactamente lo que vinimos a evitar.
-      className="flex min-h-[70vh] w-full flex-col items-center justify-center gap-4 bg-background px-margin-mobile text-center md:px-margin-desktop"
+      // `min-h-screen`, y el alto COMPLETO no es exageración: es lo que
+      // mantiene el pie fuera del viewport mientras el velo está puesto.
+      //
+      // El CLS solo cuenta lo que se desplaza ESTANDO VISIBLE. Con el velo
+      // corto la página también es corta, así que el pie queda arriba del
+      // fold y su viaje al levantarse computa entero — el velo eliminaba el
+      // salto del hero y creaba uno propio, más chico, en el pie.
+      //
+      // Medido en producción el 07/09/2026, a 1280x720: con `min-h-[70vh]` el
+      // velo medía 504 px, el pie caía en y=634 y saltaba 634 px, valiendo
+      // 0,086 de un CLS de 0,122 — el 70% de lo que quedaba. Con el alto
+      // completo, todo lo que haya arriba (navbar, cinta de anuncios) SUMA,
+      // así que el pie queda siempre debajo del fold y deja de computar.
+      className="flex min-h-screen w-full flex-col items-center justify-center gap-4 bg-background px-margin-mobile text-center md:px-margin-desktop"
     >
       {/* `motion-reduce:animate-none` desactiva el giro para quien pidió menos
           movimiento. El indicador no se pierde: queda el anillo quieto y, sobre
