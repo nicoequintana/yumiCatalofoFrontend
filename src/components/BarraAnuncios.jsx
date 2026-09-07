@@ -168,9 +168,20 @@ function BarraAnuncios() {
     // Con la cinta en movimiento el desborde se recorta (es lo que hace el
     // efecto). Quieta, se vuelve scrolleable a mano: si no, un mensaje más
     // ancho que la pantalla quedaría cortado y sin ninguna forma de leerlo.
+    // `relative z-50` la pone en la MISMA capa que el `<header>` del navbar, y
+    // no es decorativo: sin eso la cinta va en flujo normal sin capa propia, y
+    // el velo de la hoja de menú móvil (`fixed inset-0 z-40`) le pasa por
+    // encima y la oscurece. Quedaba el header nítido y la cinta apagada justo
+    // arriba, que se lee como un error de render. Con z-50 se comporta igual
+    // que el header: el velo no la toca. Sigue POR DEBAJO del cartel de
+    // campaña (`ModalCampania` es `z-[60]`) y de la cinta de ambiente
+    // (`z-[200]`), que sí tienen que taparlo todo.
+    //
+    // No la vuelve sticky: es solo orden de pintado. Scrollea y se va, como
+    // dice el comentario de arriba.
     <div
       ref={contenedorRef}
-      className={`w-full bg-surface-container-high ${
+      className={`relative z-50 w-full bg-surface-container-high ${
         animar ? "overflow-hidden" : "overflow-x-auto"
       }`}
     >

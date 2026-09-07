@@ -262,4 +262,18 @@ describe("BarraAnuncios", () => {
 
     expect(observer.instancias.at(-1).desconectado).toBe(true);
   });
+
+  // El velo de la hoja de menú móvil es `fixed inset-0 z-40`. Sin capa propia,
+  // la cinta va en flujo normal y el velo le pasa por encima: quedaba el header
+  // nítido (`z-50`) y la cinta oscurecida justo arriba. `relative z-50` la pone
+  // en la misma capa que el header. El tope sigue siendo el cartel de campaña
+  // (`z-[60]`) y la cinta de ambiente (`z-[200]`).
+  it("se pinta en la misma capa que el header, para que el velo del menú no la tape", async () => {
+    const { container } = renderBarra();
+
+    await waitFor(() => expect(container.firstChild).not.toBeNull());
+
+    const cinta = container.firstChild;
+    expect(cinta).toHaveClass("relative", "z-50");
+  });
 });
