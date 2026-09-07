@@ -264,12 +264,13 @@ export async function getProducts({
 }
 
 /**
- * Distinct labels currently in use across the catalog, for the admin list
- * filter. `etiqueta` is free text (the form's suggestions are not a closed
- * list), so the filter options must come from what actually exists — a select
- * built from constants could not offer a label that exists only in the data.
+ * Las etiquetas EN USO (con al menos un producto), para el filtro del listado
+ * del admin y para la vitrina de una campaña. `Product.etiqueta` es hoy una
+ * FK a una lista cerrada administrada desde Configuración › Etiquetas, así
+ * que las opciones del filtro tienen que salir de lo que existe en la base:
+ * un select armado de constantes podría ofrecer una etiqueta que nadie usa.
  *
- * @returns {Promise<{etiquetas: string[]}>}
+ * @returns {Promise<{etiquetas: Array<{id: number, nombre: string}>}>}
  */
 export async function getEtiquetas() {
   return pedirAutenticado(`${BASE}/products/etiquetas`);
