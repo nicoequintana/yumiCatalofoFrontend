@@ -158,6 +158,25 @@ function AdminEtiquetas() {
   const claseAccion =
     "font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest hover:underline disabled:opacity-60 max-md:min-h-11";
 
+  /**
+   * Editar y Eliminar van SOLO CON EL ÍCONO: con el nombre de la etiqueta
+   * adentro, cada fila repetía tres veces el mismo texto ("Nuevo", "Editar
+   * Nuevo", "Eliminar Nuevo") y la columna de acciones se comía el ancho.
+   *
+   * El nombre completo NO desaparece, se mueve: viaja en un `<span
+   * className="sr-only">` para que el botón siga anunciándose como "Editar
+   * Nuevo" a un lector de pantalla, y en `title` para que se vea al pasar el
+   * mouse. Un botón de ícono sin nombre accesible anunciaría el texto de la
+   * ligadura ("edit", "delete") o directamente nada.
+   *
+   * `h-11 w-11` en mobile (44px) es el mínimo táctil que el resto del panel ya
+   * respeta; en escritorio baja a 36px, donde el puntero es preciso. Reemplaza
+   * el `hover:underline` por un fondo, que es la afordancia que le queda a un
+   * ícono suelto.
+   */
+  const claseAccionIcono =
+    "inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-40 disabled:hover:bg-transparent max-md:h-11 max-md:w-11";
+
   return (
     <main className="w-full px-4 py-6 md:px-8 md:py-8">
       <div className="mb-6">
@@ -334,12 +353,13 @@ function AdminEtiquetas() {
                             setEditandoId(etiqueta.id);
                             setNombreEditado(etiqueta.nombre);
                           }}
-                          className={`${claseAccion} text-secondary`}
+                          title={`Editar ${etiqueta.nombre}`}
+                          className={`${claseAccionIcono} text-secondary`}
                         >
-                          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                          <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                             edit
                           </span>
-                          Editar {etiqueta.nombre}
+                          <span className="sr-only">Editar {etiqueta.nombre}</span>
                         </button>
                       )}
 
@@ -379,12 +399,13 @@ function AdminEtiquetas() {
                               setEditandoId(null);
                               setConfirmandoId(etiqueta.id);
                             }}
-                            className={`${claseAccion} text-error disabled:opacity-40`}
+                            title={`Eliminar ${etiqueta.nombre}`}
+                            className={`${claseAccionIcono} text-error`}
                           >
-                            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                               delete
                             </span>
-                            Eliminar {etiqueta.nombre}
+                            <span className="sr-only">Eliminar {etiqueta.nombre}</span>
                           </button>
                           {etiqueta.cantidadProductos > 0 ? (
                             <span id={`motivo-${etiqueta.id}`} className="sr-only">
