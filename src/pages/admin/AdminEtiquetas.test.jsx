@@ -88,6 +88,56 @@ describe("AdminEtiquetas", () => {
     await waitFor(() => expect(api.createEtiqueta).toHaveBeenCalledWith("Oferta", null));
   });
 
+  // Bug de la review final: el backend acepta `nombre` en el PUT, pero el
+  // panel solo tenía el selector de color. Con el borrado bloqueado mientras
+  // haya productos usándola, una etiqueta mal escrita con productos no se
+  // podía corregir NI borrar. Molde: `AdminAnuncios.jsx`, que ya tiene edición
+  // inline de texto.
+  it("permite renombrar una etiqueta desde el panel", async () => {
+    api.updateEtiqueta.mockResolvedValue({ id: 1 });
+    montar();
+    await screen.findByText("Nuevo");
+
+    await userEvent.click(screen.getByRole("button", { name: /editar nuevo/i }));
+
+    const input = screen.getByLabelText(/nombre de la etiqueta/i);
+    expect(input).toHaveValue("Nuevo");
+
+    await userEvent.clear(input);
+    await userEvent.type(input, "Novedad");
+    await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    await waitFor(() =>
+      expect(api.updateEtiqueta).toHaveBeenCalledWith(1, { nombre: "Novedad" }),
+    );
+  });
+
+  it("cancelar la edición no guarda nada", async () => {
+    montar();
+    await screen.findByText("Nuevo");
+
+    await userEvent.click(screen.getByRole("button", { name: /editar nuevo/i }));
+    const input = screen.getByLabelText(/nombre de la etiqueta/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, "Lo que sea");
+    await userEvent.click(screen.getByRole("button", { name: /cancelar/i }));
+
+    expect(api.updateEtiqueta).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText(/nombre de la etiqueta/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Nuevo")).toBeInTheDocument();
+  });
+
+  it("el input de edición lleva el mismo tope y muestra el contador", async () => {
+    montar();
+    await screen.findByText("Nuevo");
+
+    await userEvent.click(screen.getByRole("button", { name: /editar nuevo/i }));
+    const input = screen.getByLabelText(/nombre de la etiqueta/i);
+
+    expect(input).toHaveAttribute("maxLength", "40");
+    expect(screen.getByText("5/40")).toBeInTheDocument();
+  });
+
   it("no ofrece borrar una etiqueta en uso y explica por qué", async () => {
     montar();
     await screen.findByText("Nuevo");

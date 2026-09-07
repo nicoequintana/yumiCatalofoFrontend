@@ -41,6 +41,10 @@ function AdminEtiquetas() {
   const [nombreNuevo, setNombreNuevo] = useState("");
   const [creando, setCreando] = useState(false);
 
+  const [editandoId, setEditandoId] = useState(null);
+  const [nombreEditado, setNombreEditado] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
   const [confirmandoId, setConfirmandoId] = useState(null);
   const [ocupadoId, setOcupadoId] = useState(null);
 
@@ -103,6 +107,23 @@ function AdminEtiquetas() {
       setError(err.message ?? "No se pudo crear la etiqueta.");
     } finally {
       setCreando(false);
+    }
+  }
+
+  async function handleGuardarEdicion(id) {
+    const nombre = nombreEditado.trim();
+    if (!nombre) return;
+
+    setError(null);
+    setGuardando(true);
+    try {
+      await updateEtiqueta(id, { nombre });
+      setEditandoId(null);
+      await recargar();
+    } catch (err) {
+      setError(err.message ?? "No se pudo renombrar la etiqueta.");
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -240,7 +261,23 @@ function AdminEtiquetas() {
                   className="border-b border-outline-variant last:border-b-0"
                 >
                   <td role="cell" data-celda="identidad" className={claseCelda}>
-                    <Badge etiqueta={etiqueta} />
+                    {editandoId === etiqueta.id ? (
+                      <div className="w-full max-w-xs">
+                        <input
+                          type="text"
+                          value={nombreEditado}
+                          onChange={(e) => setNombreEditado(e.target.value)}
+                          maxLength={LARGO_MAX}
+                          aria-label="Nombre de la etiqueta"
+                          className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
+                        />
+                        <span className="font-label-sm text-label-sm mt-1 block text-on-surface-variant">
+                          {nombreEditado.length}/{LARGO_MAX}
+                        </span>
+                      </div>
+                    ) : (
+                      <Badge etiqueta={etiqueta} />
+                    )}
                   </td>
 
                   <td role="cell" data-label="Color" className={claseCelda}>
@@ -270,6 +307,42 @@ function AdminEtiquetas() {
 
                   <td role="cell" data-celda="acciones" className={claseCelda}>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                      {editandoId === etiqueta.id ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleGuardarEdicion(etiqueta.id)}
+                            disabled={guardando}
+                            className={`${claseAccion} text-secondary`}
+                          >
+                            {guardando ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
+                            Guardar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditandoId(null)}
+                            className={`${claseAccion} text-on-surface-variant`}
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConfirmandoId(null);
+                            setEditandoId(etiqueta.id);
+                            setNombreEditado(etiqueta.nombre);
+                          }}
+                          className={`${claseAccion} text-secondary`}
+                        >
+                          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                            edit
+                          </span>
+                          Editar {etiqueta.nombre}
+                        </button>
+                      )}
+
                       {confirmandoId === etiqueta.id ? (
                         <div className="flex items-center gap-2">
                           <span className="font-body-md text-body-md text-on-surface-variant">
@@ -302,7 +375,10 @@ function AdminEtiquetas() {
                             aria-describedby={
                               etiqueta.cantidadProductos > 0 ? `motivo-${etiqueta.id}` : undefined
                             }
-                            onClick={() => setConfirmandoId(etiqueta.id)}
+                            onClick={() => {
+                              setEditandoId(null);
+                              setConfirmandoId(etiqueta.id);
+                            }}
                             className={`${claseAccion} text-error disabled:opacity-40`}
                           >
                             <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
