@@ -630,7 +630,11 @@ describe("AdminPrecios — buscador y orden", () => {
     renderConUrl();
 
     await screen.findByText("Termo");
-    await usuario.selectOptions(screen.getByLabelText(/ordenar por/i), "costo-desc");
+    // Texto EXACTO, no regex: desde que los encabezados clickeables
+    // (`ThOrdenable`) llevan su propio `aria-label="Ordenar por <columna>"`,
+    // un match parcial encuentra varios elementos. `getByLabelText` con un
+    // string hace match exacto y solo encuentra el <select>.
+    await usuario.selectOptions(screen.getByLabelText("Ordenar por"), "costo-desc");
 
     await waitFor(() => expect(screen.getByTestId("url")).toHaveTextContent("orden=costo-desc"));
     await waitFor(() =>
@@ -683,6 +687,143 @@ describe("AdminPrecios — buscador y orden", () => {
     // accidente que esta limpieza existe para evitar.
     await waitFor(() => expect(screen.queryByText("sin guardar")).not.toBeInTheDocument());
     expect(screen.queryByRole("button", { name: /actualizar precios/i })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Encabezados clickeables (`ThOrdenable`, compartido con `AdminProductos` —
+ * ver `components/admin/ThOrdenable.jsx`), sumados el 07/09/2026. Cinco
+ * columnas ordenan: Foto, SKU / Producto, Costo, Coef. y Vigente. Calculado y
+ * Estado NO ordenan a propósito: son derivados en el frontend
+ * (`costo × coeficiente` y `estadoDePrecio`), no existen como columna en la
+ * base, y Estado además se filtra en cliente.
+ *
+ * El default de ESTA pantalla es `"nombre"` (`ORDEN_POR_DEFECTO`), no `""`
+ * como en `AdminProductos`. Eso hace que "SKU / Producto" (`asc: "nombre"`)
+ * arranque ACTIVO en ascendente sin ningún click — es correcto: el default
+ * real de la pantalla ES ese orden, así que la flecha refleja el estado
+ * verdadero. La consecuencia es que esa columna cicla solo entre asc y desc
+ * (nunca pasa por un estado "apagado" visible), porque el tercer paso del
+ * ciclo ("") se resuelve al mismo `"nombre"` que ya la mostraba activa —
+ * comportamiento verificado más abajo, no un bug.
+ */
+describe("AdminPrecios — encabezados clickeables", () => {
+  it("SKU / Producto arranca activo en ascendente: coincide con el orden por defecto de la pantalla", async () => {
+    renderPagina();
+    await screen.findByText("Termo");
+
+    expect(
+      screen.getByRole("columnheader", { name: /sku \/ producto/i }),
+    ).toHaveAttribute("aria-sort", "ascending");
+  });
+
+  it("click en 'Costo' pide costo-asc al backend", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Termo");
+
+    await usuario.click(screen.getByRole("button", { name: "Ordenar por Costo" }));
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ orden: "costo-asc" }),
+      );
+    });
+  });
+
+  it("el encabezado 'Costo' cicla asc → desc → vuelve al default (nombre), sin ensuciar la URL", async () => {
+    const usuario = userEvent.setup();
+    renderConUrl();
+    await screen.findByText("Termo");
+
+    await usuario.click(screen.getByRole("button", { name: "Ordenar por Costo" }));
+    await waitFor(() =>
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ orden: "costo-asc" }),
+      ),
+    );
+
+    // Se re-consulta el botón en cada paso: cada reorden desmonta la tabla
+    // (spinner) y la re-monta, y una referencia vieja apunta a un nodo
+    // desconectado — mismo patrón que el test equivalente de AdminProductos.
+    await usuario.click(screen.getByRole("button", { name: "Ordenar por Costo" }));
+    await waitFor(() =>
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ orden: "costo-desc" }),
+      ),
+    );
+
+    await usuario.click(screen.getByRole("button", { name: "Ordenar por Costo" }));
+    await waitFor(() =>
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ orden: "nombre" }),
+      ),
+    );
+    expect(screen.getByTestId("url")).not.toHaveTextContent("orden=");
+  });
+
+  it("click en 'SKU / Producto' ya activo (ascendente) pasa a descendente", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Termo");
+
+    await usuario.click(screen.getByRole("button", { name: "Ordenar por SKU / Producto" }));
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ orden: "nombre-desc" }),
+      );
+    });
+  });
+
+  it("'Coef.' y 'Vigente' piden sus criterios asc", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Termo");
+
+    await usuario.click(screen.getByRole("button", { name: "Ordenar por Coef." }));
+    await waitFor(() =>
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ orden: "coeficiente-asc" }),
+      ),
+    );
+
+    await usuario.click(screen.getByRole("button", { name: "Ordenar por Vigente" }));
+    await waitFor(() =>
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ orden: "precio-asc" }),
+      ),
+    );
+  });
+
+  it("'Foto' ordena por fotos-asc / fotos-desc", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+    await screen.findByText("Termo");
+
+    await usuario.click(screen.getByRole("button", { name: "Ordenar por Foto" }));
+    await waitFor(() =>
+      expect(productsApi.getProducts).toHaveBeenLastCalledWith(
+        expect.objectContaining({ orden: "fotos-asc" }),
+      ),
+    );
+  });
+
+  it("'Calculado' y 'Estado' NO son ordenables: son derivados en el frontend", async () => {
+    renderPagina();
+    await screen.findByText("Termo");
+
+    expect(screen.queryByRole("button", { name: /ordenar por calculado/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /ordenar por estado/i })).not.toBeInTheDocument();
+    // Siguen siendo encabezados de columna comunes.
+    expect(screen.getByRole("columnheader", { name: "Calculado" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Estado" })).toBeInTheDocument();
+  });
+
+  it("la tabla apilada sigue cumpliendo el contrato con los encabezados clickeables", async () => {
+    renderPagina();
+    await screen.findByText("Termo");
+    esperarTablaApilada(screen.getByRole("table"));
   });
 });
 

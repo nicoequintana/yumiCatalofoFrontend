@@ -6,6 +6,7 @@ import Spinner from "../../components/Spinner.jsx";
 import Paginador from "../../components/Paginador.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
 import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
+import ThOrdenable from "../../components/admin/ThOrdenable.jsx";
 import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import useDialogo from "../../hooks/useDialogo.js";
 import { getProducts, aplicarPreciosMasivo, updateCosteo } from "../../api/products.js";
@@ -723,8 +724,15 @@ function AdminPrecios() {
 
         {/* El orden lo resuelve el backend sobre el catálogo entero, no un
             `sort()` sobre las cien filas cargadas — ver `ORDENES`. Sin debounce
-            a propósito: un `<select>` emite una sola vez por selección. */}
-        <div className="flex items-center gap-2 sm:ml-auto">
+            a propósito: un `<select>` emite una sola vez por selección.
+
+            `md:hidden`: de `md` para arriba ordenan los encabezados de la
+            tabla (`ThOrdenable`, ver más abajo), mismo criterio que
+            `AdminProductos`. Debajo de `md` la tabla se apila y el `thead`
+            pasa a sr-only (recortado a 1px, ver "Tabla apilada del admin"),
+            así que sin este select el teléfono no tendría forma de
+            reordenar. */}
+        <div className="flex items-center gap-2 sm:ml-auto md:hidden">
           <label
             htmlFor="orden-precios"
             className="font-label-sm text-label-sm shrink-0 uppercase tracking-widest text-on-surface-variant"
@@ -889,12 +897,16 @@ function AdminPrecios() {
                     />
                   </label>
                 </th>
-                <th role="columnheader" className={claseEncabezado}>Foto</th>
-                <th role="columnheader" className={claseEncabezado}>SKU / Producto</th>
-                <th role="columnheader" className={`${claseEncabezado} text-right`}>Costo</th>
-                <th role="columnheader" className={`${claseEncabezado} text-right`}>Coef.</th>
+                <ThOrdenable etiqueta="Foto" asc="fotos-asc" desc="fotos-desc" orden={orden} onOrden={cambiarOrden} />
+                <ThOrdenable etiqueta="SKU / Producto" asc="nombre" desc="nombre-desc" orden={orden} onOrden={cambiarOrden} />
+                <ThOrdenable etiqueta="Costo" asc="costo-asc" desc="costo-desc" orden={orden} onOrden={cambiarOrden} claseExtra="text-right" />
+                <ThOrdenable etiqueta="Coef." asc="coeficiente-asc" desc="coeficiente-desc" orden={orden} onOrden={cambiarOrden} claseExtra="text-right" />
+                {/* Calculado y Estado NO ordenan: son derivados en el
+                    frontend (costo × coeficiente y estadoDePrecio), no
+                    existen como columna en la base, y Estado además se
+                    filtra en cliente. */}
                 <th role="columnheader" className={`${claseEncabezado} text-right`}>Calculado</th>
-                <th role="columnheader" className={`${claseEncabezado} text-right`}>Vigente</th>
+                <ThOrdenable etiqueta="Vigente" asc="precio-asc" desc="precio-desc" orden={orden} onOrden={cambiarOrden} claseExtra="text-right" />
                 <th role="columnheader" className={claseEncabezado}>Estado</th>
               </tr>
             </thead>

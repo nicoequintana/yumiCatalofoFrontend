@@ -7,6 +7,7 @@ import Spinner from "../../components/Spinner.jsx";
 import Paginador from "../../components/Paginador.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
 import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
+import ThOrdenable from "../../components/admin/ThOrdenable.jsx";
 import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import {
   deleteProductsMasivo,
@@ -66,55 +67,6 @@ const ORDENES = [
   { valor: "recientes", etiqueta: "Más recientes" },
   { valor: "vistas", etiqueta: "Más vistos primero" },
 ];
-
-/**
- * Encabezado de columna clickeable: cicla asc → desc → vuelta al default
- * ("Catálogo primero", el `""` de esta pantalla).
- *
- * Solo es un CONTROL de `md` para arriba. Debajo, el `thead` es sr-only
- * (tabla apilada) y ordenar sigue siendo trabajo del select "Ordenar por",
- * que quedó visible solo en mobile: el botón lleva `max-md:hidden` por lo
- * mismo que el checkbox de "seleccionar todos" — un control real dentro de un
- * thead recortado a 1px recibe foco invisible. El `<span md:hidden>` conserva
- * el TEXTO del encabezado para el lector de pantalla en mobile.
- *
- * La flecha inactiva va con `opacity-0`, no desmontada: reserva su ancho para
- * que activar una columna no corra el resto del encabezado.
- */
-function ThOrdenable({ etiqueta, asc, desc, orden, onOrden, secundaria = false }) {
-  const activo = orden === asc ? "asc" : orden === desc ? "desc" : null;
-  const siguiente = activo === null ? asc : activo === "asc" ? desc : "";
-
-  return (
-    <th
-      role="columnheader"
-      aria-sort={activo === "asc" ? "ascending" : activo === "desc" ? "descending" : undefined}
-      data-celda={secundaria ? "secundaria" : undefined}
-      // El texto canónico de la columna, para el contrato de tabla apilada:
-      // el textContent de este th suma botón + flecha + fallback de mobile,
-      // y `esperarTablaApilada` compara data-label contra `data-titulo`
-      // cuando existe.
-      data-titulo={etiqueta}
-      className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest"
-    >
-      <button
-        type="button"
-        onClick={() => onOrden(siguiente)}
-        aria-label={`Ordenar por ${etiqueta}`}
-        title={`Ordenar por ${etiqueta}`}
-        className={`max-md:hidden inline-flex items-center gap-1 uppercase hover:text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-          activo ? "text-on-surface" : ""
-        }`}
-      >
-        {etiqueta}
-        <span aria-hidden="true" className={activo ? "text-primary" : "opacity-0"}>
-          {activo === "desc" ? "▼" : "▲"}
-        </span>
-      </button>
-      <span className="md:hidden">{etiqueta}</span>
-    </th>
-  );
-}
 
 /**
  * Valor de una tarjeta de contador.
