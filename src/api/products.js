@@ -437,6 +437,24 @@ export async function updateVisibilidadMasiva(ids, visible) {
 }
 
 /**
+ * Assigns or removes a tag from several products at once.
+ *
+ * `etiquetaId: null` REMOVES the tag from every selected product — a
+ * legitimate case, not an error.
+ *
+ * @param {number[]} ids
+ * @param {number|null} etiquetaId
+ * @returns {Promise<{actualizados: number}>}
+ */
+export async function updateEtiquetaMasiva(ids, etiquetaId) {
+  return pedirAutenticado(`${BASE}/products/etiqueta-masiva`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids, etiquetaId }),
+  });
+}
+
+/**
  * Saves a single product's cost and markup coefficient from the pricing table.
  *
  * Deliberately does NOT touch `precio`: saving a cost never moves the published

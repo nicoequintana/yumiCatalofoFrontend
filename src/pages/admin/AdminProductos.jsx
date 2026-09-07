@@ -14,6 +14,7 @@ import {
   getEtiquetas,
   getProducts,
   getProductsResumen,
+  updateEtiquetaMasiva,
   updateMerchandising,
   updateVisibilidad,
   updateVisibilidadMasiva,
@@ -205,6 +206,11 @@ function AdminProductos() {
   // pregunta que se le hace en cada fila del render es "¿está este id?".
   const [accionMasivaEnCurso, setAccionMasivaEnCurso] = useState(false);
   const [confirmandoBorradoMasivo, setConfirmandoBorradoMasivo] = useState(false);
+  // Etiqueta elegida en el `<select>` de la acción masiva. `"quitar"` es un
+  // valor de UI, no del backend: se traduce a `etiquetaId: null` recién al
+  // aplicar. `""` es "todavía no se eligió nada", así el botón queda
+  // deshabilitado hasta que haya una decisión real que mandar.
+  const [etiquetaMasiva, setEtiquetaMasiva] = useState("");
   // Resultado del último borrado masivo, para poder informar lo que NO se
   // borró. Ver el comentario de `handleEliminarMasivo`.
   const [resultadoMasivo, setResultadoMasivo] = useState(null);
@@ -414,6 +420,30 @@ function AdminProductos() {
       await cargarProductos();
     } catch (err) {
       setError(err.message ?? "No se pudo cambiar la visibilidad de los productos seleccionados.");
+    } finally {
+      setAccionMasivaEnCurso(false);
+    }
+  }
+
+  /**
+   * Asigna o quita (`"quitar"` → `null`) la etiqueta elegida a los
+   * seleccionados. Mismo molde que `handleVisibilidadMasiva`: recarga el
+   * listado con `cargarProductos` para que la columna de etiqueta de cada
+   * fila se vea actualizada, y limpia la selección al terminar.
+   */
+  async function handleEtiquetaMasiva() {
+    if (etiquetaMasiva === "") return;
+    const etiquetaId = etiquetaMasiva === "quitar" ? null : Number(etiquetaMasiva);
+    setError(null);
+    setResultadoMasivo(null);
+    setAccionMasivaEnCurso(true);
+    try {
+      await updateEtiquetaMasiva(idsSeleccionados, etiquetaId);
+      setSeleccionados(new Set());
+      setEtiquetaMasiva("");
+      await cargarProductos();
+    } catch (err) {
+      setError(err.message ?? "No se pudo asignar la etiqueta a los productos seleccionados.");
     } finally {
       setAccionMasivaEnCurso(false);
     }
@@ -748,6 +778,31 @@ function AdminProductos() {
                   className="rounded-lg bg-error px-3 py-1.5 font-label-md text-on-error transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
                   Eliminar seleccionados
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  aria-label="Etiqueta a aplicar"
+                  value={etiquetaMasiva}
+                  onChange={(e) => setEtiquetaMasiva(e.target.value)}
+                  disabled={accionMasivaEnCurso}
+                  className="rounded-lg border border-outline-variant bg-surface px-3 py-1.5 font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none disabled:opacity-50"
+                >
+                  <option value="">Elegí una etiqueta…</option>
+                  <option value="quitar">Quitar etiqueta</option>
+                  {etiquetas.map((et) => (
+                    <option key={et.id} value={String(et.id)}>
+                      {et.nombre}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleEtiquetaMasiva}
+                  disabled={accionMasivaEnCurso || etiquetaMasiva === ""}
+                  className="rounded-lg border border-outline px-3 py-1.5 font-label-md text-on-surface transition-colors hover:bg-surface-container disabled:opacity-50"
+                >
+                  Aplicar etiqueta
                 </button>
               </div>
             </div>

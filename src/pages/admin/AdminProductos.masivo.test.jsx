@@ -54,12 +54,19 @@ function renderPagina() {
   );
 }
 
+function etiqueta(id, nombre, extra = {}) {
+  return { id, nombre, cantidadProductos: 0, ...extra };
+}
+
 const TERMO = producto(1, "Termo");
 const MATE = producto(2, "Mate");
+const NUEVO = etiqueta(5, "Nuevo");
+const OFERTA = etiqueta(6, "Oferta");
 
 beforeEach(() => {
   vi.clearAllMocks();
   productsApi.getProducts.mockResolvedValue(pagina([TERMO, MATE]));
+  productsApi.getEtiquetas.mockResolvedValue({ etiquetas: [NUEVO, OFERTA] });
 });
 
 describe("AdminProductos — tamaño de página", () => {
@@ -157,6 +164,82 @@ describe("AdminProductos — ocultar en masa", () => {
     await waitFor(() => {
       expect(productsApi.updateVisibilidadMasiva).toHaveBeenCalledWith([2], true);
     });
+  });
+});
+
+describe("AdminProductos — etiqueta en masa", () => {
+  it("asigna la etiqueta elegida a los seleccionados", async () => {
+    const user = userEvent.setup();
+    productsApi.updateEtiquetaMasiva.mockResolvedValue({ actualizados: 2 });
+    renderPagina();
+
+    await user.click(await screen.findByRole("checkbox", { name: /seleccionar todos/i }));
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /etiqueta a aplicar/i }),
+      "5",
+    );
+    await user.click(screen.getByRole("button", { name: /aplicar etiqueta/i }));
+
+    await waitFor(() => {
+      expect(productsApi.updateEtiquetaMasiva).toHaveBeenCalledWith([1, 2], 5);
+    });
+  });
+
+  it("la opción de quitar etiqueta manda etiquetaId null", async () => {
+    const user = userEvent.setup();
+    productsApi.updateEtiquetaMasiva.mockResolvedValue({ actualizados: 1 });
+    renderPagina();
+
+    await user.click(await screen.findByRole("checkbox", { name: "Seleccionar Mate" }));
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /etiqueta a aplicar/i }),
+      "quitar",
+    );
+    await user.click(screen.getByRole("button", { name: /aplicar etiqueta/i }));
+
+    await waitFor(() => {
+      expect(productsApi.updateEtiquetaMasiva).toHaveBeenCalledWith([2], null);
+    });
+  });
+
+  it("recarga el listado y limpia la selección tras aplicar", async () => {
+    const user = userEvent.setup();
+    productsApi.updateEtiquetaMasiva.mockResolvedValue({ actualizados: 2 });
+    renderPagina();
+
+    await screen.findByText("Termo");
+    const llamadasAntes = productsApi.getProducts.mock.calls.length;
+
+    await user.click(screen.getByRole("checkbox", { name: /seleccionar todos/i }));
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /etiqueta a aplicar/i }),
+      "5",
+    );
+    await user.click(screen.getByRole("button", { name: /aplicar etiqueta/i }));
+
+    await waitFor(() => {
+      expect(productsApi.getProducts.mock.calls.length).toBeGreaterThan(llamadasAntes);
+    });
+    expect(screen.queryByText(/seleccionado/i)).not.toBeInTheDocument();
+  });
+
+  it("muestra el mensaje de error propio del backend", async () => {
+    const user = userEvent.setup();
+    productsApi.updateEtiquetaMasiva.mockRejectedValue(
+      new Error("La etiqueta elegida ya no existe. Recargá la página."),
+    );
+    renderPagina();
+
+    await user.click(await screen.findByRole("checkbox", { name: /seleccionar todos/i }));
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: /etiqueta a aplicar/i }),
+      "5",
+    );
+    await user.click(screen.getByRole("button", { name: /aplicar etiqueta/i }));
+
+    expect(
+      await screen.findByText("La etiqueta elegida ya no existe. Recargá la página."),
+    ).toBeInTheDocument();
   });
 });
 
