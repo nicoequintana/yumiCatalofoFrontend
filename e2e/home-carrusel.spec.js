@@ -56,6 +56,25 @@ async function cerrarCartelSiAparece(page) {
   }
 }
 
+/** El título del banner sembrado: es el copy del slide **y** su nombre accesible. */
+const TITULO_BANNER = `${MARCA_TEST}Vitrina del carrusel`;
+
+/**
+ * Deja fijo el slide de la campaña sembrada antes de medir o de tocar nada.
+ *
+ * El carrusel rota solo cada 5 s, y los slides que no están a la vista van
+ * `aria-hidden` + `inert` (`CarruselCampanias.jsx`): fuera del árbol de
+ * accesibilidad, o sea invisibles para `getByRole`. Entrar con el puntero lo
+ * FRENA (`onPointerEnter`), y el primer punto del tablist devuelve el índice al
+ * slide de esta campaña, que va primero por su prioridad 999. Con un solo slide
+ * no hay controles y no hay nada que reponer.
+ */
+async function fijarPrimerSlide(region) {
+  await region.hover();
+  const puntos = region.getByRole("tab");
+  if ((await puntos.count()) > 0) await puntos.first().click();
+}
+
 test.describe("La home abre con el carrusel de campañas y ofertas", () => {
   let producto;
   let campania;
@@ -73,7 +92,7 @@ test.describe("La home abre con el carrusel de campañas y ofertas", () => {
       // desarrollo — el primer slide del carrusel lo decide este número.
       prioridad: 999,
       bannerEnHome: true,
-      bannerTitulo: `${MARCA_TEST}Vitrina del carrusel`,
+      bannerTitulo: TITULO_BANNER,
       bannerTexto: "Los productos de esta vitrina, en la home.",
       // La vitrina es la que sostiene el CTA: con ella vacía, `resolverDestinoCta`
       // degrada a `/coleccion` y este test no probaría nada.
@@ -103,14 +122,24 @@ test.describe("La home abre con el carrusel de campañas y ofertas", () => {
 
     await test.step("el slide de la campaña de prueba se ve primero, por prioridad", async () => {
       await expect(region).toBeVisible();
-      await expect(region.getByText(`${MARCA_TEST}Vitrina del carrusel`)).toBeVisible();
+      // Repetido a propósito: el cartel puede montar recién acá si el fetch de
+      // `activas` tardó más que el chequeo del primer paso. Va ANTES de frenar
+      // el carrusel, porque cerrarlo saca el puntero de la región y la
+      // rotación se reanudaría.
+      await cerrarCartelSiAparece(page);
+      await fijarPrimerSlide(region);
+      await expect(region.getByText(TITULO_BANNER)).toBeVisible();
     });
 
-    await test.step("el CTA del slide lleva a la vitrina de la campaña", async () => {
-      // Repetido a propósito: el cartel puede montar recién acá si el fetch de
-      // `activas` tardó más que el chequeo del primer paso.
-      await cerrarCartelSiAparece(page);
-      await region.getByRole("link", { name: "Ver más" }).click();
+    await test.step("el slide entero es el enlace, y lleva a la vitrina de la campaña", async () => {
+      // ⚠️ **Acá NO hay ningún botón "Ver más".** Desde el 06/09/2026 el slide
+      // ENTERO es el enlace (`SlideCampania.jsx`): se sacó el botón de adentro
+      // —ocupaba una cuarta parte del alto del banner en móvil— y el nombre
+      // accesible del `<a>` pasó a salir del TÍTULO del slide, no del copy del
+      // CTA, para que un lector de pantalla diga a dónde lleva. El locator
+      // viejo (`getByRole("link", { name: "Ver más" })`) buscaba algo que el
+      // componente ya no renderiza, así que el paso moría por timeout.
+      await region.getByRole("link", { name: TITULO_BANNER }).click();
 
       // La ruta la armó el backend (`resolverDestinoCta`) contra la vitrina que
       // existe hoy. Que el router del frontend la sepa abrir es exactamente lo

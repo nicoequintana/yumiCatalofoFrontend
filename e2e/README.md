@@ -42,7 +42,8 @@ propios porque estos manejan el flujo completo browser -> frontend -> backend
 = 412x915, `devices["Pixel 7"]` — sigue siendo Chromium con `isMobile`/
 `hasTouch`, no exige instalar WebKit). Cada proyecto corre un subconjunto
 disjunto de specs (`testMatch`/`testIgnore` en la config): `mobile` corre
-**solo** `admin-mobile.spec.js`, `chromium` corre todo lo demás.
+**dos** specs — `admin-mobile.spec.js` y `publico-mobile.spec.js` —, `chromium`
+corre todo lo demás.
 
 ```
 cd frontend
@@ -56,10 +57,10 @@ por defecto de Playwright con `projects` múltiples, no algo que la config
 pueda desactivar; los scripts de `package.json` son la forma de elegir uno
 solo sin tener que acordarse del flag.
 
-**Por qué `mobile` corre un único spec y no la suite entera**: los otros 9
-specs (6 de flujo — 5 públicos más `admin-cambio-estado.spec.js`, que es del
-panel — más `admin-desktop-layout.spec.js`, `admin-tablero-ordenes.spec.js` y
-`admin-campania-editor.spec.js`)
+**Por qué `mobile` corre solo esos dos specs y no la suite entera**: los
+otros (los de flujo — públicos más `admin-cambio-estado.spec.js`, que es del
+panel — más `admin-desktop-layout.spec.js`, `admin-grilla-ordenes.spec.js`,
+`admin-campania-editor.spec.js` y `home-carrusel.spec.js`)
 prueban
 *comportamiento* (checkout, login, cambio de estado de una orden, que la
 tabla siga siendo `display: table` en escritorio) — ese comportamiento ya
@@ -67,15 +68,33 @@ está cubierto contra 1280px, y correrlo de nuevo a 412px no agrega cobertura
 nueva, solo duplica tiempo de corrida y gasta rate limit (login 8/15min,
 `POST /api/ordenes` 10/10min) sin verificar nada que el proyecto `chromium`
 no verifique ya. Lo que sí es específico de un viewport angosto es el
-**layout**: desborde horizontal, tabla apilada, áreas táctiles, el drawer —
-exactamente lo que prueba `admin-mobile.spec.js`.
+**layout**: desborde horizontal, tabla apilada, áreas táctiles, el drawer, la
+isla flotante y su hoja — exactamente lo que prueban `admin-mobile.spec.js` y
+`publico-mobile.spec.js`.
 
 Qué verifica cada spec nuevo:
 
 - **`admin-mobile.spec.js`** (proyecto `mobile`): siembra un admin + un
   producto + una orden de test en `beforeAll` (ver "Estrategia de datos de
-  test" abajo) y corre cinco tests contra el admin logueado:
-  1. **Ninguna pantalla desborda ni tapa el título** — recorre las dieciocho
+  test" abajo) y recorre seis escenarios contra el admin logueado.
+
+  ⚠️ **Va entero en UN `test()` con `test.step` y UN SOLO login**, mismo
+  criterio que `admin-grilla-ordenes.spec.js` y por el mismo motivo: el login
+  tiene rate limit de **8 intentos cada 15 minutos por IP**. Tuvo seis
+  `test()` —cada uno con su login, porque cada test de Playwright arranca en
+  su propio contexto de navegador— hasta el 07/09/2026, y así él solo se comía
+  seis de los ocho intentos: corrido después de la suite de escritorio, los
+  últimos escenarios fallaban con "sigo en `/catalogo/admin/login`" y nada en
+  el mensaje señalaba al rate limit. El costo asumido es que un paso que falla
+  tapa a los que siguen. Como la suma de los seis escenarios no entra en los
+  30 s de timeout del default, el `describe` fija el suyo
+  (`test.describe.configure({ timeout: 180_000 })`) en vez de subir el techo
+  de toda la suite.
+
+  Los seis escenarios, en orden:
+  1. **Ninguna pantalla desborda ni tapa el título** (y, como paso siguiente, que
+     la tabla de órdenes apile y que el resumen de una orden se despliegue
+     PEGADO a la tarjeta de esa orden, no como una tarjeta más) — recorre las dieciocho
      rutas del admin (listados, detalle de orden, editor de producto, importar
      y actualizar por Excel, salud del catálogo, pantallas de configuración y
      las cuatro de analytics) y en cada una mide
@@ -85,63 +104,71 @@ Qué verifica cada spec nuevo:
      convertirlo en scroll de documento, así que el primer chequeo solo no
      alcanza), más que el `<h1>` de cada pantalla no quede tapado por el
      botón "Abrir menú" de la barra superior.
-  2. **Drawer**: abre con el botón de la barra superior, `Escape` lo cierra
+  2. **La cinta de ambiente de dev no tapa la barra superior**: la cinta
+     (`CintaAmbiente.jsx`, visible porque Playwright corre contra
+     `npm run dev`) empieza y termina arriba del botón "Abrir menú", y
+     `document.elementFromPoint` sobre el centro de ese botón lo devuelve a él
+     y no a la cinta.
+  3. **Drawer**: abre con el botón de la barra superior, `Escape` lo cierra
      (`inert` vuelve a `true`, sale de pantalla) y el foco vuelve al botón
      que lo abrió.
-  3. **Tabla apilada conserva semántica**: en `/productos`, la tabla sigue
+  4. **Tabla apilada conserva semántica**: en `/productos`, la tabla sigue
      siendo `role="table"` con `display: block`, sus celdas siguen siendo
      `role="cell"` con nombre accesible, y el `thead` (visualmente sr-only en
      mobile) sigue en el árbol de accesibilidad.
-  4. **Áreas táctiles**: el primer switch "Catálogo" de la tabla mide al
+  5. **Áreas táctiles**: el primer switch "Catálogo" de la tabla mide al
      menos 24×44 px, y el primer checkbox de selección **de una fila** (el
      "Seleccionar todos" de cabecera es `max-md:hidden` en mobile) tiene un
      área táctil (su `<label>` envolvente) de al menos 44×44 px.
-  5. **Un diálogo tapa la barra superior**: con el diálogo de borrado masivo
+  6. **Un diálogo tapa la barra superior**: con el diálogo de borrado masivo
      abierto en `/productos`, `document.elementFromPoint` sobre el centro del
      botón "Abrir menú" devuelve el backdrop del diálogo y no un nodo del
      `<header>`. Es la medición del contexto de apilamiento de `AdminLayout`
      que jsdom no puede dar (ver "Tabla apilada del admin" en `CLAUDE.md`).
-- **`admin-tablero-ordenes.spec.js`** (proyecto `chromium`): el gesto de
-  arrastre del tablero Kanban de órdenes, que es lo ÚNICO que Vitest no puede
-  cubrir — jsdom no implementa `PointerEvent` ni `setPointerCapture` (el
-  `PointerSensor` de dnd-kit no arranca) y devuelve `getBoundingClientRect` en
-  cero, así que la detección de colisión resuelve degeneradamente. Verifica el
-  arrastre con mouse, el camino de TECLADO (que es por lo que se aceptó sumar
-  `@dnd-kit/core`), que cancelar el diálogo no mueva nada, y el panel de
-  resumen con Escape. Cada movimiento se confirma **leyendo la fila en la
-  base**, no contra la UI.
+- **`admin-grilla-ordenes.spec.js`** (proyecto `chromium`): la grilla paginada
+  de `/catalogo/admin/ordenes`, de punta a punta — login real, el disclosure
+  del resumen (abre al click, Escape lo cierra y devuelve el foco), el enlace
+  "Ver" al detalle, el camino `<select>` → diálogo → PATCH **verificado en la
+  base**, el filtro de período (preset "Hoy" contra una orden sembrada 40 días
+  atrás) y los chips de estado con su conteo.
+
+  Su guard más valioso es que, **después del cambio de estado, la fila conserva
+  su monto y su cantidad de items**: `PATCH /ordenes/:id/estado` responde con
+  la forma DETALLE, que no trae `total`/`cantidadItems`/`resumen`, así que
+  pisar la fila con la respuesta entera se los arranca sin ningún error.
+
+  **Todo el recorrido va filtrado por el DNI del cliente sembrado** (`?dni=`):
+  la base de desarrollo tiene órdenes reales, y sin acotar los conteos de los
+  chips no serían decidibles.
 
   ⚠️ **Va entero en UN test con `test.step`, y no es pereza: el login tiene
-  rate limit de 8 intentos cada 15 minutos por IP.** Con un login por test,
-  este spec solo agotaba casi la mitad del cupo de la corrida y hacía fallar a
-  los demás — el primero en caerse fue `admin-cambio-estado.spec.js`, que ni
-  siquiera es parte de esa feature. Mismo criterio que `admin-mobile.spec.js`.
-  Si al correr la suite completa varios specs fallan con "sigo en
-  /catalogo/admin/login", **es el rate limit, no el código**: esperar 15
-  minutos.
+  rate limit de 8 intentos cada 15 minutos por IP.** Con un login por test, el
+  spec del tablero al que éste reemplaza agotaba casi la mitad del cupo de la
+  corrida y hacía fallar a los demás — el primero en caerse fue
+  `admin-cambio-estado.spec.js`, que ni siquiera era parte de esa feature.
+  Mismo criterio que `admin-mobile.spec.js`. Si al correr la suite completa
+  varios specs fallan con "sigo en /catalogo/admin/login", **es el rate limit,
+  no el código**: esperar 15 minutos.
 
-  Nota de Playwright: `page.dragAndDrop` falla seguido contra dnd-kit porque
-  manda un solo movimiento y no supera la `activationConstraint` de 8 px. Hay
-  que usar `mouse.move` → `down` → `move(..., { steps })` → `up`.
+  ⚠️ **El cierre del resumen está ANIMADO** (`grid-template-rows: 1fr → 0fr`) y
+  la fila sigue montada mientras colapsa. No se puede afirmar que desaparezca
+  en el acto, ni afirmar el estado intermedio (`data-despliegue="cerrado"`
+  sobre la fila todavía montada): esa ventana dura 200 ms y una aserción sobre
+  ella es intermitente. Lo que sí sirve es un `toHaveCount(0)`, que
+  auto-reintenta y espera el desmonte diferido.
 
-  ⚠️ **Dos carreras que hay que respetar en cualquier test de este tablero, y
-  las dos son intermitentes:**
-
-  - **Levantar con `Space` NO es sincrónico.** Una flecha que llega antes se
-    procesa como si no hubiera arrastre: el `Space` final suelta sobre la MISMA
-    columna y no pasa nada, sin error. Hay que esperar a que aparezca el clon
-    del `DragOverlay` (`[data-tarjeta-orden][aria-hidden="true"]`), que existe
-    solo mientras dura el gesto. El anuncio del `aria-live` **no** sirve:
-    conserva el texto del arrastre anterior, así que la espera pasa de
-    inmediato.
-  - **Ver la tarjeta en la columna destino NO prueba que el PATCH terminó.**
-    Con el diálogo abierto la tarjeta ya se dibuja ahí (la previsualización que
-    evita verla "volver" detrás del modal), así que esa aserción pasa antes de
-    que se escriba nada. La señal de que el movimiento se persistió es que **el
-    diálogo se cerró**; leer la base antes devuelve el estado viejo.
+  ⚠️ **Ver la fila con el estado nuevo NO prueba que el PATCH terminó.** La
+  señal de que se escribió es que **el diálogo se cerró**, que ocurre recién
+  con la respuesta en la mano; leer la base antes devuelve el estado viejo.
 
   Y en mobile, `getByRole("dialog")` pelado rompe por strict mode: el drawer
   del menú también es un `dialog` (montado e inerte). Acotar por nombre.
+  > **Existió un `admin-tablero-ordenes.spec.js`** que probaba el tablero
+  > Kanban de órdenes —arrastre con mouse y con teclado, el clon del
+  > `DragOverlay`—. Se borró el 07/09/2026 junto con el tablero, cuando la
+  > pantalla volvió a ser una grilla paginada. Lo reemplaza
+  > `admin-grilla-ordenes.spec.js`, que cubre el mismo camino de escritura
+  > (cambio de estado → diálogo → PATCH) sin el gesto.
 - **`admin-desktop-layout.spec.js`** (proyecto `chromium`): guard de
   no-regresión — a 1280x720 la tabla de `/productos` sigue siendo
   `display: table` (no apilada), el botón "Abrir menú" sigue oculto, el
@@ -228,6 +255,32 @@ seed/cleanup en escenarios nuevos (Sprint 7 Task 2).
   formulario de checkout: labels asociados, `aria-invalid`/
   `aria-describedby` en campos inválidos, `role="alert"` en errores de envío
   (fixes del Sprint 6, confirmados bajo render real de browser).
+- `home-carrusel.spec.js` — el carrusel de campañas y ofertas de la home:
+  siembra una campaña HABILITADA con banner, prioridad 999 y vitrina, y sigue
+  su slide hasta `/coleccion?campania=<id>`. **Sin
+  `neutralizarContextoComercial`, a propósito** (el contexto es el sujeto),
+  así que cierra "el cartel que haya" antes de tocar nada.
+  ⚠️ **No hay ningún botón "Ver más" que buscar**: desde el 06/09/2026 el
+  slide ENTERO es el enlace y su nombre accesible sale del TÍTULO del slide
+  (`SlideCampania.jsx`). Y como el carrusel rota solo cada 5 s y los slides
+  que no están a la vista van `aria-hidden`/`inert` —invisibles para
+  `getByRole`—, el spec lo FRENA entrando con el puntero y vuelve al primer
+  punto del tablist antes de medir o clickear.
+- `publico-mobile.spec.js` (proyecto `mobile`) — la isla flotante y su hoja a
+  412px: que la isla caiga en la mitad de abajo de la pantalla, que abra y
+  cierre el menú devolviendo el foco, y que no se monte sobre el final del
+  catálogo.
+  ⚠️ Dos trampas escritas en el propio spec: **`page.mouse.wheel` no scrollea
+  en un contexto `isMobile`/`hasTouch`** (y `toBeVisible()` no delata que la
+  página no se movió, porque significa "no está `display:none`", no "entra en
+  el viewport"), y **`scrollIntoViewIfNeeded` tampoco alcanza** porque la
+  grilla llega por fetch y el documento crece DESPUÉS. El scroll se reintenta
+  hasta tocar el fondo real, y eso mismo es la aserción intermedia.
+  ⚠️ Lo que se mide al final es dónde termina el **contenido** del pie, no la
+  caja del `<footer>`: el zócalo que reserva el lugar de la isla es el `pb-24`
+  de adentro del pie (`Footer.jsx`), así que la caja del `<footer>` llega
+  siempre hasta el fondo del documento y compararla contra una isla `fixed
+  bottom-0` no puede dar nunca.
 - `global-setup.js` — pre-flight check: falla rápido y con un mensaje claro
   si el backend no responde en `http://localhost:4000/health` antes de
   arrancar los tests, en vez de dejar que el primer test falle por timeout.

@@ -34,6 +34,16 @@ export default defineConfig({
     timeout: 5_000,
   },
   fullyParallel: false,
+  // ⚠️ **Va en `true` SIEMPRE, y no en el `!!process.env.CI` de la receta
+  // habitual de Playwright.** Ese idiom asume que la red que atrapa un `.only`
+  // olvidado es el CI, y acá el CI no corre esta suite a propósito (siembra y
+  // limpia una base SQL Server real, ver `.github/workflows/ci.yml`). Con la
+  // condición puesta, `forbidOnly` no se activaría NUNCA: un `.only` que quedó
+  // de una sesión de debugging achicaría en silencio la corrida manual que las
+  // reglas del proyecto exigen antes de publicar, y el reporte diría "1 passed"
+  // como si estuviera todo bien. `CI` sigue decidiendo lo que sí depende del
+  // entorno: `webServer.reuseExistingServer`, más abajo.
+  forbidOnly: true,
   retries: 0,
   workers: 1,
   reporter: [["list"]],

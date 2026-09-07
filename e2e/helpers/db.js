@@ -186,10 +186,15 @@ export async function crearClienteDeTest(overrides = {}) {
  * @param {object} [opciones]
  * @param {number} [opciones.clienteId] cliente existente a reusar
  * @param {string} [opciones.estado] uno de PENDIENTE/EN_PREPARACION/ENTREGADA/CANCELADA
+ * @param {Date} [opciones.createdAt] cuándo entró la orden. `Orden.createdAt` es
+ *   un `@default(now())` común (no un `@updatedAt`), así que se puede fijar en el
+ *   `create` — y hace falta para que el filtro de PERÍODO de la grilla del admin
+ *   sea decidible: sin una orden vieja de verdad, "Hoy" y "Todo" devuelven lo
+ *   mismo y el test pasaría sin probar nada. Sin este campo, `now()`.
  * @param {Array<{productId: number, nombreProducto: string, precioUnitario: string, cantidad: number}>} opciones.items
  * @returns {Promise<object>} la orden creada, con `cliente` e `items` incluidos
  */
-export async function crearOrdenDeTest({ clienteId, estado, items } = {}) {
+export async function crearOrdenDeTest({ clienteId, estado, createdAt, items } = {}) {
   const clienteIdFinal = clienteId ?? (await crearClienteDeTest()).id;
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -200,6 +205,7 @@ export async function crearOrdenDeTest({ clienteId, estado, items } = {}) {
     data: {
       clienteId: clienteIdFinal,
       estado: estado ?? "PENDIENTE",
+      ...(createdAt ? { createdAt } : {}),
       items: { create: items },
     },
     include: { cliente: true, items: true },
