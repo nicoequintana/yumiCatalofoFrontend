@@ -104,12 +104,16 @@ describe("AdminClientes", () => {
     expect(within(desglose).getByText(/recurrentes/i)).toBeInTheDocument();
   });
 
-  it("muestra la tasa de recompra como porcentaje", async () => {
+  it("muestra la tasa de recompra como porcentaje, con coma decimal", async () => {
     renderPagina();
 
     await screen.findByText("$ 1.750");
 
-    expect(screen.getByText("25.0%")).toBeInTheDocument();
+    // `formatTasa` compartido (`utils/formato.js`): antes esta pantalla tenía
+    // su propia variante sin `.replace(".", ",")` y mostraba "25.0%" donde
+    // `AdminEmbudo` ya mostraba "25,0%" — la misma tasa con dos formatos.
+    expect(screen.getByText("25,0%")).toBeInTheDocument();
+    expect(screen.queryByText("25.0%")).not.toBeInTheDocument();
   });
 
   it("muestra el tiempo entre compras en días cuando hay dato", async () => {

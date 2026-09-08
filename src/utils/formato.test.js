@@ -4,6 +4,7 @@ import {
   formatFecha,
   formatFechaHora,
   formatPrecio,
+  formatTasa,
   formatearPrecioInput,
   formatearPrecioParaEdicion,
   precioACentavos,
@@ -31,6 +32,26 @@ describe("formatEntero", () => {
   it("un valor ausente se muestra como cero, no como vacío", () => {
     expect(formatEntero(null)).toBe("0");
     expect(formatEntero(undefined)).toBe("0");
+  });
+});
+
+describe("formatTasa", () => {
+  it("formatea una fracción como porcentaje con coma decimal", () => {
+    expect(formatTasa(0.25)).toBe("25,0%");
+    expect(formatTasa(0.2)).toBe("20,0%");
+    expect(formatTasa(0)).toBe("0,0%");
+  });
+
+  // La tercera variante que existía en `AdminClientes.jsx` no hacía este
+  // reemplazo y mostraba "25.0%": el guard es justamente que NUNCA quede un
+  // punto en el resultado.
+  it("nunca deja el separador decimal en inglés", () => {
+    expect(formatTasa(0.25)).not.toContain(".");
+  });
+
+  it("una tasa no calculable se muestra como guion, nunca como 0%", () => {
+    expect(formatTasa(null)).toBe("—");
+    expect(formatTasa(undefined)).toBe("—");
   });
 });
 

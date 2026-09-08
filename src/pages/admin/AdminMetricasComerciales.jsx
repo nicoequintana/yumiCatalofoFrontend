@@ -6,7 +6,8 @@ import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
 import BadgeEstado from "../../components/admin/BadgeEstado.jsx";
 import { getMetricasComerciales } from "../../api/adminMetricasComerciales.js";
-import { formatEntero, formatFecha } from "../../utils/formato.js";
+import { formatEntero, formatFecha, formatTasa } from "../../utils/formato.js";
+import { ESTILOS_ESTADO_TEMPORAL } from "../../constants/campanias.js";
 import {
   claseCelda,
   claseCeldaNumerica,
@@ -28,28 +29,14 @@ const FILTROS_ESTADO = [
 ];
 
 /**
- * Estilos del `estadoTemporal` de cada tarjeta — dominio de campañas, no de
- * órdenes. `BadgeEstado` por defecto pinta con `ESTILOS_ESTADO`
- * (`constants/ordenes.js`), cuyas claves son `PENDIENTE`/`EN_PREPARACION`/…:
- * ninguna matchea `ACTIVA`/`PROGRAMADA`/`FINALIZADA`, así que las tres caían
- * al mismo gris por defecto y anulaban la dimensión que esta pantalla más
- * necesita escanear de un vistazo. Vive acá y no en `constants/ordenes.js`,
- * que es solo de órdenes.
+ * `BadgeEstado` por defecto pinta con `ESTILOS_ESTADO` (`constants/ordenes.js`),
+ * cuyas claves son `PENDIENTE`/`EN_PREPARACION`/…: ninguna matchea
+ * `ACTIVA`/`PROGRAMADA`/`FINALIZADA`, así que las tres caían al mismo gris por
+ * defecto y anulaban la dimensión que esta pantalla más necesita escanear de
+ * un vistazo. `ESTILOS_ESTADO_TEMPORAL` es del dominio de campañas y vive en
+ * `constants/campanias.js` —el calendario comercial ya es la casa de la
+ * presentación de estos tres estados—, no acá ni en `constants/ordenes.js`.
  */
-const ESTILOS_ESTADO_TEMPORAL = {
-  PROGRAMADA: "bg-secondary-container text-on-secondary-container",
-  ACTIVA: "bg-primary text-on-primary",
-  FINALIZADA: "bg-surface-container-highest text-on-surface-variant",
-};
-
-/**
- * Tasa (0..1) -> "25,0%". Mismo criterio que `AdminEmbudo`: `null`/`undefined`
- * es "no calculable" y se resuelve ANTES de llamar a esta función — nunca
- * "0%", que le mentiría al admin sobre una tasa que en realidad no se sabe.
- */
-function formatTasa(tasa) {
-  return `${(tasa * 100).toFixed(1).replace(".", ",")}%`;
-}
 
 /**
  * Una tarjeta por campaña o promoción. No es una fila de tabla: cada ítem
@@ -57,7 +44,7 @@ function formatTasa(tasa) {
  * período, dos orígenes con tres números cada uno, destinos, etapas) para que
  * eso entre en una fila legible.
  */
-function TarjetaMetrica({ item, origenes, registraDesde }) {
+function TarjetaItemComercial({ item, origenes, registraDesde }) {
   // Mismo vocabulario en las dos ramas (HABILITADA/DESHABILITADA, el de
   // `ESTADOS_CAMPANIA` en el backend): mostrar "HABILITADA" cruda para
   // campaña y "Habilitada" en minúscula para promoción es el mismo
@@ -72,7 +59,15 @@ function TarjetaMetrica({ item, origenes, registraDesde }) {
         <BadgeEstado estado={item.estadoTemporal} estilos={ESTILOS_ESTADO_TEMPORAL} />
         {item.subregistrada ? (
           <span
-            title={`La medición empezó el ${formatFecha(registraDesde)}`}
+            // `registraDesde: null` es el estado de producción hoy (cero
+            // eventos comerciales todavía): ahí TODOS los ítems salen
+            // subregistrados, y "La medición empezó el —" sería un dato
+            // fantasma. Se distingue de "empezó después de este ítem".
+            title={
+              registraDesde
+                ? `La medición empezó el ${formatFecha(registraDesde)}`
+                : "Todavía no se registró ningún evento comercial"
+            }
             className="font-label-sm text-label-sm rounded-full bg-tertiary-container px-2 py-1 uppercase tracking-widest text-on-surface"
           >
             Parcial
@@ -169,8 +164,11 @@ function TarjetaMetrica({ item, origenes, registraDesde }) {
 }
 
 /**
- * `/catalogo/admin/metricas-comerciales` — impresiones, clicks y etapas de
- * cada campaña y promoción con banner cargado.
+ * `/catalogo/admin/analytics/campanias` — impresiones, clicks y etapas de
+ * cada campaña y promoción que tiene superficie propia. El endpoint no filtra
+ * por banner ni por actividad: entra toda campaña (incluida BORRADOR) y toda
+ * promoción con período propio, tenga o no eventos — un ítem sin un solo
+ * evento sale igual, con sus contadores en cero.
  *
  * Molde de `AdminEmbudo.jsx` (bandera `activo` del efecto, `EstadoErrorCarga`
  * con `onReintentar`, `EstadoVacio`, error que se limpia en el fetch
@@ -181,7 +179,7 @@ function TarjetaMetrica({ item, origenes, registraDesde }) {
  *   `aria-pressed` — nunca `role="tablist"`, que exigiría roving `tabindex` y
  *   navegación por flechas que este filtro no necesita.
  * - **Una tarjeta por ítem, no una fila de tabla.**
- * - **La tabla chica va DENTRO de cada tarjeta** (`TarjetaMetrica`), una fila
+ * - **La tabla chica va DENTRO de cada tarjeta** (`TarjetaItemComercial`), una fila
  *   por origen — los orígenes y sus etiquetas los manda el backend
  *   (`origenes`), la pantalla nunca los escribe a mano.
  *
@@ -264,9 +262,11 @@ function AdminMetricasComerciales() {
       {datos?.truncado ? (
         <Advertencia testId="advertencia-truncado" titulo="Listado recortado">
           <p className="font-body-md text-body-md text-on-surface">
-            Este listado muestra como máximo las 50 campañas y promociones más
-            recientes. Si hay más, y en especial si estás filtrando por
-            estado, puede haber ítems que existen y no se muestran acá.
+            Este listado muestra como máximo las {datos.tope} campañas MÁS las{" "}
+            {datos.tope} promociones más recientes — el tope es por tipo, no
+            uno solo entre las dos. Si hay más, y en especial si estás
+            filtrando por estado, puede haber ítems que existen y no se
+            muestran acá.
           </p>
         </Advertencia>
       ) : null}
@@ -304,19 +304,19 @@ function AdminMetricasComerciales() {
           <EstadoVacio
             icono="search_off"
             titulo="Sin resultados"
-            mensaje="Ningún ítem con este filtro tiene impresiones ni clicks. Probá con otro estado."
+            mensaje="Ningún ítem tiene este estado. Probá con otro filtro."
           />
         ) : (
           <EstadoVacio
             icono="campaign"
-            titulo="Todavía no hay campañas ni promociones con actividad"
-            mensaje="Cuando una campaña o promoción con banner cargado reciba impresiones o clicks, sus métricas van a aparecer acá."
+            titulo="Todavía no hay campañas ni promociones"
+            mensaje="Una promoción sin período propio, asociada a una campaña, o que quedó fuera del corte de las más recientes no aparece acá. El resto sale con sus métricas en cero hasta que reciba la primera impresión o click."
           />
         )
       ) : (
         <ul className="flex flex-col gap-6">
           {datos.items.map((item) => (
-            <TarjetaMetrica
+            <TarjetaItemComercial
               key={`${item.tipo}-${item.id}`}
               item={item}
               origenes={datos.origenes}

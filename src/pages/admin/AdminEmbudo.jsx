@@ -4,7 +4,7 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import { getEmbudoConversion } from "../../api/adminEmbudo.js";
-import { formatEntero, formatFecha } from "../../utils/formato.js";
+import { formatEntero, formatFecha, formatTasa } from "../../utils/formato.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
@@ -13,20 +13,6 @@ import { claseCelda, claseEncabezado, claseTablaApilada } from "../../components
 
 /** Ancho mínimo de barra, para que una etapa en cero siga siendo visible. */
 const ANCHO_MINIMO = 6;
-
-/**
- * Tasa (0..1) -> "20,0%".
- *
- * Una tasa `null` es una tasa NO CALCULABLE, no un cero: pasa cuando la etapa
- * anterior no tiene eventos (no hay denominador) o cuando esta etapa tiene más
- * eventos que la anterior — imposible en un embudo real, señal de que las dos
- * etapas no cubren el mismo período de registro. Se muestra "—" a propósito:
- * un porcentaje inventado ahí sería mentira, y un "0%" también.
- */
-function formatTasa(tasa) {
-  if (tasa === null || tasa === undefined) return "—";
-  return `${(tasa * 100).toFixed(1).replace(".", ",")}%`;
-}
 
 /**
  * Embudo en barras horizontales proporcionales, en CSS puro.

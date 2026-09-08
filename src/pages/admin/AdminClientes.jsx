@@ -4,7 +4,7 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import { getResumenClientes } from "../../api/adminClientes.js";
-import { formatPrecio } from "../../utils/formato.js";
+import { formatPrecio, formatTasa } from "../../utils/formato.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
@@ -244,7 +244,7 @@ function AdminClientes() {
               <TarjetaMetrica
                 icono="repeat"
                 etiqueta="Tasa de recompra"
-                valor={`${(resumen.tasaRecompra * 100).toFixed(1)}%`}
+                valor={formatTasa(resumen.tasaRecompra)}
                 detalle={
                   resumen.clientesRecurrentes === 1
                     ? "1 cliente volvió a comprar"

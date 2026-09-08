@@ -14,6 +14,7 @@ const { default: AdminMetricasComerciales } = await import("./AdminMetricasComer
 const RESPUESTA = {
   registraDesde: "2026-09-08",
   truncado: false,
+  tope: 50,
   etapasEnRango: { desde: "2026-09-06", hasta: "2026-09-16" },
   origenes: [
     { valor: "MODAL", etiqueta: "Cartel" },
@@ -92,6 +93,20 @@ describe("AdminMetricasComerciales", () => {
     expect(chip).toHaveAttribute("title", expect.stringContaining("08/09/2026"));
   });
 
+  // `registraDesde: null` es el estado de producción hoy: cero eventos
+  // comerciales todavía, así que TODAS las tarjetas salen subregistradas.
+  // "La medición empezó el —" sería un dato fantasma; el título tiene que
+  // decir que nunca hubo registro, no fingir una fecha que no existe.
+  it("con registraDesde null, el chip Parcial no inventa una fecha", async () => {
+    getMetricasComercialesMock.mockResolvedValue({ ...RESPUESTA, registraDesde: null });
+
+    montar();
+
+    const chip = await screen.findByText("Parcial");
+    expect(chip).toHaveAttribute("title", "Todavía no se registró ningún evento comercial");
+    expect(chip).not.toHaveAttribute("title", expect.stringContaining("—"));
+  });
+
   it("emite el estado administrativo, que distingue 'nadie la vio' de 'nunca salió'", async () => {
     montar();
 
@@ -118,12 +133,16 @@ describe("AdminMetricasComerciales", () => {
     expect(screen.getByRole("button", { name: "Todas" })).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("avisa cuando el listado viene recortado", async () => {
-    getMetricasComercialesMock.mockResolvedValue({ ...RESPUESTA, truncado: true });
+  it("avisa cuando el listado viene recortado, con el tope que manda el backend", async () => {
+    getMetricasComercialesMock.mockResolvedValue({ ...RESPUESTA, truncado: true, tope: 50 });
 
     montar();
 
     expect(await screen.findByText(/recortad/i)).toBeInTheDocument();
+    // El tope sale del sobre (`datos.tope`), nunca escrito a mano en la
+    // pantalla — es el mismo número que el backend usa en el `take`.
+    expect(screen.getByText(/50 campañas/)).toBeInTheDocument();
+    expect(screen.getByText(/50 promociones/)).toBeInTheDocument();
   });
 
   it("declara el rango sobre el que se contaron las etapas", async () => {

@@ -87,3 +87,22 @@ export function claveVisual(campania) {
 export function estiloDeCampania(campania) {
   return ESTILOS_CAMPANIA[claveVisual(campania)] ?? ESTILO_CAMPANIA_POR_DEFECTO;
 }
+
+/**
+ * Mapa PLANO `{clave: clases}` del estado TEMPORAL, para el consumidor que
+ * necesita solo el color de fondo (`BadgeEstado`) y no las tres piezas de
+ * `ESTILOS_CAMPANIA` (barra/punto/ícono) que arma el calendario. Reusa el
+ * mismo `.barra` de cada estado, así que esta pantalla y el calendario
+ * comercial nunca vuelven a pintar `ACTIVA`/`PROGRAMADA`/`FINALIZADA` con dos
+ * grises distintos — vivía copiado en `AdminMetricasComerciales.jsx` con
+ * `FINALIZADA` ya divergida (`bg-surface-container-highest` ahí,
+ * `bg-surface-container` acá).
+ *
+ * Solo las TRES claves temporales: `BORRADOR` y `DESHABILITADA` son del eje
+ * ADMINISTRATIVO y esta pantalla las muestra aparte, como texto plano.
+ */
+export const ESTILOS_ESTADO_TEMPORAL = {
+  PROGRAMADA: ESTILOS_CAMPANIA.PROGRAMADA.barra,
+  ACTIVA: ESTILOS_CAMPANIA.ACTIVA.barra,
+  FINALIZADA: ESTILOS_CAMPANIA.FINALIZADA.barra,
+};

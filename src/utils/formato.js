@@ -29,6 +29,25 @@ export function formatEntero(cantidad) {
 }
 
 /**
+ * Tasa (0..1) -> "25,0%". `null`/`undefined` es "no calculable", nunca "0%"
+ * — un porcentaje inventado ahí le mentiría al admin sobre una tasa que en
+ * realidad no se sabe, así que se muestra el mismo guion que el resto de las
+ * métricas sin dato.
+ *
+ * Vivía duplicada en `AdminEmbudo.jsx` y `AdminMetricasComerciales.jsx`
+ * (mismo cuerpo), más una TERCERA variante en `AdminClientes.jsx` que no
+ * hacía el `.replace(".", ",")`: mostraba `25.0%` donde las otras dos
+ * mostraban `25,0%`, la misma tasa con dos formatos distintos en el panel.
+ *
+ * @param {number|null|undefined} tasa
+ * @returns {string} ej. "25,0%", o "—" si no es calculable
+ */
+export function formatTasa(tasa) {
+  if (tasa === null || tasa === undefined) return SIN_DATO;
+  return `${(tasa * 100).toFixed(1).replace(".", ",")}%`;
+}
+
+/**
  * Fecha sin hora (`YYYY-MM-DD`), el shape que devuelven los endpoints de
  * analytics del admin. Se detecta a propósito para NO pasarla nunca por
  * `new Date()`: el parser de ECMAScript trata ese formato como medianoche UTC,
