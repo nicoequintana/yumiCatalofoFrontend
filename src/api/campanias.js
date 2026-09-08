@@ -198,3 +198,51 @@ export async function guardarProductosDeCampania(id, productIds) {
 export async function getContadorCampania(hasta) {
   return pedirAutenticado(`${BASE}/campanias/contador?hasta=${encodeURIComponent(hasta)}`);
 }
+
+/**
+ * Fire-and-forget: registra una impresión o un click del cartel o del slide.
+ * Nunca lanza y nunca demora la navegación que lo disparó.
+ *
+ * Elige la ruta por el id que venga. **`promocionId` se mira primero**: un
+ * slide de campaña viaja con `promocionId: null` explícito y uno de promoción
+ * con `campaniaId: null`, así que preguntar por el de promoción primero es lo
+ * que distingue los dos casos sin ambigüedad.
+ *
+ * Copia el contrato de `registrarEvento` (`api/products.js`) —`fetch` pelado
+ * sin `fetchConTimeout`, `catch` vacío, body condicional— con UNA diferencia:
+ * si la respuesta no es ok, avisa por consola. Este endpoint valida bastante
+ * más que `POST /eventos` (404 por referencia inexistente, 400 por origen o
+ * destino inválido), y los valores de `origen` son literales del cliente: sin
+ * este aviso, un typo se pierde sin dejar rastro y el síntoma es "esta campaña
+ * no tuvo impresiones". No hay test rojo que lo atrape, porque viaja como
+ * string.
+ */
+export async function registrarEventoComercial({ tipo, origen, campaniaId, promocionId, destino }) {
+  let ruta = null;
+  if (promocionId != null) {
+    ruta = `${BASE}/promociones/${promocionId}/evento`;
+  } else if (campaniaId != null) {
+    ruta = `${BASE}/campanias/${campaniaId}/evento`;
+  }
+
+  // Sin ninguna de las dos referencias no hay a quién atribuirle el evento.
+  if (ruta === null) return;
+
+  try {
+    const res = await fetch(ruta, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        destino !== undefined && destino !== null
+          ? { tipo, origen, destino }
+          : { tipo, origen },
+      ),
+    });
+    if (!res.ok) {
+      console.warn(`No se pudo registrar el evento comercial (${res.status}).`);
+    }
+  } catch {
+    // Contador blando: que falle la red nunca puede romper la navegación que
+    // el visitante acaba de disparar.
+  }
+}

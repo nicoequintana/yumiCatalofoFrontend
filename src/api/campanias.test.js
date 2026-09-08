@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { getContadorCampania, guardarProductosDeCampania } from "./campanias.js";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { getContadorCampania, guardarProductosDeCampania, registrarEventoComercial } from "./campanias.js";
 import { fetchAutenticado } from "./authClient.js";
 
 vi.mock("./authClient.js");
@@ -46,5 +46,87 @@ describe("getContadorCampania", () => {
     await expect(getContadorCampania("mañana")).rejects.toThrow(
       "La fecha debe tener el formato AAAA-MM-DD.",
     );
+  });
+});
+
+describe("registrarEventoComercial", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 201 }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("pega a la ruta de campañas cuando viene campaniaId", async () => {
+    await registrarEventoComercial({
+      tipo: "IMPRESION_COMERCIAL",
+      origen: "MODAL",
+      campaniaId: 7,
+      promocionId: null,
+    });
+
+    const [url, opciones] = globalThis.fetch.mock.calls[0];
+    expect(url).toContain("/campanias/7/evento");
+    expect(opciones.method).toBe("POST");
+    expect(JSON.parse(opciones.body)).toEqual({
+      tipo: "IMPRESION_COMERCIAL",
+      origen: "MODAL",
+    });
+  });
+
+  it("pega a la ruta de promociones cuando viene promocionId", async () => {
+    await registrarEventoComercial({
+      tipo: "IMPRESION_COMERCIAL",
+      origen: "BANNER",
+      campaniaId: null,
+      promocionId: 9,
+    });
+
+    expect(globalThis.fetch.mock.calls[0][0]).toContain("/promociones/9/evento");
+  });
+
+  it("incluye el destino solo cuando viene", async () => {
+    await registrarEventoComercial({
+      tipo: "CLICK_COMERCIAL",
+      origen: "BANNER",
+      campaniaId: 7,
+      destino: "CAMPANIA",
+    });
+
+    expect(JSON.parse(globalThis.fetch.mock.calls[0][1].body)).toEqual({
+      tipo: "CLICK_COMERCIAL",
+      origen: "BANNER",
+      destino: "CAMPANIA",
+    });
+  });
+
+  it("sin ninguna referencia no pega a ningún lado", async () => {
+    await registrarEventoComercial({
+      tipo: "IMPRESION_COMERCIAL",
+      origen: "BANNER",
+      campaniaId: null,
+      promocionId: null,
+    });
+
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("no lanza cuando la red falla", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("sin red")));
+
+    await expect(
+      registrarEventoComercial({ tipo: "IMPRESION_COMERCIAL", origen: "MODAL", campaniaId: 7 }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("avisa por consola cuando la respuesta no es ok", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await registrarEventoComercial({ tipo: "IMPRESION_COMERCIAL", origen: "MODAL", campaniaId: 999 });
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("404"));
+    warn.mockRestore();
   });
 });
