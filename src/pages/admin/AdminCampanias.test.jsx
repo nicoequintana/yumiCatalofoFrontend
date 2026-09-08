@@ -101,3 +101,68 @@ describe("AdminCampanias — el calendario navega al editor", () => {
     expect(screen.getByText("Alta con dia=2026-09-04")).toBeInTheDocument();
   });
 });
+
+/**
+ * Guard del ÁREA TÁCTIL del Centro de Campañas.
+ *
+ * Medido en navegador el 07/09/2026 a 1280×800 con `elementFromPoint` (área
+ * EFECTIVA, no la caja declarada). Solo a 1280 porque la pantalla es solo
+ * escritorio (`SoloEscritorio.jsx`): «Programar promoción» 43 de alto,
+ * «Apagar» 33, «Editar» 33 y el nombre de la campaña 25 — los cuatro por
+ * debajo del mínimo de 44×44 (WCAG 2.5.8).
+ *
+ * jsdom no calcula layout: se afirma sobre las CLASES declaradas, igual que en
+ * `SelectorCantidad.test.jsx` y `BotonFavorito.test.jsx`.
+ */
+describe("AdminCampanias — área táctil", () => {
+  it.each([["Programar promoción"], ["Nueva campaña"], ["Apagar"], ["Editar"]])(
+    "«%s» declara el mínimo táctil de 44 de alto",
+    async (nombre) => {
+      renderCentro();
+
+      const boton = await screen.findByRole("button", { name: nombre });
+      expect(boton.className.split(" ")).toContain("min-h-11");
+    },
+  );
+
+  it("los botones del panel de una promoción programada llegan a 44 de alto", async () => {
+    // Un control que solo existe con el diálogo ABIERTO no lo ve un barrido
+    // sobre la pantalla en reposo: por eso estos quedaron fuera de la medición
+    // del 07/09/2026. La caja declarada alcanza para saberlo igual — `py-3`
+    // con `text-label-md` da los mismos 43 que dieron medidos los botones
+    // gemelos de la pantalla («Programar promoción», 43 de área efectiva).
+    const usuario = userEvent.setup();
+    promocionesApi.getProgramaciones.mockResolvedValue([
+      {
+        id: 9,
+        nombre: "Promo TEST",
+        desde: "2026-09-03",
+        hasta: "2026-09-05",
+        habilitada: false,
+      },
+    ]);
+    renderCentro();
+
+    await usuario.click(await screen.findByRole("button", { name: /Promo TEST/ }));
+
+    // Apagada, así que el botón dice «Encender» y no se confunde con el
+    // «Apagar» de la fila de la campaña.
+    for (const nombre of ["Encender", "Quitar del calendario"]) {
+      const boton = screen.getByRole("button", { name: nombre });
+      expect(boton.className.split(" ")).toContain("min-h-11");
+    }
+  });
+
+  it("el nombre de la campaña extiende su área sin crecer de tamaño visible", async () => {
+    // Es texto en línea dentro de una celda: agrandar la caja empujaría la
+    // fila entera. El pseudo-elemento copia el ancho propio (`before:w-full`)
+    // para no invadir la celda de al lado.
+    renderCentro();
+
+    const boton = await screen.findByRole("button", { name: "Primavera 2026" });
+    expect(boton.className).toContain("relative");
+    expect(boton.className).toContain("before:content-['']");
+    expect(boton.className).toContain("before:h-11");
+    expect(boton.className).toContain("before:w-full");
+  });
+});

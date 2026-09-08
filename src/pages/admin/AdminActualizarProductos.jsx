@@ -4,6 +4,7 @@ import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import TablaErroresImportacion from "../../components/admin/TablaErroresImportacion.jsx";
 import { actualizarProductosMasivo, exportarProductos } from "../../api/importProductos.js";
+import { AREA_TACTIL_ANCHA } from "../../utils/areaTactil.js";
 
 /**
  * Actualización masiva del catálogo por planilla `.xlsx`, matcheada por SKU.
@@ -110,7 +111,13 @@ function AdminActualizarProductos() {
           </li>
           <li>
             Para cargar productos nuevos usá{" "}
-            <Link to="/catalogo/admin/productos/importar" className="underline hover:text-primary">
+            <Link
+              to="/catalogo/admin/productos/importar"
+              // Área táctil: 149×21 medidos el 07/09/2026. Pseudo-elemento
+              // porque es texto dentro de un párrafo; `inline-block` le da al
+              // pseudo una caja estable contra la cual centrarse.
+              className={`inline-block underline hover:text-primary ${AREA_TACTIL_ANCHA}`}
+            >
               Importar productos
             </Link>
             , que pide todos los campos.
@@ -125,7 +132,9 @@ function AdminActualizarProductos() {
             type="button"
             onClick={handleExportar}
             disabled={exportando}
-            className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
+            // `min-h-11` ADEMÁS del `py-3`: el mínimo táctil es un PISO.
+            // 42 de alto medidos el 07/09/2026.
+            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
           >
             {exportando ? (
               <Spinner className="h-4 w-4 text-on-surface-variant" decorativo />
@@ -161,7 +170,7 @@ function AdminActualizarProductos() {
             type="button"
             onClick={handleActualizar}
             disabled={!archivo || actualizando}
-            className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
           >
             {actualizando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
             {actualizando ? "Actualizando…" : "Actualizar"}
@@ -173,7 +182,13 @@ function AdminActualizarProductos() {
         <div className="max-w-2xl rounded-lg bg-secondary-container px-4 py-4">
           <p className="font-body-md text-body-md text-on-secondary-container">
             {`Se ${resultado.actualizados === 1 ? "actualizó" : "actualizaron"} ${resultado.actualizados} ${resultado.actualizados === 1 ? "producto" : "productos"}.`}{" "}
-            <Link to="/catalogo/admin/productos" className="underline">
+            <Link
+              to="/catalogo/admin/productos"
+              // Mismo criterio que el de arriba. ⚠️ Este enlace solo existe
+              // DESPUÉS de una actualización exitosa, así que ningún barrido
+              // de la pantalla recién cargada lo ve.
+              className={`inline-block underline ${AREA_TACTIL_ANCHA}`}
+            >
               Ver productos
             </Link>
           </p>

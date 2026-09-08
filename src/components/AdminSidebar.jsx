@@ -7,20 +7,25 @@ import useDialogo from "../hooks/useDialogo.js";
 import LogoYima from "./LogoYima.jsx";
 import ToggleTemaAdmin from "./ToggleTemaAdmin.jsx";
 
+// `min-h-11` = 44px, el piso de área táctil que mide `admin-mobile.spec.js`.
+// Con `py-3` sobre `text-label-md` (14px, interlínea 1.2) estos controles
+// medían 42px: dos píxeles de menos, en las dieciséis pantallas del panel y en
+// cada ítem del menú. El padding sigue mandando cuando el contenido crece; el
+// `min-h` solo pone el piso.
 const linkBase =
-  "flex items-center gap-3 rounded-lg px-4 py-3 font-label-md text-label-md uppercase tracking-widest transition-colors";
+  "flex min-h-11 items-center gap-3 rounded-lg px-4 py-3 font-label-md text-label-md uppercase tracking-widest transition-colors";
 const linkInactivo = "text-on-surface-variant hover:bg-surface-container hover:text-on-surface";
 const linkActivo = "bg-primary text-on-primary";
 
-function claseLink({ isActive }) {
-  return `${linkBase} ${isActive ? linkActivo : linkInactivo}`;
+function claseLink({ isActive }, extra = "") {
+  return `${linkBase} ${isActive ? linkActivo : linkInactivo} ${extra}`.trim();
 }
 
 // Bottom nav (desktop): mismos colores que linkActivo/linkInactivo, pero
 // apilado ícono-arriba/texto-abajo en vez de en fila, y sin mayúsculas
 // forzadas por tracking-widest (no entra en el ancho chico de cada tab).
 const tabBase =
-  "flex flex-col items-center gap-1 rounded-lg px-3 py-2 font-label-sm text-label-sm transition-colors";
+  "flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 font-label-sm text-label-sm transition-colors";
 const tabInactivo = "text-on-surface-variant hover:bg-surface-container hover:text-on-surface";
 const tabActivo = "bg-primary text-on-primary";
 
@@ -32,10 +37,18 @@ function claseTab({ isActive }) {
  * `soloEscritorio` marca los módulos que NO existen para el celular.
  *
  * El calendario comercial es una grilla de siete columnas con barras que
- * atraviesan la semana: a 412 px no hay forma honesta de mostrarlo. En vez de
- * degradarlo a algo ilegible, el item se filtra del drawer (que es la
- * navegación de < lg) y solo aparece en la bottom nav, que ya es `hidden
- * lg:flex`.
+ * atraviesan la semana: a 412 px no hay forma honesta de mostrarlo. Por eso
+ * estos ítems se ocultan por debajo de `lg` (1024px), que es EL MISMO umbral
+ * con el que `SoloEscritorio.jsx` deja entrar a la pantalla — si el aviso
+ * "necesita una pantalla más grande" aparece a un ancho, el enlace que lleva
+ * ahí tiene que estar oculto a ese mismo ancho.
+ *
+ * Antes se filtraban del drawer con `.filter()` en JS, porque el drawer era la
+ * navegación solo hasta 1023px y de ahí en adelante mandaba la bottom nav. Con
+ * el corte de la bottom nav corrido a 1360px (ver el comentario del `<nav>` de
+ * abajo) ese filtro los volvía inalcanzables entre 1024 y 1359 —iPad apaisado,
+ * portátil de 1280—, que es justo donde las pantallas SÍ funcionan. Ahora se
+ * renderizan siempre y se ocultan con `hidden lg:flex`.
  *
  * Se resuelve con un flag en el dato y CSS, NO con `matchMedia`: el frontend no
  * tiene ninguno y el plan del admin responsive lo descarta a propósito. Mismo
@@ -55,9 +68,6 @@ const ITEMS_NAV = [
   { to: "/catalogo/admin/logs", icono: "history", label: "Logs" },
 ];
 
-/** Los que sí van en el drawer de < lg. */
-const ITEMS_NAV_MOBILE = ITEMS_NAV.filter((item) => !item.soloEscritorio);
-
 const ITEMS_CONFIGURACION = [
   { to: "/catalogo/admin/configuracion/categorias", label: "Categorías" },
   { to: "/catalogo/admin/configuracion/etiquetas", label: "Etiquetas" },
@@ -69,17 +79,15 @@ const ITEMS_CONFIGURACION = [
  * Navegación del panel admin. Dos presentaciones completamente distintas
  * según el tamaño de pantalla — no es la misma barra reposicionada:
  *
- * - Mobile/tablet (< lg): drawer lateral fixed, colapsado por defecto, se
- *   abre con el botón de la barra superior de `AdminLayout.jsx` y flota con
- *   overlay. Es un diálogo modal de verdad, no solo una superficie que
- *   corre por CSS: `useDialogo` le da foco inicial, trampa de foco y cierre
- *   por Escape, y `useBloquearScroll` bloquea el scroll de la página de
- *   atrás mientras está abierto. El breakpoint es `lg` (no `md`) porque la
- *   bottom nav de abajo no entra entre 768 y ~1100px — en ese rango (iPad
- *   portrait, por ejemplo) hace falta seguir usando el drawer.
- * - Desktop (lg+): bottom nav horizontal fijo abajo (`fixed inset-x-0
- *   bottom-0`), siempre visible, sin colapsar — logo a la izquierda,
- *   tabs ícono+label centradas, "Cerrar sesión" a la derecha.
+ * - Mobile/tablet/portátil chico (< 1360px): drawer lateral fixed, colapsado
+ *   por defecto, se abre con el botón de la barra superior de
+ *   `AdminLayout.jsx` y flota con overlay. Es un diálogo modal de verdad, no
+ *   solo una superficie que corre por CSS: `useDialogo` le da foco inicial,
+ *   trampa de foco y cierre por Escape, y `useBloquearScroll` bloquea el
+ *   scroll de la página de atrás mientras está abierto.
+ * - Desktop ancho (≥ 1360px): bottom nav horizontal fijo abajo (`fixed
+ *   inset-x-0 bottom-0`), siempre visible, sin colapsar — logo a la
+ *   izquierda, tabs ícono+label centradas, "Cerrar sesión" a la derecha.
  *
  * "Configuración" (submenu Categorías/Usuarios) es un dropdown hacia
  * arriba en el bottom nav (el submenu no tiene lugar hacia abajo, la
@@ -120,7 +128,7 @@ function AdminSidebar({ colapsada, onCerrar }) {
       {/* Mobile/tablet: overlay del drawer colapsable */}
       {!colapsada && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 min-[1360px]:hidden"
           onClick={onCerrar}
           aria-hidden="true"
         />
@@ -146,7 +154,7 @@ function AdminSidebar({ colapsada, onCerrar }) {
         aria-label="Menú"
         tabIndex={-1}
         inert={colapsada}
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col justify-between border-r border-outline-variant bg-surface-container-lowest px-4 py-6 shadow-ambient transition-transform lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col justify-between border-r border-outline-variant bg-surface-container-lowest px-4 py-6 shadow-ambient transition-transform min-[1360px]:hidden ${
           colapsada ? "-translate-x-full" : "translate-x-0"
         }`}
       >
@@ -160,8 +168,21 @@ function AdminSidebar({ colapsada, onCerrar }) {
             </span>
           </span>
           <nav className="flex flex-col gap-1">
-            {ITEMS_NAV_MOBILE.map((item) => (
-              <NavLink key={item.to} to={item.to} className={claseLink} onClick={onCerrar}>
+            {ITEMS_NAV.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                // `hidden lg:flex` para los solo-escritorio: `hidden` es la
+                // última utilidad de `display` que emite Tailwind, así que le
+                // gana al `flex` de `linkBase` sin importar el orden del
+                // atributo, y `lg:flex` va en su media query, después de todas
+                // las utilidades sin prefijo. Oculto además los saca del orden
+                // de tabulado, que es lo que hay que lograr: un enlace visible
+                // solo para el lector de pantalla llevaría a la pantalla que
+                // `SoloEscritorio` bloquea a ese mismo ancho.
+                className={(estado) => claseLink(estado, item.soloEscritorio ? "hidden lg:flex" : "")}
+                onClick={onCerrar}
+              >
                 <span className="material-symbols-outlined text-[18px]">{item.icono}</span>
                 {item.label}
               </NavLink>
@@ -205,21 +226,47 @@ function AdminSidebar({ colapsada, onCerrar }) {
         </div>
       </aside>
 
-      {/* Desktop: bottom nav horizontal fijo, siempre visible.
-          Sus ítems llaman a `onCerrar` aunque el drawer sea `lg:hidden`, y no
-          es redundante: abrir el drawer entre 768 y 1023px y cruzar a `lg`
-          (rotar una tablet, ensanchar la ventana) esconde el `<aside>` por CSS
-          sin que React se entere, así que `useBloquearScroll` deja el body
-          bloqueado y `useDialogo` sigue atrapando el foco en enlaces
-          invisibles. Detectar el cruce pediría `matchMedia` —el primer
-          breakpoint en JS del proyecto, que el plan del admin responsive
-          descarta a propósito—, así que la salida es esta: la bottom nav ya
-          está en pantalla y cualquier toque suyo libera el drawer fantasma,
-          incluida la pestaña ACTUAL, que no navega y por eso no dispara el
-          cierre por cambio de ruta de `AdminLayout`. Residuo asumido y
-          documentado en CLAUDE.md: hasta ese toque (o Escape, o navegar) el
-          scroll sigue bloqueado. */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-6 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:flex">
+      {/* Desktop ANCHO: bottom nav horizontal fija, siempre visible.
+
+          EL CORTE ES 1360px Y NO `lg` (1024px), y esto REVISA con datos la
+          decisión que `docs/reglas/admin-panel.md` daba por cerrada. Ahí se
+          había aceptado la banda 1024–1100px como "apretada pero usable", con
+          el argumento de no introducir un breakpoint custom para un solo caso.
+          La medición en navegador mostró que no era apriete sino pérdida de
+          funcionalidad: esta barra no lleva `flex-wrap` ni scroll, su ancho
+          INTRÍNSECO es de 1326px, y lo que no entra se pinta fuera del
+          viewport SIN generar scroll de documento (`overflow-x` computa
+          `visible`, `scrollWidth === innerWidth`). O sea que no había forma de
+          llegar con el mouse: "Cerrar sesión" empieza en x=1134 y quedaba
+          invisible por debajo de ese ancho, el toggle de tema por debajo de
+          1082 y "Configuración" por debajo de 943. A 1024 `elementFromPoint`
+          directamente no devolvía ni el toggle ni el logout — y a ese ancho el
+          drawer, que sí tiene su propio logout, ya estaba apagado. O sea que el
+          agujero se abría EXACTAMENTE en el breakpoint `lg`, e incluía 1280,
+          el viewport del propio E2E de escritorio del proyecto.
+
+          `overflow-x-auto` no era arreglo: una barra fija que scrollea de
+          costado no se descubre, nadie va a buscar ahí el botón de salir.
+          Colapsar los labels a solo-ícono entre 1024 y 1360 tampoco: haría
+          falta esconder los diez de las tabs para que entre, y diez íconos sin
+          rótulo en el ancho de portátil más común es cambiar un bloqueo por
+          una navegación que hay que adivinar. Lo que sí escala es lo que ya
+          está probado: el drawer, con sus rótulos completos, atiende hasta
+          1359 y cuesta un click.
+
+          Sus ítems llaman a `onCerrar` aunque el drawer sea
+          `min-[1360px]:hidden`, y no es redundante: abrir el drawer por debajo
+          de 1360 y ensanchar la ventana esconde el `<aside>` por CSS sin que
+          React se entere, así que `useBloquearScroll` deja el body bloqueado y
+          `useDialogo` sigue atrapando el foco en enlaces invisibles. Detectar
+          el cruce pediría `matchMedia` —el primer breakpoint en JS del
+          proyecto, que el plan del admin responsive descarta a propósito—, así
+          que la salida es esta: la bottom nav ya está en pantalla y cualquier
+          toque suyo libera el drawer fantasma, incluida la pestaña ACTUAL, que
+          no navega y por eso no dispara el cierre por cambio de ruta de
+          `AdminLayout`. Residuo asumido y documentado en CLAUDE.md: hasta ese
+          toque (o Escape, o navegar) el scroll sigue bloqueado. */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-6 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] min-[1360px]:flex">
         <LogoYima className="h-6 shrink-0" doodleUrl={doodleUrl} />
 
         <div className="flex items-center gap-2">

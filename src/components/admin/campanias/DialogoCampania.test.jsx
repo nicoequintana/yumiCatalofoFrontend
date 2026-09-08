@@ -54,6 +54,28 @@ describe("DialogoCampania", () => {
     expect(velo).toHaveClass("overflow-y-auto");
   });
 
+  it("el ícono de cerrar extiende su área a 44×44 sin agrandar el glifo", () => {
+    // ⚠️ Este botón no lo ve un barrido de la pantalla en reposo: solo existe
+    // con el diálogo abierto, así que la medición del 07/09/2026 sobre
+    // `/catalogo/admin/campanias` no lo alcanzó. La caja declarada alcanza
+    // igual: `p-1` sobre un glifo de 20px da ~28×28, la mitad del mínimo de
+    // 44×44 (WCAG 2.5.8). El glifo no crece —un disco de 44 al lado del
+    // título lo desbalancea— y lo único que tiene cerca es el `<h2>`, que no
+    // es un control: el área extendida no le roba la suya a nadie.
+    render(
+      <DialogoCampania titulo="Nueva campaña" onCerrar={() => {}}>
+        <p>contenido</p>
+      </DialogoCampania>,
+    );
+
+    const cerrar = screen.getByRole("button", { name: "Cerrar" });
+    expect(cerrar.className).toContain("relative");
+    expect(cerrar.className).toContain("before:content-['']");
+    expect(cerrar.className).toContain("before:h-11");
+    expect(cerrar.className).toContain("before:w-11");
+    expect(cerrar.className).toContain("p-1");
+  });
+
   it("deja lugar para la bottom nav de escritorio", () => {
     // Aun ganando el apilamiento, el panel no debe TERMINAR debajo de la nav:
     // el último botón quedaría contra el borde y se leería como cortado.

@@ -3,6 +3,7 @@ import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
+import { AREA_TACTIL_ANCHA } from "../../utils/areaTactil.js";
 import {
   createAnuncio,
   deleteAnuncio,
@@ -182,8 +183,16 @@ function AdminAnuncios() {
   }
 
   const claseCelda = "px-4 py-3 align-middle";
+  // `AREA_TACTIL_ANCHA`: 44 de alto por pseudo-elemento, con el ancho propio
+  // (`before:w-full`) para no invadir al botón de al lado. Medido en navegador
+  // el 07/09/2026 con `elementFromPoint`: a 1280px estos botones daban 80x19
+  // ("Editar") y 93x19 ("Eliminar") de área efectiva — el `max-md:min-h-11` ya
+  // los cubría a 390px y por eso el escritorio había quedado atrás. Son texto
+  // en línea dentro de una celda densa: agrandar la caja de verdad partiría la
+  // fila de acciones en dos renglones. Con los botones de reordenar ya en 44,
+  // la fila mide 68 de alto y las áreas de dos filas consecutivas no se tocan.
   const claseAccion =
-    "font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest hover:underline disabled:opacity-60 max-md:min-h-11";
+    `font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`;
 
   return (
     <main className="w-full px-4 py-6 md:px-8 md:py-8">
@@ -217,10 +226,15 @@ function AdminAnuncios() {
             {textoNuevo.length}/{LARGO_MAX}
           </span>
         </div>
+        {/* `min-h-11` (44px) es el PISO táctil, va además del `py-3` de la
+            variante y nunca en su lugar (ver `SelectorCantidad.jsx`); le gana
+            al `h-max`, que sólo evita que el botón se estire con el contador de
+            caracteres del campo de al lado. Medido a 390px el 07/09/2026: 93x41
+            de área efectiva. */}
         <button
           type="submit"
           disabled={creando}
-          className="font-label-md text-label-md inline-flex h-max items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+          className="font-label-md text-label-md inline-flex h-max min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
         >
           {creando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
           Agregar
@@ -286,13 +300,23 @@ function AdminAnuncios() {
               {anuncios.map((anuncio, indice) => (
                 <tr key={anuncio.id} role="row" className="border-b border-outline-variant last:border-b-0">
                   <td role="cell" data-celda="control" className={claseCelda}>
+                    {/* Los dos botones están PEGADOS (`gap-1`), así que su
+                        área táctil se agranda de verdad —`size-11` en todos los
+                        breakpoints— y NO con el pseudo-elemento de
+                        `areaTactil.js`: con 32 de caja y 4 de separación el paso
+                        es 36, y dos áreas de 44 a 36 de paso se superponen 8px
+                        que se lleva el botón de más abajo en el DOM. Medido el
+                        07/09/2026 con `elementFromPoint`: 32x33 de área efectiva
+                        a 1280px (a 390px ya cumplían por el `max-md:size-11`,
+                        que `size-11` conserva). Con 44 de caja el paso pasa a
+                        48. */}
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => handleMover(indice, -1)}
                         disabled={indice === 0 || ocupadoId !== null}
                         aria-label={`Subir "${anuncio.texto}"`}
-                        className="inline-flex size-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30 max-md:size-11"
+                        className="inline-flex size-11 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30"
                       >
                         <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
                           arrow_upward
@@ -303,7 +327,7 @@ function AdminAnuncios() {
                         onClick={() => handleMover(indice, 1)}
                         disabled={indice === anuncios.length - 1 || ocupadoId !== null}
                         aria-label={`Bajar "${anuncio.texto}"`}
-                        className="inline-flex size-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30 max-md:size-11"
+                        className="inline-flex size-11 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30"
                       >
                         <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
                           arrow_downward
@@ -334,7 +358,17 @@ function AdminAnuncios() {
                   <td role="cell" data-label="Activo" className={claseCelda}>
                     {/* `role="switch"` con `aria-checked`: un lector de pantalla
                         anuncia el estado, cosa que un botón con solo un ícono
-                        no hace. */}
+                        no hace.
+
+                        El área táctil va por PSEUDO-ELEMENTO
+                        (`AREA_TACTIL_ANCHA`) y no agrandando la caja: la
+                        pastilla tiene que seguir midiendo 24 de alto para leerse
+                        como un switch. Medido el 07/09/2026 con
+                        `elementFromPoint`: 44x25 a 390px y 45x25 a 1280px — sólo
+                        faltaba el alto, porque el ancho ya es 44 en todos los
+                        breakpoints, y por eso alcanza `before:w-full`. Es el
+                        único control de su celda y la fila mide 68, así que no
+                        pisa a nadie. */}
                     <button
                       type="button"
                       role="switch"
@@ -342,7 +376,7 @@ function AdminAnuncios() {
                       aria-label={`Anuncio "${anuncio.texto}" activo`}
                       onClick={() => handleAlternarActivo(anuncio)}
                       disabled={ocupadoId !== null}
-                      className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors disabled:opacity-60 ${
+                      className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors disabled:opacity-60 ${AREA_TACTIL_ANCHA} ${
                         anuncio.activo ? "bg-secondary" : "bg-surface-variant"
                       }`}
                     >

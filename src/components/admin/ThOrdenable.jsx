@@ -1,3 +1,5 @@
+import { AREA_TACTIL_ANCHA } from "../../utils/areaTactil.js";
+
 /**
  * Encabezado de columna clickeable: cicla asc → desc → vuelta al default de
  * la pantalla (el `orden` que `useTablaAdmin` devuelve cuando la URL no trae
@@ -52,7 +54,19 @@ export default function ThOrdenable({
         onClick={() => onOrden(siguiente)}
         aria-label={`Ordenar por ${etiqueta}`}
         title={`Ordenar por ${etiqueta}`}
-        className={`max-md:hidden inline-flex items-center gap-1 uppercase hover:text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+        // Área táctil: medido en navegador el 07/09/2026 sobre
+        // `/catalogo/admin/productos` y `/productos/precios` con
+        // `elementFromPoint` —el área EFECTIVA, no la caja declarada—, los seis
+        // encabezados ordenables daban **20-21px de alto**: el `th` tiene su
+        // `py-2`, pero el botón de adentro es texto pelado.
+        //
+        // Va con pseudo-elemento y no con `min-h-11`: estirar el botón
+        // estiraría la fila entera del `thead`, que es justo la que no puede
+        // pagar 24px extra sin empujar las 84 filas de abajo. El overhang
+        // vertical del pseudo (44 sobre un botón de 20) cae dentro del
+        // `py-2`/`xl:py-3` del propio `th` y del `py-2` de la primera fila de
+        // datos, así que no tapa ningún control de esa fila.
+        className={`max-md:hidden inline-flex items-center gap-1 uppercase hover:text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${AREA_TACTIL_ANCHA} ${
           activo ? "text-on-surface" : ""
         }`}
       >

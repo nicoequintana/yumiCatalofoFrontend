@@ -22,6 +22,7 @@ import {
   estadoDePrecio,
 } from "../../utils/precios.js";
 import VeloModal from "../../components/VeloModal.jsx";
+import { AREA_TACTIL_ANCHA } from "../../utils/areaTactil.js";
 
 /**
  * `/catalogo/admin/productos/precios` — costos, coeficiente y precio de venta.
@@ -177,6 +178,19 @@ function ChipEstado({ estado }) {
  * Guarda al SALIR del campo (`blur`) y con Enter, nunca por tecla: un PATCH por
  * pulsación castigaría la base por nada y dejaría el valor a medio tipear
  * guardado en el catálogo.
+ *
+ * `min-h-11` (44px) ADEMÁS del `py-1.5`, no en lugar de él: el mínimo táctil de
+ * WCAG 2.5.8 es un PISO y el padding sigue decidiendo el aire alrededor del
+ * texto (ver `utils/areaTactil.js` y `SelectorCantidad.jsx`). Medido en
+ * navegador el 07/09/2026 con `elementFromPoint` —área EFECTIVA, no la caja
+ * declarada—: el costo daba 93×34 a 390px y 93×35 a 1280px, el coeficiente
+ * 93×34 y 81×35. El alto es lo que falla; el ancho ya sobra en los dos, así que
+ * `ancho` no se toca.
+ *
+ * **Va el `min-h-11` y NO el pseudo-elemento de `AREA_TACTIL`**: un `::before`
+ * sobre un input se dibujaría ENCIMA del propio campo, tapando el valor y
+ * comiéndose el click que tiene que darle el foco. Un campo de captura puede
+ * crecer a 44 sin romper nada — es el alto normal de un input.
  */
 function CeldaEditable({ valor, onChange, onGuardar, etiqueta, ancho = "w-24 max-md:w-full" }) {
   return (
@@ -191,7 +205,7 @@ function CeldaEditable({ valor, onChange, onGuardar, etiqueta, ancho = "w-24 max
         onKeyDown={(evento) => {
           if (evento.key === "Enter") evento.currentTarget.blur();
         }}
-        className={`${ancho} rounded-lg border border-outline-variant bg-surface px-2 py-1.5 text-right tabular-nums text-on-surface focus:border-primary focus:outline-none`}
+        className={`${ancho} min-h-11 rounded-lg border border-outline-variant bg-surface px-2 py-1.5 text-right tabular-nums text-on-surface focus:border-primary focus:outline-none`}
       />
     </label>
   );
@@ -642,7 +656,10 @@ function AdminPrecios() {
           />
           <Link
             to="/catalogo/admin/productos"
-            className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+            // `px-5 py-3` + borde sobre una línea de 17px daba 43 de alto: a UN
+            // píxel del mínimo táctil, que es la peor forma de fallarlo
+            // porque a ojo no se nota. `min-h-11` además del padding.
+            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
           >
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>
             Productos
@@ -656,7 +673,9 @@ function AdminPrecios() {
           <button
             type="button"
             onClick={() => setReintento((n) => n + 1)}
-            className="font-label-md text-label-md shrink-0 rounded-lg border border-on-error-container px-4 py-2 uppercase tracking-widest text-on-error-container hover:bg-error-container"
+            // 35 de alto con `py-2`. Botón suelto en su propia franja: crece
+            // en alto sin empujar nada.
+            className="font-label-md text-label-md min-h-11 shrink-0 rounded-lg border border-on-error-container px-4 py-2 uppercase tracking-widest text-on-error-container hover:bg-error-container"
           >
             Reintentar
           </button>
@@ -691,7 +710,12 @@ function AdminPrecios() {
           <button
             type="button"
             onClick={() => setInforme(null)}
-            className="font-label-md text-label-md mt-2 uppercase tracking-widest text-primary hover:underline"
+            // Texto pelado, sin padding: 17px de alto. Va el pseudo-elemento y
+            // NO `min-h-11` porque un piso de 44 lo despegaría del párrafo
+            // que informa el resultado, y el botón dejaría de leerse como
+            // parte de ese aviso. `before:w-full`: el texto ya sobra de
+            // ancho, y una caja fija de 44 le robaría área al vecino.
+            className={`font-label-md text-label-md mt-2 uppercase tracking-widest text-primary hover:underline ${AREA_TACTIL_ANCHA}`}
           >
             Cerrar
           </button>
@@ -767,7 +791,12 @@ function AdminPrecios() {
                 type="button"
                 aria-pressed={activo}
                 onClick={() => setFiltro(clave)}
-                className={`font-label-md text-label-md rounded-lg border px-4 py-2 uppercase tracking-widest ${
+                // `min-h-11` (44px) además del `py-2`: piso táctil de WCAG
+                // 2.5.8, no reemplazo del padding. Medido el 07/09/2026 con
+                // `elementFromPoint`: 93×35 a 390px y 93×36 a 1280px — falla el
+                // alto, el ancho ya sobra. Crecen sin costo: la barra es
+                // `flex-wrap` y los chips no comparten fila con nada más.
+                className={`font-label-md text-label-md min-h-11 rounded-lg border px-4 py-2 uppercase tracking-widest ${
                   activo
                     ? "border-primary bg-primary text-on-primary"
                     : "border-outline-variant text-on-surface-variant hover:border-outline"
@@ -811,20 +840,31 @@ function AdminPrecios() {
               value={coeficienteMasivo}
               onChange={(evento) => setCoeficienteMasivo(evento.target.value)}
               placeholder="el de cada uno"
-              className="w-36 rounded-lg border border-outline-variant bg-surface px-2 py-1.5 text-right tabular-nums text-on-surface focus:border-primary focus:outline-none"
+              // Mismo piso táctil de 44px que los campos de la tabla, por el
+              // mismo motivo y con el mismo `py-1.5`: comparte estilo carácter
+              // por carácter con `CeldaEditable`, así que sin esto quedaba en
+              // los mismos 34px de alto. No entró en la medición del 07/09/2026
+              // porque la barra masiva solo se renderiza con algo seleccionado.
+              className="min-h-11 w-36 rounded-lg border border-outline-variant bg-surface px-2 py-1.5 text-right tabular-nums text-on-surface focus:border-primary focus:outline-none"
             />
           </label>
           <button
             type="button"
             onClick={abrirConfirmacion}
-            className="font-label-md text-label-md rounded-lg bg-primary px-5 py-2.5 uppercase tracking-widest text-on-primary hover:opacity-90"
+            // 37 de alto con `py-2.5`. Tiene molde propio y la barra es
+            // `flex-wrap`: crece en alto sin costo.
+            className="font-label-md text-label-md min-h-11 rounded-lg bg-primary px-5 py-2.5 uppercase tracking-widest text-on-primary hover:opacity-90"
           >
             Actualizar precios
           </button>
           <button
             type="button"
             onClick={() => setSeleccionados(new Set())}
-            className="font-label-md text-label-md uppercase tracking-widest text-on-surface-variant hover:underline"
+            // Texto pelado en la MISMA franja que el botón de al lado: un
+            // `min-h-11` acá estiraría la barra entera para un solo
+            // control. El pseudo-elemento le da los 44 sin mover nada, y
+            // el `gap-3` (12px) alcanza para que no se pise con el vecino.
+            className={`font-label-md text-label-md uppercase tracking-widest text-on-surface-variant hover:underline ${AREA_TACTIL_ANCHA}`}
           >
             Limpiar selección
           </button>
@@ -868,11 +908,31 @@ function AdminPrecios() {
             <thead role="rowgroup">
               <tr role="row" className="border-b border-outline-variant">
                 <th role="columnheader" className="px-2 py-2 xl:px-3 xl:py-3">
-                  {/* El `<label>` amplía el área táctil a ~44px con un margen
+                  {/* El `<label>` amplía el área táctil a 44×44 con un margen
                       negativo que compensa su propio padding, sin mover el
                       layout. Tiene que quedar SIN texto: si llevara contenido,
                       el nombre accesible del checkbox dejaría de ser su
                       `aria-label` y los tests por nombre se romperían.
+
+                      El área va acá y NO en el input: un `<input type=checkbox>`
+                      es un elemento REEMPLAZADO, así que no genera `::before`
+                      —el truco de `utils/areaTactil.js` no le sirve— y agrandar
+                      el input a 44 dibujaría un casillero gigante. Envolverlo es
+                      la única variante que da los 44 sin tocar ni el dibujo ni
+                      la tabla apilada: el `-m-3` deja la huella de layout en los
+                      20×20 del input, así que la tarjeta de mobile no crece.
+
+                      ⚠️ `min-h-11 min-w-11` es un GUARD, no un arreglo: hoy
+                      `p-3` sobre un input de `size-5` ya da 44×44 exactos, y el
+                      mínimo es lo que impide que cambiar el tamaño del casillero
+                      —o el padding— achique el área táctil sin que nada falle.
+                      La auditoría del 07/09/2026 midió 20×21 acá, pero midiendo
+                      el INPUT: `elementFromPoint` sobre el aire de alrededor
+                      devuelve el `<label>`, que es otro nodo, y un click ahí
+                      igual marca el casillero. O sea, el control ya cumplía.
+
+                      `items-center justify-center` para que el casillero siga
+                      centrado si el mínimo llega a ser el que manda.
 
                       `max-md:hidden` porque debajo de `md` el `thead` es
                       sr-only (recortado a 1px, ver "Tabla apilada del admin"):
@@ -882,7 +942,7 @@ function AdminPrecios() {
                       tabulado y del árbol de accesibilidad, y solo en mobile —
                       en escritorio el encabezado se ve y sigue igual. La
                       selección masiva en mobile se hace fila por fila. */}
-                  <label className="-m-3 inline-flex p-3 max-md:hidden">
+                  <label className="-m-3 inline-flex min-h-11 min-w-11 items-center justify-center p-3 max-md:hidden">
                     <input
                       type="checkbox"
                       aria-label="Seleccionar todos los productos de esta página"
@@ -915,8 +975,13 @@ function AdminPrecios() {
                 <tr key={fila.id} role="row" className="border-b border-outline-variant last:border-b-0">
                   <td role="cell" data-celda="control" className={claseCelda}>
                     {/* Ver el comentario del checkbox del encabezado: el
-                        `<label>` tiene que quedar sin texto. */}
-                    <label className="-m-3 inline-flex p-3">
+                        `<label>` tiene que quedar sin texto, y es él —no el
+                        input— el que lleva los 44×44 de área táctil. Acá el
+                        `-m-3` importa el doble: en la tabla apilada esta celda
+                        es `data-celda="control"`, o sea la primera línea de la
+                        tarjeta, y sin el margen negativo los 24px de padding
+                        empujarían al nombre del producto que va al lado. */}
+                    <label className="-m-3 inline-flex min-h-11 min-w-11 items-center justify-center p-3">
                       <input
                         type="checkbox"
                         aria-label={`Seleccionar ${fila.nombre}`}
@@ -1089,7 +1154,12 @@ function AdminPrecios() {
               <button
                 type="button"
                 onClick={() => setConfirmacion(null)}
-                className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-2.5 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+                // 39 y 37 de alto. Crecen en ALTO y no con pseudo-elemento: están
+                // uno al lado del otro con `gap-3`, y dos áreas horizontales
+                // de 44 se superpondrían — el segundo le robaría área al
+                // primero, que es el modo de falla que advierte
+                // `utils/areaTactil.js`. Hacia arriba no hay nada que pisar.
+                className="font-label-md text-label-md min-h-11 rounded-lg border border-outline-variant px-5 py-2.5 uppercase tracking-widest text-on-surface-variant hover:border-outline"
               >
                 Cancelar
               </button>
@@ -1097,7 +1167,7 @@ function AdminPrecios() {
                 type="button"
                 onClick={confirmar}
                 disabled={aplicando || aCambiar === 0}
-                className="font-label-md text-label-md rounded-lg bg-primary px-5 py-2.5 uppercase tracking-widest text-on-primary hover:opacity-90 disabled:opacity-50"
+                className="font-label-md text-label-md min-h-11 rounded-lg bg-primary px-5 py-2.5 uppercase tracking-widest text-on-primary hover:opacity-90 disabled:opacity-50"
               >
                 {aplicando ? "Aplicando…" : "Confirmar"}
               </button>

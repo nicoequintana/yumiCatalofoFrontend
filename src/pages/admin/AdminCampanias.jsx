@@ -14,6 +14,7 @@ import {
 import { claseCelda, claseEncabezado } from "../../components/admin/clasesTabla.js";
 import { estiloDeCampania } from "../../constants/campanias.js";
 import { formatFecha } from "../../utils/formato.js";
+import { AREA_TACTIL_ANCHA } from "../../utils/areaTactil.js";
 import { cambiarEstadoCampania, getCampanias } from "../../api/campanias.js";
 import {
   cambiarEstadoProgramacion,
@@ -326,17 +327,25 @@ export default function AdminCampanias() {
               <span className="flex shrink-0 gap-2">
                 {/* Programar una promoción SIN crear una campaña: el §21. Bajar
                     un precio tres días no necesita Doodle, modal ni CTA. */}
+                {/* `min-h-11` va ADEMÁS del `py-3`, nunca en lugar de él: el
+                    mínimo táctil de 44px (WCAG 2.5.8) es un PISO y el padding
+                    sigue decidiendo cuánto crece por encima. Medido en
+                    navegador el 07/09/2026 a 1280×800 con `elementFromPoint`
+                    —área EFECTIVA, no la caja declarada—: 43 de alto, uno
+                    menos que el mínimo. Son dos botones sueltos que pueden
+                    crecer sin empujar nada, así que no llevan el
+                    pseudo-elemento de `utils/areaTactil.js`. */}
                 <button
                   type="button"
                   onClick={() => setProgramando(claveDia)}
-                  className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container"
+                  className="font-label-md text-label-md inline-flex min-h-11 items-center rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container"
                 >
                   Programar promoción
                 </button>
                 <button
                   type="button"
                   onClick={() => abrirAlta(claveDia)}
-                  className="font-label-md text-label-md rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
+                  className="font-label-md text-label-md inline-flex min-h-11 items-center rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
                 >
                   Nueva campaña
                 </button>
@@ -429,7 +438,9 @@ export default function AdminCampanias() {
                   type="button"
                   disabled={guardando}
                   onClick={() => alternarProgramacion(programacionAbierta)}
-                  className={`font-label-md text-label-md w-full rounded-lg px-4 py-3 uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-60 ${
+                  // `min-h-11` ADEMÁS del `py-3`, mismo criterio que
+                  // `claseAccion` acá abajo: el mínimo táctil es un PISO.
+                  className={`font-label-md text-label-md inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 py-3 uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-60 ${
                     programacionAbierta.habilitada
                       ? "bg-surface-container text-on-surface"
                       : "bg-primary text-on-primary"
@@ -474,7 +485,19 @@ function FilaCampania({ campania, guardando, onAbrir, onAlternarEstado }) {
       className="border-b border-outline-variant transition-colors last:border-b-0 hover:bg-surface-container"
     >
       <td role="cell" className={claseCelda}>
-        <button type="button" onClick={onAbrir} className="text-left text-primary hover:underline">
+        {/* El nombre es texto EN LÍNEA dentro de la celda: agrandar su caja
+            empujaría la fila entera y desalinearía la columna. Por eso el área
+            se extiende con el pseudo-elemento de `utils/areaTactil.js` y el
+            tamaño visible se queda como está. Medido en navegador el
+            07/09/2026 a 1280×800 con `elementFromPoint`: 25 de alto contra el
+            mínimo de 44. `AREA_TACTIL_ANCHA` copia el ancho propio, así que no
+            invade la celda de al lado; el vecino de abajo —el nombre de la
+            fila siguiente— está a ~68px, más que los 44 del área. */}
+        <button
+          type="button"
+          onClick={onAbrir}
+          className={`${AREA_TACTIL_ANCHA} text-left text-primary hover:underline`}
+        >
           {campania.nombre}
         </button>
         <span className="font-body-sm text-body-sm block text-on-surface-variant">
@@ -546,8 +569,30 @@ function FilaCampania({ campania, guardando, onAbrir, onAlternarEstado }) {
  * del CRUD. **Las dos siguen en uso**: es fácil confundirlas con residuo del
  * detalle que vivía acá antes de que la edición se mudara a su propia página.
  */
+/**
+ * `min-h-11` va ADEMÁS del `py-3`, nunca en lugar de él: el mínimo táctil de
+ * 44px (WCAG 2.5.8) es un PISO. La caja declarada da 43, uno menos, igual que
+ * los 43 que dio MEDIDA «Programar promoción» —su gemela de la pantalla— el
+ * 07/09/2026 con `elementFromPoint`.
+ *
+ * ⚠️ Estos botones viven en un DIÁLOGO, así que un barrido de la pantalla en
+ * reposo no los ve: quedaron fuera de la medición y se dedujeron de la caja.
+ * Vale para todo control que dependa de un diálogo abierto o de datos ya
+ * cargados.
+ */
 const claseAccion =
-  "font-label-md text-label-md w-full rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-60";
+  "font-label-md text-label-md inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-60";
 
+/**
+ * `min-h-11` va ADEMÁS del `py-2`, nunca en lugar de él (mismo criterio que
+ * `SelectorCantidad.jsx`): el mínimo táctil de 44px es un PISO. Medido en
+ * navegador el 07/09/2026 a 1280×800 con `elementFromPoint` —área EFECTIVA, no
+ * la caja declarada—: «Apagar» 82×33 y «Editar» 75×33.
+ *
+ * Crecen en ALTO y no con un pseudo-elemento a propósito: los dos botones son
+ * vecinos HORIZONTALES a `gap-2` (8px), o sea a menos de 44 de paso, así que
+ * dos áreas extendidas a los costados se superpondrían y la segunda le robaría
+ * la suya a la primera. El alto no las pisa — solo hace la fila más alta.
+ */
 const claseAccionFila =
-  "font-label-sm text-label-sm rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60";
+  "font-label-sm text-label-sm inline-flex min-h-11 items-center rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60";

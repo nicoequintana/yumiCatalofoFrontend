@@ -4,6 +4,7 @@ import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import Badge from "../../components/Badge.jsx";
 import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
+import { AREA_TACTIL_ICONO } from "../../utils/areaTactil.js";
 import {
   createEtiqueta,
   deleteEtiqueta,
@@ -46,6 +47,19 @@ const LARGO_MAX = 40;
  *
  * Un color ya usado por otra etiqueta se MARCA, no se bloquea: dos etiquetas
  * con el mismo color son legales, y el panel no está para decidir eso.
+ *
+ * ⚠️ **Cada muestra mide 44×44 en TODOS los anchos, y acá no se puede usar el
+ * pseudo-elemento de `utils/areaTactil.js`.** Medido en navegador el
+ * 07/09/2026 con `elementFromPoint` a 1280×800, las 126 muestras de la
+ * pantalla daban 33×33 de área efectiva: eran `h-8 w-8` (32px) con `gap-2`
+ * (8px), o sea un PASO de 40px. Un pseudo-elemento de 44 sobre un paso de 40
+ * se superpone con el de al lado y el vecino le roba área a su vecino — el
+ * problema empeoraría en vez de arreglarse. Así que la muestra crece de
+ * verdad: `h-11 w-11` con el `gap-2` intacto deja un **paso de 52px**, con 8px
+ * de aire real entre áreas. El contenedor pasó de `max-w-xs` (320px) a
+ * `max-w-sm` (384px) para que sigan entrando 7 por fila y la paleta ocupe las
+ * mismas 3 filas de antes, en vez de estirarse a 4. Sobra el beneficio de que
+ * en un selector de COLOR la superficie que se ve es la que se toca.
  */
 function PaletaColores({ etiqueta, colores, usoPorColor, onElegir, deshabilitado }) {
   const opciones = [{ id: "", nombre: "Por defecto", fondo: null, texto: null }, ...colores];
@@ -54,7 +68,7 @@ function PaletaColores({ etiqueta, colores, usoPorColor, onElegir, deshabilitado
     <div
       role="group"
       aria-label={`Color de ${etiqueta.nombre}`}
-      className="flex max-w-xs flex-wrap gap-2"
+      className="flex max-w-sm flex-wrap gap-2"
     >
       {opciones.map((opcion) => {
         const seleccionado = (etiqueta.color ?? "") === opcion.id;
@@ -75,7 +89,7 @@ function PaletaColores({ etiqueta, colores, usoPorColor, onElegir, deshabilitado
                 ? { backgroundColor: `rgb(${opcion.fondo})`, color: `rgb(${opcion.texto})` }
                 : undefined
             }
-            className={`relative inline-flex h-8 w-8 items-center justify-center rounded-full transition disabled:opacity-40 max-md:h-11 max-md:w-11 ${
+            className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full transition disabled:opacity-40 ${
               // "Por defecto" NO es un color más de la paleta, y no puede
               // parecerlo: pinta con `tertiary`, que a ojo es igual a `ARENA`,
               // la de al lado. El borde punteado y la separación lo sacan de la
@@ -246,8 +260,19 @@ function AdminEtiquetas() {
   }, [etiquetas]);
 
   const claseCelda = "px-4 py-3 align-middle";
+  /**
+   * Los botones de texto de la columna de acciones (Guardar, Cancelar, Sí, No).
+   *
+   * `min-h-11 min-w-11` (44px) ADEMÁS de su contenido, no en lugar de él: es un
+   * PISO, y "Guardar" o "Cancelar" siguen creciendo por encima. El `min-w`
+   * existe por "Sí" y "No", que con dos letras no llegan ni a 30px de ancho.
+   * Antes el mínimo estaba tras `max-md:` —solo mobile—, con el supuesto de
+   * que en escritorio el puntero es preciso; la auditoría del 07/09/2026 mide
+   * el área efectiva en los DOS anchos, así que el piso dejó de tener
+   * breakpoint.
+   */
   const claseAccion =
-    "font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest hover:underline disabled:opacity-60 max-md:min-h-11";
+    "font-label-md text-label-md inline-flex min-h-11 min-w-11 items-center justify-center gap-1 uppercase tracking-widest hover:underline disabled:opacity-60";
 
   /**
    * Editar y Eliminar van SOLO CON EL ÍCONO: con el nombre de la etiqueta
@@ -260,13 +285,20 @@ function AdminEtiquetas() {
    * mouse. Un botón de ícono sin nombre accesible anunciaría el texto de la
    * ligadura ("edit", "delete") o directamente nada.
    *
-   * `h-11 w-11` en mobile (44px) es el mínimo táctil que el resto del panel ya
-   * respeta; en escritorio baja a 36px, donde el puntero es preciso. Reemplaza
-   * el `hover:underline` por un fondo, que es la afordancia que le queda a un
-   * ícono suelto.
+   * El disco VISIBLE mide 36px en escritorio y 44 en mobile, donde el dedo
+   * necesita ver dónde apuntar. Reemplaza el `hover:underline` por un fondo,
+   * que es la afordancia que le queda a un ícono suelto.
+   *
+   * El área TÁCTIL, en cambio, es 44×44 en los dos anchos, y la pone
+   * `AREA_TACTIL_ICONO`: medido en navegador el 07/09/2026 con
+   * `elementFromPoint`, los doce botones "Editar <etiqueta>" daban 37×37 a
+   * 1280×800. Acá SÍ sirve el pseudo-elemento —a diferencia de la paleta de
+   * arriba— porque los dos íconos de la celda están separados por `gap-x-4`
+   * (16px): con 36 de disco el paso es de 52px y las áreas de 44 no se pisan.
+   * El dibujo se queda en 36 porque agrandarlo ensancharía la columna de
+   * acciones, que es justo lo que el rediseño a solo-ícono vino a evitar.
    */
-  const claseAccionIcono =
-    "inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-40 disabled:hover:bg-transparent max-md:h-11 max-md:w-11";
+  const claseAccionIcono = `${AREA_TACTIL_ICONO} inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-40 disabled:hover:bg-transparent max-md:h-11 max-md:w-11`;
 
   return (
     <main className="w-full px-4 py-6 md:px-8 md:py-8">
@@ -301,10 +333,15 @@ function AdminEtiquetas() {
             {nombreNuevo.length}/{LARGO_MAX}
           </span>
         </div>
+        {/* `min-h-11` (44px) además del `py-3`, no en lugar de él: medido en
+            navegador el 07/09/2026 con `elementFromPoint`, este CTA daba 93×42
+            de área efectiva en los dos anchos. El `h-max` se conserva porque
+            es lo que evita que el botón se estire a la altura del campo de al
+            lado, que lleva su contador debajo. */}
         <button
           type="submit"
           disabled={creando}
-          className="font-label-md text-label-md inline-flex h-max items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+          className="font-label-md text-label-md inline-flex h-max min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
         >
           {creando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
           Agregar

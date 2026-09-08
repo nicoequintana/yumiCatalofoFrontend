@@ -296,3 +296,32 @@ describe("AdminOrdenDetalle — advertencias de stock", () => {
     expect(screen.queryByTestId("advertencias-stock")).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Área táctil (WCAG 2.5.8) del link al DNI del cliente, que lleva al listado
+ * de órdenes filtrado por esa persona.
+ *
+ * ⚠️ **El detalle de una orden no estaba en el barrido de la auditoría del
+ * 07/09/2026**: se recorrían las pantallas de listado, y a esta solo se llega
+ * abriendo una orden. Medido después en navegador con `elementFromPoint` —el
+ * área EFECTIVA, no la caja declarada—: **77×21**, o sea le faltaba el alto.
+ *
+ * Va con pseudo-elemento y no con `min-h-11`: es texto dentro de un `<dd>` de
+ * una lista de definiciones (`flex justify-between`), y estirar la caja
+ * separaría el valor de su rótulo. `inline-block` es lo que le da al pseudo
+ * una caja contra la cual centrarse: en `display:inline` el `w-full` no
+ * resuelve de forma estable. El ancho ya sobraba, así que copia el propio con
+ * `before:w-full` en vez de fijar 44 e invadir a los vecinos de la fila.
+ */
+describe("AdminOrdenDetalle — área táctil", () => {
+  it("el link al DNI del cliente extiende su área a 44 de alto", async () => {
+    renderDetalle();
+
+    const enlace = await screen.findByRole("link", { name: ORDEN.cliente.dni });
+
+    expect(enlace.className).toContain("before:h-11");
+    expect(enlace.className).toContain("before:content-['']");
+    expect(enlace.className).toContain("before:w-full");
+    expect(enlace.className.split(" ")).toContain("inline-block");
+  });
+});

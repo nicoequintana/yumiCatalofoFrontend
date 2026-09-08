@@ -54,6 +54,51 @@ describe("AdminLayout", () => {
     expect(screen.getByRole("button", { name: /abrir menú/i })).toBeInTheDocument();
   });
 
+  /**
+   * La navegación va PRIMERA en el DOM (tiene que quedar fuera del contenedor
+   * `relative z-10` para que sus tres capas `fixed` se comparen contra el
+   * contexto raíz), así que quien navega por teclado pagaba trece tabulaciones
+   * —los diez ítems de la bottom nav más Configuración, tema y logout— antes
+   * de tocar el contenido. En cada pantalla y en cada recarga.
+   *
+   * Se resuelve con un enlace de salto y NO moviendo la nav después del
+   * `<main>`: ese orden del DOM es justamente lo que sostiene el contrato de
+   * apilamiento documentado acá abajo (diálogos `z-50` contra barra `z-30` y
+   * bottom nav `z-40`), y reordenarlo por CSS reabriría el bug de la banda de
+   * 56px tocable sobre un modal abierto. El enlace es además el mecanismo que
+   * WCAG nombra para esto (SC 2.4.1, Bypass Blocks).
+   */
+  describe("enlace de salto al contenido", () => {
+    it("es la primera parada de teclado y apunta al main", async () => {
+      const user = userEvent.setup();
+      const { container } = renderAdmin(<p>listado de productos</p>);
+
+      await user.tab();
+
+      const salto = screen.getByRole("link", { name: /saltar al contenido/i });
+      expect(document.activeElement).toBe(salto);
+      expect(salto).toHaveAttribute("href", "#contenido-admin");
+
+      const main = container.querySelector("main");
+      expect(main).toHaveAttribute("id", "contenido-admin");
+      // Sin `tabIndex="-1"` el `<main>` no es un destino de foco válido:
+      // el hash movería el scroll pero el foco del teclado se quedaría donde
+      // estaba y la siguiente tabulación volvería a la nav.
+      expect(main).toHaveAttribute("tabindex", "-1");
+    });
+
+    it("está oculto hasta que se lo enfoca", () => {
+      renderAdmin(<p>listado de productos</p>);
+
+      const salto = screen.getByRole("link", { name: /saltar al contenido/i });
+
+      // `sr-only` lo saca de la vista sin sacarlo del orden de tabulado
+      // (`display: none` lo volvería inalcanzable, que es lo contrario de lo
+      // que este enlace existe para lograr); `focus:not-sr-only` lo devuelve.
+      expect(salto).toHaveClass("sr-only", "focus:not-sr-only");
+    });
+  });
+
   describe("marca de agua del fondo", () => {
     it("no captura clicks ni aparece en el árbol de accesibilidad", () => {
       const { container } = renderAdmin(<p>listado de productos</p>);
@@ -159,6 +204,41 @@ describe("AdminLayout", () => {
 
       expect(barra).toHaveClass("top-[var(--alto-cinta-ambiente)]");
       expect(barra).not.toHaveClass("top-0");
+    });
+
+    it("el <main> reserva el alto de la cinta que la barra sticky se corrió", () => {
+      // Contracara del `top` de arriba, y la causa real de un área táctil
+      // recortada: `sticky top-[var(--alto-cinta-ambiente)]` se activa YA en
+      // scroll 0 —la posición natural de la barra (y = 0) está por encima del
+      // umbral—, así que la barra se pinta 24px más abajo que su lugar en el
+      // flujo y se monta sobre los primeros 24px del `<main>`. La barra NO es
+      // `pointer-events-none`: esos 24px se comen los clicks de lo que haya
+      // debajo. Medido en navegador el 07/09/2026 sobre
+      // `/catalogo/admin/productos/nuevo`, con `elementFromPoint`: el botón
+      // "Volver" del editor —que arranca a 16px del tope del `<main>` por el
+      // `py-4` de `EditorHeader`— declara `min-h-11` y mide 89x44 de caja,
+      // pero su área efectiva daba 89x36, o sea los 8px que le quedaban
+      // debajo de la cinta (24 - 16 = 8). Pasaba en 390 y en 1280, los dos
+      // anchos donde esta barra existe (se esconde recién en 1360).
+      //
+      // En producción la cinta no está en el DOM y la variable vale `0px`:
+      // este padding es exactamente cero y no cambia nada de lo publicado.
+      const { container } = renderAdmin(<p>listado de productos</p>);
+
+      expect(container.querySelector("main")).toHaveClass("pt-[var(--alto-cinta-ambiente)]");
+    });
+
+    it("acompaña el corte de 1360px de la bottom nav", () => {
+      // La barra superior y el hueco del `<main>` son la contraparte exacta
+      // de la bottom nav: si la nav aparece recién en 1360 y la barra se
+      // escondiera en 1024, entre esos dos anchos no habría NADA que abra el
+      // drawer. Los tres valores tienen que moverse juntos.
+      const { container } = renderAdmin(<p>listado de productos</p>);
+
+      expect(container.querySelector("header")).toHaveClass("min-[1360px]:hidden");
+      expect(container.querySelector("header")).not.toHaveClass("lg:hidden");
+      expect(container.querySelector("main")).toHaveClass("min-[1360px]:pb-20");
+      expect(container.querySelector("main")).not.toHaveClass("lg:pb-20");
     });
 
     it("cierra el drawer al cambiar de ruta", async () => {

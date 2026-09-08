@@ -120,3 +120,78 @@ describe("AdminUsuarios — permiso de eliminar", () => {
     expect(await screen.findByText(/no tiene permiso para eliminar/i)).toBeInTheDocument();
   });
 });
+
+describe("AdminUsuarios — el error de carga y el estado vacío son excluyentes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("con la carga caída NO muestra además 'Todavía no hay usuarios'", async () => {
+    usuariosApi.getUsuarios.mockRejectedValue(new Error("Failed to fetch"));
+
+    renderPagina();
+
+    expect(await screen.findByText(/No se pudieron cargar los usuarios/i)).toBeInTheDocument();
+    expect(screen.queryByText("Todavía no hay usuarios")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Auditoría de área táctil del 07/09/2026. Los números salen de una medición en
+ * navegador real con `elementFromPoint` (área EFECTIVA, la que recibe el dedo),
+ * no de `getBoundingClientRect`.
+ *
+ * jsdom no calcula layout: acá se afirma sobre las CLASES declaradas, mismo
+ * criterio que `SelectorCantidad.test.jsx` y `BotonFavorito.test.jsx`.
+ */
+describe("AdminUsuarios — área táctil (WCAG 2.5.8)", () => {
+  const USUARIO = {
+    id: 1,
+    email: "admin@yima.test",
+    puedeEliminar: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+  };
+
+  beforeEach(() => {
+    usuariosApi.getUsuarios.mockResolvedValue([USUARIO]);
+  });
+
+  // Medido 16x17 en los dos anchos. Un `<input type="checkbox">` NO admite
+  // `::before` —es un elemento reemplazado—, así que el área la lleva el
+  // `<label>` que lo envuelve: un click en cualquier punto del label marca la
+  // casilla, de modo que 44 de alto en el label son 44 de área táctil real.
+  it("el label del checkbox de permiso declara el piso táctil de 44 de alto", async () => {
+    renderPagina();
+    await screen.findByText("admin@yima.test");
+
+    const casilla = screen.getByLabelText("Puede eliminar");
+    expect(casilla.closest("label").className.split(" ")).toContain("min-h-11");
+  });
+
+  // Medido a 1280px: 80x19 el de editar y 93x19 el de eliminar. Texto en línea
+  // dentro de una celda densa: el área va por pseudo-elemento con el ancho
+  // propio, que no invade al botón de al lado.
+  it("los botones de acción en línea extienden su área táctil", async () => {
+    renderPagina();
+    await screen.findByText("admin@yima.test");
+
+    // El nombre accesible arrastra la ligadura del ícono ("editEditar"), así
+    // que se ancla el final y no el principio.
+    for (const nombre of [/Editar$/, /Eliminar$/]) {
+      const boton = screen.getByRole("button", { name: nombre });
+      expect(boton.className).toContain("before:content-['']");
+      expect(boton.className).toContain("before:h-11");
+      expect(boton.className).toContain("before:w-full");
+    }
+  });
+
+  // Medido a 390px: 93x42.
+  it("el CTA Agregar declara el piso táctil de 44 de alto", async () => {
+    renderPagina();
+    await screen.findByText("admin@yima.test");
+
+    expect(screen.getByRole("button", { name: /Agregar/i }).className.split(" ")).toContain(
+      "min-h-11",
+    );
+  });
+});

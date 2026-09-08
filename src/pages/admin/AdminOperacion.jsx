@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import { getResumenOperacion } from "../../api/adminOperacion.js";
 import { formatPrecio } from "../../utils/formato.js";
+import { AREA_TACTIL_ICONO } from "../../utils/areaTactil.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
@@ -64,28 +66,37 @@ function AdminOperacion() {
   const [resumen, setResumen] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  // Contador del botón Reintentar del estado de error: incrementarlo
+  // re-dispara la carga sin tocar el período elegido. Mismo patrón que el
+  // `reintento` de `AdminMetricas` y `AdminPrecios`.
+  const [reintento, setReintento] = useState(0);
 
   useEffect(() => {
     let activo = true;
     setCargando(true);
-    setError(null);
 
     getResumenOperacion({ dias })
       .then((resultado) => {
         if (!activo) return;
         setResumen(resultado);
+        // Un fetch exitoso limpia el error anterior: sin esto, un backend que
+        // se recupera sigue diciendo "no se pudo cargar" sobre datos frescos.
+        setError(null);
         setCargando(false);
       })
-      .catch((err) => {
+      .catch(() => {
         if (!activo) return;
-        setError(err.message ?? "No se pudo cargar la operación.");
+        // El mensaje del sistema (`Failed to fetch`, `Error interno`) NO llega
+        // a pantalla: no dice nada accionable y encima está en inglés. El copy
+        // compartido vive en `EstadoErrorCarga`.
+        setError(true);
         setCargando(false);
       });
 
     return () => {
       activo = false;
     };
-  }, [dias]);
+  }, [dias, reintento]);
 
   // "Todo al día" es no tener nada que destrabar NI nada que reponer. El
   // conteo por estado se sigue mostrando igual: sigue siendo información útil.
@@ -114,12 +125,6 @@ function AdminOperacion() {
         <SelectorPeriodo dias={dias} onCambiar={setDias} />
       </div>
 
-      {error ? (
-        <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
-          {error}
-        </p>
-      ) : null}
-
       {/*
         Antes de los números, siempre: el aviso dice sobre qué ventana están
         calculados. Mientras carga, `resumen` es null y no renderiza nada.
@@ -133,6 +138,11 @@ function AdminOperacion() {
             Cargando operación…
           </p>
         </div>
+      ) : error ? (
+        <EstadoErrorCarga
+          titulo="No se pudo cargar la operación"
+          onReintentar={() => setReintento((n) => n + 1)}
+        />
       ) : resumen === null ? null : (
         <>
           <SeccionAdmin
@@ -198,7 +208,23 @@ function AdminOperacion() {
                           <td role="cell" data-celda="control" className={claseCelda}>
                             <Link
                               to={`/catalogo/admin/ordenes/${orden.id}`}
-                              className="font-semibold text-primary underline-offset-4 hover:underline"
+                              // El número de orden es texto EN LÍNEA dentro de
+                              // una celda: agrandarlo empujaría la fila y
+                              // desalinearía la columna, así que el área se
+                              // extiende con el pseudo-elemento de
+                              // `utils/areaTactil.js`. Medido en navegador el
+                              // 07/09/2026 con `elementFromPoint` —área
+                              // EFECTIVA, no la caja declarada—, igual a 390 y
+                              // a 1280: entre 33×22 («#78») y 56×22. Es el
+                              // único control de esta tanda al que le falta
+                              // también el ANCHO, por eso `AREA_TACTIL_ICONO`
+                              // (44×44) y no la variante de ancho propio: con
+                              // `before:w-full` un «#78» seguiría midiendo 33.
+                              // `inline-block` para que el pseudo-elemento
+                              // absoluto tenga una caja contra la cual
+                              // centrarse; un `<a>` en línea la parte en
+                              // fragmentos.
+                              className={`${AREA_TACTIL_ICONO} inline-block font-semibold text-primary underline-offset-4 hover:underline`}
                             >
                               #{orden.id}
                             </Link>

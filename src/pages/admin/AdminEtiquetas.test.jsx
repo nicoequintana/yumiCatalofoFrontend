@@ -258,3 +258,61 @@ describe("AdminEtiquetas", () => {
     esperarTablaApilada(screen.getByRole("table"));
   });
 });
+
+/**
+ * Auditoría de área táctil del 07/09/2026, medida en navegador real con
+ * `elementFromPoint` (área EFECTIVA, no la caja declarada) a 390×844 y a
+ * 1280×800. Tres controles de esta pantalla quedaban por debajo de 44×44:
+ *
+ * - las 126 muestras de la paleta (21 por fila × 6 filas): 33×33 a 1280;
+ * - el botón "Editar <etiqueta>" (×12): 37×37 a 1280;
+ * - el CTA "Agregar" del alta: 93×42 en los dos anchos.
+ *
+ * jsdom no calcula layout, así que acá se afirma sobre las CLASES declaradas
+ * —mismo criterio que `SelectorCantidad.test.jsx` y `BotonFavorito.test.jsx`—.
+ * La medición real es en navegador; el test protege que nadie devuelva el
+ * tamaño por debajo del mínimo sin darse cuenta.
+ */
+describe("AdminEtiquetas — área táctil", () => {
+  it("cada muestra de la paleta mide 44×44 en TODOS los anchos", async () => {
+    montar();
+    await screen.findByText("Nuevo");
+
+    const paleta = screen.getByRole("group", { name: "Color de Nuevo" });
+    for (const boton of within(paleta).getAllByRole("button")) {
+      const clases = boton.className.split(" ");
+      expect(clases, boton.title).toContain("h-11");
+      expect(clases, boton.title).toContain("w-11");
+      // El 32px de escritorio se fue: la muestra ya no cambia de tamaño por
+      // breakpoint, así que tampoco quedan las clases que lo hacían.
+      expect(clases, boton.title).not.toContain("h-8");
+      expect(clases, boton.title).not.toContain("w-8");
+      expect(clases, boton.title).not.toContain("max-md:h-11");
+      expect(clases, boton.title).not.toContain("max-md:w-11");
+    }
+  });
+
+  it("los botones de ícono extienden el área a 44×44 sin crecer de tamaño visible", async () => {
+    montar();
+    await screen.findByText("Nuevo");
+
+    const editar = screen.getByRole("button", { name: /editar nuevo/i });
+    // El pseudo-elemento necesita un ancestro posicionado y un `content`, o no
+    // se pinta ninguna caja y el área táctil sigue siendo la de siempre.
+    expect(editar.className).toContain("relative");
+    expect(editar.className).toContain("before:content-['']");
+    expect(editar.className).toContain("before:h-11");
+    expect(editar.className).toContain("before:w-11");
+    // El disco visible sigue siendo el de 36px en escritorio.
+    expect(editar.className.split(" ")).toContain("h-9");
+  });
+
+  it("el CTA «Agregar» declara el piso táctil de 44 de alto", async () => {
+    montar();
+    await screen.findByText("Nuevo");
+
+    expect(
+      screen.getByRole("button", { name: /agregar/i }).className.split(" "),
+    ).toContain("min-h-11");
+  });
+});

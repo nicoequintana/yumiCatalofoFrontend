@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import { getResumenClientes } from "../../api/adminClientes.js";
 import { formatPrecio } from "../../utils/formato.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
@@ -109,28 +110,37 @@ function AdminClientes() {
   const [resumen, setResumen] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  // Contador del botón Reintentar del estado de error: incrementarlo
+  // re-dispara la carga sin tocar el período elegido. Mismo patrón que el
+  // `reintento` de `AdminMetricas` y `AdminPrecios`.
+  const [reintento, setReintento] = useState(0);
 
   useEffect(() => {
     let activo = true;
     setCargando(true);
-    setError(null);
 
     getResumenClientes({ dias })
       .then((resultado) => {
         if (!activo) return;
         setResumen(resultado);
+        // Un fetch exitoso limpia el error anterior: sin esto, un backend que
+        // se recupera sigue diciendo "no se pudo cargar" sobre datos frescos.
+        setError(null);
         setCargando(false);
       })
-      .catch((err) => {
+      .catch(() => {
         if (!activo) return;
-        setError(err.message ?? "No se pudieron cargar los clientes.");
+        // El mensaje del sistema (`Failed to fetch`, `Error interno`) NO llega
+        // a pantalla: no dice nada accionable y encima está en inglés. El copy
+        // compartido vive en `EstadoErrorCarga`.
+        setError(true);
         setCargando(false);
       });
 
     return () => {
       activo = false;
     };
-  }, [dias]);
+  }, [dias, reintento]);
 
   const sinDatos = resumen !== null && resumen.totalClientes === 0;
 
@@ -158,12 +168,6 @@ function AdminClientes() {
         <SelectorPeriodo dias={dias} onCambiar={setDias} />
       </div>
 
-      {error ? (
-        <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
-          {error}
-        </p>
-      ) : null}
-
       {/*
         El aviso de recorte del período va afuera del ternario de carga, así
         aparece también sobre el estado vacío: un "no hubo clientes" sobre una
@@ -181,6 +185,11 @@ function AdminClientes() {
             Cargando clientes…
           </p>
         </div>
+      ) : error ? (
+        <EstadoErrorCarga
+          titulo="No se pudieron cargar los clientes"
+          onReintentar={() => setReintento((n) => n + 1)}
+        />
       ) : resumen === null ? null : sinDatos ? (
         <EstadoVacio
           icono="group"

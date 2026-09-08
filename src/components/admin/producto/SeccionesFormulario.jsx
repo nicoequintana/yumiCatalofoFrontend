@@ -7,6 +7,7 @@ import {
   formatearPrecioParaEdicion,
 } from "../../../utils/formato.js";
 import { ESTADOS_PRECIO } from "../../../utils/precios.js";
+import { AREA_TACTIL_ANCHA } from "../../../utils/areaTactil.js";
 
 /**
  * Columna izquierda del editor: el `<form>` completo, campo por campo.
@@ -26,6 +27,16 @@ import { ESTADOS_PRECIO } from "../../../utils/precios.js";
  * `nuevaCaracteristica` / `nuevaSpecNombre` / `nuevaSpecValor` llegan
  * agrupados en `borradores`: son los campos "agregar", que todavía no son
  * parte del producto.
+ *
+ * Los dos enlaces al listado (uno por rama de `esEdicion`, nunca los dos a la
+ * vez) llevan `AREA_TACTIL_ANCHA` y NO `min-h-11`: son texto en línea dentro de
+ * un párrafo, así que agrandar la caja del `<a>` le rompería el interlineado al
+ * párrafo entero. El pseudo-elemento estira solo el blanco de click y deja el
+ * dibujo donde estaba. Medido en navegador el 07/09/2026 a 1280px con
+ * `elementFromPoint` —área EFECTIVA, no la caja declarada—: 93x16 sobre una
+ * caja de 129x16. `before:w-full` (el ancho propio del enlace) y no
+ * `before:w-11`: el enlace ya sobra de ancho, y estirarlo a 44 fijo lo
+ * angostaría.
  */
 function SeccionesFormulario({
   visible,
@@ -301,7 +312,12 @@ function SeccionesFormulario({
             <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
               Beneficios
             </h3>
-            <ListaDinamica items={valores.beneficios} onChange={editar("beneficios")} placeholder="Ej: Recargable por USB" />
+            <ListaDinamica
+              items={valores.beneficios}
+              onChange={editar("beneficios")}
+              placeholder="Ej: Recargable por USB"
+              etiqueta="Nuevo beneficio"
+            />
           </div>
         </div>
 
@@ -312,14 +328,24 @@ function SeccionesFormulario({
             <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
               ¿Cómo podés usarlo? (opcional)
             </h3>
-            <ListaDinamica items={valores.usos} onChange={editar("usos")} placeholder="Ej: Para estudiar" />
+            <ListaDinamica
+              items={valores.usos}
+              onChange={editar("usos")}
+              placeholder="Ej: Para estudiar"
+              etiqueta="Nuevo uso"
+            />
           </div>
 
           <div>
             <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
               Ideal para (opcional)
             </h3>
-            <ListaDinamica items={valores.idealPara} onChange={editar("idealPara")} placeholder="Ej: Estudiantes" />
+            <ListaDinamica
+              items={valores.idealPara}
+              onChange={editar("idealPara")}
+              placeholder="Ej: Estudiantes"
+              etiqueta="Nuevo ideal para"
+            />
           </div>
         </div>
 
@@ -330,6 +356,20 @@ function SeccionesFormulario({
             <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
               Características destacadas
             </h3>
+            {/* ÁREA TÁCTIL de las dos listas de esta sección (características
+                y especificaciones), medida el 07/09/2026 con
+                `elementFromPoint` —el área EFECTIVA, no la caja declarada—:
+
+                - Los botones de ELIMINAR de cada ítem llevan ahora
+                  `min-h-11 min-w-11` SIN breakpoint. Traían `max-md:`, o sea
+                  44×44 solo por debajo de 768px, y en escritorio quedaba el
+                  glifo pelado de 18px. ⚠️ No los agarró el barrido porque usó
+                  el editor de un producto NUEVO, donde las dos listas arrancan
+                  VACÍAS y estos botones no se renderizan nunca.
+                - Los dos CTA "+ Agregar …" llevan `min-h-11` ADEMÁS del
+                  `py-3`: daban **43 de alto**. Son los gemelos del "Agregar"
+                  de `ListaDinamica.jsx` —misma caja `px-4 py-3`— pero viven
+                  acá, así que arreglar aquel no arreglaba estos. */}
             <div className="mb-3 flex flex-col gap-2">
               {valores.caracteristicas.map((caracteristica, index) => (
                 <div
@@ -341,7 +381,7 @@ function SeccionesFormulario({
                     type="button"
                     onClick={() => eliminarCaracteristica(index)}
                     aria-label={`Eliminar característica ${caracteristica.texto}`}
-                    className="inline-flex items-center justify-center text-on-surface-variant hover:text-error max-md:min-h-11 max-md:min-w-11"
+                    className="inline-flex items-center justify-center text-on-surface-variant hover:text-error min-h-11 min-w-11"
                   >
                     <span className="material-symbols-outlined text-[18px]">close</span>
                   </button>
@@ -360,12 +400,15 @@ function SeccionesFormulario({
                   }
                 }}
                 placeholder="Ej: Cuero genuino"
+                /* El placeholder no alcanza como nombre: desaparece al tipear, y
+                   esta pantalla tiene siete campos de alta iguales. */
+                aria-label="Nueva característica"
                 className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
               />
               <button
                 type="button"
                 onClick={agregarCaracteristica}
-                className="font-label-md text-label-md shrink-0 rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+                className="font-label-md text-label-md min-h-11 shrink-0 rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
               >
                 Agregar
               </button>
@@ -389,7 +432,7 @@ function SeccionesFormulario({
                     type="button"
                     onClick={() => eliminarEspecificacion(index)}
                     aria-label={`Eliminar especificación ${spec.nombre}`}
-                    className="inline-flex items-center justify-center text-on-surface-variant hover:text-error max-md:min-h-11 max-md:min-w-11"
+                    className="inline-flex items-center justify-center text-on-surface-variant hover:text-error min-h-11 min-w-11"
                   >
                     <span className="material-symbols-outlined text-[18px]">close</span>
                   </button>
@@ -413,6 +456,7 @@ function SeccionesFormulario({
                   }
                 }}
                 placeholder="Nombre (ej: Material)"
+                aria-label="Nombre de la especificación"
                 className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
               />
               <input
@@ -427,12 +471,13 @@ function SeccionesFormulario({
                   }
                 }}
                 placeholder="Valor (ej: ABS)"
+                aria-label="Valor de la especificación"
                 className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
               />
               <button
                 type="button"
                 onClick={agregarEspecificacion}
-                className="font-label-md text-label-md shrink-0 rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+                className="font-label-md text-label-md min-h-11 shrink-0 rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
               >
                 + Agregar especificación
               </button>
@@ -443,7 +488,12 @@ function SeccionesFormulario({
             <h3 className="font-label-md text-label-md mb-3 block uppercase tracking-widest text-on-surface">
               ¿Qué incluye? (opcional)
             </h3>
-            <ListaDinamica items={valores.incluye} onChange={editar("incluye")} placeholder="Ej: 1 × Cable USB" />
+            <ListaDinamica
+              items={valores.incluye}
+              onChange={editar("incluye")}
+              placeholder="Ej: 1 × Cable USB"
+              etiqueta="Nuevo ítem incluido"
+            />
           </div>
         </div>
 
@@ -550,7 +600,10 @@ function SeccionesFormulario({
 
               <p className="font-body-md px-4 py-3 text-[13px] leading-snug text-on-surface-variant">
                 Estos dos se cambian desde el{" "}
-                <Link to="/catalogo/admin/productos" className="text-primary underline">
+                <Link
+                  to="/catalogo/admin/productos"
+                  className={`text-primary underline ${AREA_TACTIL_ANCHA}`}
+                >
                   listado de productos
                 </Link>
                 , donde se guardan al instante.
@@ -560,7 +613,10 @@ function SeccionesFormulario({
             <p className="font-body-md rounded-lg border border-outline-variant px-4 py-3 text-[13px] leading-snug text-on-surface-variant">
               El SKU se genera solo al guardar. La visibilidad y el destacado se ajustan después
               desde el{" "}
-              <Link to="/catalogo/admin/productos" className="text-primary underline">
+              <Link
+                to="/catalogo/admin/productos"
+                className={`text-primary underline ${AREA_TACTIL_ANCHA}`}
+              >
                 listado de productos
               </Link>
               .

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -577,5 +577,207 @@ describe("AdminProductos — la búsqueda vive en la URL", () => {
         pageSize: 50,
       });
     });
+  });
+});
+
+describe("AdminProductos — el error de carga y el estado vacío son excluyentes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("con la carga caída NO muestra además 'Todavía no hay productos'", async () => {
+    productsApi.getProducts.mockRejectedValue(new Error("Failed to fetch"));
+
+    renderPagina();
+
+    expect(await screen.findByText(/No se pudieron cargar los productos/i)).toBeInTheDocument();
+    expect(screen.queryByText("Todavía no hay productos")).not.toBeInTheDocument();
+  });
+
+  it("un fetch exitoso posterior limpia el error", async () => {
+    const user = userEvent.setup();
+    productsApi.getProducts.mockRejectedValueOnce(new Error("Failed to fetch"));
+    productsApi.getProducts.mockResolvedValue(pagina([PRODUCTO]));
+
+    renderPagina();
+
+    await screen.findByText(/No se pudieron cargar los productos/i);
+    await user.click(screen.getByRole("button", { name: /Reintentar/i }));
+
+    expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
+    expect(screen.queryByText(/No se pudieron cargar los productos/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("AdminProductos — números alineados a la derecha", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    productsApi.getProducts.mockResolvedValue(
+      pagina([{ ...PRODUCTO, precio: "40643", stock: 10, cantidadFotos: 5 }]),
+    );
+  });
+
+  it("Precio, Stock y Fotos usan la celda numérica, y SOLO desde md", async () => {
+    renderPagina();
+
+    await screen.findByText("Reloj Clásico");
+    const fila = screen.getAllByRole("row")[1];
+
+    for (const selector of ['[data-label="Precio"]', '[data-label="Stock"]']) {
+      const celda = fila.querySelector(selector);
+      expect(celda.className).toContain("md:text-right");
+      expect(celda.className).toContain("md:tabular-nums");
+    }
+
+    // La celda de Fotos es `secundaria` (sin rótulo, oculta en mobile), así que
+    // se la ubica por su contenido y no por `data-label`.
+    const fotos = [...fila.querySelectorAll("td")].find((td) => td.textContent.trim() === "5/10");
+    expect(fotos.className).toContain("md:text-right");
+    expect(fotos.className).toContain("md:tabular-nums");
+  });
+});
+
+describe("AdminProductos — señal de que la tabla sigue a la derecha", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    productsApi.getProducts.mockResolvedValue(pagina([PRODUCTO]));
+  });
+
+  /** Finge un contenedor más angosto que su contenido, que jsdom no calcula. */
+  function fingirDesborde(caja, { scrollWidth, clientWidth, scrollLeft = 0 }) {
+    for (const [prop, value] of Object.entries({ scrollWidth, clientWidth, scrollLeft })) {
+      Object.defineProperty(caja, prop, { value, configurable: true });
+    }
+    fireEvent.scroll(caja);
+  }
+
+  it("con columnas fuera de pantalla muestra el degradé del filo derecho", async () => {
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    // Medido en navegador a 1280×800: 1347 de contenido en 1216 de caja, o sea
+    // la columna "Destacado" cae afuera sin que nada lo avise.
+    fingirDesborde(screen.getByTestId("caja-tabla-productos"), {
+      scrollWidth: 1347,
+      clientWidth: 1216,
+    });
+
+    expect(await screen.findByTestId("aviso-scroll-tabla")).toBeInTheDocument();
+  });
+
+  it("al llegar al final del scroll el degradé se apaga", async () => {
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    const caja = screen.getByTestId("caja-tabla-productos");
+    fingirDesborde(caja, { scrollWidth: 1347, clientWidth: 1216 });
+    await screen.findByTestId("aviso-scroll-tabla");
+
+    fingirDesborde(caja, { scrollWidth: 1347, clientWidth: 1216, scrollLeft: 131 });
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("aviso-scroll-tabla")).not.toBeInTheDocument(),
+    );
+  });
+});
+
+/**
+ * Área táctil mínima de 44×44 (WCAG 2.5.8) en el listado del panel.
+ *
+ * Medido en navegador real el 07/09/2026 con `elementFromPoint` —área EFECTIVA,
+ * no la caja declarada— a 390×844 y a 1280×800. Los cinco controles de esta
+ * pantalla que quedaban por debajo:
+ *
+ * | Control                        | ef @390 | ef @1280 |
+ * |--------------------------------|---------|----------|
+ * | switch de Catálogo / Destacado | 44×25   | 45×25    |
+ * | checkbox de fila y de la cabecera | 20×21 | 20×21   |
+ * | link de la foto ("Editar X")   | 36×37   | ok       |
+ * | link del NOMBRE del producto   | 93×40   | 93×21    |
+ * | CTA de la barra de acciones    | —       | 93×42    |
+ *
+ * jsdom no calcula layout, así que acá se afirma sobre las CLASES declaradas
+ * —mismo criterio que `SelectorCantidad.test.jsx` y `BotonFavorito.test.jsx`—.
+ * La medición real es en navegador; el test es la red que evita que alguien
+ * devuelva un control por debajo del mínimo sin que nada se ponga en rojo.
+ */
+describe("AdminProductos — área táctil de 44×44", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO, stock: 10 }]));
+  });
+
+  it("los switches de Catálogo y Destacado extienden su área a 44×44 sin crecer de tamaño visible", async () => {
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    for (const nombre of [/Mostrar Reloj Clásico en el catálogo/i, /Destacar Reloj Clásico/i]) {
+      const interruptor = screen.getByRole("switch", { name: nombre });
+      // Sin `content-['']` el pseudo-elemento no genera caja y el área táctil
+      // sigue siendo la de antes, sin que nada falle.
+      expect(interruptor.className).toContain("before:content-['']");
+      expect(interruptor.className).toContain("before:h-11");
+      expect(interruptor.className).toContain("before:w-11");
+    }
+  });
+
+  it("los checkboxes de selección viven en un <label> de 44×44 REAL, sin margen negativo", async () => {
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    for (const nombre of [
+      /Seleccionar todos los productos de esta página/i,
+      /Seleccionar Reloj Clásico/i,
+    ]) {
+      const caja = screen.getByRole("checkbox", { name: nombre }).closest("label");
+      const clases = caja.className.split(" ");
+      expect(clases).toContain("min-h-11");
+      expect(clases).toContain("min-w-11");
+      // El margen negativo dejaba el área DECLARADA en 44 pero la sacaba del
+      // flujo: los vecinos —la celda de la foto, a 12px de paso en la tarjeta
+      // apilada— quedaban encima y le robaban el borde. 20×21 medidos.
+      expect(clases).not.toContain("-m-3");
+    }
+  });
+
+  it("el link de la foto extiende su área a 44×44", async () => {
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    const link = screen.getByRole("link", { name: "Editar Reloj Clásico" });
+    expect(link.className).toContain("before:content-['']");
+    expect(link.className).toContain("before:h-11");
+    expect(link.className).toContain("before:w-11");
+  });
+
+  it("el link del nombre llega a 44 de alto sin invadir la columna de al lado", async () => {
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    const link = screen.getByRole("link", { name: "Reloj Clásico" });
+    expect(link.className).toContain("before:content-['']");
+    expect(link.className).toContain("before:h-11");
+    // `before:w-full` y no `before:w-11`: el link ya sobra de ancho, así que
+    // copia el suyo en vez de estirarse sobre la celda vecina.
+    expect(link.className).toContain("before:w-full");
+  });
+
+  it("los CTA de la barra de acciones declaran el piso táctil de 44 de alto", async () => {
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+
+    // Los nombres van como substring y no anclados: el nombre accesible de cada
+    // enlace arranca con la ligadura del ícono ("upload_file Importar"), porque
+    // Material Symbols pinta el glifo desde el texto del `<span>`.
+    for (const nombre of [
+      /Agregar producto/i,
+      /Importar/i,
+      /Actualizar por Excel/i,
+      /Costos y precios/i,
+      /Salud/i,
+    ]) {
+      const cta = screen.getByRole("link", { name: nombre });
+      expect(cta.className.split(" ")).toContain("min-h-11");
+    }
   });
 });

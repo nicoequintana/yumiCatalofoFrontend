@@ -49,12 +49,20 @@ function BotonActualizar({ onActualizar, actualizando = false, etiqueta = "Actua
       disabled={actualizando}
       aria-label={nombre}
       title={nombre}
-      // `size-[42px]` fijo y no un padding que se adapte: el spinner mide menos
-      // que el ícono, así que con el tamaño derivado del contenido el botón se
+      // Tamaño fijo y no un padding que se adapte: el spinner mide menos que
+      // el ícono, así que con el tamaño derivado del contenido el botón se
       // encogería un par de píxeles al empezar a actualizar y la barra entera
-      // daría un salto. 42px es lo que miden los botones de texto de al lado
-      // (`py-3` + 18px de ícono), para que la fila quede alineada.
-      className={`inline-flex size-[42px] shrink-0 items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:border-outline disabled:opacity-60 ${className}`}
+      // daría un salto. El número tiene que igualar a los botones de texto de
+      // al lado para que la fila quede alineada.
+      //
+      // Fue `size-[42px]` hasta el 07/09/2026, cuando la medición en navegador
+      // con `elementFromPoint` —el área EFECTIVA, no la caja declarada— lo dio
+      // en 42×42 a 390 y 43×43 a 1280, por debajo del mínimo táctil de 44×44
+      // (WCAG 2.5.8). Los botones de texto de al lado pasaron a 44 en la misma
+      // tanda, así que `size-11` cumple el mínimo Y mantiene la alineación —
+      // por eso se cambia el número en vez de apilarle un `min-h-11` que
+      // dejaría el `size-[42px]` como letra muerta.
+      className={`inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:border-outline disabled:opacity-60 ${className}`}
     >
       {actualizando ? (
         // El spinner va `aria-hidden`: trae su propio `aria-label="Cargando"`

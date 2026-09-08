@@ -957,3 +957,151 @@ describe("AdminPrecios — traer cambios sin pisar lo tipeado", () => {
     );
   });
 });
+
+/**
+ * Área táctil mínima de 44×44 (WCAG 2.5.8).
+ *
+ * Medido en navegador el 07/09/2026 con `elementFromPoint` —el área EFECTIVA,
+ * no la caja declarada— a 390px y a 1280px:
+ *
+ * - input de COSTO: 93×34 / 93×35
+ * - input de COEFICIENTE: 93×34 / 81×35
+ * - chips de filtro ("Todos (84)", "Sin precio real (0)"…): 93×35 / 93×36
+ *
+ * Los tres por debajo del mínimo en el ALTO, que es la dimensión que falla:
+ * el ancho ya sobra en las tres.
+ *
+ * jsdom no calcula layout, así que acá se afirma sobre la CLASE declarada,
+ * mismo criterio que `SelectorCantidad.test.jsx`. La medición real es en
+ * navegador; el test protege que nadie devuelva el alto a un valor por debajo
+ * del piso sin darse cuenta.
+ */
+describe("AdminPrecios — área táctil", () => {
+  it("los campos de costo y coeficiente declaran el piso táctil de 44px", async () => {
+    renderPagina();
+
+    await screen.findByText("Termo");
+
+    for (const etiqueta of ["Costo de Termo", "Coeficiente de Termo"]) {
+      const campo = screen.getByLabelText(etiqueta);
+      expect(campo.className.split(" ")).toContain("min-h-11");
+    }
+  });
+
+  it("el campo de coeficiente masivo declara el piso táctil de 44px", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+
+    await screen.findByText("Termo");
+    await usuario.click(screen.getByLabelText("Seleccionar Termo"));
+
+    const campo = screen.getByLabelText(/coeficiente$/i);
+    expect(campo.className.split(" ")).toContain("min-h-11");
+  });
+
+  it("los chips de filtro declaran el piso táctil de 44px", async () => {
+    renderPagina();
+
+    await screen.findByText("Termo");
+
+    for (const nombre of [/^todos \(/i, /^difieren \(/i, /^sin precio real \(/i, /^sin costo \(/i, /^al día \(/i]) {
+      const chip = screen.getByRole("button", { name: nombre });
+      expect(chip.className.split(" ")).toContain("min-h-11");
+    }
+  });
+
+  // El checkbox es un `<input type=checkbox>`: no acepta `::before` (no genera
+  // caja para un elemento reemplazado), así que el área la lleva el `<label>`
+  // que lo envuelve. El piso va declarado en el label, no en el input.
+  it("el envoltorio de cada checkbox declara 44×44", async () => {
+    renderPagina();
+
+    await screen.findByText("Termo");
+
+    for (const etiqueta of [
+      "Seleccionar todos los productos de esta página",
+      "Seleccionar Termo",
+    ]) {
+      const envoltorio = screen.getByLabelText(etiqueta).closest("label");
+      expect(envoltorio.className.split(" ")).toContain("min-h-11");
+      expect(envoltorio.className.split(" ")).toContain("min-w-11");
+    }
+  });
+
+  it("el link a Productos declara el piso de 44 de alto", async () => {
+    renderPagina();
+
+    await screen.findByText("Termo");
+
+    // `px-5 py-3` + borde sobre una línea de 17px (`text-label-md`, 14px × 1.2)
+    // daba 43: se quedaba a UN píxel del mínimo, que es la peor forma de
+    // fallarlo porque a ojo no se ve.
+    const link = screen.getByRole("link", { name: /productos/i });
+    expect(link.className.split(" ")).toContain("min-h-11");
+  });
+
+  it("«Reintentar» del banner de error declara el piso de 44 de alto", async () => {
+    productsApi.getProducts.mockRejectedValue(new Error("sin red"));
+    renderPagina();
+
+    const boton = await screen.findByRole("button", { name: /reintentar/i });
+    expect(boton.className.split(" ")).toContain("min-h-11");
+  });
+
+  it("«Cerrar» del informe extiende su área sin empujar el panel", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+
+    // Un costo sin guardar frena el refresco y deja el informe en pantalla, que
+    // es la única puerta al botón «Cerrar».
+    await tipearCostoNuevo(usuario);
+    await usuario.click(screen.getByRole("button", { name: /traer cambios/i }));
+    await screen.findByRole("status");
+
+    // Texto pelado, sin padding: 17px de alto. Va el pseudo-elemento y no
+    // `min-h-11`, para no separar el botón del párrafo que tiene arriba.
+    const boton = screen.getByRole("button", { name: /^cerrar$/i });
+    expect(boton.className).toContain("relative");
+    expect(boton.className).toContain("before:content-['']");
+    expect(boton.className).toContain("before:h-11");
+    expect(boton.className).toContain("before:w-full");
+  });
+
+  it("la barra de selección: el botón crece y «Limpiar selección» extiende su área", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+
+    await screen.findByText("Termo");
+    await usuario.click(screen.getByLabelText("Seleccionar Termo"));
+
+    // «Actualizar precios» tiene molde propio (`px-5 py-2.5` = 37) y puede
+    // crecer; «Limpiar selección» es texto pelado en la misma barra y crecería
+    // el alto de toda la fila, así que lleva el pseudo-elemento.
+    expect(botonAplicar().className.split(" ")).toContain("min-h-11");
+
+    const limpiar = screen.getByRole("button", { name: /limpiar selección/i });
+    expect(limpiar.className).toContain("relative");
+    expect(limpiar.className).toContain("before:content-['']");
+    expect(limpiar.className).toContain("before:h-11");
+    expect(limpiar.className).toContain("before:w-full");
+  });
+
+  it("«Cancelar» y «Confirmar» del diálogo llegan a 44 de alto", async () => {
+    const usuario = userEvent.setup();
+    renderPagina();
+
+    await screen.findByText("Termo");
+    await usuario.click(screen.getByLabelText("Seleccionar Termo"));
+    await usuario.click(botonAplicar());
+    await screen.findByRole("dialog");
+
+    // Los dos comparten `px-5 py-2.5` (37 de alto) y no entraron en la
+    // medición porque el diálogo estaba cerrado. Crecen en ALTO: están uno al
+    // lado del otro, así que un pseudo-elemento horizontal se pisaría con el
+    // vecino y el segundo le robaría área al primero.
+    for (const nombre of [/^cancelar$/i, /^confirmar$/i]) {
+      const boton = screen.getByRole("button", { name: nombre });
+      expect(boton.className.split(" "), boton.textContent).toContain("min-h-11");
+    }
+  });
+});

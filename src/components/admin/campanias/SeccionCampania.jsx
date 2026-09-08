@@ -177,9 +177,17 @@ export default function SeccionCampania({
                 </p>
               )}
 
+              {/* El `aria-label` NO es decorativo: el input va `sr-only` y se
+                  dispara con un `.click()` por ref desde el botón de al lado, así
+                  que no lo envuelve ningún `<label>`. Sin nombre propio, un lector
+                  de pantalla lo anuncia como un control mudo ("file upload
+                  button", sin decir de qué archivo). La auditoría de accesibilidad
+                  del 07/09/2026 lo encontró como el ÚNICO input sin label de la
+                  pantalla; su gemelo de `SeccionBanner` ya se nombraba así. */}
               <input
                 ref={inputDoodle}
                 type="file"
+                aria-label={campania?.doodleUrl ? "Reemplazar Doodle" : "Subir Doodle"}
                 accept="image/jpeg,image/png,image/webp"
                 onChange={elegirArchivo}
                 className="sr-only"
@@ -249,5 +257,22 @@ export default function SeccionCampania({
   );
 }
 
+/**
+ * `min-h-11` (44px) va ADEMÁS del `py-2`, no en lugar de él: el mínimo táctil de
+ * WCAG 2.5.8 es un PISO y el padding sigue decidiendo cuánto crece por encima
+ * (mismo criterio que `SelectorCantidad.jsx`).
+ *
+ * ⚠️ **Esta pantalla se le escapó al barrido de la auditoría táctil**: el editor
+ * de campaña es una RUTA propia (`/catalogo/admin/campanias/:id/editar`) a la que
+ * "Nueva campaña" NAVEGA, y este bloque solo se renderiza en modo EDICIÓN —sube a
+ * `PUT /:id/doodle` y no hay id en el alta—, así que ni el recorrido del listado
+ * ni la ruta `/campanias/nueva` llegaban a medirlo. Medido recién el 07/09/2026 a
+ * 1280×800 con `elementFromPoint` —el área EFECTIVA, no la caja declarada—:
+ * "Reemplazar" daba 93×33 y "Quitar" 86×33. El ancho ya sobraba; faltaba el ALTO.
+ *
+ * Crecen de verdad en vez de usar el pseudo-elemento de `utils/areaTactil.js`:
+ * viven en un `flex flex-wrap items-center gap-4` que se reacomoda solo, así que
+ * agrandar la caja no desalinea nada ni pisa a los vecinos.
+ */
 const claseAccionDoodle =
-  "font-label-sm text-label-sm rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60";
+  "font-label-sm text-label-sm min-h-11 rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60";

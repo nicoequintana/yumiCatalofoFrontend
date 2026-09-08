@@ -14,6 +14,19 @@ import Spinner from "../../Spinner.jsx";
  * un margen propio. Dos motivos: un producto que todavía no existe no se puede
  * borrar, y una acción destructiva pegada a la acción principal se clickea sola
  * — el separador es lo que hace que el gesto tenga que ser deliberado.
+ *
+ * Los tres botones llevan `min-h-11` (44px) ADEMÁS de su `py-3`, no en lugar de
+ * él: el mínimo táctil de WCAG 2.5.8 es un PISO y el padding sigue decidiendo
+ * el aire alrededor del texto (mismo criterio que `SelectorCantidad.jsx`).
+ * Medido en navegador el 07/09/2026 con `elementFromPoint` —área EFECTIVA, no
+ * la caja declarada—: "Guardar" daba 93x42 sobre una caja de 119x41, porque
+ * `text-label-md` son 14px con interlineado 1.2 (16,8) más 12+12 de padding =
+ * 40,8. Los otros dos comparten esa caja exacta, así que se corrigen juntos:
+ * arreglar solo el que salió en la auditoría dejaría a Cancelar en 41.
+ *
+ * El "Volver" de acá arriba NO necesita nada: ya declara `min-h-11` en
+ * `BotonVolver.jsx`. Sus 89x36 de área efectiva no eran suyos — se los comía la
+ * barra sticky del shell, ver el `<main>` de `AdminLayout.jsx`.
  */
 function EditorHeader({
   esEdicion,
@@ -49,7 +62,7 @@ function EditorHeader({
           <button
             type="button"
             onClick={onEliminar}
-            className="font-label-md text-label-md mr-3 inline-flex items-center justify-center gap-2 rounded-lg border border-error px-5 py-3 uppercase tracking-widest text-error hover:bg-error-container"
+            className="font-label-md text-label-md mr-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-error px-5 py-3 uppercase tracking-widest text-error hover:bg-error-container"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
               delete
@@ -60,7 +73,7 @@ function EditorHeader({
         <button
           type="button"
           onClick={onCancelar}
-          className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+          className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
         >
           Cancelar
         </button>
@@ -69,7 +82,7 @@ function EditorHeader({
           form="form-producto"
           onClick={onGuardar}
           disabled={guardando}
-          className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+          className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
         >
           {guardando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
           {guardando ? "Guardando…" : "Guardar"}

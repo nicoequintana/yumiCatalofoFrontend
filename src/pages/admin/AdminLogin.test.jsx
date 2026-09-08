@@ -124,3 +124,25 @@ describe("AdminLogin", () => {
     expect(navigateMock).toHaveBeenCalledWith("/catalogo/admin/productos");
   });
 });
+
+/**
+ * Área táctil (WCAG 2.5.8) del único botón de la pantalla de login.
+ *
+ * ⚠️ **El login no estaba en ningún barrido de la auditoría del 07/09/2026**:
+ * el recorrido público no lo incluía y el del panel arrancaba YA autenticado,
+ * así que la pantalla por la que pasa todo el mundo antes de entrar era la
+ * única sin medir. Medido después con `elementFromPoint` —el área EFECTIVA, no
+ * la caja declarada—: **33 de alto** en los dos breakpoints (`py-2`).
+ *
+ * `min-h-11` va ADEMÁS del `py-2`, no en lugar de él (mismo criterio que
+ * `SelectorCantidad.jsx`).
+ */
+describe("AdminLogin — área táctil", () => {
+  it('el botón "Ingresar" declara el mínimo táctil de 44 de alto', () => {
+    renderLogin();
+
+    expect(
+      screen.getByRole("button", { name: "Ingresar" }).className.split(" "),
+    ).toContain("min-h-11");
+  });
+});

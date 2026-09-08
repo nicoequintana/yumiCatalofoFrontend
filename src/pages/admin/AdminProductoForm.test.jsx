@@ -1285,3 +1285,109 @@ describe("AdminProductoForm — el precio se calcula, no se escribe", () => {
     expect(screen.getByText("$ 3.075")).toBeInTheDocument();
   });
 });
+
+describe("AdminProductoForm — los campos de lista tienen nombre propio", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    categoriasApi.getCategorias.mockResolvedValue([]);
+  });
+
+  it("los siete campos cuyo único nombre era el placeholder tienen nombre accesible estable", async () => {
+    // El motor de accesibilidad cae al placeholder cuando no hay nada mejor,
+    // pero ese nombre DESAPARECE al tipear: con siete campos así en la misma
+    // pantalla, quien no ve la sección no sabe en cuál está escribiendo.
+    renderForm();
+
+    for (const nombre of [
+      "Nuevo beneficio",
+      "Nuevo uso",
+      "Nuevo ideal para",
+      "Nueva característica",
+      "Nombre de la especificación",
+      "Valor de la especificación",
+      "Nuevo ítem incluido",
+    ]) {
+      expect(screen.getByLabelText(nombre)).toBeInTheDocument();
+    }
+  });
+});
+
+describe("AdminProductoForm — área táctil (WCAG 2.5.8)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    categoriasApi.getCategorias.mockResolvedValue([]);
+  });
+
+  it("los botones de acción del encabezado llegan a 44 de alto", () => {
+    // Medido en navegador el 07/09/2026 con `elementFromPoint` (área EFECTIVA,
+    // no la caja declarada): "Guardar" daba 93x42 sobre una caja de 119x41, y
+    // "Cancelar" comparte el mismo `py-3` con `text-label-md`, o sea la misma
+    // caja de 41. El `py-3` se conserva en los dos: el mínimo táctil es un
+    // PISO y la variante sigue decidiendo cuánto crece por encima.
+    renderForm();
+
+    for (const nombre of ["Guardar", "Cancelar"]) {
+      const boton = screen.getByRole("button", { name: nombre });
+      expect(boton.className).toContain("min-h-11");
+      expect(boton.className).toContain("py-3");
+    }
+  });
+
+  it("el enlace al listado extiende su área sin crecer de verdad", () => {
+    // Medido el 07/09/2026 a 1280px: 93x16 de área efectiva sobre una caja de
+    // 129x16. Acá NO va `min-h-11`: es texto en línea dentro de un párrafo, y
+    // agrandar la caja de un `<a>` inline le rompe el interlineado al párrafo
+    // entero. El pseudo-elemento de `utils/areaTactil.js` estira solo el
+    // blanco de click y deja el dibujo donde estaba.
+    renderForm();
+
+    const enlace = screen.getByRole("link", { name: /listado de productos/i });
+
+    expect(enlace.className).toContain("relative");
+    expect(enlace.className).toContain("before:content-['']");
+    expect(enlace.className).toContain("before:h-11");
+    expect(enlace.className).toContain("before:w-full");
+    expect(enlace.className).not.toContain("min-h-11");
+  });
+});
+
+/**
+ * Área táctil (WCAG 2.5.8) de la sección de especificaciones y características.
+ *
+ * ⚠️ Los botones de ELIMINAR de estas dos listas no aparecieron en la
+ * auditoría del 07/09/2026 porque el barrido usó
+ * `/catalogo/admin/productos/nuevo`, donde las listas arrancan VACÍAS: un
+ * control que solo existe con datos cargados no lo ve un barrido sobre un
+ * formulario en blanco. Traían `max-md:min-h-11 max-md:min-w-11`, o sea 44×44
+ * solo por debajo de 768px, y en escritorio quedaban en el glifo de 18px.
+ *
+ * "+ Agregar especificación" sí se midió: **43 de alto** a 390px. Es el gemelo
+ * del "Agregar" de `ListaDinamica.jsx` —misma caja `px-4 py-3`— pero vive en
+ * `SeccionesFormulario.jsx`, así que arreglar uno no arreglaba el otro.
+ */
+describe("AdminProductoForm — área táctil de especificaciones", () => {
+  it('"+ Agregar especificación" declara el mínimo táctil de 44 de alto', () => {
+    renderForm();
+
+    const boton = screen.getByRole("button", { name: "+ Agregar especificación" });
+
+    expect(boton.className.split(" ")).toContain("min-h-11");
+  });
+
+  it("los botones de eliminar de cada lista miden 44×44 en TODOS los anchos", () => {
+    renderForm();
+
+    fireEvent.change(screen.getByPlaceholderText("Nombre (ej: Material)"), {
+      target: { value: "Material" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Valor (ej: ABS)"), { target: { value: "ABS" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ Agregar especificación" }));
+
+    const eliminar = screen.getByRole("button", { name: "Eliminar especificación Material" });
+
+    expect(eliminar.className.split(" ")).toContain("min-h-11");
+    expect(eliminar.className.split(" ")).toContain("min-w-11");
+    // Sin breakpoint: `max-md:` dejaba el escritorio en 18px.
+    expect(eliminar.className).not.toContain("max-md:min-h-11");
+  });
+});

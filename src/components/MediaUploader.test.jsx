@@ -263,3 +263,33 @@ describe("MediaUploader — límites", () => {
     expect(screen.getByLabelText(/Agregar fotos a la galería/i)).toBeDisabled();
   });
 });
+
+/**
+ * Área táctil (WCAG 2.5.8). Los botones que se superponen a cada miniatura
+ * —quitar la foto, moverla a izquierda/derecha, quitar el video— traían
+ * `size-6 … max-md:size-11`: 44×44 solo por debajo de 768px y **24×24 en
+ * escritorio**.
+ *
+ * ⚠️ **Por eso no aparecieron en la auditoría del 07/09/2026**: el barrido usó
+ * `/catalogo/admin/productos/nuevo`, que arranca SIN fotos, así que estos
+ * botones no se renderizan nunca ahí.
+ *
+ * Se agrandan de verdad y no con pseudo-elemento: los de mover van pegados y
+ * dos áreas postizas de 44 sobre cajas de 24 se superpondrían. Crecer no
+ * agrega costo nuevo — en mobile ya ocupaban 44 sobre la misma miniatura.
+ */
+describe("MediaUploader — área táctil", () => {
+  it("los controles sobre la miniatura miden 44×44 en TODOS los anchos", () => {
+    render_([{ id: "1", url: "u1" }, { id: "2", url: "u2" }]);
+
+    const botones = screen
+      .getAllByRole("button")
+      .filter((b) => /quitar|mover/i.test(b.getAttribute("aria-label") || ""));
+
+    expect(botones.length).toBeGreaterThan(0);
+    for (const boton of botones) {
+      expect(boton.className.split(" ")).toContain("size-11");
+      expect(boton.className).not.toContain("max-md:size-11");
+    }
+  });
+});

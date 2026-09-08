@@ -97,7 +97,14 @@ function AdminLogin() {
         <button
           type="submit"
           disabled={cargando}
-          className="rounded bg-primary px-4 py-2 text-label-md text-on-primary disabled:opacity-50"
+          // `min-h-11` ADEMÁS del `py-2`, no en lugar de él: el mínimo táctil
+          // es un PISO. Medido el 07/09/2026 con `elementFromPoint` —el área
+          // EFECTIVA, no la caja declarada—: **33 de alto** en los dos
+          // breakpoints. ⚠️ Esta pantalla no estaba en ningún barrido de la
+          // auditoría: el recorrido público no la incluía y el del panel
+          // arrancaba YA autenticado, así que la puerta de entrada de todo el
+          // mundo era la única sin medir.
+          className="min-h-11 rounded bg-primary px-4 py-2 text-label-md text-on-primary disabled:opacity-50"
         >
           {cargando ? "Ingresando..." : "Ingresar"}
         </button>

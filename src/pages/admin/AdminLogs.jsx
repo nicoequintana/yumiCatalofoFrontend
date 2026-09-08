@@ -3,6 +3,7 @@ import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import { getAuditLogs, getErrorLogs } from "../../api/adminLogs.js";
 import { formatFechaHora } from "../../utils/formato.js";
 import { claseCelda, claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
@@ -170,9 +171,11 @@ function AdminLogs() {
         setTotal(resultado.total);
         setCargando(false);
       })
-      .catch((err) => {
+      .catch(() => {
         if (!activo) return;
-        setError(err.message ?? "No se pudieron cargar los logs.");
+        // El mensaje del sistema (`Error interno`) NO llega a pantalla: no dice
+        // nada accionable. El copy compartido vive en `EstadoErrorCarga`.
+        setError(true);
         setCargando(false);
       });
 
@@ -274,17 +277,19 @@ function AdminLogs() {
         </button>
       </div>
 
-      {error ? (
-        <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
-          {error}
-        </p>
-      ) : null}
-
       {cargando ? (
         <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-24 text-center md:px-8">
           <Spinner className="h-8 w-8 text-on-surface-variant" />
           <p className="font-body-md text-body-md text-on-surface-variant">Cargando logs…</p>
         </div>
+      ) : error ? (
+        // Excluyente con el estado vacío: "no hay registros de auditoría"
+        // debajo de un error le afirma al operador algo falso sobre la base —
+        // los registros pueden estar, lo que falló es la consulta.
+        <EstadoErrorCarga
+          titulo="No se pudieron cargar los logs"
+          onReintentar={() => setRefresco((n) => n + 1)}
+        />
       ) : registros.length === 0 ? (
         <EstadoVacio
           icono={esAuditoria ? "history" : "bug_report"}

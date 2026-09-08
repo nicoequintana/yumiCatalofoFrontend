@@ -64,14 +64,30 @@ export default function TablaComercial({ filas, seleccionados, onAlternar, guard
               className="border-b border-outline-variant transition-colors last:border-b-0 hover:bg-surface-container"
             >
               <td role="cell" className={claseCelda}>
-                <input
-                  type="checkbox"
-                  checked={seleccionados.has(fila.id)}
-                  disabled={guardando}
-                  onChange={() => onAlternar(fila.id)}
-                  aria-label={`Seleccionar ${fila.nombre}`}
-                  className="h-5 w-5 accent-[rgb(var(--color-primary))]"
-                />
+                {/* El área táctil la aporta el `<label>`, no el input.
+                    Medido en navegador el 07/09/2026 con `elementFromPoint` a
+                    1280×800, los veinte checkboxes daban 20×21 de área
+                    efectiva, menos de la mitad del mínimo de 44×44 (WCAG
+                    2.5.8). Un `<input type="checkbox">` es un elemento
+                    reemplazado y **no acepta `::before`**, así que el
+                    pseudo-elemento de `utils/areaTactil.js` no sirve acá: el
+                    envoltorio se lleva los 44×44 y el cuadradito visible sigue
+                    en 20, que es lo que mantiene la fila compacta. Clickear el
+                    envoltorio alterna el control por la asociación implícita
+                    del propio `<label>` — no hace falta `htmlFor`. No lleva
+                    margen negativo que compense el alto: la fila ya la manda
+                    `CeldaProducto` con su miniatura, así que esta celda nunca
+                    fue la que decide cuánto mide el `<tr>`. */}
+                <label className="inline-flex h-11 w-11 items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={seleccionados.has(fila.id)}
+                    disabled={guardando}
+                    onChange={() => onAlternar(fila.id)}
+                    aria-label={`Seleccionar ${fila.nombre}`}
+                    className="h-5 w-5 accent-[rgb(var(--color-primary))]"
+                  />
+                </label>
               </td>
               <td role="cell" className={`${claseCelda} text-on-surface`}>
                 <CeldaProducto

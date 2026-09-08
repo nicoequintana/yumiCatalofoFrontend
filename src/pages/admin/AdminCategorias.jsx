@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
+import { AREA_TACTIL_ANCHA, AREA_TACTIL_ICONO } from "../../utils/areaTactil.js";
 import {
   createCategoria,
   deleteCategoria,
@@ -35,6 +37,18 @@ function AdminCategorias() {
   const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  /**
+   * El fallo de la CARGA de la lista, separado del `error` de las mutaciones.
+   *
+   * Son dos cosas distintas y no pueden compartir estado: si la lista no se
+   * pudo leer, mostrar además "Todavía no hay categorías" le afirma a un admin
+   * con diez categorías que no tiene ninguna — y ahí las recrea duplicadas. Si
+   * en cambio falló una escritura, la lista SÍ se leyó y su estado vacío es
+   * verdad, así que el aviso va como banda y el vacío se queda.
+   */
+  const [errorCarga, setErrorCarga] = useState(false);
+  // Contador del botón Reintentar del estado de error.
+  const [reintento, setReintento] = useState(0);
 
   const [nombreNuevo, setNombreNuevo] = useState("");
   const [creando, setCreando] = useState(false);
@@ -87,6 +101,10 @@ function AdminCategorias() {
       .then((data) => {
         if (!activo) return;
         setCategorias(data);
+        // Un fetch exitoso limpia el error anterior: sin esto, un backend que
+        // se recupera sigue diciendo "no se pudieron cargar" sobre una lista
+        // que ya tiene datos.
+        setErrorCarga(false);
         setCargando(false);
       })
       // Sin este catch, un backend caído deja la promesa rechazada sin manejar
@@ -94,14 +112,14 @@ function AdminCategorias() {
       // que el problema es la conexión.
       .catch(() => {
         if (!activo) return;
-        setError("No se pudieron cargar las categorías. Revisá tu conexión e intentá de nuevo.");
+        setErrorCarga(true);
         setCargando(false);
       });
 
     return () => {
       activo = false;
     };
-  }, []);
+  }, [reintento]);
 
   async function handleCrear(event) {
     event.preventDefault();
@@ -226,17 +244,27 @@ function AdminCategorias() {
 
       <form onSubmit={handleCrear} className="mb-8 flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row">
+          {/* `aria-label` ADEMÁS del placeholder, no en su lugar: un
+              placeholder no es nombre accesible —un lector de pantalla anuncia
+              "cuadro de edición" y nada más— y encima desaparece al escribir la
+              primera letra. Era el único campo sin etiquetar de la pantalla
+              (auditoría del 07/09/2026). */}
           <input
             type="text"
             value={nombreNuevo}
             onChange={(e) => setNombreNuevo(e.target.value)}
+            aria-label="Nombre de la nueva categoría"
             placeholder="Nombre de la nueva categoría"
             className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none sm:max-w-sm"
           />
+          {/* `min-h-11` (44px) es el PISO táctil, va además del `py-3` de la
+              variante y nunca en su lugar (ver `SelectorCantidad.jsx`). Medido
+              en navegador el 07/09/2026 a 390px con `elementFromPoint`: el CTA
+              daba 93x42 de área efectiva, dos píxeles por debajo del mínimo. */}
           <button
             type="submit"
             disabled={creando}
-            className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
           >
             {creando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
             Agregar
@@ -255,6 +283,11 @@ function AdminCategorias() {
           <Spinner className="h-8 w-8 text-on-surface-variant" />
           <p className="font-body-md text-body-md text-on-surface-variant">Cargando categorías…</p>
         </div>
+      ) : errorCarga ? (
+        <EstadoErrorCarga
+          titulo="No se pudieron cargar las categorías"
+          onReintentar={() => setReintento((n) => n + 1)}
+        />
       ) : categorias.length === 0 ? (
         <EstadoVacio
           icono="sell"
@@ -268,7 +301,14 @@ function AdminCategorias() {
               su columna y REACOMODABA toda la tabla al prenderse un switch —
               las demás columnas se encogían y las acciones saltaban de lugar.
               Con anchos fijos el texto envuelve dentro de su columna y ninguna
-              fila puede mover a las otras. */}
+              fila puede mover a las otras.
+
+              Foto pasó de 18% a 22% y "aparece primero" de 28% a 24% el
+              07/09/2026, cuando los dos botones de la celda de Foto crecieron
+              de 32 a 44 por el mínimo táctil: con 18% de los 760px del ancho
+              mínimo quedaban 137px para 48 (miniatura) + 12 + 44 + 4 + 44 =
+              152, y el grupo se desbordaba sobre la columna de al lado. Con 22%
+              son 167px y entra. */}
           <table
             role="table"
             className={`${claseTablaApilada} w-full min-w-[760px] table-fixed text-left`}
@@ -289,13 +329,13 @@ function AdminCategorias() {
                 </th>
                 <th
                   role="columnheader"
-                  className="font-label-sm text-label-sm w-[18%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                  className="font-label-sm text-label-sm w-[22%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
                 >
                   Foto
                 </th>
                 <th
                   role="columnheader"
-                  className="font-label-sm text-label-sm w-[28%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                  className="font-label-sm text-label-sm w-[24%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
                 >
                   Aparece primero en la home
                 </th>
@@ -316,10 +356,16 @@ function AdminCategorias() {
                     className="font-body-md text-body-md px-4 py-3 text-on-surface"
                   >
                     {editandoId === categoria.id ? (
+                      // El campo de renombrar tampoco tenía nombre accesible.
+                      // No lo contó la auditoría del 07/09/2026 porque sólo se
+                      // renderiza en modo edición, pero es el mismo defecto que
+                      // el campo de alta: lleva el nombre de la categoría para
+                      // que se distinga de los demás campos de la tabla.
                       <input
                         type="text"
                         value={nombreEditado}
                         onChange={(e) => setNombreEditado(e.target.value)}
+                        aria-label={`Nombre de ${categoria.nombre}`}
                         className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
                       />
                     ) : (
@@ -353,6 +399,17 @@ function AdminCategorias() {
                         )}
                       </div>
 
+                      {/* Los dos botones de esta celda están PEGADOS (`gap-1`),
+                          así que su área táctil se agranda de verdad —`size-11`
+                          en todos los breakpoints— y NO con el pseudo-elemento
+                          de `areaTactil.js`: con 32 de caja y 4 de separación el
+                          paso es 36, y dos áreas de 44 a 36 de paso se
+                          superponen 8px que se lleva el botón de más abajo en el
+                          DOM. Medido el 07/09/2026 con `elementFromPoint`: 33x33
+                          de área efectiva a 1280px (a 390px ya cumplían por el
+                          `max-md:size-11` que había, y `size-11` lo conserva).
+                          Con 44 de caja el paso pasa a 48 y ninguna invade a la
+                          otra. */}
                       <div className="flex items-center gap-1">
                         {/* Un `<button>` que dispara el input por ref, no un
                             `<label>` envolviéndolo. El label también funciona
@@ -367,7 +424,7 @@ function AdminCategorias() {
                           disabled={ocupadaId === categoria.id}
                           aria-label={`${categoria.imagenUrl ? "Cambiar" : "Subir"} la foto de ${categoria.nombre}`}
                           title={categoria.imagenUrl ? "Cambiar foto" : "Subir foto"}
-                          className="text-secondary flex size-8 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60 max-md:size-11"
+                          className="text-secondary flex size-11 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60"
                         >
                           <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                             upload
@@ -398,7 +455,7 @@ function AdminCategorias() {
                             disabled={ocupadaId === categoria.id}
                             aria-label={`Quitar la foto de ${categoria.nombre}`}
                             title="Quitar foto"
-                            className="text-error flex size-8 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60 max-md:size-11"
+                            className="text-error flex size-11 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60"
                           >
                             {/* `hide_image`, no `delete`: en la misma fila hay un
                                 tacho que borra la CATEGORÍA entera, y dos íconos
@@ -421,7 +478,18 @@ function AdminCategorias() {
                           (`role="switch"` + `aria-checked` sobre un `<button>`,
                           no un `<input type="checkbox">`): un lector de pantalla
                           lo anuncia como interruptor y el panel mantiene una
-                          sola estética de control. */}
+                          sola estética de control.
+
+                          El área táctil va por PSEUDO-ELEMENTO
+                          (`AREA_TACTIL_ICONO`, 44x44) y no agrandando la caja:
+                          la pastilla tiene que seguir midiendo 24 de alto para
+                          leerse como un switch. Medido el 07/09/2026 con
+                          `elementFromPoint`: 44x25 de área efectiva a 390px y
+                          45x25 a 1280px — el alto era el que faltaba. Se estira
+                          también el ancho (`before:w-11`) porque en `md` la
+                          pastilla se achica a 36. No pisa a nadie: el único
+                          vecino de la celda es el spinner, a 8px, y la fila de
+                          abajo queda a 72 de paso. */}
                       <button
                         type="button"
                         role="switch"
@@ -429,7 +497,7 @@ function AdminCategorias() {
                         aria-label={`Que ${categoria.nombre} aparezca primero en la home`}
                         onClick={() => handleToggleHome(categoria)}
                         disabled={ocupadaId === categoria.id}
-                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 md:h-5 md:w-9 xl:h-6 xl:w-11 ${
+                        className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 md:h-5 md:w-9 xl:h-6 xl:w-11 ${AREA_TACTIL_ICONO} ${
                           categoria.destacadaEnHome ? "bg-secondary" : "bg-outline-variant"
                         }`}
                       >
@@ -464,6 +532,18 @@ function AdminCategorias() {
                     ) : null}
                   </td>
 
+                  {/* Los botones de TEXTO de esta celda (Guardar, Cancelar, Sí,
+                      No) llevan `AREA_TACTIL_ANCHA`: 44 de alto por
+                      pseudo-elemento, con el ancho propio para no invadir al de
+                      al lado. Medían 19 de alto a 1280px (el `max-md:min-h-11`
+                      ya los cubría a 390px). Residuo conocido: en modo edición
+                      la fila envuelve —Guardar + Cancelar no entran junto al
+                      ícono de eliminar en los ~180px de la columna— y ahí el
+                      ícono, que sí mide 44 de verdad y va después en el DOM, le
+                      come unos 4px al área de los de arriba (paso de 39,5). Es
+                      un estado transitorio y sigue siendo el doble del área que
+                      había; agrandar la caja de verdad, en cambio, subiría toda
+                      la tabla 20px de forma permanente. */}
                   <td role="cell" data-celda="acciones" className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                       {editandoId === categoria.id ? (
@@ -472,7 +552,7 @@ function AdminCategorias() {
                             type="button"
                             onClick={() => handleGuardarEdicion(categoria.id)}
                             disabled={guardandoEdicion || eliminandoId === categoria.id}
-                            className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline disabled:opacity-60 max-md:min-h-11"
+                            className={`font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                           >
                             {guardandoEdicion ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Guardar
@@ -480,7 +560,7 @@ function AdminCategorias() {
                           <button
                             type="button"
                             onClick={() => setEditandoId(null)}
-                            className="font-label-md text-label-md inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11"
+                            className={`font-label-md text-label-md inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                           >
                             Cancelar
                           </button>
@@ -491,7 +571,7 @@ function AdminCategorias() {
                           onClick={() => iniciarEdicion(categoria)}
                           aria-label={`Renombrar ${categoria.nombre}`}
                           title="Renombrar"
-                          className="text-secondary flex size-8 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60 max-md:size-11"
+                          className="text-secondary flex size-11 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60"
                         >
                           <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                             edit
@@ -506,7 +586,7 @@ function AdminCategorias() {
                             type="button"
                             onClick={() => handleEliminar(categoria.id)}
                             disabled={eliminandoId === categoria.id || guardandoEdicion}
-                            className="font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60 max-md:min-h-11"
+                            className={`font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                           >
                             {eliminandoId === categoria.id ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Sí
@@ -514,7 +594,7 @@ function AdminCategorias() {
                           <button
                             type="button"
                             onClick={() => setConfirmandoId(null)}
-                            className="font-label-md text-label-md inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11"
+                            className={`font-label-md text-label-md inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                           >
                             No
                           </button>
@@ -528,7 +608,7 @@ function AdminCategorias() {
                           }}
                           aria-label={`Eliminar la categoría ${categoria.nombre}`}
                           title="Eliminar categoría"
-                          className="text-error flex size-8 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60 max-md:size-11"
+                          className="text-error flex size-11 items-center justify-center rounded-full transition-colors hover:bg-surface-container-high disabled:opacity-60"
                         >
                           <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                             delete

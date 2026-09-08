@@ -37,6 +37,23 @@ const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
  * `fotos`/`video` are controlled by the parent form: `{ url, file }[]` for
  * fotos, `{ url, file } | null` for video.
  */
+/**
+ * ÁREA TÁCTIL de los controles que se superponen a una miniatura (quitar la
+ * foto, moverla, quitar el video): `size-11` (44×44) en TODOS los anchos.
+ *
+ * Traían `size-6 max-md:size-11`, o sea 44×44 solo por debajo de 768px y
+ * **24×24 en escritorio**.
+ *
+ * ⚠️ No los agarró la auditoría del 07/09/2026 porque el barrido usó el editor
+ * de un producto NUEVO, que arranca SIN fotos: estos botones no se renderizan
+ * nunca ahí. Un control que solo existe con datos cargados no lo ve un barrido
+ * sobre un formulario en blanco.
+ *
+ * Se agrandan de verdad y no con pseudo-elemento: los dos de mover van
+ * pegados, y dos áreas postizas de 44 sobre cajas de 24 se superpondrían — la
+ * de más abajo en el DOM le robaría el área a la anterior. Crecer no agrega
+ * costo visual nuevo sobre la miniatura: en mobile ya ocupaban esos mismos 44.
+ */
 function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo }) {
   const [error, setError] = useState(null);
   const objectUrlsRef = useRef(new Set());
@@ -241,7 +258,7 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
                   type="button"
                   onClick={() => quitarEn(index + 2)}
                   aria-label={`Quitar foto ${index + 3} de la galería`}
-                  className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface max-md:size-11"
+                  className="absolute right-1 top-1 flex size-11 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
                 >
                   <span className="material-symbols-outlined text-[16px]">close</span>
                 </button>
@@ -251,7 +268,7 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
                       type="button"
                       onClick={() => moverEnGaleria(index, -1)}
                       aria-label={`Mover foto ${index + 3} de la galería hacia atrás`}
-                      className="flex size-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface max-md:size-11"
+                      className="flex size-11 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
                     >
                       <span className="material-symbols-outlined text-[16px]">chevron_left</span>
                     </button>
@@ -261,7 +278,7 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
                       type="button"
                       onClick={() => moverEnGaleria(index, 1)}
                       aria-label={`Mover foto ${index + 3} de la galería hacia adelante`}
-                      className="flex size-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface max-md:size-11"
+                      className="flex size-11 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
                     >
                       <span className="material-symbols-outlined text-[16px]">chevron_right</span>
                     </button>
@@ -309,7 +326,7 @@ function MediaUploader({ fotos = [], video = null, onChangeFotos, onChangeVideo 
               type="button"
               onClick={eliminarVideo}
               aria-label="Eliminar video"
-              className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface max-md:size-11"
+              className="absolute right-1 top-1 flex size-11 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
             >
               <span className="material-symbols-outlined text-[16px]">close</span>
             </button>
@@ -374,7 +391,7 @@ function RanuraFoto({
             type="button"
             onClick={onQuitar}
             aria-label={etiquetaQuitar}
-            className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface max-md:size-11"
+            className="absolute right-1 top-1 flex size-11 items-center justify-center rounded-full bg-surface/80 text-on-surface hover:bg-surface"
           >
             <span className="material-symbols-outlined text-[16px]">close</span>
           </button>

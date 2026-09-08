@@ -1,5 +1,6 @@
 import useDialogo from "../../../hooks/useDialogo.js";
 import VeloModal from "../../VeloModal.jsx";
+import { AREA_TACTIL_ICONO } from "../../../utils/areaTactil.js";
 
 /**
  * La cáscara de los diálogos de Campañas.
@@ -55,7 +56,15 @@ export default function DialogoCampania({ titulo, onCerrar, children }) {
               type="button"
               onClick={onCerrar}
               aria-label="Cerrar"
-              className="rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container"
+              // El glifo NO crece: 20px al lado del título es lo que equilibra
+              // el encabezado. El área se extiende con el pseudo-elemento de
+              // `utils/areaTactil.js`, seguro acá porque el único vecino es el
+              // `<h2>` y un título no es un control: nadie le roba el área a
+              // nadie. `p-1` sobre un glifo de 20px da ~28×28, la mitad del
+              // mínimo de 44×44 (WCAG 2.5.8) — es la caja declarada, porque la
+              // medición del 07/09/2026 barrió la pantalla en reposo y este
+              // botón solo existe con el diálogo abierto.
+              className={`${AREA_TACTIL_ICONO} rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container`}
             >
               <span aria-hidden="true" className="material-symbols-outlined block text-[20px]">
                 close

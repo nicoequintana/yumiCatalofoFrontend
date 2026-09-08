@@ -186,3 +186,40 @@ describe("SeccionBanner", () => {
     expect(onQuitarArte).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * Área táctil de las acciones del arte del slide.
+ *
+ * ⚠️ **Esta pantalla se le escapó al barrido de la auditoría original**: el
+ * editor de campaña es una RUTA propia (`/catalogo/admin/campanias/:id/editar`)
+ * y el bloque del arte solo se renderiza en modo EDICIÓN, así que ni el
+ * recorrido del listado ni la ruta de alta llegaban hasta acá.
+ *
+ * Medido en navegador el 07/09/2026 a 1280×800 sobre
+ * `/catalogo/admin/campanias/1054/editar`, con `elementFromPoint` —el área
+ * EFECTIVA, no la caja declarada—: "Reemplazar" daba 93×33 y "Quitar" 86×33.
+ * El ancho ya sobraba; el que faltaba era el ALTO, contra los 44 de WCAG 2.5.8.
+ *
+ * jsdom no hace layout: acá se afirma sobre la CLASE declarada.
+ */
+describe("SeccionBanner — área táctil (44px)", () => {
+  it.each([["Reemplazar"], ["Quitar"]])(
+    "«%s» declara el mínimo táctil de 44px de alto",
+    (nombre) => {
+      montar({
+        esEdicion: true,
+        campania: { id: 1, nombre: "Primavera", bannerArteUrl: "https://cdn/arte.png" },
+      });
+
+      const boton = screen.getByRole("button", { name: nombre });
+      expect(boton.className.split(" ")).toContain("min-h-11");
+    },
+  );
+
+  it("«Subir arte» declara el mínimo táctil de 44px de alto", () => {
+    montar({ esEdicion: true, campania: { id: 1, nombre: "Primavera" } });
+
+    const boton = screen.getByRole("button", { name: "Subir arte" });
+    expect(boton.className.split(" ")).toContain("min-h-11");
+  });
+});

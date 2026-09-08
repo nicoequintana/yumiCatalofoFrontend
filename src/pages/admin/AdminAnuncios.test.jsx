@@ -154,3 +154,75 @@ describe("AdminAnuncios", () => {
     expect(await screen.findByText(/la operación se guardó/i)).toBeInTheDocument();
   });
 });
+
+/**
+ * Auditoría de área táctil del 07/09/2026. Los números salen de una medición en
+ * navegador real con `elementFromPoint` (área EFECTIVA, la que recibe el dedo),
+ * no de `getBoundingClientRect`.
+ *
+ * jsdom no calcula layout: acá se afirma sobre las CLASES declaradas, mismo
+ * criterio que `SelectorCantidad.test.jsx` y `BotonFavorito.test.jsx`.
+ */
+describe("AdminAnuncios — área táctil (WCAG 2.5.8)", () => {
+  // Medido a 390px: 44x25; a 1280px: 45x25. La pastilla mide 24 de alto por
+  // diseño; el área va por pseudo-elemento y con `before:w-full` porque el
+  // switch ya mide 44 de ancho en todos los breakpoints.
+  it("el switch de activo extiende su área táctil por pseudo-elemento", async () => {
+    renderPantalla();
+    await screen.findByText(ANUNCIOS[0].texto);
+
+    for (const interruptor of screen.getAllByRole("switch")) {
+      expect(interruptor.className).toContain("before:content-['']");
+      expect(interruptor.className).toContain("before:h-11");
+      expect(interruptor.className).toContain("before:w-full");
+    }
+  });
+
+  // Medido a 1280px: 32x33 de área efectiva (a 390px ya cumplían por el
+  // `max-md:size-11`). Van agrandados DE VERDAD: están pegados con `gap-1`, y
+  // dos pseudo-elementos de 44 a 36 de paso se superponen — el de más abajo en
+  // el DOM le roba la mitad del área al de arriba. Con `size-11` el paso es 48.
+  it.each([/^Subir /, /^Bajar /])(
+    "los botones de reordenar (%s) miden 44x44 también en escritorio",
+    async (nombre) => {
+      renderPantalla();
+      await screen.findByText(ANUNCIOS[0].texto);
+
+      for (const boton of screen.getAllByRole("button", { name: nombre })) {
+        const clases = boton.className.split(" ");
+        expect(clases).toContain("size-11");
+        expect(clases).not.toContain("size-8");
+      }
+    },
+  );
+
+  // Medido a 1280px: 80x19 el de editar y 93x19 el de eliminar. Son texto en
+  // línea dentro de una celda densa: agrandar la caja partiría la fila de
+  // acciones, así que el área va por pseudo-elemento con el ancho propio
+  // (`before:w-full`), que no invade al botón de al lado.
+  it("los botones de acción en línea extienden su área táctil", async () => {
+    renderPantalla();
+    await screen.findByText(ANUNCIOS[0].texto);
+
+    // El nombre accesible arrastra la ligadura del ícono ("editEditar"), así
+    // que se ancla el final y no el principio.
+    for (const nombre of [/Editar$/, /Eliminar$/]) {
+      for (const boton of screen.getAllByRole("button", { name: nombre })) {
+        expect(boton.className).toContain("before:content-['']");
+        expect(boton.className).toContain("before:h-11");
+        expect(boton.className).toContain("before:w-full");
+      }
+    }
+  });
+
+  // Medido a 390px: 93x41. El CTA puede crecer sin costo de diseño, así que
+  // lleva el piso real y no un pseudo-elemento.
+  it("el CTA Agregar declara el piso táctil de 44 de alto", async () => {
+    renderPantalla();
+    await screen.findByText(ANUNCIOS[0].texto);
+
+    expect(screen.getByRole("button", { name: /agregar/i }).className.split(" ")).toContain(
+      "min-h-11",
+    );
+  });
+});

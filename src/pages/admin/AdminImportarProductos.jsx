@@ -4,6 +4,7 @@ import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import TablaErroresImportacion from "../../components/admin/TablaErroresImportacion.jsx";
 import { descargarPlantilla, importarProductos } from "../../api/importProductos.js";
+import { AREA_TACTIL_ANCHA } from "../../utils/areaTactil.js";
 
 /**
  * Importación masiva de productos desde `.xlsx`.
@@ -83,7 +84,11 @@ function AdminImportarProductos() {
             type="button"
             onClick={handleDescargar}
             disabled={descargando}
-            className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
+            // `min-h-11` ADEMÁS del `py-3`, no en lugar de él: el mínimo táctil
+            // es un PISO. 42 de alto medidos el 07/09/2026. Son dos botones
+            // sueltos, cada uno en su bloque con `gap-4` de por medio, así que
+            // crecen sin costo de diseño y sin superponer áreas.
+            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
           >
             {descargando ? (
               <Spinner className="h-4 w-4 text-on-surface-variant" decorativo />
@@ -119,7 +124,7 @@ function AdminImportarProductos() {
             type="button"
             onClick={handleImportar}
             disabled={!archivo || importando}
-            className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
           >
             {importando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
             {importando ? "Importando…" : "Importar"}
@@ -131,7 +136,17 @@ function AdminImportarProductos() {
         <div className="max-w-2xl rounded-lg bg-secondary-container px-4 py-4">
           <p className="font-body-md text-body-md text-on-secondary-container">
             Se importaron {resultado.cantidad} productos como ocultos.{" "}
-            <Link to="/catalogo/admin/productos" className="underline">
+            <Link
+              to="/catalogo/admin/productos"
+              // Área táctil: texto en línea dentro del párrafo del cartel de
+              // éxito, así que va con pseudo-elemento — estirarlo le rompería
+              // el interlineado al párrafo. `inline-block` le da al pseudo una
+              // caja estable contra la cual centrarse: en `display:inline` el
+              // `w-full` no resuelve de forma confiable.
+              // ⚠️ Este enlace solo existe DESPUÉS de una importación exitosa,
+              // así que ningún barrido de la pantalla recién cargada lo ve.
+              className={`inline-block underline ${AREA_TACTIL_ANCHA}`}
+            >
               Ver productos
             </Link>
           </p>

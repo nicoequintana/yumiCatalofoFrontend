@@ -8,6 +8,7 @@ import { formatFecha, formatPrecio, precioACentavos } from "../../utils/formato.
 import { claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import Advertencia from "../../components/admin/Advertencia.jsx";
 import DialogoNotificarEstado from "../../components/admin/DialogoNotificarEstado.jsx";
+import { AREA_TACTIL_ANCHA } from "../../utils/areaTactil.js";
 
 /**
  * `/catalogo/admin/ordenes/:id` — detalle de una orden.
@@ -234,7 +235,21 @@ function AdminOrdenDetalle() {
               <dd className="font-body-md text-body-md text-on-surface">
                 <Link
                   to={`/catalogo/admin/ordenes?dni=${orden.cliente.dni}`}
-                  className="text-secondary hover:underline"
+                  // Área táctil: medido en navegador el 07/09/2026 con
+                  // `elementFromPoint` —el área EFECTIVA, no la caja
+                  // declarada—, este link daba **77×21**: le faltaba el alto.
+                  // ⚠️ El detalle de una orden no estaba en el barrido de la
+                  // auditoría, que recorría las pantallas de LISTADO: acá se
+                  // llega recién abriendo una orden.
+                  //
+                  // Pseudo-elemento y no `min-h-11`: es texto dentro de un
+                  // `<dd>` de una lista de definiciones (`flex
+                  // justify-between`), y estirar la caja separaría el valor de
+                  // su rótulo. `inline-block` le da al pseudo una caja contra
+                  // la cual centrarse — en `display:inline` el `w-full` no
+                  // resuelve de forma estable. El ancho ya sobraba, así que
+                  // copia el propio en vez de fijar 44 e invadir la fila.
+                  className={`inline-block text-secondary hover:underline ${AREA_TACTIL_ANCHA}`}
                 >
                   {orden.cliente.dni}
                 </Link>

@@ -16,9 +16,14 @@ function ToggleTemaAdmin({ compacto = false }) {
 
   const etiqueta = esOscuro ? "Desactivar modo oscuro" : "Activar modo oscuro";
 
+  // `min-h-11` (44px) en las dos variantes: la compacta es solo ícono y medía
+  // 48×40 —cuatro píxeles por debajo del piso de área táctil que mide
+  // `admin-mobile.spec.js`—, y la de texto compartía los 42px del resto de los
+  // ítems del drawer. Los mismos valores que `linkBase`/`tabBase` de
+  // `AdminSidebar.jsx`, que es donde vive este botón en sus dos formas.
   const base = compacto
-    ? "flex flex-col items-center gap-1 rounded-lg px-3 py-2 font-label-sm text-label-sm transition-colors"
-    : "flex w-full items-center gap-3 rounded-lg px-4 py-3 font-label-md text-label-md uppercase tracking-widest transition-colors";
+    ? "flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 font-label-sm text-label-sm transition-colors"
+    : "flex min-h-11 w-full items-center gap-3 rounded-lg px-4 py-3 font-label-md text-label-md uppercase tracking-widest transition-colors";
 
   return (
     <button

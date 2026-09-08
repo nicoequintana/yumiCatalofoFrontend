@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import { getResumenVentas } from "../../api/adminVentas.js";
 import { formatPrecio } from "../../utils/formato.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
@@ -10,7 +11,12 @@ import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
 import AvisoPeriodoRecortado from "../../components/admin/AvisoPeriodoRecortado.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
-import { claseCelda, claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
+import {
+  claseCelda,
+  claseCeldaNumerica,
+  claseEncabezado,
+  claseTablaApilada,
+} from "../../components/admin/clasesTabla.js";
 import { ESTILOS_ESTADO } from "../../constants/ordenes.js";
 
 /** Miles con separador local, para que "20000" se lea como "20.000". */
@@ -191,17 +197,23 @@ function AdminVentas() {
   useEffect(() => {
     let activo = true;
     setCargando(true);
-    setError(null);
 
     getResumenVentas({ dias })
       .then((resultado) => {
         if (!activo) return;
         setResumen(resultado);
+        // Un fetch exitoso limpia el error anterior: sin esto, un backend que
+        // se recupera sigue diciendo "no se pudieron cargar" sobre datos
+        // frescos.
+        setError(null);
         setCargando(false);
       })
-      .catch((err) => {
+      .catch(() => {
         if (!activo) return;
-        setError(err.message ?? "No se pudieron cargar las ventas.");
+        // El mensaje del sistema (`Failed to fetch`, `Error interno`) NO llega
+        // a pantalla: no dice nada accionable y encima está en inglés. El copy
+        // compartido vive en `EstadoErrorCarga`.
+        setError(true);
         setCargando(false);
       });
 
@@ -264,12 +276,6 @@ function AdminVentas() {
         </div>
       </div>
 
-      {error ? (
-        <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
-          {error}
-        </p>
-      ) : null}
-
       {/*
         Va afuera del ternario de carga, y por lo tanto también arriba del
         estado vacío: un "no hubo ventas en este período" sobre una ventana
@@ -286,6 +292,11 @@ function AdminVentas() {
             Cargando ventas…
           </p>
         </div>
+      ) : error ? (
+        <EstadoErrorCarga
+          titulo="No se pudieron cargar las ventas"
+          onReintentar={() => setRefresco((n) => n + 1)}
+        />
       ) : resumen === null ? null : sinDatos ? (
         <EstadoVacio
           icono="payments"
@@ -445,14 +456,14 @@ function AdminVentas() {
                         <td
                           role="cell"
                           data-label="Unidades"
-                          className={`${claseCelda} text-on-surface-variant`}
+                          className={`${claseCeldaNumerica} text-on-surface-variant`}
                         >
                           {producto.unidades}
                         </td>
                         <td
                           role="cell"
                           data-label="Facturación"
-                          className={`${claseCelda} whitespace-nowrap text-on-surface`}
+                          className={`${claseCeldaNumerica} whitespace-nowrap text-on-surface`}
                         >
                           {formatPrecio(producto.facturacion)}
                         </td>

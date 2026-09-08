@@ -31,6 +31,47 @@
  */
 export const claseCelda = "font-body-md text-body-md px-4 py-3 align-top";
 
+/**
+ * La variante de `claseCelda` para las celdas que muestran un NÚMERO (precio,
+ * stock, unidades, facturación, "5/10").
+ *
+ * Dos cosas, y las dos importan para lo mismo — comparar una columna de un
+ * vistazo en vez de leer fila por fila:
+ *
+ * - `text-right`: alinea las unidades, las decenas y los miles en la misma
+ *   columna vertical. Con los números pegados a la izquierda, "$ 40.643" y
+ *   "$ 9.900" arrancan juntos y terminan en cualquier lado; a la derecha, el
+ *   más largo se ve más largo.
+ * - `tabular-nums`: fija el ancho de cada dígito. La tipografía del panel usa
+ *   cifras proporcionales, así que un 1 ocupa menos que un 8 y dos números del
+ *   mismo largo no ocupan lo mismo — la alineación a la derecha sola no
+ *   alcanza.
+ *
+ * ⚠️ **No se usa para IDENTIFICADORES que sean números**, como el `#` de
+ * ranking o el número de orden: ahí no se compara magnitud, se lee una
+ * etiqueta.
+ *
+ * ⚠️ **Va con prefijo `md:`, o sea SOLO en la tabla de verdad.** Por debajo de
+ * `md` la celda deja de ser una columna y pasa a ser una fila `rótulo | valor`
+ * en grid (ver el bloque `.tabla-apilada` de `index.css`), y ahí `text-align`
+ * lo hereda también el `::before` que dibuja el rótulo: medido en navegador a
+ * 390px, "PRECIO" y "STOCK" se pegaban al centro mientras "SKU" y "CATÁLOGO"
+ * seguían a la izquierda, dejando los rótulos de la tarjeta desalineados entre
+ * sí. La alternativa —devolverle el `text-align` al `::before`— vive en
+ * `index.css` y no hace falta: en una tarjeta cada número está solo con su
+ * rótulo, así que no hay ninguna columna que comparar y la alineación no
+ * compra nada.
+ *
+ * Se exporta también el modificador SOLO (`claseNumero`) porque
+ * `AdminProductos` y `AdminPrecios` no usan `claseCelda`: sus tablas son más
+ * densas y llevan su propio padding (`px-2 py-2 xl:px-3 xl:py-3`). Sin el
+ * modificador suelto, esas pantallas tendrían que reescribir las dos
+ * utilidades a mano y las definiciones se desincronizarían.
+ */
+export const claseNumero = "md:text-right md:tabular-nums";
+
+export const claseCeldaNumerica = `${claseCelda} ${claseNumero}`;
+
 export const claseEncabezado =
   "font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant";
 

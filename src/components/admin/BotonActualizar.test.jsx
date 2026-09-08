@@ -85,3 +85,24 @@ describe("BotonActualizar", () => {
     expect(screen.queryByRole("button", { name: "Actualizar" })).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Área táctil (WCAG 2.5.8). Medido en navegador el 07/09/2026 sobre
+ * `/catalogo/admin/productos` con `elementFromPoint` —el área EFECTIVA, no la
+ * caja declarada—: **42×42** a 390 y 43×43 a 1280, por debajo de 44×44.
+ *
+ * El 42 no era arbitrario: igualaba a los botones de texto de al lado. Esos
+ * botones pasaron a 44 en la misma tanda, así que subir a `size-11` mantiene
+ * la fila alineada Y cumple el mínimo — por eso se cambia el número en vez de
+ * apilarle un `min-h-11` que dejaría el `size-[42px]` como letra muerta.
+ */
+describe("BotonActualizar — área táctil", () => {
+  it("mide 44×44, el mínimo táctil", () => {
+    render(<BotonActualizar onActualizar={() => {}} />);
+
+    const boton = screen.getByRole("button", { name: "Actualizar" });
+
+    expect(boton.className.split(" ")).toContain("size-11");
+    expect(boton.className).not.toContain("size-[42px]");
+  });
+});

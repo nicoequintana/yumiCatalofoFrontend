@@ -865,3 +865,64 @@ describe("AdminOrdenes — el período que el backend devuelve", () => {
     expect(screen.queryByTestId("periodo-efectivo")).not.toBeInTheDocument();
   });
 });
+
+describe("AdminOrdenes — área táctil del acceso al detalle", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getEstadosOrden.mockResolvedValue(ESTADOS);
+    getConteoOrdenesPorEstado.mockResolvedValue(RESUMEN);
+    getOrdenes.mockResolvedValue(pagina([orden(1)]));
+  });
+
+  it("el link Ver reserva 44px de alto y ancho sin agrandar el texto", async () => {
+    // Es el acceso al detalle y aparece hasta 12 veces por página: medía
+    // 31×17 px, menos de la mitad del mínimo táctil. El área se agranda con
+    // padding y un mínimo, nunca subiendo el tamaño de la tipografía.
+    renderPantalla();
+
+    const ver = await screen.findByRole("link", { name: "Ver la orden #1" });
+
+    expect(ver.className).toContain("min-h-11");
+    expect(ver.className).toContain("min-w-11");
+  });
+
+  it("el disclosure del resumen también llega a 44 de alto", async () => {
+    // Medido en navegador el 07/09/2026 con `elementFromPoint`: 44×37 a 1280 y
+    // 174×37 a 390 (la tabla apilada le da el ancho de la tarjeta). O sea que
+    // lo único que le falta, en los DOS anchos, es el alto — el `h-9` de la
+    // variante da 36. El mínimo va ADEMÁS del `h-9`, que es lo que iguala este
+    // botón con el resto de los controles de la fila.
+    renderPantalla();
+
+    const resumen = await screen.findByRole("button", { name: /productos de la orden #1/ });
+
+    expect(resumen.className).toContain("min-h-11");
+    expect(resumen.className).toContain("min-w-11");
+  });
+});
+
+/**
+ * Área táctil (WCAG 2.5.8) del chip que quita el filtro por DNI.
+ *
+ * ⚠️ **No apareció en el barrido de la auditoría del 07/09/2026** porque ese
+ * chip solo se renderiza con `?dni=` en la URL, y el barrido visitaba
+ * `/catalogo/admin/ordenes` pelada. El `<span>` que lo envuelve ya declaraba
+ * `min-h-11`, pero el control es el `<button>` de adentro: un glifo de 16px
+ * sin caja propia, o sea ~16×16 de área.
+ *
+ * Va con pseudo-elemento: lo único que tiene a menos de 44px es el texto
+ * "DNI: N" del propio chip, que NO es un control, así que no hay dos áreas que
+ * se roben entre sí. El glifo no crece porque un disco de 44 dentro de un chip
+ * de 44 lo llenaría entero.
+ */
+describe("AdminOrdenes — área táctil del chip de DNI", () => {
+  it("el botón de quitar el filtro por DNI extiende su área a 44×44", async () => {
+    renderPantalla("/catalogo/admin/ordenes?dni=12345678");
+
+    const boton = await screen.findByRole("button", { name: "Quitar filtro por DNI" });
+
+    expect(boton.className).toContain("before:h-11");
+    expect(boton.className).toContain("before:w-11");
+    expect(boton.className).toContain("before:content-['']");
+  });
+});

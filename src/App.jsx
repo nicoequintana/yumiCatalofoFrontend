@@ -47,6 +47,10 @@ const AdminVentas = lazy(() => import("./pages/admin/AdminVentas.jsx"));
 const AdminEmbudo = lazy(() => import("./pages/admin/AdminEmbudo.jsx"));
 const AdminClientes = lazy(() => import("./pages/admin/AdminClientes.jsx"));
 const AdminOperacion = lazy(() => import("./pages/admin/AdminOperacion.jsx"));
+// El 404 del panel es del SHELL, no una pantalla: vive en `components/admin/`
+// junto al resto de las piezas compartidas. Va `lazy` igual que las pantallas
+// para no sumar peso al bundle público, que nunca lo necesita.
+const NoEncontradoAdmin = lazy(() => import("./components/admin/NoEncontradoAdmin.jsx"));
 
 // Admin routes reestructuradas per
 // docs/superpowers/specs/2026-08-16-admin-sidebar-design.md: dejan de
@@ -137,6 +141,18 @@ function App() {
           <Route path="/catalogo/admin/configuracion/etiquetas" element={<AdminEtiquetas />} />
           <Route path="/catalogo/admin/configuracion/anuncios" element={<AdminAnuncios />} />
           <Route path="/catalogo/admin/configuracion/usuarios" element={<AdminUsuarios />} />
+          {/* Catch-all DEL PANEL. Sin esto, una URL del admin mal tipeada
+              —`/catalogo/admin/categorias`, que parece la de Categorías pero
+              la real es `/catalogo/admin/configuracion/categorias`— caía en el
+              `path="*"` público de más arriba y expulsaba al catálogo, con
+              Navbar, Footer y un CTA hacia la tienda.
+
+              Va último por prolijidad, pero el orden no es lo que lo hace
+              funcionar: react-router resuelve por especificidad, así que estos
+              dos segmentos estáticos le ganan al `*` pelado y pierden contra
+              `/catalogo/admin/login` (tres estáticos) y contra cada pantalla
+              real. Hay tests que fijan las tres relaciones. */}
+          <Route path="/catalogo/admin/*" element={<NoEncontradoAdmin />} />
         </Route>
       </Route>
       </Routes>

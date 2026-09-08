@@ -6,6 +6,7 @@ import Advertencia from "../../components/admin/Advertencia.jsx";
 import { claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import { getProductosSolicitados, descargarProductosSolicitados } from "../../api/ordenes.js";
 import { formatPrecio } from "../../utils/formato.js";
+import { AREA_TACTIL_ANCHA } from "../../utils/areaTactil.js";
 
 /**
  * `/catalogo/admin/ordenes/productos-solicitados` — qué productos están
@@ -79,9 +80,17 @@ function AdminProductosSolicitados() {
         <div>
           <Link
             to="/catalogo/admin/ordenes"
-            className="font-label-md text-label-md mb-2 inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline"
+            // Área táctil: 98×17 medidos el 07/09/2026. Pseudo-elemento y no
+            // `min-h-11` porque el link vive pegado al `<h1>` de la pantalla y
+            // estirarle la caja empujaría el encabezado. `before:w-full` copia
+            // el ancho propio, que ya sobra.
+            className={`font-label-md text-label-md mb-2 inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline ${AREA_TACTIL_ANCHA}`}
           >
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+            {/* `aria-hidden`: sin esto el ligature del ícono entra en el nombre
+            accesible y un lector de pantalla anuncia "arrow_back Órdenes". Verificado
+            contra el árbol de accesibilidad real el 07/09/2026. Misma trampa
+            que documenta `BotonVolver.jsx`. */}
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">arrow_back</span>
             Órdenes
           </Link>
           <h1 className="font-headline-lg text-headline-lg text-primary">Productos solicitados</h1>
@@ -95,7 +104,10 @@ function AdminProductosSolicitados() {
             type="button"
             onClick={handleDescargar}
             disabled={descargando}
-            className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:opacity-90 disabled:opacity-40"
+            // `min-h-11` ADEMÁS del `py-3`, no en lugar de él: el mínimo táctil
+            // es un PISO. 221×42 medidos el 07/09/2026. Este CTA está solo en
+            // su columna del encabezado, así que puede crecer sin costo.
+            className="font-label-md text-label-md inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:opacity-90 disabled:opacity-40"
           >
             <span className="material-symbols-outlined text-[18px]">download</span>
             {descargando ? "Descargando…" : "Descargar Excel"}
@@ -180,7 +192,15 @@ function AdminProductosSolicitados() {
                       {producto.productId ? (
                         <Link
                           to={`/catalogo/admin/productos/${producto.productId}/editar`}
-                          className="hover:underline"
+                          // Área táctil: 295×21 medidos el 07/09/2026.
+                          // Pseudo-elemento porque es la celda de IDENTIDAD de
+                          // una fila: estirarla subiría el alto de toda la
+                          // tabla. El paso vertical real de fila es 46px
+                          // (`px-4 py-3` sobre un texto de 21px = 45 de celda
+                          // + 1 de borde), o sea por encima de los 44 del
+                          // área: dos filas contiguas no se superponen y
+                          // ninguna le roba área a la de arriba.
+                          className={`inline-block hover:underline ${AREA_TACTIL_ANCHA}`}
                         >
                           {producto.nombre}
                         </Link>

@@ -223,12 +223,30 @@ describe("AdminOperacion", () => {
     expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
   });
 
-  it("muestra un mensaje de error si la carga falla", async () => {
-    adminOperacionApi.getResumenOperacion.mockRejectedValue(new Error("No autorizado."));
+  describe("estado de error de carga", () => {
+    it("no filtra el mensaje crudo del sistema: muestra el copy compartido con cloud_off", async () => {
+      adminOperacionApi.getResumenOperacion.mockRejectedValue(new Error("Failed to fetch"));
 
-    renderPagina();
+      renderPagina();
 
-    expect(await screen.findByText("No autorizado.")).toBeInTheDocument();
+      expect(await screen.findByText("No se pudo cargar la operación")).toBeInTheDocument();
+      expect(screen.getByText("Revisá tu conexión e intentá de nuevo.")).toBeInTheDocument();
+      expect(screen.getByText("cloud_off")).toBeInTheDocument();
+      expect(screen.queryByText("Failed to fetch")).not.toBeInTheDocument();
+    });
+
+    it("Reintentar vuelve a pedir, y el fetch exitoso limpia el error", async () => {
+      const user = userEvent.setup();
+      adminOperacionApi.getResumenOperacion.mockRejectedValueOnce(new Error("Failed to fetch"));
+
+      renderPagina();
+
+      await screen.findByText("No se pudo cargar la operación");
+      await user.click(screen.getByRole("button", { name: /Reintentar/i }));
+
+      expect(await screen.findByLabelText("Órdenes por estado")).toBeInTheDocument();
+      expect(screen.queryByText("No se pudo cargar la operación")).not.toBeInTheDocument();
+    });
   });
 
   it("la tabla de órdenes estancadas está apilable: cada celda declara su columna o su tipo", async () => {
@@ -250,5 +268,23 @@ describe("AdminOperacion", () => {
 
     const seccion = await screen.findByLabelText("Stock bajo");
     esperarTablaApilada(within(seccion).getByRole("table"));
+  });
+
+  it("el link al número de orden extiende su área a 44×44 sin agrandar el texto", async () => {
+    // Medido en navegador el 07/09/2026 con `elementFromPoint` (área EFECTIVA,
+    // no la caja declarada), igual a 390 y a 1280: entre 33×22 y 56×22. Es el
+    // único hallazgo de la auditoría al que le falta también el ANCHO — «#78»
+    // daba 33 —, así que el pseudo-elemento fija los dos lados. El texto no
+    // crece: es un identificador dentro de una celda, y agrandarlo empujaría
+    // la fila entera.
+    renderPagina();
+
+    const seccion = await screen.findByLabelText("Órdenes estancadas");
+    const link = within(seccion).getByRole("link", { name: "#7" });
+
+    expect(link.className).toContain("relative");
+    expect(link.className).toContain("before:content-['']");
+    expect(link.className).toContain("before:h-11");
+    expect(link.className).toContain("before:w-11");
   });
 });

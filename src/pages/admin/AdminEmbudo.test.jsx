@@ -302,11 +302,29 @@ describe("AdminEmbudo", () => {
     expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
   });
 
-  it("muestra un mensaje de error si la carga falla", async () => {
-    adminEmbudoApi.getEmbudoConversion.mockRejectedValue(new Error("No autorizado."));
+  describe("estado de error de carga", () => {
+    it("no filtra el mensaje crudo del sistema: muestra el copy compartido con cloud_off", async () => {
+      adminEmbudoApi.getEmbudoConversion.mockRejectedValue(new Error("Failed to fetch"));
 
-    renderPagina();
+      renderPagina();
 
-    expect(await screen.findByText("No autorizado.")).toBeInTheDocument();
+      expect(await screen.findByText("No se pudo cargar el embudo")).toBeInTheDocument();
+      expect(screen.getByText("Revisá tu conexión e intentá de nuevo.")).toBeInTheDocument();
+      expect(screen.getByText("cloud_off")).toBeInTheDocument();
+      expect(screen.queryByText("Failed to fetch")).not.toBeInTheDocument();
+    });
+
+    it("Reintentar vuelve a pedir, y el fetch exitoso limpia el error", async () => {
+      const user = userEvent.setup();
+      adminEmbudoApi.getEmbudoConversion.mockRejectedValueOnce(new Error("Failed to fetch"));
+
+      renderPagina();
+
+      await screen.findByText("No se pudo cargar el embudo");
+      await user.click(screen.getByRole("button", { name: /Reintentar/i }));
+
+      expect(await screen.findByTestId("grafico-embudo")).toBeInTheDocument();
+      expect(screen.queryByText("No se pudo cargar el embudo")).not.toBeInTheDocument();
+    });
   });
 });

@@ -162,12 +162,14 @@ describe("AdminLogs", () => {
     });
   });
 
-  it("muestra un mensaje de error si la carga falla", async () => {
+  it("muestra el estado de error en vez de quedarse cargando para siempre", async () => {
     adminLogsApi.getAuditLogs.mockRejectedValue(new Error("No autorizado."));
 
     renderPagina();
 
-    expect(await screen.findByText("No autorizado.")).toBeInTheDocument();
+    // El mensaje del backend no llega a pantalla: el copy es el compartido.
+    expect(await screen.findByText("No se pudieron cargar los logs")).toBeInTheDocument();
+    expect(screen.queryByText("Cargando logs…")).not.toBeInTheDocument();
   });
 
   it("la tabla de auditoría está apilable: cada celda declara su columna o su tipo", async () => {
@@ -186,5 +188,53 @@ describe("AdminLogs", () => {
     await screen.findByText("Error interno del servidor.");
 
     esperarTablaApilada(screen.getByRole("table"));
+  });
+});
+
+describe("AdminLogs — estado de error de carga", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("con la carga caída NO muestra además el estado vacío", async () => {
+    // "No hay registros de auditoría" debajo de un error le afirma al operador
+    // algo falso sobre la base: los registros pueden estar, lo que falló es la
+    // consulta.
+    adminLogsApi.getAuditLogs.mockRejectedValue(new Error("Error interno"));
+
+    renderPagina();
+
+    expect(await screen.findByText("No se pudieron cargar los logs")).toBeInTheDocument();
+    expect(screen.queryByText("No hay registros de auditoría")).not.toBeInTheDocument();
+  });
+
+  it("no filtra el mensaje crudo del sistema: muestra el copy compartido con cloud_off", async () => {
+    adminLogsApi.getAuditLogs.mockRejectedValue(new Error("Error interno"));
+
+    renderPagina();
+
+    await screen.findByText("No se pudieron cargar los logs");
+    expect(screen.getByText("Revisá tu conexión e intentá de nuevo.")).toBeInTheDocument();
+    expect(screen.getByText("cloud_off")).toBeInTheDocument();
+    expect(screen.queryByText("Error interno")).not.toBeInTheDocument();
+  });
+
+  it("Reintentar vuelve a pedir, y el fetch exitoso limpia el error", async () => {
+    const user = userEvent.setup();
+    adminLogsApi.getAuditLogs.mockRejectedValueOnce(new Error("Error interno"));
+    adminLogsApi.getAuditLogs.mockResolvedValue({
+      data: [AUDIT_LOG],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+    });
+
+    renderPagina();
+
+    await screen.findByText("No se pudieron cargar los logs");
+    await user.click(screen.getByRole("button", { name: /Reintentar/i }));
+
+    expect(await screen.findByText("admin@yima.test")).toBeInTheDocument();
+    expect(screen.queryByText("No se pudieron cargar los logs")).not.toBeInTheDocument();
   });
 });

@@ -10,6 +10,7 @@ import DialogoNotificarEstado from "../../components/admin/DialogoNotificarEstad
 import FiltroPeriodoOrdenes from "../../components/admin/ordenes/FiltroPeriodoOrdenes.jsx";
 import ResumenOrden from "../../components/admin/ordenes/ResumenOrden.jsx";
 import { claseToggleOrdenes } from "../../components/admin/ordenes/claseToggleOrdenes.js";
+import { AREA_TACTIL_ICONO } from "../../utils/areaTactil.js";
 import { claseEncabezado, claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Paginador from "../../components/Paginador.jsx";
@@ -548,7 +549,16 @@ function AdminOrdenes() {
                 type="button"
                 onClick={() => cambiarFiltros({ dni: null })}
                 aria-label="Quitar filtro por DNI"
-                className="material-symbols-outlined text-[16px] hover:text-on-surface"
+                // Área táctil: el `<span>` de arriba ya declaraba `min-h-11`,
+                // pero el CONTROL es este `<button>`, que era un glifo de 16px
+                // sin caja propia (~16×16). ⚠️ No lo vio el barrido de la
+                // auditoría del 07/09/2026 porque el chip solo se renderiza
+                // con `?dni=` en la URL. Pseudo-elemento: lo único a menos de
+                // 44px es el texto "DNI: N" del propio chip, que NO es un
+                // control, así que no hay dos áreas que se roben entre sí; y
+                // el glifo no crece porque un disco de 44 dentro de un chip de
+                // 44 lo llenaría entero.
+                className={`material-symbols-outlined text-[16px] hover:text-on-surface ${AREA_TACTIL_ICONO}`}
               >
                 close
               </button>
@@ -803,7 +813,19 @@ function FilaOrden({ orden, estadosOrden, guardandoEstado, abierto, onAlternarRe
                 : `Ver los ${cantidadDeItems} productos de la orden #${orden.id}`
             }
             onClick={onAlternarResumen}
-            className="inline-flex h-9 items-center gap-1 rounded-lg px-2 text-on-surface-variant hover:bg-surface-container focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            // `min-h-11 min-w-11` (44px) va ADEMÁS del `h-9`, nunca en lugar
+            // de él: el mínimo táctil de WCAG 2.5.8 es un PISO y el `h-9` es lo
+            // que iguala este botón con el resto de los controles de la fila
+            // (mismo criterio que `SelectorCantidad.jsx`). Medido en navegador
+            // el 07/09/2026 con `elementFromPoint` —área EFECTIVA, no la caja
+            // declarada—: 44×37 a 1280 y 174×37 a 390, donde la tabla apilada
+            // le da el ancho de la tarjeta. O sea que en los DOS anchos lo
+            // único que falta es el alto; el `min-w-11` queda igual porque a
+            // 1280 el ancho llega JUSTO a 44 y nada lo sostiene.
+            // Sin `justify-center`: en la tabla apilada de mobile la celda
+            // estira este botón a los 174px de la tarjeta, y centrar el
+            // contenido lo movería del margen izquierdo donde está hoy.
+            className="inline-flex h-9 min-h-11 min-w-11 items-center gap-1 rounded-lg px-2 text-on-surface-variant hover:bg-surface-container focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
               {abierto ? "expand_less" : "list_alt"}
@@ -853,10 +875,16 @@ function FilaOrden({ orden, estadosOrden, guardandoEstado, abierto, onAlternarRe
               ) : null}
             </select>
 
+            {/* El acceso al detalle aparece hasta 12 veces por página y medía
+                31×17 px, menos de la mitad del mínimo táctil. El área se
+                agranda con `min-h-11`/`min-w-11` (44px) más padding — NUNCA
+                subiendo el tamaño del texto: la fila de la tabla tiene que
+                seguir midiendo lo mismo. El margen negativo compensa ese
+                padding para que el link no empuje al `<select>` de al lado. */}
             <Link
               to={`/catalogo/admin/ordenes/${orden.id}`}
               aria-label={`Ver la orden #${orden.id}`}
-              className="font-label-md text-label-md uppercase tracking-widest text-secondary hover:underline"
+              className="font-label-md text-label-md -my-2 inline-flex min-h-11 min-w-11 items-center justify-center px-3 py-2 uppercase tracking-widest text-secondary hover:underline"
             >
               Ver
             </Link>

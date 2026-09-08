@@ -35,6 +35,35 @@ import { DEBOUNCE_BUSQUEDA_MS } from "../../../hooks/useTablaAdmin.js";
 /** Tamaño de la página de resultados. Es una grilla para elegir, no un listado. */
 const RESULTADOS_POR_PAGINA = 24;
 
+/**
+ * La acción de una fila y la de un encabezado son el MISMO botón: mismo borde,
+ * mismo copy en versalitas, mismo mínimo táctil. Estaba escrito cuatro veces
+ * literal, y la cuarta copia fue justamente la que se olvidó de crecer.
+ *
+ * `min-h-11` (44px) va ADEMÁS del `py-2`, no en lugar de él: el mínimo táctil de
+ * WCAG 2.5.8 es un PISO y el padding sigue decidiendo cuánto crece por encima
+ * (mismo criterio que `SelectorCantidad.jsx`).
+ *
+ * ⚠️ **Esta pantalla se le escapó ENTERA al barrido de la auditoría táctil.** El
+ * editor de campaña es una RUTA propia (`/catalogo/admin/campanias/:id/editar`)
+ * a la que "Nueva campaña" NAVEGA, así que el recorrido de
+ * `/catalogo/admin/campanias` nunca llegaba; y esta sección solo existe en modo
+ * EDICIÓN, porque persiste contra `PUT /:id/productos` y no hay id en el alta.
+ * Medido recién el 07/09/2026 a 1280×800 con `elementFromPoint` —el área
+ * EFECTIVA, no la caja declarada—: los "Agregar" de fila daban 92×33, los
+ * "Quitar" 77×33 y "Agregar los N resultados" 34 de alto. El ancho ya sobraba en
+ * todos.
+ *
+ * Se agranda de verdad en vez de usar el pseudo-elemento de `utils/areaTactil.js`
+ * porque son botones de FILA dentro de una lista `overflow-y-auto`: un pseudo que
+ * sobresalga de la primera o la última fila queda recortado, en silencio.
+ */
+const claseAccion =
+  "font-label-sm text-label-sm min-h-11 rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60";
+
+/** La misma acción, dentro de una fila que no la puede dejar encoger. */
+const claseAccionDeFila = `${claseAccion} shrink-0`;
+
 export default function SelectorProductos({
   productos,
   promocionesAsociadas,
@@ -233,7 +262,7 @@ export default function SelectorProductos({
                 type="button"
                 disabled={guardando}
                 onClick={() => agregar(sinAgregar.map((p) => p.id))}
-                className="font-label-sm text-label-sm rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60"
+                className={claseAccion}
               >
                 Agregar los {sinAgregar.length} resultados
               </button>
@@ -277,7 +306,7 @@ export default function SelectorProductos({
                         disabled={guardando}
                         aria-label={`Agregar ${producto.nombre}`}
                         onClick={() => agregar([producto.id])}
-                        className="font-label-sm text-label-sm shrink-0 rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60"
+                        className={claseAccionDeFila}
                       >
                         Agregar
                       </button>
@@ -303,7 +332,7 @@ export default function SelectorProductos({
                 type="button"
                 disabled={guardando || trayendo}
                 onClick={traerDeLasPromociones}
-                className="font-label-sm text-label-sm rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60"
+                className={claseAccion}
               >
                 {trayendo ? "Trayendo…" : "Traer los de las promociones"}
               </button>
@@ -344,7 +373,7 @@ export default function SelectorProductos({
                     disabled={guardando}
                     aria-label={`Quitar ${producto.nombre}`}
                     onClick={() => quitar(producto.id)}
-                    className="font-label-sm text-label-sm shrink-0 rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60"
+                    className={claseAccionDeFila}
                   >
                     Quitar
                   </button>

@@ -4,6 +4,7 @@ import Spinner from "../../components/Spinner.jsx";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import { getSaludCatalogo } from "../../api/products.js";
 import { BIEN, ESTILO, ICONO, construirChequeos } from "../../utils/saludCatalogo.js";
+import { AREA_TACTIL_ANCHA } from "../../utils/areaTactil.js";
 
 /**
  * `/catalogo/admin/productos/salud` — el estado del catálogo, chequeo por
@@ -54,7 +55,16 @@ function Fila({ fila }) {
         {fila.accion ? (
           <Link
             to={fila.accion.a}
-            className="font-label-sm text-label-sm whitespace-nowrap rounded-full border border-outline-variant px-3 py-1.5 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+            // El área táctil se extiende con el pseudo-elemento de
+            // `utils/areaTactil.js` y la píldora NO crece: en una lista de
+            // chequeos densa, una píldora de 44 de alto pesa más que el número
+            // que acompaña. Medido en navegador el 07/09/2026 con
+            // `elementFromPoint` —área EFECTIVA, no la caja declarada—: 29-30
+            // de alto a 390 y a 1280, contra el mínimo de 44 (WCAG 2.5.8).
+            // `AREA_TACTIL_ANCHA` porque el ancho ya sobra (182 y 274 de caja);
+            // los vecinos están lejos —el número a `gap-4`, la fila de abajo a
+            // dos `py-4` de por medio—, así que no hay áreas que se pisen.
+            className={`font-label-sm text-label-sm ${AREA_TACTIL_ANCHA} whitespace-nowrap rounded-full border border-outline-variant px-3 py-1.5 uppercase tracking-widest text-on-surface-variant hover:border-outline`}
           >
             {fila.accion.texto}
           </Link>

@@ -297,12 +297,45 @@ describe("AdminVentas", () => {
     expect(screen.queryByTestId("advertencia-periodo-recortado")).not.toBeInTheDocument();
   });
 
-  it("muestra un mensaje de error si la carga falla", async () => {
-    adminVentasApi.getResumenVentas.mockRejectedValue(new Error("No autorizado."));
+  describe("estado de error de carga", () => {
+    it("no filtra el mensaje crudo del sistema: muestra el copy compartido con cloud_off", async () => {
+      // `Failed to fetch` es la excepción del navegador y `Error interno` el
+      // string del backend: los dos le dicen al operador algo que no puede
+      // accionar, y encima en inglés el primero.
+      adminVentasApi.getResumenVentas.mockRejectedValue(new Error("Failed to fetch"));
 
-    renderPagina();
+      renderPagina();
 
-    expect(await screen.findByText("No autorizado.")).toBeInTheDocument();
+      expect(await screen.findByText("No se pudieron cargar las ventas")).toBeInTheDocument();
+      expect(screen.getByText("Revisá tu conexión e intentá de nuevo.")).toBeInTheDocument();
+      expect(screen.getByText("cloud_off")).toBeInTheDocument();
+      expect(screen.queryByText("Failed to fetch")).not.toBeInTheDocument();
+    });
+
+    it("ofrece Reintentar y vuelve a pedir el resumen", async () => {
+      const user = userEvent.setup();
+      adminVentasApi.getResumenVentas.mockRejectedValueOnce(new Error("Failed to fetch"));
+
+      renderPagina();
+
+      await screen.findByText("No se pudieron cargar las ventas");
+      await user.click(screen.getByRole("button", { name: /Reintentar/i }));
+
+      expect(await screen.findByText("$ 1.750")).toBeInTheDocument();
+    });
+
+    it("un fetch exitoso posterior limpia el error", async () => {
+      const user = userEvent.setup();
+      adminVentasApi.getResumenVentas.mockRejectedValueOnce(new Error("Failed to fetch"));
+
+      renderPagina();
+
+      await screen.findByText("No se pudieron cargar las ventas");
+      await user.click(screen.getByRole("button", { name: /Reintentar/i }));
+      await screen.findByText("$ 1.750");
+
+      expect(screen.queryByText("No se pudieron cargar las ventas")).not.toBeInTheDocument();
+    });
   });
 
   describe("órdenes por estado", () => {
@@ -383,5 +416,25 @@ describe("AdminVentas", () => {
       await screen.findByTestId("estado-ENTREGADA");
       expect(screen.queryByTestId("aviso-cobertura-costo")).toBeNull();
     });
+  });
+});
+
+describe("AdminVentas — números alineados a la derecha", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    adminVentasApi.getResumenVentas.mockResolvedValue(RESUMEN);
+  });
+
+  it("Unidades y Facturación usan la celda numérica, y SOLO desde md", async () => {
+    renderPagina();
+
+    const seccion = await screen.findByLabelText("Ranking de productos");
+    const fila = within(seccion).getAllByRole("row")[1];
+
+    for (const selector of ['[data-label="Unidades"]', '[data-label="Facturación"]']) {
+      const celda = fila.querySelector(selector);
+      expect(celda.className).toContain("md:text-right");
+      expect(celda.className).toContain("md:tabular-nums");
+    }
   });
 });

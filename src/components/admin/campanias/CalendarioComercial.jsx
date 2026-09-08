@@ -61,7 +61,7 @@ export default function CalendarioComercial({
             type="button"
             onClick={() => onCambiarMes(desplazarMes(mesVisible, -1))}
             aria-label="Mes anterior"
-            className="rounded-lg border border-outline-variant p-2 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
+            className={`${claseNavegacion} p-2`}
           >
             <span aria-hidden="true" className="material-symbols-outlined block text-[20px]">
               chevron_left
@@ -70,7 +70,7 @@ export default function CalendarioComercial({
           <button
             type="button"
             onClick={() => onCambiarMes(null)}
-            className="font-label-md text-label-md rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
+            className={`font-label-md text-label-md ${claseNavegacion} px-4 py-2 uppercase tracking-widest`}
           >
             Hoy
           </button>
@@ -78,7 +78,7 @@ export default function CalendarioComercial({
             type="button"
             onClick={() => onCambiarMes(desplazarMes(mesVisible, 1))}
             aria-label="Mes siguiente"
-            className="rounded-lg border border-outline-variant p-2 text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
+            className={`${claseNavegacion} p-2`}
           >
             <span aria-hidden="true" className="material-symbols-outlined block text-[20px]">
               chevron_right
@@ -105,6 +105,7 @@ export default function CalendarioComercial({
           // semana sin campañas no reserva espacio vacío, y una con cinco
           // superpuestas no las recorta.
           const carriles = tramos.reduce((max, t) => Math.max(max, t.carril + 1), 0);
+          const altoDeFila = ALTO_ENCABEZADO_REM + carriles * ALTO_CARRIL_REM;
 
           return (
             <div key={claveDeDia(semana[0])} className="relative border-b border-outline-variant last:border-b-0">
@@ -118,7 +119,7 @@ export default function CalendarioComercial({
                       key={clave}
                       type="button"
                       onClick={() => onSeleccionarDia(clave)}
-                      style={{ minHeight: `${3.5 + carriles * 1.75}rem` }}
+                      style={{ minHeight: `${altoDeFila}rem` }}
                       // `flex flex-col items-start` no es decorativo: un
                       // <button> centra su contenido por defecto, así que sin
                       // esto el número del día se planta en el MEDIO de la
@@ -173,7 +174,7 @@ export default function CalendarioComercial({
                       onClick={() => onSeleccionar(elemento)}
                       style={{ gridColumn: `${columna} / span ${span}`, gridRow: carril + 1 }}
                       title={`${elemento.nombre} · ${detalle}`}
-                      className={`font-label-sm text-label-sm pointer-events-auto flex items-center gap-1 overflow-hidden rounded px-2 py-1 text-left transition-opacity hover:opacity-80 ${estilo.barra}`}
+                      className={`font-label-sm text-label-sm pointer-events-auto flex min-h-11 items-center gap-1 overflow-hidden rounded px-2 py-1 text-left transition-opacity hover:opacity-80 ${estilo.barra}`}
                     >
                       <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
                         {estilo.icono}
@@ -191,3 +192,52 @@ export default function CalendarioComercial({
     </section>
   );
 }
+
+/**
+ * La caja compartida de los tres controles de mes (anterior, «Hoy», siguiente).
+ *
+ * `min-h-11 min-w-11` (44px) va **ADEMÁS** del `p-2` / `px-4 py-2` de cada uno,
+ * nunca en lugar de él: el mínimo táctil de WCAG 2.5.8 es un PISO y el padding
+ * sigue decidiendo cuánto crece por encima (mismo criterio que
+ * `SelectorCantidad.jsx`). Medido en navegador el 07/09/2026 a 1280×800 con
+ * `elementFromPoint` —área EFECTIVA, no la caja declarada—: las flechas daban
+ * 39×39 y 38×39, y «Hoy» 70×36.
+ *
+ * Acá se puede crecer de verdad —son tres botones sueltos en el encabezado, con
+ * `gap-2` entre ellos—, así que no hace falta el pseudo-elemento de
+ * `utils/areaTactil.js`: agrandar la caja no empuja nada.
+ *
+ * El `inline-flex items-center justify-center` va explícito porque con
+ * `min-height` el contenido del `<button>` deja de estar centrado por el
+ * padding.
+ */
+const claseNavegacion =
+  "inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface";
+
+/**
+ * El alto que reserva la celda de un día, en `rem`.
+ *
+ * ── POR QUÉ EL CARRIL MIDE 3rem Y NO 1.75 (07/09/2026) ──
+ *
+ * Las barras miden ahora 44 de alto (`min-h-11`), contra los 23-26 que medía el
+ * área efectiva de cada una antes de la auditoría de accesibilidad táctil. La
+ * decisión de fondo fue **darles alto REAL en vez de un pseudo-elemento**, y
+ * acá está el motivo: las barras se APILAN dentro de la celda de un día, una
+ * por carril. Con un pseudo-elemento de 44 sobre un paso de 28, cada área se
+ * comería la del carril de arriba —el de más abajo en el DOM gana— y encima
+ * taparía el hueco entre barras, que este calendario mantiene clickeable a
+ * propósito para poder crear una campaña en ese día (ver la capa
+ * `pointer-events-none`). O sea: el pseudo-elemento no solo no alcanzaba,
+ * rompía una interacción que ya funcionaba.
+ *
+ * Con alto real hay que agrandar el paso en la misma medida, o el carril
+ * siguiente se solapa igual: 44 de barra + 4 del `gap-y-1` = 48px = **3rem**.
+ * Tampoco se limita cuántas barras entran por día: recortarlas escondería
+ * campañas vigentes, que es peor que una fila alta en una pantalla que ya es
+ * solo escritorio y tiene scroll vertical.
+ *
+ * `ALTO_ENCABEZADO_REM` es el espacio del número del día (la capa de barras
+ * arranca en `top-9`) más el margen de abajo.
+ */
+const ALTO_ENCABEZADO_REM = 3.5;
+const ALTO_CARRIL_REM = 3;

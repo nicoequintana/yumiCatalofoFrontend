@@ -46,6 +46,93 @@ describe("AdminSidebar", () => {
   });
 });
 
+/**
+ * El agujero que cerró el corte en 1360px: la bottom nav mide 1326px de ancho
+ * INTRÍNSECO y no tiene `flex-wrap` ni scroll, así que entre 1024 (donde
+ * `lg:flex` la encendía) y 1325 lo que sobraba se pintaba fuera del viewport
+ * SIN generar scroll de documento — "Cerrar sesión" era inalcanzable con el
+ * mouse por debajo de 1134px, y a 1024 ni el toggle de tema ni el logout los
+ * devolvía `elementFromPoint`.
+ *
+ * jsdom no aplica `@media`, así que acá se fija el CONTRATO DE CLASES; la
+ * medición real (visible + clickeable a 1024, 1280 y 1359) vive en
+ * `e2e/admin-desktop-layout.spec.js`.
+ */
+describe("AdminSidebar — el corte entre drawer y bottom nav", () => {
+  it("la bottom nav recién aparece en 1360px, no en lg", () => {
+    const { container } = renderSidebar();
+    const bottomNav = container.querySelector("nav.fixed.inset-x-0.bottom-0");
+
+    expect(bottomNav).not.toBeNull();
+    expect(bottomNav).toHaveClass("min-[1360px]:flex");
+    expect(bottomNav).not.toHaveClass("lg:flex");
+  });
+
+  it("el drawer sigue disponible por debajo de 1360px", () => {
+    const { container } = renderSidebar();
+    const aside = container.querySelector("aside");
+
+    expect(aside).toHaveClass("min-[1360px]:hidden");
+    expect(aside).not.toHaveClass("lg:hidden");
+  });
+
+  it("el overlay del drawer acompaña el mismo corte", () => {
+    const { container } = renderSidebar();
+    const overlay = container.querySelector("div.fixed.inset-0.z-40");
+
+    expect(overlay).not.toBeNull();
+    expect(overlay).toHaveClass("min-[1360px]:hidden");
+    expect(overlay).not.toHaveClass("lg:hidden");
+  });
+
+  /**
+   * Campañas y Promociones estaban filtradas del drawer porque su pantalla no
+   * entra en un teléfono. Con el drawer siendo ahora la navegación hasta
+   * 1359px, filtrarlas las dejaba inalcanzables en iPad apaisado y en un
+   * portátil de 1280 — justo los anchos donde SÍ funcionan. Vuelven al drawer
+   * con el mismo mecanismo de siempre (flag en el dato + CSS, nunca
+   * `matchMedia`): `hidden lg:flex` las muestra desde 1024, que es el mismo
+   * umbral que usa `SoloEscritorio` para dejar entrar a la pantalla.
+   */
+  it("los módulos solo-escritorio están en el drawer, ocultos por debajo de lg", () => {
+    const { container } = renderSidebar();
+    const aside = container.querySelector("aside");
+
+    for (const etiqueta of [/campañas/i, /promociones/i]) {
+      const enElDrawer = screen
+        .getAllByRole("link", { name: etiqueta })
+        .find((enlace) => aside.contains(enlace));
+
+      expect(enElDrawer, `${etiqueta} en el drawer`).toBeDefined();
+      expect(enElDrawer).toHaveClass("hidden", "lg:flex");
+    }
+  });
+});
+
+/**
+ * WCAG 2.2 SC 2.5.8 (Target Size, Minimum) pide 24px, pero el criterio del
+ * proyecto —y el que mide `admin-mobile.spec.js`— es el de 44px de Apple/MDN.
+ * Los controles del shell medían 42px de alto: dos píxeles de menos en TODAS
+ * las pantallas del panel. `min-h-11` (44px) es el piso; el padding sigue
+ * mandando cuando el contenido crece.
+ */
+describe("AdminSidebar — áreas táctiles del shell", () => {
+  it("los enlaces, el acordeón y el logout del drawer declaran 44px de piso", () => {
+    const { container } = renderSidebar();
+    const aside = container.querySelector("aside");
+
+    const controles = [
+      ...aside.querySelectorAll("a"),
+      ...aside.querySelectorAll("button"),
+    ];
+
+    expect(controles.length).toBeGreaterThan(0);
+    for (const control of controles) {
+      expect(control, control.textContent).toHaveClass("min-h-11");
+    }
+  });
+});
+
 describe("AdminSidebar — la sidebar mobile colapsada", () => {
   function renderConColapsada(colapsada) {
     return render(

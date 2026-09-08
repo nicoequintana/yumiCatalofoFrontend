@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import SoloEscritorio from "../../components/admin/SoloEscritorio.jsx";
 import EditorPromocion from "../../components/admin/promociones/EditorPromocion.jsx";
@@ -24,6 +25,7 @@ import {
 } from "../../api/promociones.js";
 import { getCategorias } from "../../api/categorias.js";
 import { getEtiquetas } from "../../api/products.js";
+import { AREA_TACTIL_ANCHA, AREA_TACTIL_ICONO } from "../../utils/areaTactil.js";
 
 /**
  * ADMIN → Promociones: QUÉ productos tienen QUÉ descuento.
@@ -44,6 +46,42 @@ import { getEtiquetas } from "../../api/products.js";
 
 /** Descuento con el que entra un producto nuevo. El mínimo del rango. */
 const PORCENTAJE_INICIAL = 5;
+
+/**
+ * Los tres moldes de botón de esta pantalla, con el piso táctil de 44px
+ * (WCAG 2.5.8) puesto.
+ *
+ * Estaban escritos a mano ocho veces, y la auditoría de área táctil del
+ * 07/09/2026 encontró a los ocho por debajo del mínimo — medido en navegador
+ * real a 1280×800 con `elementFromPoint`, o sea el área EFECTIVA y no la caja
+ * declarada. Esta pantalla es SOLO ESCRITORIO (`SoloEscritorio.jsx`), así que
+ * 390×844 no la renderiza y no hay una segunda medición:
+ *
+ * - `claseCtaPrimario` ("Crear" y "Agregar a una promoción"): daban 93×42;
+ * - `claseBotonPaginador` ("Anterior" y "Siguiente"): 93×36;
+ * - `claseBotonFila` ("Archivar" 93×33, "Eliminar" 91×33, más "Sí, eliminar" y
+ *   "No", que comparten el molde y no entraron en la medición porque el
+ *   estado de confirmación estaba cerrado).
+ *
+ * `min-h-11` va **ADEMÁS** del `py-*` de cada molde, nunca en lugar de él: el
+ * mínimo táctil es un PISO y el padding sigue decidiendo cuánto crece por
+ * encima (mismo criterio que `SelectorCantidad.jsx`). Se eligió agrandar y no
+ * el pseudo-elemento de `utils/areaTactil.js` justamente por "Archivar" y
+ * "Eliminar": van pegados con `gap-2` (8px), así que dos áreas postizas de 44
+ * se pisarían; creciendo de verdad a 44 de alto no hay ningún conflicto
+ * horizontal, porque ya sobran de ancho.
+ */
+const claseCtaPrimario =
+  "font-label-md text-label-md inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60";
+
+const claseBotonPaginador =
+  "font-label-md text-label-md inline-flex min-h-11 items-center justify-center rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40";
+
+const claseBotonFila =
+  "font-label-sm text-label-sm inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 uppercase tracking-widest disabled:opacity-60";
+
+/** La variante de contorno de `claseBotonFila`: Archivar/Reactivar, Eliminar, No. */
+const claseBotonFilaContorno = `${claseBotonFila} border border-outline-variant text-on-surface-variant transition-colors hover:bg-surface-container`;
 
 export default function AdminPromociones() {
   const [promociones, setPromociones] = useState([]);
@@ -76,6 +114,18 @@ export default function AdminPromociones() {
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
+  /**
+   * El fallo de la CARGA inicial, separado del `error` de las mutaciones.
+   *
+   * Son dos cosas distintas y se ven distinto: si no se pudo leer la pantalla
+   * no hay nada que mostrar (va el estado de error a pantalla completa, con
+   * Reintentar), mientras que si falló una escritura la pantalla sigue siendo
+   * legible y el aviso va como banda arriba. Mientras compartían estado, el
+   * banner mostraba el `err.message` crudo del sistema.
+   */
+  const [errorCarga, setErrorCarga] = useState(false);
+  // Contador del botón Reintentar, mismo patrón que `AdminMetricas`.
+  const [reintento, setReintento] = useState(0);
   const [nombreNueva, setNombreNueva] = useState("");
   const [confirmandoBorrado, setConfirmandoBorrado] = useState(null);
 
@@ -95,11 +145,14 @@ export default function AdminPromociones() {
         // Un fetch exitoso limpia el error anterior: si no, un problema de red
         // ya resuelto seguiría en pantalla sobre datos frescos.
         setError(null);
+        setErrorCarga(false);
       })
       // Sin este catch, un backend caído deja la promesa rechazada sin manejar
-      // y el spinner girando para siempre.
-      .catch((err) => {
-        if (activo) setError(err.message);
+      // y el spinner girando para siempre. El mensaje del sistema
+      // (`Failed to fetch`, `Error interno`) NO llega a pantalla: no dice nada
+      // accionable. El copy compartido vive en `EstadoErrorCarga`.
+      .catch(() => {
+        if (activo) setErrorCarga(true);
       })
       .finally(() => {
         if (activo) setCargando(false);
@@ -107,7 +160,7 @@ export default function AdminPromociones() {
     return () => {
       activo = false;
     };
-  }, [pagina, categoria, etiqueta]);
+  }, [pagina, categoria, etiqueta, reintento]);
 
   // Las opciones de los selects se piden una sola vez, al montar. Mismo
   // patrón que `AdminProductos`: un fallo deja el select con "Todas" como
@@ -391,6 +444,11 @@ export default function AdminPromociones() {
               Cargando promociones…
             </span>
           </div>
+        ) : errorCarga ? (
+          <EstadoErrorCarga
+            titulo="No se pudieron cargar las promociones"
+            onReintentar={() => setReintento((n) => n + 1)}
+          />
         ) : (
           <>
             <AlertaConflictos
@@ -428,13 +486,13 @@ export default function AdminPromociones() {
                 <button
                   type="submit"
                   disabled={guardando || nombreNueva.trim() === ""}
-                  className="font-label-md text-label-md rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
+                  className={claseCtaPrimario}
                 >
                   Crear
                 </button>
               </form>
 
-              {promociones.length === 0 && !error ? (
+              {promociones.length === 0 ? (
                 <EstadoVacio
                   icono="sell"
                   titulo="Todavía no hay promociones"
@@ -467,7 +525,7 @@ export default function AdminPromociones() {
                             <button
                               type="button"
                               onClick={() => abrir(promocion.id)}
-                              className="text-left text-primary hover:underline"
+                              className={`${AREA_TACTIL_ANCHA} text-left text-primary hover:underline`}
                             >
                               {promocion.nombre}
                             </button>
@@ -512,14 +570,14 @@ export default function AdminPromociones() {
                                   type="button"
                                   disabled={guardando}
                                   onClick={() => eliminar(promocion.id)}
-                                  className="font-label-sm text-label-sm rounded-lg bg-error px-3 py-2 uppercase tracking-widest text-on-error disabled:opacity-60"
+                                  className={`${claseBotonFila} bg-error text-on-error`}
                                 >
                                   Sí, eliminar
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setConfirmandoBorrado(null)}
-                                  className="font-label-sm text-label-sm rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant"
+                                  className={claseBotonFilaContorno}
                                 >
                                   No
                                 </button>
@@ -530,7 +588,7 @@ export default function AdminPromociones() {
                                   type="button"
                                   disabled={guardando}
                                   onClick={() => alternarActiva(promocion)}
-                                  className="font-label-sm text-label-sm rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60"
+                                  className={claseBotonFilaContorno}
                                 >
                                   {promocion.activa ? "Archivar" : "Reactivar"}
                                 </button>
@@ -538,7 +596,7 @@ export default function AdminPromociones() {
                                   type="button"
                                   disabled={guardando}
                                   onClick={() => setConfirmandoBorrado(promocion.id)}
-                                  className="font-label-sm text-label-sm rounded-lg border border-outline-variant px-3 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60"
+                                  className={claseBotonFilaContorno}
                                 >
                                   Eliminar
                                 </button>
@@ -562,7 +620,7 @@ export default function AdminPromociones() {
                       type="button"
                       onClick={() => setAbierta(null)}
                       aria-label="Cerrar la promoción"
-                      className="rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container"
+                      className={`${AREA_TACTIL_ICONO} rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container`}
                     >
                       <span aria-hidden="true" className="material-symbols-outlined block text-[20px]">
                         close
@@ -609,7 +667,7 @@ export default function AdminPromociones() {
                   disabled={guardando || !abierta || seleccionados.size === 0}
                   onClick={agregarSeleccionados}
                   title={abierta ? undefined : "Abrí una promoción de arriba para poder agregar."}
-                  className="font-label-md text-label-md rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
+                  className={claseCtaPrimario}
                 >
                   {abierta
                     ? `Agregar ${seleccionados.size} a “${abierta.nombre}”`
@@ -681,7 +739,7 @@ export default function AdminPromociones() {
                     type="button"
                     disabled={pagina <= 1}
                     onClick={() => irAPagina(pagina - 1)}
-                    className="font-label-md text-label-md rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40"
+                    className={claseBotonPaginador}
                   >
                     Anterior
                   </button>
@@ -692,7 +750,7 @@ export default function AdminPromociones() {
                     type="button"
                     disabled={pagina >= totalPaginas}
                     onClick={() => irAPagina(pagina + 1)}
-                    className="font-label-md text-label-md rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40"
+                    className={claseBotonPaginador}
                   >
                     Siguiente
                   </button>

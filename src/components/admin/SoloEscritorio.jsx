@@ -40,9 +40,20 @@ export default function SoloEscritorio({ titulo, children }) {
           Este módulo trabaja con un calendario y tablas anchas que no entran en un celular.
           Abrilo desde una computadora.
         </p>
+        {/* `min-h-11` (44px) ADEMÁS del `py-3`, no en lugar de él: el mínimo
+            táctil es un PISO. Medido en navegador el 07/09/2026 sobre
+            `/catalogo/admin/campanias` y `/promociones` a 390×844 con
+            `elementFromPoint` —el área EFECTIVA, no la caja declarada—: daba
+            41 de alto. Este aviso vive JUSTO en el breakpoint donde importa,
+            porque es lo único que se ve de esas dos pantallas en un celular:
+            su único botón era un control de 41px en la superficie más táctil
+            del panel. `inline-flex` es lo que hace que un `<a>` respete la
+            altura mínima, que en `display:inline` se ignora. Mismo arreglo
+            que ya tenía `NoEncontradoAdmin.jsx`, que es el mismo patrón de
+            página vacía con una salida. */}
         <Link
           to="/catalogo/admin/productos"
-          className="font-label-md text-label-md mt-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
+          className="font-label-md text-label-md mt-2 inline-flex min-h-11 items-center rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
         >
           Ir a Productos
         </Link>

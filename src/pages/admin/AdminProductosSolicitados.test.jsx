@@ -141,6 +141,87 @@ describe("AdminProductosSolicitados", () => {
 });
 
 /**
+ * Área táctil (WCAG 2.5.8, mínimo 44×44).
+ *
+ * ⚠️ **Esta pantalla se le escapó ENTERA al barrido original del 07/09/2026**:
+ * no estaba en la lista de rutas que recorría la auditoría, y apareció recién
+ * cotejando esa lista contra `App.jsx`. Cuelga de
+ * `/catalogo/admin/ordenes/productos-solicitados`, o sea de un segmento literal
+ * dentro de la rama del detalle de orden — a la que solo se llega desde el
+ * listado de órdenes. Vale la pena dejarlo escrito: la próxima auditoría se
+ * arma desde `App.jsx`, no desde las pantallas que uno recuerda.
+ *
+ * Medido en navegador el 07/09/2026 con `elementFromPoint` (área EFECTIVA, no
+ * `getBoundingClientRect`), a 390px y a 1280px — los tres daban lo mismo en los
+ * dos anchos, así que lo que falta es el ALTO y no el ancho:
+ *
+ * - link de volver "Órdenes": **93×18** (caja 98×17)
+ * - botón "Descargar Excel": **93×43** (caja 221×42)
+ * - link al nombre del producto: **93×22** (caja 295×21)
+ *
+ * jsdom no hace layout: acá se afirma sobre la CLASE declarada, igual que en
+ * `SelectorCantidad.test.jsx` y `BotonFavorito.test.jsx`. La medición real es
+ * en navegador; el test protege que nadie devuelva el tamaño por debajo del
+ * mínimo sin darse cuenta.
+ */
+describe("AdminProductosSolicitados · área táctil", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ordenesApi.getProductosSolicitados.mockResolvedValue(respuesta([MATE]));
+    ordenesApi.descargarProductosSolicitados.mockResolvedValue(undefined);
+  });
+
+  // Pseudo-elemento y no `min-h-11`: el link vive pegado al `<h1>` de la
+  // pantalla, y estirarle la caja empujaría el encabezado 27px hacia abajo.
+  // `before:w-full` porque el ancho ya sobra (93 medidos): copiar el propio
+  // evita invadir lo que tenga al lado.
+  it("el link de volver a Órdenes llega a 44 de alto por pseudo-elemento", async () => {
+    renderPagina();
+
+    await screen.findByText("Mate imperial");
+    const enlace = screen.getByRole("link", { name: /órdenes/i });
+    expect(enlace.className).toContain("relative");
+    // `content-['']` no es decorativo: sin él el pseudo-elemento no genera caja
+    // y el área táctil sigue siendo la de antes, sin que nada falle.
+    expect(enlace.className).toContain("before:content-['']");
+    expect(enlace.className).toContain("before:h-11");
+    expect(enlace.className).toContain("before:w-full");
+  });
+
+  // El CTA puede crecer sin costo de diseño (está solo en su columna del
+  // encabezado), así que lleva el piso real. `min-h-11` va ADEMÁS del `py-3`
+  // de la variante, nunca en lugar de él: el mínimo táctil es un PISO.
+  it("el botón Descargar Excel declara el piso táctil de 44 de alto", async () => {
+    renderPagina();
+
+    await screen.findByText("Mate imperial");
+    const boton = screen.getByRole("button", { name: /descargar excel/i });
+    expect(boton.className.split(" ")).toContain("min-h-11");
+    // El tamaño visible de la variante se conserva.
+    expect(boton.className.split(" ")).toContain("py-3");
+  });
+
+  // Pseudo-elemento: es una COLUMNA de la tabla. Medido el paso vertical real
+  // de fila el 07/09/2026 — `px-4 py-3` sobre un texto de 21px da 45px de alto
+  // de celda más 1px de borde, o sea **46 de paso**, por encima de los 44 del
+  // área: dos filas contiguas no se superponen y ninguna le roba área a la de
+  // arriba. Por debajo de `md` la fila pasa a tarjeta (`tabla-apilada`) y la
+  // celda `identidad` queda sola en su línea, así que tampoco hay vecino.
+  // El `overflow-x-auto` del envoltorio tampoco recorta: el pseudo entra
+  // entero dentro de la celda (0,5 → 44,5 sobre 45).
+  it("el link al nombre del producto llega a 44 de alto por pseudo-elemento", async () => {
+    renderPagina();
+
+    const enlace = await screen.findByRole("link", { name: "Mate imperial" });
+    expect(enlace.className).toContain("before:content-['']");
+    expect(enlace.className).toContain("before:h-11");
+    // El ancho ya sobra (295 de caja): copia el propio en vez de fijar 44 e
+    // invadir la celda de al lado.
+    expect(enlace.className).toContain("before:w-full");
+  });
+});
+
+/**
  * La ruta vive bajo `/catalogo/admin/ordenes/`, que ya tiene un segmento
  * dinámico (`:id`, el detalle de orden). React Router resuelve por
  * especificidad y no por orden de declaración, así que el segmento literal
@@ -170,5 +251,30 @@ describe("ruteo de /catalogo/admin/ordenes/productos-solicitados", () => {
 
     expect(screen.getByText("grilla agrupada")).toBeInTheDocument();
     expect(screen.queryByText("detalle de orden")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * El ligature del ícono NO puede entrar en el nombre accesible. Verificado con
+ * el árbol de accesibilidad real el 07/09/2026: el link se anunciaba
+ * **"arrow_back Órdenes"**. `BotonVolver.jsx:50-51` documenta y resuelve esta
+ * misma trampa, pero acá el link está escrito a mano y no usa ese componente.
+ *
+ * El chequeo de "controles sin nombre" no lo agarra: nombre TIENE, solo que
+ * dice de más. Por eso el test afirma el nombre EXACTO y no un `/órdenes/i`.
+ */
+describe("AdminProductosSolicitados — nombre accesible del link de volver", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    ordenesApi.getProductosSolicitados.mockResolvedValue(respuesta([MATE]));
+    ordenesApi.descargarProductosSolicitados.mockResolvedValue(undefined);
+  });
+
+  it("se anuncia solo como “Órdenes”, sin el ligature del ícono", async () => {
+    renderPagina();
+
+    await screen.findByText("Mate imperial");
+
+    expect(screen.getByRole("link", { name: "Órdenes" })).toBeInTheDocument();
   });
 });

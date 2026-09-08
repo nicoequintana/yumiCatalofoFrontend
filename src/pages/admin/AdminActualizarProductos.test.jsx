@@ -157,3 +157,98 @@ describe("AdminActualizarProductos", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Área táctil (WCAG 2.5.8, mínimo 44×44).
+ *
+ * ⚠️ **Esta pantalla se le escapó ENTERA al barrido original del 07/09/2026**:
+ * no estaba en la lista de rutas que recorría la auditoría. Apareció recién
+ * cotejando esa lista contra `App.jsx` —
+ * `/catalogo/admin/productos/actualizar-masivo` es una hoja a la que solo se
+ * llega desde el listado de productos. La próxima auditoría se arma desde
+ * `App.jsx`, no desde las pantallas que uno recuerda.
+ *
+ * Medido en navegador el 07/09/2026 con `elementFromPoint` (área EFECTIVA, no
+ * `getBoundingClientRect`):
+ *
+ * - link "Importar productos" (dentro de un `<li>`): **93×22** (caja 149×21)
+ * - botón "Actualizar": **93×42** (caja 147×41)
+ *
+ * En los dos falta el ALTO: el 93 es el tope del sondeo (46px por lado + 1),
+ * o sea "≥93", y el ancho ya sobraba.
+ *
+ * jsdom no hace layout: se afirma sobre la CLASE declarada, igual que en
+ * `SelectorCantidad.test.jsx`. La medición real es en navegador.
+ */
+describe("AdminActualizarProductos · área táctil", () => {
+  // `min-h-11` y no pseudo-elemento: son dos botones sueltos, cada uno en su
+  // propio bloque con `gap-4` (16px) de por medio, así que pueden crecer sin
+  // costo de diseño y sin que sus áreas se superpongan. Va ADEMÁS del `py-3`
+  // de la variante, nunca en lugar de él: el mínimo táctil es un PISO.
+  it.each([
+    ["Actualizar", /^actualizar$/i],
+    // ⚠️ "Exportar catálogo" NO figuraba en la tabla de la auditoría, pero
+    // comparte clase por clase la caja del que sí figuraba (`px-5 py-3`,
+    // `inline-flex`) y el mismo selector del sondeo: el barrido lo dedupeó.
+    // Falla igual, así que se cubre igual.
+    ["Exportar catálogo", /exportar catálogo/i],
+  ])("el botón %s declara el piso táctil de 44 de alto", (_, nombre) => {
+    renderizar();
+
+    const boton = screen.getByRole("button", { name: nombre });
+    expect(boton.className.split(" ")).toContain("min-h-11");
+    // El tamaño visible de la variante se conserva.
+    expect(boton.className.split(" ")).toContain("py-3");
+  });
+
+  // Barrido por ROL y no por nombre: el `it.each` de arriba nombra los dos
+  // botones que existen hoy y da mejor diagnóstico, pero no ve uno nuevo. Este
+  // sí — y esta pantalla ya se perdió una auditoría entera por depender de una
+  // lista escrita a mano (07/09/2026).
+  it("ningún botón de la pantalla queda por debajo del piso táctil", () => {
+    renderizar();
+
+    for (const boton of screen.getAllByRole("button")) {
+      expect(boton.className.split(" ")).toContain("min-h-11");
+    }
+  });
+
+  // Pseudo-elemento y no `min-h-11`: el enlace es texto en línea dentro de un
+  // `<li>` de la lista de instrucciones ("Para cargar productos nuevos usá
+  // Importar productos, que pide todos los campos"). Estirarle la caja movería
+  // el interlineado del ítem entero. `inline-block` le da al pseudo una caja
+  // estable contra la cual centrarse — en `display:inline` (el default de un
+  // `<a>`) el `w-full` no resuelve de forma confiable. El `<li>` no tiene
+  // ningún otro control, así que el pseudo puede sobresalir del renglón sin
+  // robarle área a nadie.
+  it("el link Importar productos llega a 44 de alto por pseudo-elemento", () => {
+    renderizar();
+
+    const enlace = screen.getByRole("link", { name: /importar productos/i });
+    expect(enlace.className).toContain("inline-block");
+    // `content-['']` no es decorativo: sin él el pseudo no genera caja y el
+    // área táctil sigue siendo la de antes, sin que nada falle.
+    expect(enlace.className).toContain("before:content-['']");
+    expect(enlace.className).toContain("before:h-11");
+    // El ancho ya sobra (149 de caja): copia el propio en vez de fijar 44.
+    expect(enlace.className).toContain("before:w-full");
+  });
+
+  // ⚠️ Este enlace tampoco figuraba en la tabla de la auditoría, y por un
+  // motivo distinto: solo existe DESPUÉS de una actualización exitosa, así que
+  // el barrido —que recorre la pantalla recién cargada— no podía verlo.
+  it("el link Ver productos del cartel de éxito llega a 44 de alto", async () => {
+    actualizarProductosMasivoMock.mockResolvedValue({ actualizados: 7, productos: [] });
+    renderizar();
+
+    await userEvent.upload(screen.getByLabelText(/archivo/i), archivoXlsx());
+    await userEvent.click(screen.getByRole("button", { name: /^actualizar$/i }));
+
+    const enlace = await screen.findByRole("link", { name: /ver productos/i });
+    expect(enlace.className).toContain("inline-block");
+    expect(enlace.className).toContain("before:content-['']");
+    expect(enlace.className).toContain("before:h-11");
+    expect(enlace.className).toContain("before:w-full");
+  });
+});
+

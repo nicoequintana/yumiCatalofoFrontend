@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import { getEmbudoConversion } from "../../api/adminEmbudo.js";
 import { formatFecha } from "../../utils/formato.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
@@ -141,28 +142,37 @@ function AdminEmbudo() {
   const [embudo, setEmbudo] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  // Contador del botón Reintentar del estado de error: incrementarlo
+  // re-dispara la carga sin tocar el período elegido. Mismo patrón que el
+  // `reintento` de `AdminMetricas` y `AdminPrecios`.
+  const [reintento, setReintento] = useState(0);
 
   useEffect(() => {
     let activo = true;
     setCargando(true);
-    setError(null);
 
     getEmbudoConversion({ dias })
       .then((resultado) => {
         if (!activo) return;
         setEmbudo(resultado);
+        // Un fetch exitoso limpia el error anterior: sin esto, un backend que
+        // se recupera sigue diciendo "no se pudo cargar" sobre datos frescos.
+        setError(null);
         setCargando(false);
       })
-      .catch((err) => {
+      .catch(() => {
         if (!activo) return;
-        setError(err.message ?? "No se pudo cargar el embudo.");
+        // El mensaje del sistema (`Failed to fetch`, `Error interno`) NO llega
+        // a pantalla: no dice nada accionable y encima está en inglés. El copy
+        // compartido vive en `EstadoErrorCarga`.
+        setError(true);
         setCargando(false);
       });
 
     return () => {
       activo = false;
     };
-  }, [dias]);
+  }, [dias, reintento]);
 
   // "Sin actividad" es no tener ningún evento en ninguna etapa del período.
   const sinDatos =
@@ -190,12 +200,6 @@ function AdminEmbudo() {
         <SelectorPeriodo dias={dias} onCambiar={setDias} />
       </div>
 
-      {error ? (
-        <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
-          {error}
-        </p>
-      ) : null}
-
       {/*
         Aviso de recorte del período. Va afuera del ternario de carga —y por
         lo tanto también arriba del estado vacío— porque un "no hubo
@@ -211,6 +215,11 @@ function AdminEmbudo() {
             Cargando embudo…
           </p>
         </div>
+      ) : error ? (
+        <EstadoErrorCarga
+          titulo="No se pudo cargar el embudo"
+          onReintentar={() => setReintento((n) => n + 1)}
+        />
       ) : embudo === null ? null : sinDatos ? (
         <EstadoVacio
           icono="filter_alt"

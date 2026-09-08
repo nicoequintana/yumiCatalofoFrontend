@@ -92,7 +92,7 @@ export default function EditorCampaniaHeader({
                 type="button"
                 disabled={guardando}
                 onClick={onEliminar}
-                className="font-label-md text-label-md mr-3 inline-flex items-center gap-2 rounded-lg border border-error px-5 py-3 uppercase tracking-widest text-error transition-colors hover:bg-error-container disabled:opacity-60"
+                className="font-label-md text-label-md mr-3 inline-flex min-h-11 items-center gap-2 rounded-lg border border-error px-5 py-3 uppercase tracking-widest text-error transition-colors hover:bg-error-container disabled:opacity-60"
               >
                 <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
                   delete
@@ -122,7 +122,7 @@ export default function EditorCampaniaHeader({
             type="submit"
             form="form-campania"
             disabled={guardando}
-            className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container disabled:opacity-60"
+            className="font-label-md text-label-md inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container disabled:opacity-60"
           >
             {guardando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
             {guardando ? "Guardando…" : "Guardar"}
@@ -133,5 +133,18 @@ export default function EditorCampaniaHeader({
   );
 }
 
+/**
+ * `min-h-11` (44px) ADEMÁS del `px-5 py-3`, no en lugar de él: el mínimo
+ * táctil de WCAG 2.5.8 es un PISO y el padding sigue decidiendo el aire
+ * horizontal (mismo criterio que `SelectorCantidad.jsx`).
+ *
+ * ⚠️ Esta pantalla se le escapó ENTERA a la auditoría del 07/09/2026: el
+ * editor de campaña es una RUTA propia (`/catalogo/admin/campanias/nueva`), no
+ * un diálogo — "Nueva campaña" NAVEGA hasta acá, y el barrido recorría
+ * `/catalogo/admin/campanias` sin llegar nunca. Medido después en navegador
+ * con `elementFromPoint` —el área EFECTIVA, no la caja declarada—: los cuatro
+ * botones del encabezado ("Guardar", "Duplicar", "Apagar/Encender" y
+ * "Eliminar") daban **41 de alto** a 1280px, porque comparten esta caja.
+ */
 const claseAccion =
-  "font-label-md text-label-md inline-flex items-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:border-outline disabled:opacity-60";
+  "font-label-md text-label-md inline-flex min-h-11 items-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:border-outline disabled:opacity-60";

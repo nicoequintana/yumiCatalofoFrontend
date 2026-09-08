@@ -29,9 +29,25 @@ export default function PromocionesDeCampania({ promociones, asociadas, guardand
       {promociones.map((promocion) => {
         const asociada = idsAsociadas.has(promocion.id);
         return (
+          /* `min-h-11` (44px) va sobre el LABEL y ADEMÁS del `py-2`, no en lugar
+             de él. Sobre el label porque un `<input type="checkbox">` no acepta
+             `::before`: el pseudo-elemento de `utils/areaTactil.js` no tendría
+             dónde dibujarse, y la fila entera ya es el control (por eso el
+             checkbox no lleva `id` ni `htmlFor`: lo envuelve su etiqueta).
+             Es área REAL y nunca un margen negativo: un `-m-3 p-3` declara los 44
+             pero los saca del flujo, y la fila siguiente —posterior en el DOM— le
+             roba el área a la anterior.
+
+             ⚠️ **Esta pantalla se le escapó al barrido de la auditoría táctil**:
+             el editor de campaña es una RUTA propia
+             (`/catalogo/admin/campanias/:id/editar`) a la que "Nueva campaña"
+             NAVEGA, y esta sección solo se renderiza en modo EDICIÓN —el alta
+             muestra un cartel en su lugar—. Medido recién el 07/09/2026 a
+             1280×800 con `elementFromPoint` —el área EFECTIVA, no la caja
+             declarada—: la fila daba 43 de alto, uno menos que el mínimo. */
           <label
             key={promocion.id}
-            className="font-body-md text-body-md flex items-center gap-3 rounded px-2 py-2 text-on-surface transition-colors hover:bg-surface-container"
+            className="font-body-md text-body-md flex min-h-11 items-center gap-3 rounded px-2 py-2 text-on-surface transition-colors hover:bg-surface-container"
           >
             <input
               type="checkbox"

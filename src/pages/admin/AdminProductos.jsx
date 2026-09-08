@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTablaAdmin } from "../../hooks/useTablaAdmin.js";
 import Badge from "../../components/Badge.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import Paginador from "../../components/Paginador.jsx";
 import TarjetaMetrica from "../../components/admin/TarjetaMetrica.jsx";
 import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
 import ThOrdenable from "../../components/admin/ThOrdenable.jsx";
-import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
+import { claseNumero, claseTablaApilada } from "../../components/admin/clasesTabla.js";
+import { AREA_TACTIL_ANCHA, AREA_TACTIL_ICONO } from "../../utils/areaTactil.js";
 import {
   deleteProductsMasivo,
   getEtiquetas,
@@ -35,6 +37,28 @@ import VeloModal from "../../components/VeloModal.jsx";
  * de un saque. El techo del backend (`MAX_PAGE_SIZE`) es 100.
  */
 const PRODUCTOS_POR_PAGINA = 50;
+
+/**
+ * Clases del interruptor de una fila (columnas "Catálogo" y "Destacado").
+ *
+ * Estaba escrito literal en las dos celdas; se unificó acá al sumarle el área
+ * táctil, para no dejar duplicada la incantación del pseudo-elemento. El color
+ * de fondo lo pone cada celda, que es lo único que cambia entre las dos.
+ *
+ * `AREA_TACTIL_ICONO` y no `min-h-11`: medido en navegador el 07/09/2026 con
+ * `elementFromPoint` —área EFECTIVA, no la caja declarada— el interruptor daba
+ * **44×25 a 390px y 45×25 a 1280px**, contra el mínimo de 44×44. Agrandar la
+ * caja de verdad significaba subirle el alto a cada fila de la tabla densa, y
+ * además la píldora es un dibujo: si crece, deja de leerse como interruptor.
+ * Así el dibujo se queda en `h-6 w-11` (y en `md:h-5 md:w-9`, que es lo que
+ * hace entrar las once columnas entre 768 y 1280) y solo crece el blanco de
+ * click. El `before:w-11` cubre también el ancho porque en `md` la píldora
+ * mide 36 y no 44.
+ *
+ * El vecino más cercano es el `Spinner` de "guardando", a `gap-2` (8px): el
+ * pseudo se desborda 4px por lado en `md` y no llega a pisarlo.
+ */
+const CLASE_INTERRUPTOR = `${AREA_TACTIL_ICONO} inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 md:h-5 md:w-9 xl:h-6 xl:w-11`;
 
 /**
  * Criterios del selector "Ordenar por", espejo de `ORDENES_LISTADO` en
@@ -199,6 +223,43 @@ function AdminProductos() {
   const [versionResumen, setVersionResumen] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  /**
+   * El fallo de la CARGA de la tabla, separado del `error` de las mutaciones.
+   *
+   * No pueden compartir estado: si el listado no se pudo leer, mostrar además
+   * "Todavía no hay productos" le afirma a un admin con catálogo cargado que
+   * no tiene nada — y esa es la pantalla que vende. Si en cambio falló una
+   * escritura (ocultar, destacar, borrar en lote), la tabla SÍ se leyó y el
+   * aviso va como banda arriba sin tapar las filas.
+   */
+  const [errorCarga, setErrorCarga] = useState(false);
+  // Contador del botón Reintentar del estado de error.
+  const [reintentoCarga, setReintentoCarga] = useState(0);
+
+  /**
+   * Si todavía queda tabla a la DERECHA del borde visible.
+   *
+   * La caja de la tabla es `overflow-x-auto`, así que se puede scrollear —
+   * pero nada lo avisa: medido en navegador a 1280×800, el contenido mide
+   * 1347px en una caja de 1216 y la última columna ("Destacado") queda afuera
+   * sin ninguna señal. El degradé del filo derecho es esa señal, y se apaga al
+   * llegar al final para no dibujar una sombra que ya no promete nada.
+   *
+   * Se mide sobre el nodo (no con `matchMedia` ni con un breakpoint): lo que
+   * decide si hay desborde es el ancho REAL de la caja, que además cambia con
+   * el drawer del panel y con las columnas que se ocultan por breakpoint.
+   */
+  const cajaTabla = useRef(null);
+  const [scrollPendiente, setScrollPendiente] = useState(false);
+
+  const medirScrollTabla = useCallback(() => {
+    const caja = cajaTabla.current;
+    if (!caja) return;
+    // El margen de 1px absorbe los anchos fraccionarios del zoom del navegador,
+    // que si no dejan el degradé prendido para siempre al final del scroll.
+    setScrollPendiente(caja.scrollWidth - caja.clientWidth - caja.scrollLeft > 1);
+  }, []);
+
   const [actualizandoVisibilidadId, setActualizandoVisibilidadId] = useState(null);
   const [actualizandoDestacadoId, setActualizandoDestacadoId] = useState(null);
 
@@ -313,13 +374,21 @@ function AdminProductos() {
     try {
       aplicarPagina(await getProducts({ admin: true, page: pagina, search: busqueda, orden: orden || "catalogo", categoria: categoria || undefined, etiqueta: etiqueta || undefined, stock: stockFiltro || undefined, pageSize: PRODUCTOS_POR_PAGINA }));
     } catch {
-      setError("No se pudieron cargar los productos. Revisá tu conexión e intentá de nuevo.");
+      setErrorCarga(true);
     } finally {
       // En `finally` a propósito: si la recarga falla, el spinner tiene que
       // apagarse igual y dejar la tabla anterior a la vista.
       setCargando(false);
     }
   }
+
+  // Se remide cuando cambian las filas (la tabla puede haber cambiado de
+  // ancho) y cuando cambia el ancho de la ventana.
+  useEffect(() => {
+    medirScrollTabla();
+    window.addEventListener("resize", medirScrollTabla);
+    return () => window.removeEventListener("resize", medirScrollTabla);
+  }, [productos, medirScrollTabla]);
 
   useEffect(() => {
     let activo = true;
@@ -330,20 +399,24 @@ function AdminProductos() {
       .then((respuesta) => {
         if (!activo) return;
         aplicarPagina(respuesta);
+        // Un fetch exitoso limpia el error anterior: sin esto, un backend que
+        // se recupera sigue diciendo "no se pudieron cargar" sobre una tabla
+        // que ya tiene filas.
+        setErrorCarga(false);
         setCargando(false);
       })
       // Sin este catch, un backend caído deja la promesa rechazada sin manejar
       // y el spinner girando para siempre, sin decir qué pasó.
       .catch(() => {
         if (!activo) return;
-        setError("No se pudieron cargar los productos. Revisá tu conexión e intentá de nuevo.");
+        setErrorCarga(true);
         setCargando(false);
       });
 
     return () => {
       activo = false;
     };
-  }, [pagina, busqueda, orden, categoria, etiqueta, stockFiltro]);
+  }, [pagina, busqueda, orden, categoria, etiqueta, stockFiltro, reintentoCarga]);
 
   // Las opciones de los selects se piden una sola vez, al montar. Un fallo
   // deja el select con "Todas" como única opción — filtrar sigue siendo
@@ -514,6 +587,12 @@ function AdminProductos() {
           <h1 className="font-headline-lg text-headline-lg text-primary">Productos</h1>
         </div>
 
+        {/* `min-h-11` en los cinco enlaces: `py-3` sobre `text-label-md` daba
+            **42px de alto efectivo a 1280px** (medido el 07/09/2026 con
+            `elementFromPoint`), dos por debajo del mínimo táctil. Va ADEMÁS del
+            `py-3`, que sigue decidiendo el respiro cuando el contenido crece: el
+            mínimo es un PISO, no un tamaño. La auditoría listó solo "Agregar
+            producto", pero los cinco declaran la misma caja. */}
         <div className="flex w-full flex-wrap gap-3 sm:w-auto">
           {/* La skill de alta desde MercadoLibre carga productos por API
               mientras esta pantalla está abierta; hasta ahora la única forma de
@@ -529,35 +608,35 @@ function AdminProductos() {
           />
           <Link
             to="/catalogo/admin/productos/importar"
-            className="font-label-md text-label-md inline-flex grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
+            className="font-label-md text-label-md inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
           >
             <span className="material-symbols-outlined text-[18px]">upload_file</span>
             Importar
           </Link>
           <Link
             to="/catalogo/admin/productos/actualizar-masivo"
-            className="font-label-md text-label-md inline-flex grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
+            className="font-label-md text-label-md inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
           >
             <span className="material-symbols-outlined text-[18px]">sync_alt</span>
             Actualizar por Excel
           </Link>
           <Link
             to="/catalogo/admin/productos/precios"
-            className="font-label-md text-label-md inline-flex grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
+            className="font-label-md text-label-md inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
           >
             <span className="material-symbols-outlined text-[18px]">sell</span>
             Costos y precios
           </Link>
           <Link
             to="/catalogo/admin/productos/salud"
-            className="font-label-md text-label-md inline-flex grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
+            className="font-label-md text-label-md inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
           >
             <span className="material-symbols-outlined text-[18px]">monitor_heart</span>
             Salud
           </Link>
           <Link
             to="/catalogo/admin/productos/nuevo"
-            className="font-label-md text-label-md inline-flex grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container sm:grow-0 sm:basis-auto"
+            className="font-label-md text-label-md inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container sm:grow-0 sm:basis-auto"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
             Agregar producto
@@ -724,6 +803,11 @@ function AdminProductos() {
           <Spinner className="h-8 w-8 text-on-surface-variant" />
           <p className="font-body-md text-body-md text-on-surface-variant">Cargando productos…</p>
         </div>
+      ) : errorCarga ? (
+        <EstadoErrorCarga
+          titulo="No se pudieron cargar los productos"
+          onReintentar={() => setReintentoCarga((n) => n + 1)}
+        />
       ) : productos.length === 0 ? (
         // "Todavía no hay productos" sería falso con una búsqueda o un filtro
         // activos: los productos están, el filtro no los alcanza. Decir lo
@@ -839,7 +923,13 @@ function AdminProductos() {
             </div>
           ) : null}
 
-          <div className="overflow-x-auto">
+          <div className="relative">
+            <div
+              ref={cajaTabla}
+              data-testid="caja-tabla-productos"
+              onScroll={medirScrollTabla}
+              className="overflow-x-auto"
+            >
             <table
               role="table"
               className={`${claseTablaApilada} w-full min-w-[820px] text-left text-[13px] xl:text-sm`}
@@ -847,11 +937,24 @@ function AdminProductos() {
               <thead role="rowgroup">
                 <tr role="row" className="border-b border-outline-variant">
                   <th role="columnheader" className="px-2 py-2 xl:px-3 xl:py-3">
-                    {/* El `<label>` amplía el área táctil a ~44px con un margen
-                        negativo que compensa su propio padding, sin mover el
-                        layout. Tiene que quedar SIN texto: si llevara contenido,
-                        el nombre accesible del checkbox dejaría de ser su
-                        `aria-label` y los tests por nombre se romperían.
+                    {/* El `<label>` es el que lleva el área táctil: un
+                        `<input type="checkbox">` no genera caja de
+                        pseudo-elemento, así que la herramienta de
+                        `utils/areaTactil.js` no aplica acá. Tiene que quedar SIN
+                        texto: si llevara contenido, el nombre accesible del
+                        checkbox dejaría de ser su `aria-label` y los tests por
+                        nombre se romperían.
+
+                        `min-h-11 min-w-11` (44×44 REALES) y ya no `-m-3 p-3`: el
+                        margen negativo declaraba los 44 pero los sacaba del
+                        flujo, y el desborde caía sobre celdas que vienen DESPUÉS
+                        en el DOM —la de la foto, a 12px de paso en la tarjeta
+                        apilada— que se lo quedaban. Medido en navegador el
+                        07/09/2026 con `elementFromPoint`: **20×21 efectivos** a
+                        390px y a 1280px, o sea el input pelado. Con el área real
+                        la columna de control pasa de 20 a 44 de ancho y la fila
+                        crece ~8px donde la miniatura mide 36; es el precio de
+                        que el objetivo exista de verdad.
 
                         `max-md:hidden` porque debajo de `md` el `thead` es
                         sr-only (recortado a 1px, ver "Tabla apilada del admin"):
@@ -861,7 +964,7 @@ function AdminProductos() {
                         orden de tabulado y del árbol de accesibilidad, y solo en
                         mobile — en escritorio el encabezado se ve y sigue igual.
                         La selección masiva en mobile se hace fila por fila. */}
-                    <label className="-m-3 inline-flex p-3 max-md:hidden">
+                    <label className="inline-flex min-h-11 min-w-11 items-center justify-center max-md:hidden">
                       <input
                         type="checkbox"
                         aria-label="Seleccionar todos los productos de esta página"
@@ -904,7 +1007,7 @@ function AdminProductos() {
                     <td role="cell" data-celda="control" className="px-2 py-2 xl:px-3 xl:py-3">
                       {/* Ver el comentario del checkbox del encabezado: el
                           `<label>` tiene que quedar sin texto. */}
-                      <label className="-m-3 inline-flex p-3">
+                      <label className="inline-flex min-h-11 min-w-11 items-center justify-center">
                         <input
                           type="checkbox"
                           aria-label={`Seleccionar ${producto.nombre}`}
@@ -923,10 +1026,18 @@ function AdminProductos() {
                         una imagen no tiene texto propio; el del nombre ya ES el
                         nombre del producto. */}
                     <td role="cell" data-celda="control" className="px-2 py-2 xl:px-3 xl:py-3">
+                      {/* Medido el 07/09/2026: **36×37 efectivos a 390px** (la
+                          miniatura mide 36 hasta `xl`, donde pasa a 48 y cumple
+                          sola). Pseudo-elemento y no una miniatura más grande:
+                          la foto marca el ancho de la columna, y subirla a 44
+                          empuja las once columnas de la tabla. Se desborda 4px
+                          por lado, que caen dentro del `px-2` de la celda y del
+                          `column-gap` de la tarjeta apilada: no le roba área a
+                          ningún vecino. */}
                       <Link
                         to={`/catalogo/admin/productos/${producto.id}/editar`}
                         aria-label={`Editar ${producto.nombre}`}
-                        className="block w-fit rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        className={`${AREA_TACTIL_ICONO} block w-fit rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
                       >
                         {producto.fotos?.[0]?.url ? (
                           <img
@@ -944,12 +1055,22 @@ function AdminProductos() {
                       </Link>
                     </td>
                     <td role="cell" data-celda="identidad" className="max-w-[160px] px-2 py-2 xl:max-w-[220px] xl:px-3 xl:py-3">
+                      {/* Medido el 07/09/2026: **93×21 efectivos a 1280px**
+                          (93×40 a 390px cuando el nombre ocupa dos líneas). El
+                          texto ya sobra de ancho, así que `AREA_TACTIL_ANCHA`
+                          copia el suyo (`before:w-full`) en vez de estirarse
+                          sobre la celda de al lado, y solo levanta el alto a 44.
+
+                          ⚠️ El `truncate` se mudó a un `<span>` de adentro: es
+                          `overflow: hidden`, y sobre el propio enlace RECORTA su
+                          pseudo-elemento a la altura del texto — el área volvía
+                          a los 21px sin que nada fallara. */}
                       <Link
                         to={`/catalogo/admin/productos/${producto.id}/editar`}
                         title={producto.nombre}
-                        className="block md:truncate font-body-md text-on-surface hover:text-primary hover:underline"
+                        className={`${AREA_TACTIL_ANCHA} block font-body-md text-on-surface hover:text-primary hover:underline`}
                       >
-                        {producto.nombre}
+                        <span className="block md:truncate">{producto.nombre}</span>
                       </Link>
                     </td>
                     <td role="cell" data-label="SKU" className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
@@ -961,10 +1082,10 @@ function AdminProductos() {
                     <td role="cell" data-celda="secundaria" className="max-w-[120px] truncate px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3" title={producto.categoria?.nombre ?? undefined}>
                       {producto.categoria?.nombre ?? "—"}
                     </td>
-                    <td role="cell" data-label="Precio" className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface xl:px-3 xl:py-3">
+                    <td role="cell" data-label="Precio" className={`${claseNumero} whitespace-nowrap px-2 py-2 font-body-md text-on-surface xl:px-3 xl:py-3`}>
                       {formatPrecio(producto.precio)}
                     </td>
-                    <td role="cell" data-label="Stock" className="px-2 py-2 xl:px-3 xl:py-3">
+                    <td role="cell" data-label="Stock" className={`${claseNumero} px-2 py-2 xl:px-3 xl:py-3`}>
                       {producto.stock === 0 ? (
                         <span className="inline-block whitespace-nowrap rounded bg-error-container px-1.5 py-0.5 font-label-sm text-[11px] uppercase tracking-wide text-on-error-container xl:px-2 xl:py-1 xl:text-label-sm">
                           Sin stock
@@ -979,7 +1100,7 @@ function AdminProductos() {
                         </span>
                       )}
                     </td>
-                    <td role="cell" data-celda="secundaria" className="whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3">
+                    <td role="cell" data-celda="secundaria" className={`${claseNumero} whitespace-nowrap px-2 py-2 font-body-md text-on-surface-variant xl:px-3 xl:py-3`}>
                       {/* `cantidadFotos` y no `fotos.length`: el listado
                           liviano trae solo la portada, así que contar el array
                           mostraría "1/10" para cualquier producto con fotos. */}
@@ -994,7 +1115,7 @@ function AdminProductos() {
                           aria-label={`Mostrar ${producto.nombre} en el catálogo`}
                           onClick={() => handleToggleVisibilidad(producto)}
                           disabled={actualizandoVisibilidadId === producto.id}
-                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 md:h-5 md:w-9 xl:h-6 xl:w-11 ${
+                          className={`${CLASE_INTERRUPTOR} ${
                             producto.visibleEnCatalogo ? "bg-secondary" : "bg-outline-variant"
                           }`}
                         >
@@ -1018,7 +1139,7 @@ function AdminProductos() {
                           aria-label={`Destacar ${producto.nombre}`}
                           onClick={() => handleToggleDestacado(producto)}
                           disabled={actualizandoDestacadoId === producto.id}
-                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 md:h-5 md:w-9 xl:h-6 xl:w-11 ${
+                          className={`${CLASE_INTERRUPTOR} ${
                             producto.destacado ? "bg-secondary" : "bg-outline-variant"
                           }`}
                         >
@@ -1037,6 +1158,20 @@ function AdminProductos() {
                 ))}
               </tbody>
             </table>
+            </div>
+
+            {/* Decorativo (`aria-hidden`): lo que promete es visual, y para un
+                lector de pantalla la tabla nunca estuvo cortada. Va FUERA de
+                la caja que scrollea para quedarse pegado al filo derecho en
+                vez de viajar con el contenido, y `pointer-events-none` para no
+                comerse los clicks de la última columna. */}
+            {scrollPendiente ? (
+              <div
+                data-testid="aviso-scroll-tabla"
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-r-xl bg-gradient-to-l from-on-surface/20 to-transparent"
+              />
+            ) : null}
           </div>
         </div>
       )}

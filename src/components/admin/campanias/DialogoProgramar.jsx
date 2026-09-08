@@ -2,6 +2,7 @@ import { useState } from "react";
 import useDialogo from "../../../hooks/useDialogo.js";
 import VeloModal from "../../VeloModal.jsx";
 import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
+import { AREA_TACTIL_ICONO } from "../../../utils/areaTactil.js";
 
 /**
  * Programar una promoción suelta, sin campaña.
@@ -59,7 +60,16 @@ export default function DialogoProgramar({ promociones, diaInicial, guardando, o
               type="button"
               onClick={onCerrar}
               aria-label="Cerrar"
-              className="rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container"
+              // El glifo NO crece: 20px al lado del título es lo que equilibra
+              // el encabezado, y un disco de 44 lo desbalancea. El área se
+              // extiende con el pseudo-elemento de `utils/areaTactil.js`, que
+              // acá es seguro porque el único vecino es el `<h2>` —no es un
+              // control, así que no hay áreas que se roben entre sí—.
+              // `p-1` sobre un glifo de 20px da ~28×28, la mitad del mínimo de
+              // 44×44 (WCAG 2.5.8): la caja declarada, porque la medición del
+              // 07/09/2026 barrió la pantalla en reposo y nunca abrió este
+              // diálogo.
+              className={`${AREA_TACTIL_ICONO} rounded-lg p-1 text-on-surface-variant transition-colors hover:bg-surface-container`}
             >
               <span aria-hidden="true" className="material-symbols-outlined block text-[20px]">
                 close
@@ -132,17 +142,24 @@ export default function DialogoProgramar({ promociones, diaInicial, guardando, o
                 </p>
 
                 <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  {/* `min-h-11` ADEMÁS del `py-3`, nunca en lugar de él: el
+                      mínimo táctil de 44px (WCAG 2.5.8) es un PISO. La caja
+                      declarada da 43, los mismos que dio MEDIDA su gemela
+                      «Programar promoción» de la pantalla de atrás. Crecer en
+                      alto es gratis acá: en mobile los dos botones se apilan
+                      (`flex-col-reverse`) y en `sm+` van en fila con `gap-3`,
+                      así que ninguna de las dos direcciones pisa al otro. */}
                   <button
                     type="button"
                     onClick={onCerrar}
-                    className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container"
+                    className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={sinProductos}
-                    className="font-label-md text-label-md rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
+                    className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
                   >
                     {guardando ? "Programando…" : "Programar"}
                   </button>

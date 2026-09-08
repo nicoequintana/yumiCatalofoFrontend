@@ -52,3 +52,27 @@ describe("SoloEscritorio", () => {
     expect(() => montar()).not.toThrow();
   });
 });
+
+/**
+ * Área táctil (WCAG 2.5.8). Medido en navegador el 07/09/2026 sobre
+ * `/catalogo/admin/campanias` y `/promociones` a 390×844 con `elementFromPoint`
+ * —el área EFECTIVA, no la caja declarada—: el CTA daba **41 de alto**.
+ *
+ * El aviso vive JUSTO en el breakpoint donde importa: es lo único que se ve de
+ * estas dos pantallas en un celular, así que su único botón era un control de
+ * 41px en la superficie más táctil del panel. `NoEncontradoAdmin.jsx`, que es
+ * el mismo patrón de página vacía con una salida, ya declaraba
+ * `inline-flex min-h-11 items-center`: acá se aplica el mismo.
+ */
+describe("SoloEscritorio — área táctil", () => {
+  it("la salida a Productos declara el mínimo táctil de 44 de alto", () => {
+    montar();
+
+    const enlace = screen.getByRole("link", { name: "Ir a Productos" });
+
+    expect(enlace.className.split(" ")).toContain("min-h-11");
+    // `inline-flex` es lo que hace que un `<a>` respete la altura mínima: en
+    // `display:inline` se ignora y el arreglo no haría nada.
+    expect(enlace.className.split(" ")).toContain("inline-flex");
+  });
+});
