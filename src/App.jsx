@@ -47,6 +47,9 @@ const AdminVentas = lazy(() => import("./pages/admin/AdminVentas.jsx"));
 const AdminEmbudo = lazy(() => import("./pages/admin/AdminEmbudo.jsx"));
 const AdminClientes = lazy(() => import("./pages/admin/AdminClientes.jsx"));
 const AdminOperacion = lazy(() => import("./pages/admin/AdminOperacion.jsx"));
+const AdminMetricasComerciales = lazy(
+  () => import("./pages/admin/AdminMetricasComerciales.jsx"),
+);
 // El 404 del panel es del SHELL, no una pantalla: vive en `components/admin/`
 // junto al resto de las piezas compartidas. Va `lazy` igual que las pantallas
 // para no sumar peso al bundle público, que nunca lo necesita.
@@ -131,11 +134,48 @@ function App() {
             element={<AdminProductosSolicitados />}
           />
           <Route path="/catalogo/admin/ordenes/:id" element={<AdminOrdenDetalle />} />
-          <Route path="/catalogo/admin/ventas" element={<AdminVentas />} />
-          <Route path="/catalogo/admin/embudo" element={<AdminEmbudo />} />
-          <Route path="/catalogo/admin/clientes" element={<AdminClientes />} />
-          <Route path="/catalogo/admin/operacion" element={<AdminOperacion />} />
-          <Route path="/catalogo/admin/metricas" element={<AdminMetricas />} />
+          {/* Las cinco pantallas de analítica se mudaron bajo `/analytics` para
+              agruparlas (la navegación que las agrupa es tarea aparte). Las
+              rutas viejas quedan como redirecciones — `replace` siempre, para
+              que el botón "atrás" no rebote entre la vieja y la nueva. */}
+          <Route
+            path="/catalogo/admin/ventas"
+            element={<Navigate to="/catalogo/admin/analytics/ventas" replace />}
+          />
+          <Route
+            path="/catalogo/admin/embudo"
+            element={<Navigate to="/catalogo/admin/analytics/embudo" replace />}
+          />
+          <Route
+            path="/catalogo/admin/clientes"
+            element={<Navigate to="/catalogo/admin/analytics/clientes" replace />}
+          />
+          <Route
+            path="/catalogo/admin/operacion"
+            element={<Navigate to="/catalogo/admin/analytics/operacion" replace />}
+          />
+          <Route
+            path="/catalogo/admin/metricas"
+            element={<Navigate to="/catalogo/admin/analytics/metricas" replace />}
+          />
+          <Route
+            path="/catalogo/admin/analytics"
+            element={<Navigate to="/catalogo/admin/analytics/ventas" replace />}
+          />
+          <Route path="/catalogo/admin/analytics/ventas" element={<AdminVentas />} />
+          <Route path="/catalogo/admin/analytics/embudo" element={<AdminEmbudo />} />
+          <Route path="/catalogo/admin/analytics/clientes" element={<AdminClientes />} />
+          <Route path="/catalogo/admin/analytics/operacion" element={<AdminOperacion />} />
+          <Route path="/catalogo/admin/analytics/metricas" element={<AdminMetricas />} />
+          {/* Nombre parecido al del editor (`/catalogo/admin/campanias`), pero
+              son dos pantallas distintas: esta MIDE (clicks, impresiones por
+              campaña/promoción), el editor EDITA el contenido de la campaña.
+              No colisionan porque react-router matchea por el path completo,
+              no por prefijo. */}
+          <Route
+            path="/catalogo/admin/analytics/campanias"
+            element={<AdminMetricasComerciales />}
+          />
           <Route path="/catalogo/admin/logs" element={<AdminLogs />} />
           <Route path="/catalogo/admin/configuracion/categorias" element={<AdminCategorias />} />
           <Route path="/catalogo/admin/configuracion/etiquetas" element={<AdminEtiquetas />} />
