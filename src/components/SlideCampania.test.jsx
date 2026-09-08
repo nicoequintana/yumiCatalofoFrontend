@@ -1,7 +1,13 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import SlideCampania from "./SlideCampania.jsx";
+
+const registrarEventoComercialMock = vi.fn();
+vi.mock("../api/campanias.js", () => ({
+  registrarEventoComercial: (...args) => registrarEventoComercialMock(...args),
+}));
 
 /**
  * La forma EXACTA que emite `aSlideCampania` desde el 06/09/2026: sin
@@ -214,5 +220,83 @@ describe("SlideCampania — el piso del tinte sobre el copy", () => {
     expect(tinte).not.toBeNull();
     expect(alfaDe(tinte.className, "from-on-surface-variant/")).toBeGreaterThanOrEqual(90);
     expect(alfaDe(tinte.className, "via-on-surface-variant/")).toBeGreaterThanOrEqual(75);
+  });
+});
+
+describe("click del slide", () => {
+  const slide = {
+    tipo: "CAMPANIA",
+    campaniaId: 7,
+    promocionId: null,
+    titulo: "Primavera",
+    texto: "Hasta 30%",
+    ctaDestino: "/coleccion?campania=7",
+    ctaTipo: "CAMPANIA",
+    arteUrl: null,
+    doodleUrl: null,
+  };
+
+  beforeEach(() => {
+    registrarEventoComercialMock.mockClear();
+  });
+
+  it("registra el click con el destino que mandó el backend", async () => {
+    const usuario = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SlideCampania slide={slide} />
+      </MemoryRouter>,
+    );
+
+    await usuario.click(screen.getByRole("link", { name: "Primavera" }));
+
+    expect(registrarEventoComercialMock).toHaveBeenCalledWith({
+      tipo: "CLICK_COMERCIAL",
+      origen: "BANNER",
+      campaniaId: 7,
+      promocionId: null,
+      destino: "CAMPANIA",
+    });
+  });
+
+  it("un slide de promoción manda su promocionId y destino PROMOCION", async () => {
+    const usuario = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SlideCampania
+          slide={{
+            ...slide,
+            tipo: "PROMOCION",
+            campaniaId: null,
+            promocionId: 9,
+            ctaDestino: "/coleccion?promocion=9",
+            ctaTipo: "PROMOCION",
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    await usuario.click(screen.getByRole("link", { name: "Primavera" }));
+
+    expect(registrarEventoComercialMock).toHaveBeenCalledWith({
+      tipo: "CLICK_COMERCIAL",
+      origen: "BANNER",
+      campaniaId: null,
+      promocionId: 9,
+      destino: "PROMOCION",
+    });
+  });
+
+  it("la vista previa del editor NO emite", async () => {
+    const usuario = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SlideCampania slide={slide} interactivo={false} />
+      </MemoryRouter>,
+    );
+
+    await usuario.click(screen.getByText("Primavera"));
+
+    expect(registrarEventoComercialMock).not.toHaveBeenCalled();
   });
 });

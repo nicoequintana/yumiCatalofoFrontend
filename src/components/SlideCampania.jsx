@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { registrarEventoComercial } from "../api/campanias.js";
 
 /**
  * UN slide del carrusel de la home. No rota, no sabe que hay otros: la
@@ -65,6 +66,17 @@ export default function SlideCampania({ slide, interactivo = true }) {
           // de pantalla que anuncia "Ver más" no dice a dónde va. Con el
           // título, dice "Primavera, enlace".
           "aria-label": slide.titulo,
+          // El click no espera la respuesta: el `Link` navega igual. Va solo en
+          // esta rama — la del `div` es la vista previa del editor y no emite.
+          onClick: () => {
+            registrarEventoComercial({
+              tipo: "CLICK_COMERCIAL",
+              origen: "BANNER",
+              campaniaId: slide.campaniaId ?? null,
+              promocionId: slide.promocionId ?? null,
+              destino: slide.ctaTipo,
+            });
+          },
         }
       : {};
 
