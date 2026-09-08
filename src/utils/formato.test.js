@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import {
+  formatEntero,
   formatFecha,
   formatFechaHora,
   formatPrecio,
@@ -19,6 +20,18 @@ beforeAll(() => {
 
 afterAll(() => {
   process.env.TZ = TZ_ORIGINAL;
+});
+
+describe("formatEntero", () => {
+  it("agrupa los miles con el separador argentino", () => {
+    expect(formatEntero(1000)).toBe("1.000");
+    expect(formatEntero(1234567)).toBe("1.234.567");
+  });
+
+  it("un valor ausente se muestra como cero, no como vacío", () => {
+    expect(formatEntero(null)).toBe("0");
+    expect(formatEntero(undefined)).toBe("0");
+  });
 });
 
 describe("formatFecha", () => {

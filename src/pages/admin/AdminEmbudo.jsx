@@ -4,7 +4,7 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import { getEmbudoConversion } from "../../api/adminEmbudo.js";
-import { formatFecha } from "../../utils/formato.js";
+import { formatEntero, formatFecha } from "../../utils/formato.js";
 import SeccionAdmin from "../../components/SeccionAdmin.jsx";
 import SelectorPeriodo from "../../components/admin/SelectorPeriodo.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
@@ -13,11 +13,6 @@ import { claseCelda, claseEncabezado, claseTablaApilada } from "../../components
 
 /** Ancho mínimo de barra, para que una etapa en cero siga siendo visible. */
 const ANCHO_MINIMO = 6;
-
-/** 1000 -> "1.000", separador de miles argentino. */
-function formatEntero(cantidad) {
-  return new Intl.NumberFormat("es-AR").format(cantidad ?? 0);
-}
 
 /**
  * Tasa (0..1) -> "20,0%".

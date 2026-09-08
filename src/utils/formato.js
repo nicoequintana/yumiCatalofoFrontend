@@ -6,6 +6,29 @@
 const SIN_DATO = "—";
 
 /**
+ * Formatea un número entero con el separador de miles argentino.
+ * 1000 -> "1.000", 1234567 -> "1.234.567".
+ *
+ * Vivía duplicada en las pantallas de analytics. Se mudó acá al aparecer el
+ * segundo consumidor: dos copias de un formateador son dos lugares donde
+ * alguien puede cambiar el locale de uno solo y dejar dos pantallas mostrando
+ * el mismo número con distinta forma, sin que nada falle.
+ *
+ * ⚠️ Existe una variante `formatCantidad` en `AdminVentas.jsx:23` y
+ * `AdminClientes.jsx:70` que NO maneja el nulo (devuelve `"NaN"`). No se
+ * unificaron porque el cambio de comportamiento (`"NaN"` → `"0"`) es una
+ * decisión aparte: los llamadores podrían depender de distinguir ausencia de
+ * cero. Antes de unificarlas, verificá que ambos contextos puedan recibir
+ * `undefined` sin que sea un error.
+ *
+ * @param {number|null|undefined} cantidad
+ * @returns {string} ej. "1.000"
+ */
+export function formatEntero(cantidad) {
+  return new Intl.NumberFormat("es-AR").format(cantidad ?? 0);
+}
+
+/**
  * Fecha sin hora (`YYYY-MM-DD`), el shape que devuelven los endpoints de
  * analytics del admin. Se detecta a propósito para NO pasarla nunca por
  * `new Date()`: el parser de ECMAScript trata ese formato como medianoche UTC,
