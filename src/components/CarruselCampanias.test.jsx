@@ -2,7 +2,12 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import CarruselCampanias from "./CarruselCampanias.jsx";
+import CarruselCampanias, { claveDeSlide } from "./CarruselCampanias.jsx";
+
+const registrarEventoComercialMock = vi.fn();
+vi.mock("../api/campanias.js", () => ({
+  registrarEventoComercial: (...args) => registrarEventoComercialMock(...args),
+}));
 
 /**
  * La forma que emite `aSlideCampania` desde el 06/09/2026: sin `ctaTexto` y sin
@@ -254,5 +259,101 @@ describe("CarruselCampanias", () => {
     expect(screen.getByText("Promoción 10")).toBeInTheDocument();
     expect(screen.getByText("Promoción 20", { selector: "p" })).toBeInTheDocument();
     expect(screen.getAllByRole("tab")).toHaveLength(2);
+  });
+});
+
+describe("impresiones del banner", () => {
+  const slideCampania = {
+    tipo: "CAMPANIA",
+    campaniaId: 3,
+    promocionId: null,
+    titulo: "Primavera",
+    texto: "Hasta 30%",
+    ctaDestino: "/coleccion?campania=3",
+    ctaTipo: "CAMPANIA",
+    arteUrl: null,
+    doodleUrl: null,
+  };
+  const slidePromocion = {
+    tipo: "PROMOCION",
+    campaniaId: null,
+    promocionId: 3,
+    titulo: "Liquidación",
+    texto: "2x1",
+    ctaDestino: "/coleccion?promocion=3",
+    ctaTipo: "PROMOCION",
+    arteUrl: null,
+    doodleUrl: null,
+  };
+
+  beforeEach(() => {
+    registrarEventoComercialMock.mockClear();
+  });
+
+  it("registra la impresión del slide activo al montar", () => {
+    render(
+      <MemoryRouter>
+        <CarruselCampanias slides={[slideCampania, slidePromocion]} />
+      </MemoryRouter>,
+    );
+
+    expect(registrarEventoComercialMock).toHaveBeenCalledTimes(1);
+    expect(registrarEventoComercialMock).toHaveBeenCalledWith({
+      tipo: "IMPRESION_COMERCIAL",
+      origen: "BANNER",
+      campaniaId: 3,
+      promocionId: null,
+    });
+  });
+
+  it("al pasar al siguiente registra el segundo", async () => {
+    const usuario = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <CarruselCampanias slides={[slideCampania, slidePromocion]} />
+      </MemoryRouter>,
+    );
+
+    await usuario.click(screen.getByRole("button", { name: "Slide siguiente" }));
+
+    expect(registrarEventoComercialMock).toHaveBeenCalledTimes(2);
+    expect(registrarEventoComercialMock).toHaveBeenLastCalledWith({
+      tipo: "IMPRESION_COMERCIAL",
+      origen: "BANNER",
+      campaniaId: null,
+      promocionId: 3,
+    });
+  });
+
+  it("volver a un slide ya visto NO lo cuenta de nuevo", async () => {
+    const usuario = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <CarruselCampanias slides={[slideCampania, slidePromocion]} />
+      </MemoryRouter>,
+    );
+
+    await usuario.click(screen.getByRole("button", { name: "Slide siguiente" }));
+    await usuario.click(screen.getByRole("button", { name: "Slide anterior" }));
+
+    expect(registrarEventoComercialMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("sin slides no registra nada", () => {
+    render(
+      <MemoryRouter>
+        <CarruselCampanias slides={[]} />
+      </MemoryRouter>,
+    );
+
+    expect(registrarEventoComercialMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("claveDeSlide", () => {
+  it("no colisiona una campaña y una promoción con el mismo id", () => {
+    expect(claveDeSlide({ tipo: "CAMPANIA", campaniaId: 3, promocionId: null })).not.toBe(
+      claveDeSlide({ tipo: "PROMOCION", campaniaId: null, promocionId: 3 }),
+    );
   });
 });
