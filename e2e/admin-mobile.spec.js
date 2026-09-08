@@ -40,7 +40,7 @@ import {
  */
 test.describe("Admin en mobile", () => {
   // Los seis escenarios viven en un test, así que el presupuesto de tiempo es
-  // la SUMA de todos: dieciocho rutas recorridas de a una, más el drawer, la
+  // la SUMA de todos: diecinueve rutas recorridas de a una, más el drawer, la
   // tabla apilada, las áreas táctiles y el diálogo. Los 30 s del default de
   // `playwright.config.js` alcanzaban para un escenario suelto, no para la
   // tanda entera — y agrandar el default de TODA la suite por este spec sería
@@ -89,7 +89,7 @@ test.describe("Admin en mobile", () => {
    * `<h1>` visible y ningún `Spinner` de carga (`role="status"`,
    * `aria-label="Cargando"`, ver `components/Spinner.jsx`) en pantalla.
    *
-   * Hace falta para las DIECIOCHO rutas por igual: varias (el detalle de orden, el
+   * Hace falta para las DIECINUEVE rutas por igual: varias (el detalle de orden, el
    * editor de producto) ni siquiera montan su `<h1>` mientras cargan — el
    * `Spinner` ocupa toda la pantalla solo — así que esperar el `<h1>` ya
    * cubre ese caso, y el segundo `expect` cubre el resto (listados que sí
@@ -123,7 +123,7 @@ test.describe("Admin en mobile", () => {
     });
 
     await test.step("ninguna pantalla desborda ni tapa el título", async () => {
-      // Las dieciocho rutas del panel, recorridas de a una: el login es el
+      // Las diecinueve rutas del panel, recorridas de a una: el login es el
       // costo caro (rate limit de 8/15min en el backend) y `test.step` ya
       // identifica cuál falló sin necesidad de un test por ruta.
       const rutas = [
@@ -139,11 +139,12 @@ test.describe("Admin en mobile", () => {
         "/catalogo/admin/configuracion/categorias",
         "/catalogo/admin/configuracion/usuarios",
         "/catalogo/admin/configuracion/anuncios",
-        "/catalogo/admin/ventas",
-        "/catalogo/admin/embudo",
-        "/catalogo/admin/clientes",
-        "/catalogo/admin/operacion",
-        "/catalogo/admin/metricas",
+        "/catalogo/admin/analytics/ventas",
+        "/catalogo/admin/analytics/embudo",
+        "/catalogo/admin/analytics/clientes",
+        "/catalogo/admin/analytics/operacion",
+        "/catalogo/admin/analytics/metricas",
+        "/catalogo/admin/analytics/campanias",
         `/catalogo/admin/productos/${producto.id}/editar`,
       ];
 
