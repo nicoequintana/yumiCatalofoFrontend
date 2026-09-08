@@ -1,6 +1,13 @@
 import { useState } from "react";
 import Lightbox from "./Lightbox.jsx";
 
+// Los dos controles son la misma pieza espejada: el lado lo pone quien la usa.
+// Van sobre la foto, así que el fondo es semitransparente con desenfoque —
+// sobre un `object-contain` la imagen no siempre llega al borde y un disco
+// opaco cortaría el fondo de la caja.
+const CLASE_CONTROL =
+  "absolute top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-outline-variant bg-surface-container-lowest/80 text-on-surface shadow-ambient backdrop-blur-sm transition-colors hover:bg-surface-container-high md:h-12 md:w-12";
+
 /**
  * Product detail gallery — redesigned for the "Vibrant Editorial Discovery"
  * hero layout: one large photo/video on top (aspect-square, rounded-xl,
@@ -12,7 +19,15 @@ import Lightbox from "./Lightbox.jsx";
  *
  * The thumbnail row is hidden entirely when there's nothing to switch to
  * (a single photo and no video) — a row of one thumbnail duplicating the
- * hero image would be visual noise.
+ * hero image would be visual noise. The same condition hides the prev/next
+ * arrows overlaid on the large slide.
+ *
+ * Those arrows cycle through *every* slide, video included, which is why they
+ * are labelled "Anterior"/"Siguiente" and not "Foto anterior"/"Foto
+ * siguiente" — the latter belong to the Lightbox, which only ever holds
+ * photos. Both trees are mounted at the same time while the Lightbox is open,
+ * so the labels must stay distinct or a screen reader announces two identical
+ * controls (one of them behind the overlay).
  *
  * `compacto` caps the main slide's height. The `aspect-[4/5]` ratio is right
  * for a full page, but inside the admin's preview pane it renders ~1000px
@@ -34,11 +49,26 @@ function PhotoGallery({ fotos = [], video = null, nombre = "", compacto = false 
   // apuntando fuera de rango dejaba el slide grande completamente en blanco.
   const indiceActivo = slides.length === 0 ? 0 : Math.min(activo, slides.length - 1);
   const slideActivo = slides[indiceActivo];
-  const mostrarThumbnails = slides.length > 1;
+  // Un único concepto — "hay algo a lo que navegar" — que gobierna las dos
+  // superficies: la fila de miniaturas y las flechas del slide grande.
+  const hayNavegacion = slides.length > 1;
 
   function irA(index) {
     setActivo(index);
   }
+
+  // Navegación cíclica, igual que la del Lightbox: desde la última "Siguiente"
+  // vuelve a la primera. Parte de `indiceActivo` (el acotado) y no de `activo`,
+  // que puede haber quedado apuntando fuera de rango si la lista se encogió.
+  function mover(delta) {
+    setActivo((indiceActivo + delta + slides.length) % slides.length);
+  }
+
+  // `mover` toma un desplazamiento y `irA` un índice absoluto: son dos
+  // unidades distintas. Estos dos nombres dejan el JSX diciendo qué hace cada
+  // flecha, sin que el lector tenga que atar el signo al sentido del índice.
+  const irAlAnterior = () => mover(-1);
+  const irAlSiguiente = () => mover(1);
 
   return (
     <div className="flex flex-col gap-3">
@@ -77,9 +107,30 @@ function PhotoGallery({ fotos = [], video = null, nombre = "", compacto = false 
             />
           </button>
         ) : null}
+
+        {hayNavegacion ? (
+          <>
+            <button
+              type="button"
+              onClick={irAlAnterior}
+              aria-label="Anterior"
+              className={`${CLASE_CONTROL} left-2 md:left-3`}
+            >
+              <span className="material-symbols-outlined text-[22px]">chevron_left</span>
+            </button>
+            <button
+              type="button"
+              onClick={irAlSiguiente}
+              aria-label="Siguiente"
+              className={`${CLASE_CONTROL} right-2 md:right-3`}
+            >
+              <span className="material-symbols-outlined text-[22px]">chevron_right</span>
+            </button>
+          </>
+        ) : null}
       </div>
 
-      {mostrarThumbnails ? (
+      {hayNavegacion ? (
         <div className="flex w-full gap-3 overflow-x-auto pb-1">
           {slides.map((slide, index) => (
             <button

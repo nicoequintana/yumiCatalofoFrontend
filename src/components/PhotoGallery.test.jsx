@@ -136,3 +136,73 @@ describe("PhotoGallery — la lista de fotos cambia debajo", () => {
     expect(screen.getByRole("button", { name: "Ver foto 1" })).toHaveAttribute("aria-current", "false");
   });
 });
+
+describe("PhotoGallery — controles de navegación del slide grande", () => {
+  it("no los muestra cuando hay un solo slide", () => {
+    render(<PhotoGallery fotos={[FOTOS[0]]} nombre="Producto" />);
+
+    expect(screen.queryByRole("button", { name: "Siguiente" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Anterior" })).not.toBeInTheDocument();
+  });
+
+  it("avanza al siguiente slide", () => {
+    const { container } = render(<PhotoGallery fotos={FOTOS} nombre="Producto" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+
+    expect(principal(container)).toHaveAttribute("src", "/dos.jpg");
+  });
+
+  it("retrocede al slide anterior", () => {
+    const { container } = render(<PhotoGallery fotos={FOTOS} nombre="Producto" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Ver foto 3" }));
+    fireEvent.click(screen.getByRole("button", { name: "Anterior" }));
+
+    expect(principal(container)).toHaveAttribute("src", "/dos.jpg");
+  });
+
+  it("es cíclico en las dos puntas", () => {
+    const { container } = render(<PhotoGallery fotos={FOTOS} nombre="Producto" />);
+
+    // Desde la primera, "Anterior" va a la última.
+    fireEvent.click(screen.getByRole("button", { name: "Anterior" }));
+    expect(principal(container)).toHaveAttribute("src", "/tres.jpg");
+
+    // Y desde la última, "Siguiente" vuelve a la primera.
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    expect(principal(container)).toHaveAttribute("src", "/uno.jpg");
+  });
+
+  it("también recorre el video, no solo las fotos", () => {
+    const { container } = render(
+      <PhotoGallery fotos={[FOTOS[0]]} video={{ id: 9, url: "/clip.mp4" }} nombre="Producto" />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+
+    expect(principal(container)).toHaveAttribute("src", "/clip.mp4");
+  });
+
+  it("no anida los controles dentro del botón que abre el lightbox", () => {
+    // Un <button> adentro de otro <button> es HTML inválido: el navegador
+    // rompe el árbol y el control interno deja de recibir el click.
+    render(<PhotoGallery fotos={FOTOS} nombre="Perfume" />);
+
+    const ampliar = screen.getByRole("button", { name: "Ampliar foto de Perfume" });
+    expect(ampliar.querySelector("button")).toBeNull();
+  });
+
+  it("no colisiona con las flechas del lightbox cuando está abierto", async () => {
+    // Los dos árboles conviven en el DOM: si compartieran nombre accesible,
+    // `getByRole` fallaría por ambigüedad y el lector de pantalla anunciaría
+    // dos controles idénticos, uno de ellos detrás del overlay.
+    const user = userEvent.setup();
+    render(<PhotoGallery fotos={FOTOS} nombre="Perfume" />);
+
+    await user.click(screen.getByRole("button", { name: "Ampliar foto de Perfume" }));
+
+    expect(screen.getByRole("button", { name: "Siguiente" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Foto siguiente" })).toBeInTheDocument();
+  });
+});
