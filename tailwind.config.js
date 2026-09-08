@@ -40,7 +40,7 @@ export default {
         // TOKENS OF THEIR OWN, backed by their own custom properties in
         // `index.css` — close to the semantic tokens above, but NOT equal to
         // them. In light mode only `cream-base` matches its obvious
-        // counterpart (`background`); `terracotta-warm` (214 104 68) differs
+        // counterpart (`background`); `terracotta-warm` (178 74 42) differs
         // from `primary` (157 62 29), `moss-green` (96 108 56) differs from
         // `secondary` (88 99 48), and `golden-sand` (233 196 106) matches
         // `tertiary-container`, not `tertiary` (115 88 2). They diverge in

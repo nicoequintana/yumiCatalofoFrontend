@@ -72,7 +72,16 @@
      e.g. `text-terracotta-warm`, `bg-cream-base`) — kept alongside the
      semantic tokens above rather than replacing them, since components
      already reference the semantic names. See tailwind.config.js. */
-  --color-terracotta-warm: 214 104 68; /* #d66844 */
+  /* 178 74 42 y no el 214 104 68 original: el valor viejo daba 3,38:1 sobre
+     `background`, por debajo del 4,5:1 que exige WCAG AA para texto normal.
+     No calificaba para el umbral relajado de 3:1 porque el precio va a 18px
+     bold y "texto grande" arranca en 18,66px. Medido el 07/09/2026 sobre
+     `/producto/21` en produccion: fallaban el PRECIO, la frase comercial y
+     los iconos de beneficios, o sea el numero que decide una compra.
+     El valor nuevo da 5,12:1 y es el mas cercano al original que pasa con
+     margen (190 86 52 se queda en 4,38). La variante oscura no se toca: ya
+     daba 8,03:1. */
+  --color-terracotta-warm: 178 74 42; /* #b24a2a */
   --color-moss-green: 96 108 56; /* #606c38 */
   --color-golden-sand: 233 196 106; /* #e9c46a */
   --color-cream-base: 255 248 245; /* #fff8f5 */
