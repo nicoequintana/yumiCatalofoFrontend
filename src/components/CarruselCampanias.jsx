@@ -11,8 +11,12 @@ import SlideCampania from "./SlideCampania.jsx";
  * raro, es lo normal en una base joven. Con la `key` repetida React puede
  * reusar DOM y estado entre dos slides distintos cuando la lista cambia.
  *
- * El formato `TIPO:id` es el mismo que usa `repartirEtapas` en el backend
- * (`lib/metricasComerciales.js`) para exactamente el mismo problema.
+ * El formato `TIPO:id` es el mismo que ARMA `metricasComerciales.controller.js`
+ * (línea 240) para el mismo choque de ids, del lado del backend;
+ * `repartirEtapas` (`lib/metricasComerciales.js`) lo CONSUME, no lo arma. Es
+ * una coincidencia de diseño ante el mismo problema, no un contrato
+ * compartido: esta clave es local al render de React y nunca viaja en una
+ * request — divergir acá rompe la reconciliación del DOM, no ninguna métrica.
  */
 export function claveDeSlide(slide) {
   return `${slide.tipo}:${slide.promocionId ?? slide.campaniaId ?? "sin-id"}`;
