@@ -26,7 +26,7 @@ import {
  *
  * La reorganización del 08/09/2026 (diez ítems → cinco más dos acordeones)
  * sacó la causa, y este spec fue el que lo confirmó: medido con los mismos
- * `scrollWidth`/`elementFromPoint` de siempre a 1024, 1100 y 1280px, la barra
+ * `scrollWidth`/`elementFromPoint` de siempre a 1025, 1100 y 1280px, la barra
  * entra entera y "Cerrar sesión" recibe el click en su centro en los tres. El
  * corte volvió a `lg`, y el guard de abajo mide contra la bottom nav REAL en
  * vez del drawer de la banda huérfana, que ya no existe.
@@ -117,40 +117,59 @@ test.describe("Admin en escritorio (no-regresión)", () => {
       ).toBeGreaterThan(680);
 
       // La barra entra ENTERA: su ancho intrínseco (`scrollWidth`) no puede
-      // pasarse del viewport. Es la medición que faltaba y que dejó el bug
-      // pasar — el `clientWidth` de un elemento `fixed` es siempre el del
-      // viewport, así que compararlos entre sí nunca falla.
+      // pasarse de su propio `clientWidth`. Es la medición que faltaba y que
+      // dejó el bug pasar — `scrollWidth` SÍ acusa el desborde aunque el
+      // elemento sea `fixed` y su `overflow-x` compute `visible` (medido:
+      // 2512 de `scrollWidth` contra 1521 de `clientWidth` con la barra vieja
+      // desbordada a 1536px de viewport). Comparar contra `clientWidth`, NO
+      // contra `innerWidth`: con scrollbar clásico presente `innerWidth` es
+      // ~15px mayor que el ancho de layout, y esos 15px de holgura dejarían
+      // pasar en verde un desborde real de hasta ese tamaño.
       const nav = page.locator("nav.fixed.inset-x-0.bottom-0");
-      const desborde = await nav.evaluate((el) => el.scrollWidth - window.innerWidth);
-      expect(desborde, "la bottom nav no desborda el viewport a 1440px").toBeLessThanOrEqual(0);
+      const desborde = await nav.evaluate((el) => el.scrollWidth - el.clientWidth);
+      expect(desborde, "la bottom nav no desborda su propio ancho a 1440px").toBeLessThanOrEqual(0);
     });
 
     /**
      * La medición que decidió el corte (08/09/2026): con la nav reorganizada
      * en cinco ítems más dos acordeones, ¿entra la bottom nav a los anchos
      * donde antes (con diez ítems) se pintaba fuera del viewport? Los tres
-     * anchos son los mismos que delataron el bug original — 1024 y 1280 son
-     * los extremos de la banda rota, 1100 es un punto intermedio — y las dos
-     * afirmaciones son las que importan: `scrollWidth` no se pasa del
-     * viewport (nada se pinta fuera de pantalla) y `elementFromPoint` en el
-     * centro de "Cerrar sesión" devuelve el botón de verdad (visible no es lo
-     * mismo que alcanzable: eso fue justo lo que ocultó el bug anterior).
+     * anchos son los mismos que delataron el bug original — 1280 es el
+     * extremo superior de la banda rota, 1100 es un punto intermedio — y las
+     * dos afirmaciones son las que importan: `scrollWidth` no se pasa de
+     * `clientWidth` (nada se pinta fuera de la propia barra) y
+     * `elementFromPoint` en el centro de "Cerrar sesión" devuelve el botón de
+     * verdad (visible no es lo mismo que alcanzable: eso fue justo lo que
+     * ocultó el bug anterior).
+     *
+     * ⚠️ 1025, no 1024: `lg` (`min-width: 1024px`) evalúa contra el ancho de
+     * LAYOUT, que con scrollbar clásico presente es ~15px menor que
+     * `window.innerWidth` (1009 contra 1024 medido). A exactamente 1024px de
+     * viewport la media query puede no dispararse y la bottom nav no
+     * encenderse — Playwright headless oculta los scrollbars, así que ese
+     * paso pasaba en esta suite sin que existiera ningún bug, pero fallaría
+     * en `--headed` o en un navegador real con scrollbar visible: una trampa
+     * para el próximo que lo corra así. A 1024px exacto, en un navegador con
+     * scrollbar, el drawer sigue atendiendo — funciona, no es una regresión.
      */
-    for (const ancho of [1024, 1100, 1280]) {
+    for (const ancho of [1025, 1100, 1280]) {
       await test.step(`${ancho}px: la bottom nav entra entera y su logout es clickeable`, async () => {
         await page.setViewportSize({ width: ancho, height: 800 });
 
         const nav = page.locator("nav.fixed.inset-x-0.bottom-0");
         await expect(nav, `a ${ancho}px la bottom nav está visible`).toBeVisible();
 
-        const { scrollWidth, innerWidth } = await page.evaluate(() => {
+        // Comparar contra `clientWidth`, NO contra `innerWidth`: con
+        // scrollbar clásico presente `innerWidth` mete ~15px de holgura que
+        // dejarían pasar en verde un desborde real de hasta ese tamaño.
+        const { scrollWidth, clientWidth } = await page.evaluate(() => {
           const n = document.querySelector("nav.fixed.inset-x-0.bottom-0");
-          return { scrollWidth: n.scrollWidth, innerWidth: window.innerWidth };
+          return { scrollWidth: n.scrollWidth, clientWidth: n.clientWidth };
         });
         expect(
-          scrollWidth,
-          `a ${ancho}px la bottom nav entra entera (scrollWidth ${scrollWidth} <= innerWidth ${innerWidth})`,
-        ).toBeLessThanOrEqual(innerWidth);
+          scrollWidth - clientWidth,
+          `a ${ancho}px la bottom nav entra entera (scrollWidth ${scrollWidth} <= clientWidth ${clientWidth})`,
+        ).toBeLessThanOrEqual(0);
 
         const logout = nav.getByRole("button", { name: "Cerrar sesión" });
         await expect(logout, `a ${ancho}px "Cerrar sesión" se ve`).toBeVisible();

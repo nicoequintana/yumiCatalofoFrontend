@@ -148,7 +148,7 @@ function AdminProductoForm() {
 
   return (
     // En `lg` el editor ocupa el alto del viewport (menos la bottom nav, el
-    // `md:pb-20` de AdminLayout) y cada columna scrollea sola — por diseño,
+    // `lg:pb-20` de AdminLayout) y cada columna scrollea sola — por diseño,
     // no por limitación: son dos scrolls independientes lado a lado
     // (formulario/imágenes por un lado, preview por otro), así que ninguno de
     // los dos necesita `position: sticky`. El `<main>` del layout ya no es el

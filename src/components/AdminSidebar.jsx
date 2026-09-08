@@ -286,20 +286,28 @@ function AdminSidebar({ colapsada, onCerrar }) {
           ⚠️ HISTORIA DEL CORTE (07/09/2026 → 08/09/2026), para que nadie vuelva
           a bajarlo sin saber qué se rompió la primera vez:
 
-          Con DIEZ ítems en la barra (los cinco de hoy más Analytics y
-          Configuración desplegados en línea, más los dos solo-escritorio), el
-          corte se subió de `lg` (1024px) a `min-[1360px]` por una medición, no
-          por estética. La barra no llevaba `flex-wrap` ni scroll, su ancho
+          Con DIEZ ítems en la barra (`ITEMS_NAV` de entonces: Productos,
+          Órdenes, Campañas, Promociones, Ventas, Embudo, Clientes, Operación,
+          Métricas y Logs, más el botón "Configuración" aparte) el corte se
+          subió de `lg` (1024px) a `min-[1360px]` por una medición, no por
+          estética. La barra no llevaba `flex-wrap` ni scroll, su ancho
           INTRÍNSECO era de 1326px, y lo que no entraba se pintaba fuera del
-          viewport SIN generar scroll de documento (`overflow-x` computaba
-          `visible`, `scrollWidth === innerWidth`). No había forma de llegar
-          con el mouse: "Cerrar sesión" empezaba en x=1134 y quedaba invisible
-          por debajo de ese ancho, el toggle de tema por debajo de 1082 y
-          "Configuración" por debajo de 943. A 1024 `elementFromPoint`
-          directamente no devolvía ni el toggle ni el logout — y a ese ancho el
-          drawer, que sí tiene su propio logout, ya estaba apagado. El agujero
-          se abría EXACTAMENTE en el breakpoint `lg`, e incluía 1280, el
-          viewport del propio E2E de escritorio del proyecto.
+          viewport SIN generar scroll de DOCUMENTO (`document.documentElement`
+          no scrolleaba: eso es lo que `overflow-x: visible` produce, plata
+          pintada fuera de pantalla en vez de una barra de scroll). El
+          `scrollWidth` de la BARRA sí acusaba el desborde —midió 2512 contra
+          un `clientWidth` de 1521 con la barra vieja forzada a un viewport de
+          1536px— y es justo esa distinción la que hace útil al guard de
+          `e2e/admin-desktop-layout.spec.js`: mide contra el propio
+          `clientWidth` del elemento, no contra el `innerWidth` del documento.
+          No había forma de llegar con el mouse: "Cerrar sesión" empezaba en
+          x=1134 y quedaba invisible por debajo de ese ancho, el toggle de
+          tema por debajo de 1082 y "Configuración" por debajo de 943. A 1024
+          `elementFromPoint` directamente no devolvía ni el toggle ni el
+          logout — y a ese ancho el drawer, que sí tiene su propio logout, ya
+          estaba apagado. El agujero se abría EXACTAMENTE en el breakpoint
+          `lg`, e incluía 1280, el viewport del propio E2E de escritorio del
+          proyecto.
 
           `overflow-x-auto` no era arreglo (una barra fija que scrollea de
           costado no se descubre) ni colapsar a solo-ícono (diez íconos sin
@@ -313,9 +321,10 @@ function AdminSidebar({ colapsada, onCerrar }) {
           ítems en la fila significa menos ancho intrínseco. Se volvió a medir
           en navegador antes de tocar el número — mismo método que la vez
           anterior, `scrollWidth`/`elementFromPoint` reales, no "se ve
-          apretado" — a 1024, 1100 y 1280px: la barra entra
-          (`scrollWidth <= innerWidth` en los tres) y "Cerrar sesión" recibe el
-          click en su centro en los tres. El detalle de la medición vive en
+          apretado" — a 1025, 1100 y 1280px: la barra entra
+          (`scrollWidth <= clientWidth` en los tres, el mismo comparador
+          exacto que corrige el guard) y "Cerrar sesión" recibe el click en su
+          centro en los tres. El detalle de la medición vive en
           `docs/reglas/admin-panel.md` y en el guard de
           `e2e/admin-desktop-layout.spec.js`. Con eso el corte volvió a `lg`
           (1024px), el mismo que ya usaba `SoloEscritorio.jsx` y el filtro

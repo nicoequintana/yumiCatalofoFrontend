@@ -219,7 +219,9 @@ describe("AdminLayout", () => {
       // `py-4` de `EditorHeader`— declara `min-h-11` y mide 89x44 de caja,
       // pero su área efectiva daba 89x36, o sea los 8px que le quedaban
       // debajo de la cinta (24 - 16 = 8). Pasaba en 390 y en 1280, los dos
-      // anchos donde esta barra existe (se esconde recién en 1360).
+      // anchos donde esta barra existía ESE día — con el corte en
+      // `min-[1360px]`. Desde que volvió a `lg` (08/09/2026), 1280 ya no es
+      // uno de esos anchos: la barra existe por debajo de 1024, no de 1360.
       //
       // En producción la cinta no está en el DOM y la variable vale `0px`:
       // este padding es exactamente cero y no cambia nada de lo publicado.
