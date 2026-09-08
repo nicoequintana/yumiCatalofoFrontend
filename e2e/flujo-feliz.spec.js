@@ -124,12 +124,14 @@ test.describe("Flujo feliz — checkout de invitado", () => {
     await expect(linea.getByText("$ 7.500")).toBeVisible();
     await expect(page.getByTestId("carrito-total")).toHaveText("$ 7.500");
 
-    // 4. CTA "Confirmar pedido" — debe ser un <Link> real y habilitado (no
+    // 4. CTA "Continuar" — debe ser un <Link> real y habilitado (no
     // aria-disabled), ver Carrito.jsx. Un carrito sano con un único producto
-    // válido nunca cae en la rama <button disabled>.
-    const ctaConfirmar = page.getByRole("link", { name: "Confirmar pedido" });
-    await expect(ctaConfirmar).toBeVisible();
-    await ctaConfirmar.click();
+    // válido nunca cae en la rama <button disabled>. Dice "Continuar" y no
+    // "Confirmar pedido" a propósito: acá todavía no se compra nada, y ese
+    // copy es del botón del checkout, que sí crea la orden.
+    const ctaContinuar = page.getByRole("link", { name: "Continuar" });
+    await expect(ctaContinuar).toBeVisible();
+    await ctaContinuar.click();
 
     await expect(page).toHaveURL(/\/checkout$/);
 

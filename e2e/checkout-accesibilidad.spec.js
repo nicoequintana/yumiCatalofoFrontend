@@ -94,6 +94,19 @@ test.describe("Checkout — accesibilidad básica del formulario", () => {
 
     const alerta = page.getByRole("alert");
     await expect(alerta).toBeVisible();
-    await expect(alerta).toHaveText("Error de prueba simulado.");
+
+    // Esta aserción exigía que el alert dijera EXACTAMENTE el mensaje crudo
+    // del backend, o sea que fijaba el defecto en vez de prevenirlo: en el
+    // momento de comprar, el cliente leía "Error interno del servidor." sin
+    // saber qué hacer ni —lo más importante— si el pedido se había creado.
+    // Corregido el 07/09/2026 a partir de una auditoría de UX.
+    //
+    // Lo que se afirma ahora es el contrato real: el titular es copy humano y
+    // dice explícitamente que NO se generó el pedido. El mensaje del backend
+    // sobrevive como detalle secundario porque a veces es accionable ("El
+    // producto X está agotado"), pero deja de ser lo único que se lee.
+    await expect(alerta).toContainText("no se generó ningún pedido");
+    await expect(alerta).toContainText("Revisá tu conexión e intentá de nuevo.");
+    await expect(alerta).toContainText("Error de prueba simulado.");
   });
 });
