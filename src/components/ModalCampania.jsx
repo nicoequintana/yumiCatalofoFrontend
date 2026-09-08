@@ -1,3 +1,4 @@
+import { registrarEventoComercial } from "../api/campanias.js";
 import CartelCampania from "./CartelCampania.jsx";
 import useDialogo from "../hooks/useDialogo.js";
 import VeloModal from "./VeloModal.jsx";
@@ -24,6 +25,19 @@ const ID_TITULO = "titulo-modal-campania";
 
 export default function ModalCampania({ modal, onCerrar }) {
   const dialogoRef = useDialogo({ onCerrar });
+
+  // Registra ANTES de cerrar: cerrar desmonta el árbol, y un registro disparado
+  // después podría no llegar a salir. `CartelCampania` no se toca — el panel lo
+  // reusa como vista previa y ahí no debe emitir nada.
+  const alClickearCta = () => {
+    registrarEventoComercial({
+      tipo: "CLICK_COMERCIAL",
+      origen: "MODAL",
+      campaniaId: modal.campaniaId,
+      destino: modal.ctaTipo,
+    });
+    onCerrar();
+  };
 
   return (
     // El velo es hermano del contenido y no su padre por la trampa que ya
@@ -65,7 +79,7 @@ export default function ModalCampania({ modal, onCerrar }) {
         {/* Tocar el CTA cierra el diálogo además de navegar: sin eso, volver
             atrás desde el destino devolvería a la página con el cartel todavía
             abierto encima. */}
-        <CartelCampania modal={modal} onCtaClick={onCerrar} idTitulo={ID_TITULO} />
+        <CartelCampania modal={modal} onCtaClick={alClickearCta} idTitulo={ID_TITULO} />
       </div>
     </VeloModal>
   );

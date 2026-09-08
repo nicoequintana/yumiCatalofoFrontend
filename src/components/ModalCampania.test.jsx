@@ -1,7 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import ModalCampania from "./ModalCampania.jsx";
+
+const registrarEventoComercialMock = vi.fn();
+vi.mock("../api/campanias.js", () => ({
+  registrarEventoComercial: (...args) => registrarEventoComercialMock(...args),
+}));
 
 const BASE = {
   campaniaId: 1,
@@ -116,4 +122,40 @@ describe("ModalCampania — el Doodle en el encabezado", () => {
     expect(screen.getByRole("heading", { name: "Llega la primavera" })).toBeInTheDocument();
     expect(screen.getByText("6")).toBeInTheDocument();
   });
+});
+
+it("el click del CTA registra y después cierra, en ese orden", async () => {
+  const usuario = userEvent.setup();
+  const orden = [];
+  registrarEventoComercialMock.mockImplementation(() => orden.push("registro"));
+  const cerrar = vi.fn(() => orden.push("cierre"));
+
+  render(
+    <MemoryRouter>
+      <ModalCampania
+        modal={{
+          campaniaId: 7,
+          titulo: "Primavera",
+          texto: "Ya viene",
+          ctaTexto: "Ver la colección",
+          ctaDestino: "/coleccion?campania=7",
+          ctaTipo: "CAMPANIA",
+          doodleUrl: null,
+          diasFaltantes: 3,
+        }}
+        onCerrar={cerrar}
+      />
+    </MemoryRouter>,
+  );
+
+  await usuario.click(screen.getByRole("link", { name: "Ver la colección" }));
+
+  expect(registrarEventoComercialMock).toHaveBeenCalledWith({
+    tipo: "CLICK_COMERCIAL",
+    origen: "MODAL",
+    campaniaId: 7,
+    destino: "CAMPANIA",
+  });
+  expect(cerrar).toHaveBeenCalled();
+  expect(orden).toEqual(["registro", "cierre"]);
 });
