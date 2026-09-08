@@ -23,4 +23,24 @@ describe("BadgeEstado", () => {
     render(<BadgeEstado estado="ALGO_NUEVO" etiqueta="Algo nuevo" />);
     expect(screen.getByText("Algo nuevo")).toBeInTheDocument();
   });
+
+  // Dominios ajenos a órdenes (campañas, promociones) no pueden pintar sus
+  // estados con `ESTILOS_ESTADO`: sus claves no matchean ninguna y todo cae
+  // al gris por defecto. `estilos` deja que el consumidor pase su propio mapa
+  // sin que `constants/ordenes.js` tenga que aprender de un dominio ajeno.
+  it("acepta un mapa de estilos propio para un dominio ajeno a órdenes", () => {
+    const { container } = render(
+      <BadgeEstado
+        estado="ACTIVA"
+        etiqueta="Activa"
+        estilos={{ ACTIVA: "bg-primary text-on-primary" }}
+      />,
+    );
+    expect(container.firstChild).toHaveClass("bg-primary", "text-on-primary");
+  });
+
+  it("sin mapa propio, sigue usando ESTILOS_ESTADO por default", () => {
+    const { container } = render(<BadgeEstado estado="PENDIENTE" etiqueta="Pendiente" />);
+    expect(container.firstChild).toHaveClass("bg-surface-container-high");
+  });
 });

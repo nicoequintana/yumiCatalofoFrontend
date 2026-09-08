@@ -28,6 +28,21 @@ const FILTROS_ESTADO = [
 ];
 
 /**
+ * Estilos del `estadoTemporal` de cada tarjeta — dominio de campañas, no de
+ * órdenes. `BadgeEstado` por defecto pinta con `ESTILOS_ESTADO`
+ * (`constants/ordenes.js`), cuyas claves son `PENDIENTE`/`EN_PREPARACION`/…:
+ * ninguna matchea `ACTIVA`/`PROGRAMADA`/`FINALIZADA`, así que las tres caían
+ * al mismo gris por defecto y anulaban la dimensión que esta pantalla más
+ * necesita escanear de un vistazo. Vive acá y no en `constants/ordenes.js`,
+ * que es solo de órdenes.
+ */
+const ESTILOS_ESTADO_TEMPORAL = {
+  PROGRAMADA: "bg-secondary-container text-on-secondary-container",
+  ACTIVA: "bg-primary text-on-primary",
+  FINALIZADA: "bg-surface-container-highest text-on-surface-variant",
+};
+
+/**
  * Tasa (0..1) -> "25,0%". Mismo criterio que `AdminEmbudo`: `null`/`undefined`
  * es "no calculable" y se resuelve ANTES de llamar a esta función — nunca
  * "0%", que le mentiría al admin sobre una tasa que en realidad no se sabe.
@@ -43,17 +58,21 @@ function formatTasa(tasa) {
  * eso entre en una fila legible.
  */
 function TarjetaMetrica({ item, origenes, registraDesde }) {
+  // Mismo vocabulario en las dos ramas (HABILITADA/DESHABILITADA, el de
+  // `ESTADOS_CAMPANIA` en el backend): mostrar "HABILITADA" cruda para
+  // campaña y "Habilitada" en minúscula para promoción es el mismo
+  // significado con dos formatos en la misma pantalla.
   const estadoAdministrativo =
-    item.tipo === "CAMPANIA" ? item.estado : item.activa ? "Habilitada" : "Deshabilitada";
+    item.tipo === "CAMPANIA" ? item.estado : item.activa ? "HABILITADA" : "DESHABILITADA";
 
   return (
     <li className="flex flex-col gap-4 rounded-xl bg-surface-container-lowest p-5 shadow-ambient">
       <div className="flex flex-wrap items-center gap-3">
         <h3 className="font-headline-md text-headline-md text-on-surface">{item.nombre}</h3>
-        <BadgeEstado estado={item.estadoTemporal} />
+        <BadgeEstado estado={item.estadoTemporal} estilos={ESTILOS_ESTADO_TEMPORAL} />
         {item.subregistrada ? (
           <span
-            title={`La medición empezó el ${registraDesde}`}
+            title={`La medición empezó el ${formatFecha(registraDesde)}`}
             className="font-label-sm text-label-sm rounded-full bg-tertiary-container px-2 py-1 uppercase tracking-widest text-on-surface"
           >
             Parcial
@@ -258,9 +277,9 @@ function AdminMetricasComerciales() {
           className="font-body-md text-body-md mb-8 rounded-xl border border-outline-variant bg-surface-container-low p-4 text-on-surface-variant"
         >
           Las vistas de producto y los agregados al carrito se contaron sobre
-          el rango del {datos.etapasEnRango.desde} al{" "}
-          {datos.etapasEnRango.hasta}, no sobre el período de cada campaña o
-          promoción.
+          el rango del {formatFecha(datos.etapasEnRango.desde)} al{" "}
+          {formatFecha(datos.etapasEnRango.hasta)}, no sobre el período de
+          cada campaña o promoción.
         </p>
       ) : null}
 
@@ -277,11 +296,23 @@ function AdminMetricasComerciales() {
           onReintentar={() => setReintento((n) => n + 1)}
         />
       ) : datos === null ? null : datos.items.length === 0 ? (
-        <EstadoVacio
-          icono="campaign"
-          titulo="Todavía no hay campañas ni promociones con actividad"
-          mensaje="Cuando una campaña o promoción con banner cargado reciba impresiones o clicks, sus métricas van a aparecer acá."
-        />
+        // "Todavía no hay actividad" sería falso con un filtro de estado
+        // activo: la actividad puede existir en otro estado, y el filtro es
+        // lo que la está dejando afuera. Mismo criterio que
+        // `AdminProductos.jsx` con `busqueda`/`categoria`/etc.
+        estado !== undefined ? (
+          <EstadoVacio
+            icono="search_off"
+            titulo="Sin resultados"
+            mensaje="Ningún ítem con este filtro tiene impresiones ni clicks. Probá con otro estado."
+          />
+        ) : (
+          <EstadoVacio
+            icono="campaign"
+            titulo="Todavía no hay campañas ni promociones con actividad"
+            mensaje="Cuando una campaña o promoción con banner cargado reciba impresiones o clicks, sus métricas van a aparecer acá."
+          />
+        )
       ) : (
         <ul className="flex flex-col gap-6">
           {datos.items.map((item) => (

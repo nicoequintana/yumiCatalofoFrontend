@@ -87,7 +87,9 @@ describe("AdminMetricasComerciales", () => {
     montar();
 
     const chip = await screen.findByText("Parcial");
-    expect(chip).toHaveAttribute("title", expect.stringContaining("2026-09-08"));
+    // `formatFecha`, no el ISO crudo: es el mismo formato que ya usa el
+    // período de cada tarjeta, dos líneas más abajo en el mismo componente.
+    expect(chip).toHaveAttribute("title", expect.stringContaining("08/09/2026"));
   });
 
   it("emite el estado administrativo, que distingue 'nadie la vio' de 'nunca salió'", async () => {
@@ -126,8 +128,12 @@ describe("AdminMetricasComerciales", () => {
 
   it("declara el rango sobre el que se contaron las etapas", async () => {
     montar();
+    await screen.findByText("Primavera");
 
-    expect(await screen.findByText(/2026-09-16/)).toBeInTheDocument();
+    // `formatFecha`, no el ISO crudo — mismo motivo que el chip Parcial.
+    // Acotado a la nota (`role="status"`) porque el período de la tarjeta
+    // termina la misma fecha en este fixture y también la muestra.
+    expect(screen.getByRole("status")).toHaveTextContent("16/09/2026");
   });
 
   it("un error muestra el estado de error, y un reintento exitoso lo limpia", async () => {
@@ -150,5 +156,21 @@ describe("AdminMetricasComerciales", () => {
     montar();
 
     expect(await screen.findByText(/todavía no/i)).toBeInTheDocument();
+  });
+
+  it("con un filtro activo y cero resultados, el vacío dice que el filtro no encontró nada", async () => {
+    const usuario = userEvent.setup();
+    montar();
+    await screen.findByText("Primavera");
+
+    // La próxima llamada (la que dispara el click) vuelve vacía; el mount ya
+    // consumió el default de `beforeEach`. Sin esta distinción, "Todavía no
+    // hay actividad" sería falso: la actividad existe, el filtro no la
+    // alcanza.
+    getMetricasComercialesMock.mockResolvedValueOnce({ ...RESPUESTA, items: [] });
+    await usuario.click(screen.getByRole("button", { name: "Finalizadas" }));
+
+    expect(await screen.findByText(/sin resultados/i)).toBeInTheDocument();
+    expect(screen.queryByText(/todavía no/i)).not.toBeInTheDocument();
   });
 });
