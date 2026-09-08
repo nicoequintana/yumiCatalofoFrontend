@@ -5,6 +5,7 @@ import useCategoriasNavbar from "../hooks/useCategoriasNavbar.js";
 import useContextoComercial from "../hooks/useContextoComercial.js";
 import LogoYima from "./LogoYima.jsx";
 import PanelCategorias from "./PanelCategorias.jsx";
+import { AREA_TACTIL_ANCHA, AREA_TACTIL_ICONO } from "../utils/areaTactil.js";
 
 /**
  * Navegación principal del catálogo público, solo para la barra de escritorio:
@@ -174,7 +175,16 @@ function Navbar() {
             siempre. En el panel manda el Doodle del panel, que puede ser el de
             otra campaña o ninguno: son dos públicos distintos y cada campaña
             decide por separado dónde aparece. */}
-        <Link to="/" className="shrink-0 transition-opacity hover:opacity-80">
+        {/* Área táctil: medido en navegador el 07/09/2026 con
+            `elementFromPoint` —el área EFECTIVA, no la caja declarada— el link
+            del logo daba 71×28 a 390 y 93×33 a 1280. Va con pseudo-elemento y
+            no con `min-h-11` porque el header tiene alto fijo
+            (`h-navbar-height`): estirar el link movería el logo dentro de esa
+            caja. `before:w-full` copia el ancho propio y no invade al vecino. */}
+        <Link
+          to="/"
+          className={`shrink-0 transition-opacity hover:opacity-80 ${AREA_TACTIL_ANCHA}`}
+        >
           <LogoYima className="h-7 md:h-8" doodleUrl={doodleDelHeader} />
         </Link>
 
@@ -189,7 +199,15 @@ function Navbar() {
                       <Link
                         to={destino.to}
                         aria-current={activo ? "page" : undefined}
-                        className={`inline-block border-b-2 pb-1 font-body-md text-body-md font-medium transition-colors ${
+                        // Área táctil: 42×33 medidos el 07/09/2026 con
+                        // `elementFromPoint`. Pseudo-elemento y no `min-h-11`
+                        // porque el subrayado de activo es el `border-b` del
+                        // propio link: al crecer la caja se despegaría del
+                        // texto. `before:w-11` porque acá tampoco alcanzaba el
+                        // ANCHO —42 contra 44—, y el `gap-10` del `ul` deja
+                        // sitio de sobra para los 1,5px que sobresalen de cada
+                        // lado.
+                        className={`inline-block border-b-2 pb-1 font-body-md text-body-md font-medium transition-colors ${AREA_TACTIL_ICONO} ${
                           activo
                             ? "border-on-surface text-on-surface"
                             : "border-transparent text-on-surface-variant hover:text-on-surface"
@@ -208,7 +226,12 @@ function Navbar() {
                     aria-expanded={categoriasAbiertas}
                     aria-controls="panel-categorias"
                     onClick={() => setCategoriasAbiertas((abierto) => !abierto)}
-                    className={`inline-flex items-center gap-1 border-b-2 pb-1 font-body-md text-body-md font-medium transition-colors ${
+                    // Área táctil: 93×33 medidos el 07/09/2026 con
+                    // `elementFromPoint`. Solo faltaba el ALTO, así que
+                    // `before:w-full` copia el ancho propio: un ancho fijo
+                    // taparía el borde del panel de categorías que se abre
+                    // justo debajo.
+                    className={`inline-flex items-center gap-1 border-b-2 pb-1 font-body-md text-body-md font-medium transition-colors ${AREA_TACTIL_ANCHA} ${
                       pathname.startsWith("/coleccion") || categoriasAbiertas
                         ? "border-on-surface text-on-surface"
                         : "border-transparent text-on-surface-variant hover:text-on-surface"

@@ -9,6 +9,7 @@ import { crearOrden } from "../api/ordenes.js";
 import { formatPrecio, precioACentavos } from "../utils/formato.js";
 import { urlAbsoluta } from "../constants/seo.js";
 import { precioAPagar } from "../utils/precioEfectivo.js";
+import { MENSAJE_ERROR_CARGA } from "../hooks/useOfertas.js";
 
 /**
  * `/checkout` — formulario de checkout de invitado (Sprint 6, Task 1).
@@ -52,6 +53,17 @@ const DNI_DIGITOS_MAX = 8;
  * con separadores.
  */
 const DNI_LARGO_MAX = 10;
+
+/**
+ * Lo primero que el cliente necesita saber cuando el submit falla NO es qué se
+ * rompió, sino si su pedido existe. Antes acá se mostraba `err.message` pelado,
+ * así que ante un 500 leía "Error interno del servidor." — sin saber si tenía
+ * que reintentar o si iba a terminar con dos pedidos.
+ *
+ * El mensaje de reintento es el compartido de `useOfertas.js`, no una tercera
+ * redacción del mismo consejo.
+ */
+const MENSAJE_ERROR_ENVIO = `No pudimos confirmar tu compra: no se generó ningún pedido y no se te cobró nada. ${MENSAJE_ERROR_CARGA}`;
 
 function dniTieneFormatoPlausible(valor) {
   const digitos = valor.replace(/\D/g, "");
@@ -105,7 +117,7 @@ function Checkout() {
       // y el spinner girando para siempre, con el usuario a un paso de pagar.
       .catch(() => {
         if (!activo) return;
-        setErrorCarga("Revisá tu conexión e intentá de nuevo.");
+        setErrorCarga(MENSAJE_ERROR_CARGA);
         setCargando(false);
       });
 
@@ -212,7 +224,11 @@ function Checkout() {
       // corta la conexión) el carrito no se pierde y puede reintentar.
       navigate("/checkout/confirmacion", { state: { orden } });
     } catch (err) {
-      setErrorEnvio(err.message);
+      // El detalle del backend se conserva como SEGUNDA línea, nunca como
+      // titular: hay errores que sí sirven ("Stock insuficiente para X") y
+      // descartarlos dejaría al cliente sin saber qué ajustar. Lo que no puede
+      // pasar es que el primer renglón sea jerga del servidor.
+      setErrorEnvio({ mensaje: MENSAJE_ERROR_ENVIO, detalle: err?.message || null });
       setEnviando(false);
     }
   }
@@ -269,9 +285,13 @@ function Checkout() {
           <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
             Un paso más
           </span>
-          <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">
-            Checkout
-          </h2>
+          {/* "Checkout" era la única palabra en inglés del sitio, entre "Tu
+              pedido" y "Un paso más". Cambia el TEXTO VISIBLE nada más: la
+              ruta `/checkout`, el nombre del archivo y los identificadores se
+              quedan como están — renombrarlos rompería links e historial. */}
+          <h1 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">
+            Finalizar compra
+          </h1>
         </div>
 
         <div className="mx-auto flex max-w-3xl flex-col gap-8">
@@ -433,7 +453,10 @@ function Checkout() {
                 role="alert"
                 className="rounded-lg bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container"
               >
-                {errorEnvio}
+                {errorEnvio.mensaje}
+                {errorEnvio.detalle ? (
+                  <span className="mt-1 block text-[13px]">Detalle: {errorEnvio.detalle}</span>
+                ) : null}
               </p>
             ) : null}
 

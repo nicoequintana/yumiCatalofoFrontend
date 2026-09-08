@@ -150,8 +150,27 @@ export default function SlideCampania({ slide, interactivo = true }) {
               quedaría ilegible con vidrio solo. `on-surface-variant` y no
               `inverse-surface`: el segundo es el casi-negro (#1d1b1a) y sobre
               una foto se leía como una mancha; éste (#56423c) deja pasar el
-              color del arte. */}
-          <div className="absolute inset-0 bg-gradient-to-r from-on-surface-variant/75 from-40% via-on-surface-variant/40 via-70% to-transparent" />
+              color del arte.
+
+              ⚠️ EL PISO DEL TINTE NO ES ESTÉTICA: es lo único que separa el
+              copy de una foto que sube el admin, y hasta el 07/09/2026 estaba
+              calculado contra el arte que había, no contra el peor caso.
+              Medido en Chromium a 390px con un arte PNG BLANCO —una foto de
+              producto sobre fondo blanco, lo más común en e-commerce—:
+
+                antes (`/75` desde 40 %, `/40` en 70 %) → peor píxel **2.54**,
+                  el 100 % del área del copy por debajo de 4.5
+                hoy   (`/90` desde 45 %, `/75` en 72 %) → peor píxel **5.13**,
+                  0 % del área por debajo de 4.5
+
+              Los DOS números se mueven juntos y el del medio es el que importa:
+              la caja del copy llega al 64 % del ancho en móvil (52 % en
+              escritorio), o sea bastante más allá del primer stop — subir solo
+              el `from` deja la mitad derecha del texto igual de ilegible, que
+              es exactamente lo que pasaba. El stop del medio se corrió además
+              de 70 % a 72 % para que el degradé recién empiece a soltar
+              DESPUÉS de donde puede haber texto. */}
+          <div className="absolute inset-0 bg-gradient-to-r from-on-surface-variant/90 from-45% via-on-surface-variant/75 via-72% to-transparent" />
         </>
       ) : hayDoodle ? (
         /* El doodle solo aparece SIN arte. Con arte, dos imágenes en 135 px de

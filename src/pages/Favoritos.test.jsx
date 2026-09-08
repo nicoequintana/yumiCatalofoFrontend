@@ -68,6 +68,32 @@ function restaurarStorage() {
   }
 }
 
+describe("Favoritos — encabezado y salida del estado vacío", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("el título de la página es el h1, no un h2", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([]);
+
+    renderFavoritos();
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Favoritos" })).toBeInTheDocument();
+  });
+
+  it("el estado vacío OFRECE la salida al catálogo, no solo la nombra", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([]);
+
+    renderFavoritos();
+
+    await screen.findByText(/todavía no guardaste favoritos/i);
+    expect(screen.getByRole("link", { name: /ver el catálogo/i })).toHaveAttribute(
+      "href",
+      "/coleccion",
+    );
+  });
+});
+
 describe("Favoritos — limpieza de ids obsoletos", () => {
   beforeEach(() => {
     instalarStorage();

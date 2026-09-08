@@ -37,7 +37,14 @@ function NoEncontrado() {
         </p>
         <Link
           to="/coleccion"
-          className="font-label-md text-label-md rounded-full bg-primary px-6 py-3 uppercase tracking-wide text-on-primary"
+          // `min-h-11` (44px) ADEMÁS del `py-3`, no en lugar de él: el mínimo
+          // táctil es un PISO. Medido en navegador el 07/09/2026 con
+          // `elementFromPoint` —el área EFECTIVA, no la caja declarada—, el
+          // CTA daba 42 de alto en los dos breakpoints. Es un botón suelto en
+          // una página vacía, así que puede crecer los 2px que faltan sin
+          // apretar nada; `inline-flex` es lo que hace que un `<a>` respete la
+          // altura mínima, que en `display:inline` se ignora.
+          className="font-label-md text-label-md inline-flex min-h-11 items-center rounded-full bg-primary px-6 py-3 uppercase tracking-wide text-on-primary"
         >
           Ver todos los productos
         </Link>

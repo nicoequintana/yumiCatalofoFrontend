@@ -7,11 +7,36 @@ import { registrarEvento } from "../api/products.js";
  * Price-panel CTA for the product detail page (Sprint 5 Task 2) — the first
  * CTA that panel has ever had (see ProductoDetalle.jsx's doc comment on the
  * prior "no CTA" decision, now superseded by the cart feature).
+ *
+ * CANTIDAD CONTROLADA (`cantidad` + `onCantidadChange`): cuando una pantalla
+ * monta este CTA MÁS DE UNA VEZ para el mismo producto —`FichaProducto` lo
+ * hace: el bloque de precio y la barra fija inferior, las dos visibles a la
+ * vez por debajo de `md`— el estado interno era una trampa de facturación.
+ * El cliente elegía 2 unidades en una instancia, tocaba AGREGAR en la otra y
+ * el carrito recibía 1: se facturaba de menos, sin error y sin aviso. Con las
+ * dos props la cantidad vive en el padre y hay UN solo número.
+ *
+ * Sin ellas el componente sigue siendo autónomo (una sola instancia en
+ * pantalla no necesita coordinarse con nadie).
  */
-function BotonAgregarCarrito({ producto, alineacion = "end", compacto = false }) {
+function BotonAgregarCarrito({
+  producto,
+  alineacion = "end",
+  compacto = false,
+  cantidad: cantidadControlada,
+  onCantidadChange,
+}) {
   const { carrito, agregar } = useCarrito();
-  const [cantidad, setCantidad] = useState(1);
+  const [cantidadInterna, setCantidadInterna] = useState(1);
   const [agregado, setAgregado] = useState(false);
+
+  // Se exige el PAR completo: una `cantidad` sin `onCantidadChange` dejaría el
+  // selector congelado, y un `onCantidadChange` sin `cantidad` avisaría de un
+  // valor que el padre no muestra. Faltando cualquiera de las dos, el
+  // componente cae a su estado propio en vez de quedar a medio controlar.
+  const controlado = Number.isInteger(cantidadControlada) && typeof onCantidadChange === "function";
+  const cantidad = controlado ? cantidadControlada : cantidadInterna;
+  const setCantidad = controlado ? onCantidadChange : setCantidadInterna;
 
   // El timer de feedback se guarda para limpiarlo al desmontar: en React 18
   // un setState tras el unmount es un no-op silencioso, pero el timer queda
@@ -84,11 +109,24 @@ function BotonAgregarCarrito({ producto, alineacion = "end", compacto = false })
         type="button"
         onClick={handleClick}
         disabled={agregado || deshabilitado}
+        // `min-h-11` (44px) ADEMÁS del `h-*` de la variante, no en lugar de
+        // él: el mínimo táctil de WCAG es un PISO y la variante sigue
+        // decidiendo cuánto crece por encima. Medido en navegador el
+        // 07/09/2026 sobre `/producto/21` con `elementFromPoint` —el área
+        // EFECTIVA, no la caja declarada—: la variante normal daba 41 de alto
+        // y la compacta de la barra fija 36. El `h-*` se conserva porque es lo
+        // que iguala este CTA con el `SelectorCantidad` que va PEGADO al lado
+        // —que aplica el mismo piso—: si uno flotara a 44 y el otro se quedara
+        // en 40, la fila quedaría desalineada.
         className={`font-label-md text-label-md inline-flex items-center gap-2 rounded-full bg-primary uppercase tracking-wide text-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70 ${
-          compacto ? "h-9 px-4" : "h-10 px-6"
+          compacto ? "h-9 min-h-11 px-4" : "h-10 min-h-11 px-6"
         }`}
       >
-        <span className="material-symbols-outlined text-[18px]">
+        {/* `aria-hidden`: sin esto el ligature del ícono entra en el nombre
+            accesible y un lector de pantalla anuncia "shopping_cart Agregar al carrito". Verificado
+            contra el árbol de accesibilidad real el 07/09/2026. Misma trampa
+            que documenta `BotonVolver.jsx`. */}
+        <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
           {deshabilitado ? "remove_shopping_cart" : agregado ? "check" : "shopping_cart"}
         </span>
         {sinStock

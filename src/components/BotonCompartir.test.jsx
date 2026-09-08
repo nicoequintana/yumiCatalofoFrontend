@@ -116,3 +116,44 @@ describe("BotonCompartir", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 });
+
+/**
+ * Área táctil (WCAG 2.5.8). Medido en navegador el 07/09/2026 sobre
+ * `/producto/21` con `elementFromPoint` —el área EFECTIVA, no la caja
+ * declarada—: el botón daba **19px de alto** a 390 y a 1280. Es texto en línea
+ * dentro de una fila que comparte con el enlace de WhatsApp, así que crecer de
+ * verdad empujaría la fila 26px hacia abajo: el pseudo-elemento estira el
+ * blanco de click y deja el texto donde está.
+ */
+describe("BotonCompartir — área táctil", () => {
+  it("extiende su área a 44 de alto sin crecer de tamaño visible", () => {
+    render(<BotonCompartir producto={PRODUCTO} />);
+
+    const boton = screen.getByRole("button", { name: /compartir/i });
+
+    // `content-['']` no es decorativo: sin él el pseudo-elemento no genera
+    // caja y el área táctil sigue siendo la de antes, sin que nada falle.
+    expect(boton.className).toContain("before:h-11");
+    expect(boton.className).toContain("before:content-['']");
+    // El ancho ya sobra (102px): copia el propio para no invadir al vecino.
+    expect(boton.className).toContain("before:w-full");
+  });
+});
+
+/**
+ * El ligature del ícono NO puede entrar en el nombre accesible. Verificado con
+ * el árbol de accesibilidad real el 07/09/2026: el botón se anunciaba
+ * **"share Compartir"**. `BotonVolver.jsx` ya documenta y resuelve esta misma
+ * trampa; acá faltaba el `aria-hidden`.
+ *
+ * El chequeo de "controles sin nombre" no lo agarra: nombre TIENE, solo que
+ * dice de más. Por eso el test afirma el nombre EXACTO y no un `/compartir/i`,
+ * que pasaría con el ligature adentro.
+ */
+describe("BotonCompartir — nombre accesible", () => {
+  it("se anuncia solo como “Compartir”, sin el ligature del ícono", () => {
+    render(<BotonCompartir producto={PRODUCTO} />);
+
+    expect(screen.getByRole("button", { name: "Compartir" })).toBeInTheDocument();
+  });
+});

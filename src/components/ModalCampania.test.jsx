@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import ModalCampania from "./ModalCampania.jsx";
 
 const BASE = {
@@ -19,14 +19,69 @@ const BASE = {
  * lo contiene. Buscar adentro del diálogo es además la afirmación correcta —
  * importa que el arte esté EN el cartel, no en cualquier parte del documento.
  */
-function montar(extra = {}) {
+function montar(extra = {}, onCerrar = () => {}) {
   render(
     <MemoryRouter>
-      <ModalCampania modal={{ ...BASE, ...extra }} onCerrar={() => {}} />
+      <ModalCampania modal={{ ...BASE, ...extra }} onCerrar={onCerrar} />
     </MemoryRouter>,
   );
   return screen.getByRole("dialog");
 }
+
+/** El velo es el padre del diálogo: `VeloModal` lo monta en `body`. */
+function velo() {
+  return screen.getByRole("dialog").parentElement;
+}
+
+describe("ModalCampania — la salida del cartel en un celular", () => {
+  // El cartel es `fixed inset-0` y se monta en el Layout: aparece en TODA ruta
+  // pública, el checkout incluido. `useDialogo` da Escape, pero en un celular
+  // no hay teclado — el botón de cerrar y el velo son las dos únicas salidas,
+  // y las dos son táctiles.
+  it("el botón de cerrar mide 44×44, no 36×36", () => {
+    // Medido en navegador: `p-2` + un ícono de 20px daba 36×36, por debajo del
+    // mínimo de 44×44 de WCAG 2.5.8 / las guías de iOS y Android. jsdom no
+    // calcula layout, así que se afirma sobre la clase que produce el tamaño.
+    montar();
+
+    const cerrar = screen.getByRole("button", { name: "Cerrar" });
+    expect(cerrar.className).toContain("h-11");
+    expect(cerrar.className).toContain("w-11");
+  });
+
+  it("tocar el velo cierra", () => {
+    const onCerrar = vi.fn();
+    montar({}, onCerrar);
+
+    fireEvent.pointerDown(velo());
+    fireEvent.click(velo());
+
+    expect(onCerrar).toHaveBeenCalledTimes(1);
+  });
+
+  it("tocar DENTRO del cartel no cierra", () => {
+    const onCerrar = vi.fn();
+    const dialogo = montar({}, onCerrar);
+
+    fireEvent.pointerDown(dialogo);
+    fireEvent.click(dialogo);
+
+    expect(onCerrar).not.toHaveBeenCalled();
+  });
+
+  it("un arrastre que EMPIEZA adentro y termina afuera no cierra", () => {
+    // Seleccionar texto del cartel y soltar el botón fuera de él produce un
+    // `click` cuyo target es el velo: sin recordar dónde empezó el gesto, leer
+    // un párrafo cerraría el cartel.
+    const onCerrar = vi.fn();
+    const dialogo = montar({}, onCerrar);
+
+    fireEvent.pointerDown(dialogo);
+    fireEvent.click(velo());
+
+    expect(onCerrar).not.toHaveBeenCalled();
+  });
+});
 
 describe("ModalCampania — el Doodle en el encabezado", () => {
   it("pinta el arte de la campaña arriba del título", () => {

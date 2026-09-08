@@ -32,6 +32,41 @@ describe("ProductCard", () => {
     expect(screen.getByRole("img")).toHaveAttribute("draggable", "false");
   });
 
+  it("el corazón NO cuelga del enlace: son hermanos", () => {
+    // Un `<button>` dentro de un `<a>` es HTML inválido, y el efecto medible
+    // es el nombre accesible del enlace: arrancaba con "Agregar a favoritos" y
+    // repetía el nombre del producto dos veces. Son 12 cards en `/coleccion`,
+    // 8 en la home y 4 en relacionados.
+    render(
+      <MemoryRouter>
+        <ProductCard producto={producto({ nombre: "Soporte Celular" })} />
+      </MemoryRouter>,
+    );
+
+    const corazon = screen.getByRole("button", { name: "Agregar a favoritos" });
+    expect(corazon.closest("a")).toBeNull();
+
+    // Y la card entera sigue siendo UN enlace al producto.
+    const enlace = screen.getByRole("link");
+    expect(enlace).toHaveAttribute("href", expect.stringContaining("/producto/"));
+    expect(enlace).toHaveAccessibleName(expect.stringContaining("Soporte Celular"));
+    expect(enlace).not.toHaveAccessibleName(expect.stringContaining("favoritos"));
+  });
+
+  it("el nombre se muestra en DOS líneas, no truncado a una", () => {
+    // En la grilla de 4 columnas, "Reloj Despertador Digital Crist…" y "Reloj
+    // Despertador Digital Núm…" son indistinguibles sin abrir cada uno.
+    render(
+      <MemoryRouter>
+        <ProductCard producto={producto({ nombre: "Reloj Despertador Digital Cristal" })} />
+      </MemoryRouter>,
+    );
+
+    const nombre = screen.getByRole("heading", { name: "Reloj Despertador Digital Cristal" });
+    expect(nombre.className).toContain("line-clamp-2");
+    expect(nombre.className).not.toContain("truncate");
+  });
+
   it("pinta la etiqueta con el color que manda el backend", () => {
     render(
       <MemoryRouter>

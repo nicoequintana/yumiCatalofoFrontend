@@ -283,3 +283,60 @@ describe("Navbar - carga de categorías", () => {
     expect(categoriasNavbarMock).toHaveBeenCalledWith({ activo: false });
   });
 });
+
+/**
+ * Área táctil (WCAG 2.5.8). Medido en navegador el 07/09/2026 con
+ * `elementFromPoint` —el área EFECTIVA, no la caja declarada—:
+ *
+ * | Control    | @390  | @1280 |
+ * |------------|-------|-------|
+ * | Logo       | 71×28 | 93×33 |
+ * | "Inicio"   | —     | 42×33 |
+ * | "Productos"| —     | 93×33 |
+ *
+ * Los tres van con pseudo-elemento y no con `min-h-11`: los tres viven en la
+ * misma fila de un header de alto fijo (`h-navbar-height`), y "Inicio" y
+ * "Productos" además llevan el subrayado de activo en su propio `border-b`,
+ * que al crecer la caja se despegaría del texto. El pseudo estira el blanco de
+ * click y no mueve ni el logo ni el subrayado.
+ *
+ * "Inicio" es el único que necesita también ANCHO: 42 medidos contra 44. Los
+ * otros dos ya sobran de ancho y copian el propio con `before:w-full` para no
+ * invadir al vecino.
+ */
+describe("Navbar — área táctil", () => {
+  it("el logo extiende su área a 44 de alto", () => {
+    renderNavbar("/");
+
+    // El nombre accesible del link a la home sale del `alt="YIMA"` de
+    // `LogoYima`. Se busca EXACTO: un `/inicio/i` también matchearía el
+    // destino "Inicio" del nav de escritorio y `getByRole` fallaría por
+    // ambigüedad en vez de por lo que este test afirma.
+    const logo = screen.getByRole("link", { name: "YIMA" });
+
+    expect(logo.className).toContain("before:h-11");
+    expect(logo.className).toContain("before:content-['']");
+    expect(logo.className).toContain("before:w-full");
+  });
+
+  it('el destino "Inicio" del nav de escritorio llega a 44×44', () => {
+    renderNavbar("/coleccion");
+
+    const inicio = screen.getByRole("link", { name: "Inicio" });
+
+    expect(inicio.className).toContain("before:h-11");
+    expect(inicio.className).toContain("before:content-['']");
+    // 42 medidos: acá el ancho tampoco alcanzaba.
+    expect(inicio.className).toContain("before:w-11");
+  });
+
+  it('el disparador "Productos" del dropdown llega a 44 de alto', () => {
+    renderNavbar("/");
+
+    const productos = screen.getByRole("button", { name: /productos/i });
+
+    expect(productos.className).toContain("before:h-11");
+    expect(productos.className).toContain("before:content-['']");
+    expect(productos.className).toContain("before:w-full");
+  });
+});

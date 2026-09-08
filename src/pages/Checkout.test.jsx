@@ -360,7 +360,12 @@ describe("Checkout", () => {
 
     await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
 
-    expect(await screen.findByText("El producto Reloj Clásico está agotado.")).toBeInTheDocument();
+    // El mensaje del backend sobrevive como DETALLE: hay errores que sí sirven
+    // ("está agotado" dice qué sacar del carrito). Lo que cambió es que ya no
+    // es el titular — arriba va el copy que aclara que no se generó el pedido.
+    const aviso = await screen.findByRole("alert");
+    expect(aviso).toHaveTextContent("El producto Reloj Clásico está agotado.");
+    expect(aviso).toHaveTextContent(/no se generó ningún pedido/i);
     expect(navigateMock).not.toHaveBeenCalled();
 
     const boton = screen.getByRole("button", { name: /confirmar pedido/i });
@@ -505,6 +510,72 @@ describe("Checkout — precios y total", () => {
     await screen.findByLabelText(/dni/i);
 
     expect(screen.getByTestId("checkout-total")).toHaveTextContent("$ 1.500");
+  });
+});
+
+describe("Checkout — encabezado y copy del error de envío", () => {
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("el título de la página es el h1 y está en castellano", async () => {
+    // "Checkout" era la única palabra en inglés del sitio, entre "Tu pedido" y
+    // "Un paso más". La RUTA `/checkout` no se toca: renombrarla rompería
+    // links, tests e historial.
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCheckout();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+
+    await screen.findByLabelText(/dni/i);
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Finalizar compra" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Checkout")).not.toBeInTheDocument();
+  });
+
+  it("ante un error del servidor aclara que el pedido NO se generó, en vez de solo repetir el error crudo", async () => {
+    // `setErrorEnvio(err.message)` le mostraba al cliente "Error interno del
+    // servidor." — sin decirle lo único que necesita saber en ese momento: si
+    // la orden se creó o no, y qué hacer ahora.
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+    ordenesApi.crearOrden.mockRejectedValue(new Error("Error interno del servidor."));
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    const user = userEvent.setup();
+    renderCheckout();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+
+    await screen.findByLabelText(/dni/i);
+
+    await user.type(screen.getByLabelText(/dni/i), "12345678");
+    await user.type(screen.getByLabelText(/nombre/i), "Juana Pérez");
+    await user.type(screen.getByLabelText(/teléfono/i), "1122334455");
+    await user.type(screen.getByLabelText(/email/i), "juana@gmail.com");
+
+    await user.click(screen.getByRole("button", { name: /confirmar pedido/i }));
+
+    const aviso = await screen.findByRole("alert");
+    expect(aviso).toHaveTextContent(/no se generó ningún pedido/i);
+    expect(aviso).toHaveTextContent("Revisá tu conexión e intentá de nuevo.");
+    // El aviso NO puede ARRANCAR con el texto del sistema.
+    expect(aviso.textContent.trim().startsWith("Error interno del servidor.")).toBe(false);
   });
 });
 

@@ -84,6 +84,13 @@ function FichaProducto({
   const [cercaDelFinal, setCercaDelFinal] = useState(false);
   const finalContenidoRef = useRef(null);
 
+  // La cantidad vive ACÁ y no en cada `BotonAgregarCarrito` porque la ficha
+  // monta DOS: el bloque de precio y la barra fija inferior, las dos visibles
+  // a la vez por debajo de `md`. Con un estado por instancia, elegir 2 arriba
+  // y tocar AGREGAR abajo guardaba `cantidad: 1` en el carrito — se facturaba
+  // de menos, sin error y sin aviso.
+  const [cantidad, setCantidad] = useState(1);
+
   // Hides the mobile sticky CTA once the end of the content scrolls into
   // view — no point covering "también te puede interesar" with a floating
   // bar. Never runs in preview mode, where there is no sticky CTA at all.
@@ -123,6 +130,10 @@ function FichaProducto({
 
   const nombreMostrado = producto.nombre || (modoPreview ? "Nombre del producto" : "");
   const nombreVacio = modoPreview && !producto.nombre;
+  // El detalle público es la página: su nombre es el `h1`. La vista previa del
+  // editor va DENTRO de una pantalla que ya tiene el suyo, así que baja a `h2`.
+  // Ver el comentario del propio título, más abajo, para el porqué.
+  const TituloProducto = modoPreview ? "h2" : "h1";
 
   return (
     <>
@@ -165,13 +176,24 @@ function FichaProducto({
             ) : null}
           </div>
 
-          <h1
+          {/* El nivel del título sale de `modoPreview`, no de una prop propia:
+              esa prop YA distingue "esto es el detalle público" de "esto es la
+              vista previa embebida en el editor del panel", que es exactamente
+              la pregunta que decide el nivel. Con una prop aparte, las dos se
+              podrían desalinear.
+
+              El editor tiene su propio `h1` ("Agregar producto") y embebe esta
+              ficha en vivo al lado: con el nivel fijo quedaban DOS encabezados
+              de nivel 1 visibles a la vez en el mismo documento, medido el
+              07/09/2026 en `/productos/nuevo`. Las clases no cambian, así que
+              en pantalla se ve idéntico: lo que se corrige es la semántica. */}
+          <TituloProducto
             className={`font-display-lg text-headline-lg-mobile mb-2 ${
               compacto ? "" : "md:text-display-lg"
             } ${nombreVacio ? "italic text-outline" : "text-on-background"}`}
           >
             {nombreMostrado}
-          </h1>
+          </TituloProducto>
 
           {producto.fraseComercial ? (
             <p className="font-headline-md text-body-lg mb-4 italic text-terracotta-warm">
@@ -204,7 +226,12 @@ function FichaProducto({
             className={`mb-6 flex flex-wrap items-center gap-3 ${modoPreview ? "pointer-events-none" : ""}`}
             inert={modoPreview}
           >
-            <BotonAgregarCarrito producto={producto} alineacion="start" />
+            <BotonAgregarCarrito
+              producto={producto}
+              alineacion="start"
+              cantidad={cantidad}
+              onCantidadChange={setCantidad}
+            />
             <BotonFavorito
               productoId={producto.id}
               className="rounded-full border border-moss-green text-moss-green hover:bg-moss-green/10"
@@ -460,7 +487,12 @@ function FichaProducto({
             producto={producto}
             className="font-body-lg text-body-lg whitespace-nowrap font-bold text-terracotta-warm"
           />
-          <BotonAgregarCarrito producto={producto} compacto />
+          <BotonAgregarCarrito
+            producto={producto}
+            compacto
+            cantidad={cantidad}
+            onCantidadChange={setCantidad}
+          />
         </div>
       ) : null}
     </>

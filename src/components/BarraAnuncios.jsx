@@ -179,8 +179,19 @@ function BarraAnuncios() {
     //
     // No la vuelve sticky: es solo orden de pintado. Scrollea y se va, como
     // dice el comentario de arriba.
+    // ⚠️ Quieta, la cinta es un CONTENEDOR DE SCROLL, y Chrome vuelve enfocable
+    // a cualquier contenedor de scroll aunque nadie le haya puesto `tabindex`.
+    // Con `prefers-reduced-motion` esta franja se convertía en la PRIMERA
+    // parada de Tab a 390px, siendo un `<div>` sin rol ni nombre: un lector de
+    // pantalla anunciaba un grupo anónimo antes que cualquier cosa del sitio.
+    // Ya que va a estar en el tabulado —y tiene que estarlo, o un mensaje más
+    // ancho que la pantalla no se puede leer— se declara como región con
+    // nombre (WCAG 4.1.2) y con `tabIndex` explícito, en vez de depender de una
+    // heurística del navegador. En movimiento no lleva ninguna de las tres: el
+    // desborde se recorta, así que no hay nada que scrollear a mano.
     <div
       ref={contenedorRef}
+      {...(animar ? {} : { role: "region", "aria-label": "Anuncios", tabIndex: 0 })}
       className={`relative z-50 w-full bg-surface-container-high ${
         animar ? "overflow-hidden" : "overflow-x-auto"
       }`}

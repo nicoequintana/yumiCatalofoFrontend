@@ -221,3 +221,46 @@ describe("BotonAgregarCarrito", () => {
     });
   });
 });
+
+/**
+ * Área táctil (WCAG 2.5.8). Medido en navegador el 07/09/2026 sobre
+ * `/producto/21` con `elementFromPoint` —el área EFECTIVA, no la caja
+ * declarada—: la variante normal daba **41px de alto** (`h-10`) y la compacta
+ * de la barra fija **36** (`h-9`), las dos por debajo de 44.
+ *
+ * `min-h-11` va ADEMÁS del `h-*` de la variante, no en lugar de él: es el
+ * mismo criterio que `SelectorCantidad.jsx`, que además es el control que va
+ * PEGADO a este botón — si uno flotara a 44 y el otro se quedara en 40, la
+ * fila quedaría desalineada.
+ */
+describe("BotonAgregarCarrito — área táctil", () => {
+  it.each([
+    ["normal", false],
+    ["compacta", true],
+  ])("el CTA declara el mínimo táctil de 44px en la variante %s", (_, compacto) => {
+    render(<BotonAgregarCarrito producto={PRODUCTO} compacto={compacto} />);
+
+    const boton = screen.getByRole("button", { name: /agregar/i });
+
+    expect(boton.className.split(" ")).toContain("min-h-11");
+    // El tamaño de la variante se conserva: el mínimo es un PISO, no un tamaño.
+    expect(boton.className.split(" ")).toContain(compacto ? "h-9" : "h-10");
+  });
+});
+
+/**
+ * El ligature del ícono NO puede entrar en el nombre accesible. Verificado con
+ * el árbol de accesibilidad real el 07/09/2026 sobre `/producto/21`: el CTA se
+ * anunciaba **"shopping_cart Agregar al carrito"**. `BotonVolver.jsx` ya
+ * documenta y resuelve esta misma trampa.
+ *
+ * El chequeo de "controles sin nombre" no lo agarra: nombre TIENE, solo que
+ * dice de más. Por eso el test afirma el nombre EXACTO.
+ */
+describe("BotonAgregarCarrito — nombre accesible", () => {
+  it("se anuncia solo como “Agregar al carrito”, sin el ligature del ícono", () => {
+    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+
+    expect(screen.getByRole("button", { name: "Agregar al carrito" })).toBeInTheDocument();
+  });
+});

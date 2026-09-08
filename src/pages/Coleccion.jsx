@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
@@ -27,6 +27,23 @@ const DEBOUNCE_SEARCH_MS = 350;
 const CLAVES_FILTRO_PANEL = ["categoria", "minPrecio", "maxPrecio"];
 
 const CLAVES_FILTRO = [...CLAVES_FILTRO_PANEL, "search"];
+
+/**
+ * Marca que esta pantalla le pone al `state` de la entrada de historial que
+ * ella misma escribe. Es lo que distingue **"volví con el back a una vista que
+ * yo había filtrado"** de **"entré por un link que traía filtros"**, dos cosas
+ * que el blanqueo del montaje trataba igual (ver el comentario de
+ * `teniaFiltrosHeredados`).
+ *
+ * ⚠️ **No se usa `useNavigationType` para esto**, que es lo que parece obvio:
+ * en react-router el PRIMER render de la app también es `POP`, así que un link
+ * compartido con `?search=` entraría por la misma puerta que el botón Atrás — y
+ * que un link compartido NO filtre es una decisión de producto documentada
+ * (`docs/reglas/catalogo-publico.md`). El `state` no tiene esa ambigüedad:
+ * viaja pegado a la entrada de historial, así que solo lo tienen las entradas
+ * que escribió esta pantalla, y volver a una las restaura tal cual.
+ */
+const ESTADO_FILTROS_PROPIOS = { filtrosPropios: true };
 
 /**
  * Cuántos productos trae cada tanda de "Mostrar más". Sincronización manual
@@ -80,6 +97,7 @@ function claveDeFetch(
 function Coleccion() {
   const { slugCategoria } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // La URL puede llegar con filtros heredados (ej. link compartido con
@@ -88,6 +106,16 @@ function Coleccion() {
   // params y se los ignora hasta que el reseteo efectivamente se aplique,
   // para que el primer fetch del grid ya salga sin filtros.
   //
+  // ⚠️ **Salvo que la entrada de historial sea NUESTRA.** Hasta el 07/09/2026
+  // esta condición no miraba el `state` y blanqueaba en TODO montaje, sin
+  // distinguir "entré por un link" de "volví con el back" — o sea el camino más
+  // frecuente que existe: buscar "humidificador", abrir una ficha, volver, y
+  // encontrarse el input vacío y los 12 productos del catálogo entero. Toda
+  // escritura de filtros de esta pantalla marca su entrada con
+  // `ESTADO_FILTROS_PROPIOS`, así que volver a ella la trae marcada y los
+  // filtros sobreviven. Un link compartido no tiene esa marca y se sigue
+  // blanqueando, que es la decisión de producto de siempre.
+  //
   // No alcanza con un `useRef` + flag de "primer render": bajo StrictMode el
   // cuerpo del componente se ejecuta dos veces en el mount y el ref sobrevive
   // entre pasadas, así que la segunda (la que commitea) vería el flag ya
@@ -95,8 +123,9 @@ function Coleccion() {
   // inicializador lazy no tiene ese problema: React descarta el resultado de
   // la segunda invocación en vez de realimentar un flag mutable, y el flag
   // baja recién en el efecto, cuando el reseteo realmente se disparó.
-  const [teniaFiltrosHeredados, setTeniaFiltrosHeredados] = useState(() =>
-    CLAVES_FILTRO.some((clave) => searchParams.has(clave)),
+  const [teniaFiltrosHeredados, setTeniaFiltrosHeredados] = useState(
+    () =>
+      !location.state?.filtrosPropios && CLAVES_FILTRO.some((clave) => searchParams.has(clave)),
   );
 
   // El reseteo va en un efecto, no en el cuerpo del render: React advierte
@@ -171,7 +200,13 @@ function Coleccion() {
   // compone con las guardas públicas.
   const promocionId = searchParams.get("promocion") ?? "";
 
-  const [searchInput, setSearchInput] = useState("");
+  // Arranca en lo que diga la URL, no en `""`. Con filtros heredados `searchUrl`
+  // ya viene vacío (el blanqueo), así que ahí no cambia nada; lo que arregla es
+  // el caso contrario —volver con el back a una vista propia—, donde partir de
+  // `""` no solo mostraba el input vacío: `ultimoCommit` arranca en `searchUrl`,
+  // así que el efecto del debounce veía "" ≠ "humidificador" y 350 ms después
+  // BORRABA el término de la URL, deshaciendo la restauración sin ningún error.
+  const [searchInput, setSearchInput] = useState(searchUrl);
 
   // Último valor que el input de búsqueda emitió o adoptó — mismo patrón que
   // `CampoPrecio` en `FiltrosCatalogo.jsx`. Comparar contra él distingue "el
@@ -296,13 +331,50 @@ function Coleccion() {
   // usarse — el filtro se pierde en silencio, más confuso que no aplicarlo.
   // Se navega a `/coleccion` sin filtro: la página resultante es honesta
   // sobre lo que puede mostrar.
+  //
+  // ── UN SOLO MODELO DE INTERACCIÓN EN EL PANEL: EN VIVO ──
+  //
+  // Los tres controles del panel aplican al tocarlos (el precio con 350 ms de
+  // debounce, que es tiempo de tipeo y no una confirmación); "Aplicar" confirma
+  // y cierra, no dispara nada. La alternativa —dejar todo en borrador y
+  // commitear en "Aplicar"— ya se descartó y el motivo sigue vigente: la
+  // categoría NAVEGA, y con commit diferido cargar un precio y cambiar la
+  // categoría en la misma tanda perdía el precio en silencio.
+  //
+  // Lo que SÍ estaba desalineado era otra cosa: esta navegación tiraba la
+  // búsqueda activa y los precios, sin avisar. Ahora los LLEVA. Un filtro no
+  // deshace a los otros — que es exactamente lo que hacen los otros dos
+  // controles del panel entre sí.
+  //
+  // ⚠️ **El historial sigue siendo `push`, y no es un descuido.** El resto de
+  // los filtros usa `replace` porque refinar es seguir en el mismo lugar;
+  // cambiar de categoría es ir a OTRA URL del sitio, y "atrás" tiene que
+  // devolver a la categoría anterior en vez de saltarla. Hay un test que lo
+  // fija (`Coleccion.test.jsx`, "cambiar de categoría … apila historial").
   function irACategoria(categoriaId) {
+    // Los filtros que no viven en la ruta viajan con la navegación. `search`
+    // sale de la URL y no del input: entre tecla y commit hay 350 ms, y llevar
+    // el borrador escribiría en la URL algo que el usuario todavía no fijó.
+    const heredables = new URLSearchParams();
+    for (const [clave, valor] of [
+      ["search", searchUrl],
+      ["minPrecio", minPrecio],
+      ["maxPrecio", maxPrecio],
+    ]) {
+      if (valor) heredables.set(clave, valor);
+    }
+    const sufijo = heredables.toString() ? `?${heredables}` : "";
+
+    // Sin `ESTADO_FILTROS_PROPIOS` el destino remonta la página, el blanqueo
+    // del montaje lee los filtros que acabamos de escribir como "heredados" y
+    // los borra: llevarlos y perderlos en el mismo salto.
     if (!categoriaId) {
-      navigate("/coleccion");
+      navigate(`/coleccion${sufijo}`, { state: ESTADO_FILTROS_PROPIOS });
       return;
     }
     const elegida = categorias.find((c) => String(c.id) === categoriaId);
-    navigate((elegida && rutaCategoria(elegida)) || "/coleccion");
+    const destino = (elegida && rutaCategoria(elegida)) || "/coleccion";
+    navigate(`${destino}${sufijo}`, { state: ESTADO_FILTROS_PROPIOS });
   }
 
   /**
@@ -341,7 +413,10 @@ function Coleccion() {
     const next = new URLSearchParams(base);
     mutar(next);
     paramsPendientes.current = next;
-    setSearchParams(next, { replace: true });
+    // El `state` va en CADA escritura y no una sola vez: `setSearchParams`
+    // reemplaza el state de la entrada, así que una escritura posterior sin él
+    // borraría la marca y el próximo "volver atrás" blanquearía los filtros.
+    setSearchParams(next, { replace: true, state: ESTADO_FILTROS_PROPIOS });
   }
   function actualizarFiltro(clave, valor) {
     escribirParams((next) => {
@@ -388,7 +463,10 @@ function Coleccion() {
         next.delete("paginas");
         return next;
       },
-      { replace: true },
+      // Mismo motivo que en `escribirParams`: sin la marca, esta escritura le
+      // saca el `state` a la entrada y el próximo "atrás" blanquearía la
+      // búsqueda libre, que "Limpiar" conserva a propósito.
+      { replace: true, state: ESTADO_FILTROS_PROPIOS },
     );
   }
 
@@ -754,7 +832,10 @@ function Coleccion() {
                 type="button"
                 onClick={mostrarMas}
                 disabled={cargandoMas}
-                className="rounded-full border border-outline px-8 py-3 font-label-md text-label-md uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+                // `min-h-11` (44px): medido daba 43 de alto con `py-3`, un
+                // píxel por debajo del mínimo táctil. El `inline-flex` recentra
+                // el rótulo en la caja más alta.
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-outline px-8 py-3 font-label-md text-label-md uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
               >
                 {cargandoMas ? "Cargando…" : "Mostrar más"}
               </button>

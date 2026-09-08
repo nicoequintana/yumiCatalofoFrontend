@@ -522,7 +522,12 @@ describe("Coleccion - mostrar m\u00e1s", () => {
     );
     // Cargar m\u00e1s no es navegar: la tanda viaja a la URL con replace, para que
     // volver de una ficha restaure lo cargado sin apilar historial.
-    expect(llamadasSetSearchParams.at(-1)).toEqual({ replace: true });
+    //
+    // `objectContaining` y no igualdad exacta: desde el 07/09/2026 toda
+    // escritura de esta pantalla marca adem\u00e1s su entrada de historial con
+    // `state.filtrosPropios`, que es lo que hace que volver con el back
+    // conserve los filtros. Lo que este test protege es el `replace`.
+    expect(llamadasSetSearchParams.at(-1)).toEqual(expect.objectContaining({ replace: true }));
   });
 
   it("al volver con ?paginas= en la URL restaura todas las tandas en UN pedido", async () => {
@@ -923,5 +928,138 @@ describe("Coleccion - promoción del slide", () => {
         expect.objectContaining({ promocion: "7", page: 2 }),
       );
     });
+  });
+});
+
+/**
+ * Volver de una ficha es el camino más frecuente del catálogo, y hasta el
+ * 07/09/2026 blanqueaba la búsqueda: el efecto de montaje borraba
+ * `search`/`categoria`/`minPrecio`/`maxPrecio` en TODO montaje, sin distinguir
+ * "entré por un link" de "volví con el back".
+ *
+ * La distinción no se hace por `useNavigationType`: en react-router el primer
+ * render de la app TAMBIÉN es `POP`, así que con eso un link compartido con
+ * `?search=` empezaría a filtrar — y que NO filtre es una decisión de producto
+ * (ver `docs/reglas/catalogo-publico.md`, "Paginación en el frontend"). Se hace
+ * por el `state` de la entrada de historial: los filtros que escribe esta
+ * pantalla marcan SU entrada, y volver a ella la restaura con la marca puesta.
+ */
+describe("Coleccion - volver atrás conserva los filtros", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    llamadasSetSearchParams.length = 0;
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+    categoriasApi.getCategorias.mockResolvedValue(CATEGORIAS);
+  });
+
+  it("buscar, abrir una ficha y volver deja la búsqueda puesta", async () => {
+    const user = userEvent.setup();
+
+    function PaginaColeccion() {
+      const navegar = useNavigate();
+      return (
+        <>
+          <button type="button" onClick={() => navegar("/producto/1-reloj")}>
+            Abrir ficha
+          </button>
+          <Coleccion />
+        </>
+      );
+    }
+
+    function PaginaFicha() {
+      const navegar = useNavigate();
+      return (
+        <button type="button" onClick={() => navegar(-1)}>
+          Atrás
+        </button>
+      );
+    }
+
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={["/coleccion"]}>
+          <Routes>
+            <Route path="/coleccion" element={<PaginaColeccion />} />
+            <Route path="/producto/:idSlug" element={<PaginaFicha />} />
+          </Routes>
+        </MemoryRouter>
+      </StrictMode>,
+    );
+
+    await screen.findByText("Reloj Clásico");
+    await user.type(screen.getByLabelText("Buscar"), "humidificador");
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ search: "humidificador" }),
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "Abrir ficha" }));
+    await screen.findByRole("button", { name: "Atrás" });
+    productsApi.getProducts.mockClear();
+
+    await user.click(screen.getByRole("button", { name: "Atrás" }));
+
+    // El input vuelve con el término, y el pedido que repuebla la grilla lo
+    // lleva: sin esto se veían los 12 productos del catálogo entero.
+    expect(await screen.findByLabelText("Buscar")).toHaveValue("humidificador");
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ search: "humidificador" }),
+      );
+    });
+
+    // Y no hay ningún commit tardío que lo borre 350 ms después.
+    await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_MS_MARGEN));
+    expect(productsApi.getProducts.mock.calls.at(-1)[0].search).toBe("humidificador");
+  });
+
+  it("un link compartido con ?search= SIGUE blanqueando: es la decisión de producto", async () => {
+    // Guard de la mitad que NO cambia. Si algún día se decide que un link
+    // compartido debe filtrar, este test es el que hay que discutir primero.
+    renderPagina("/coleccion?search=reloj");
+
+    await waitFor(() => expect(productsApi.getProducts).toHaveBeenCalled());
+    expect(productsApi.getProducts.mock.calls[0][0].search).toBe("");
+  });
+
+  it("cambiar de categoría NO borra la búsqueda activa", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+
+    await screen.findByText("Reloj Clásico");
+    await user.type(screen.getByLabelText("Buscar"), "humidificador");
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ search: "humidificador" }),
+      );
+    });
+
+    await user.selectOptions(screen.getByLabelText("Categoría"), "1");
+
+    await waitFor(() => {
+      expect(productsApi.getProducts).toHaveBeenCalledWith(
+        expect.objectContaining({ categoria: "1", search: "humidificador" }),
+      );
+    });
+    expect(screen.getByLabelText("Buscar")).toHaveValue("humidificador");
+  });
+});
+
+describe("Coleccion - área táctil de Mostrar más", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    llamadasSetSearchParams.length = 0;
+    categoriasApi.getCategorias.mockResolvedValue(CATEGORIAS);
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }], { total: 40, pageSize: 12 }));
+  });
+
+  it("el botón llega a 44 de alto", async () => {
+    // Medido en navegador: `py-3` daba 43 — un píxel por debajo del mínimo.
+    renderPagina();
+
+    const boton = await screen.findByRole("button", { name: "Mostrar más" });
+    expect(boton.className).toContain("min-h-11");
   });
 });

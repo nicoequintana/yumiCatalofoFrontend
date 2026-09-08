@@ -41,8 +41,18 @@ function construirRango(pagina, totalPaginas) {
   return conElipsis;
 }
 
+/**
+ * `min-h-11 min-w-11` (44px) ADEMÁS del `h-10`, no en lugar de él: el mínimo
+ * táctil de WCAG 2.5.8 es un PISO y la variante sigue decidiendo cuánto crece
+ * por encima (mismo criterio que `SelectorCantidad.jsx`).
+ *
+ * Medido en navegador el 07/09/2026 sobre `/catalogo/admin/productos` con
+ * `elementFromPoint` —el área EFECTIVA, no la caja declarada—: las flechas
+ * daban **44×41** y los números **40×41**. `min-w-11` reemplaza al `min-w-10`
+ * que había, que era el mismo tipo de piso pero 4px corto.
+ */
 const CLASE_BOTON =
-  "font-label-md text-label-md inline-flex h-10 min-w-10 items-center justify-center rounded-lg border border-outline-variant px-3 text-on-surface-variant transition-colors hover:border-outline hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-outline-variant";
+  "font-label-md text-label-md inline-flex h-10 min-h-11 min-w-11 items-center justify-center rounded-lg border border-outline-variant px-3 text-on-surface-variant transition-colors hover:border-outline hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-outline-variant";
 
 function Paginador({ pagina, totalPaginas, onCambiar, etiqueta }) {
   // Con una sola página no hay nada que navegar: mostrar un paginador inerte
@@ -82,7 +92,7 @@ function Paginador({ pagina, totalPaginas, onCambiar, etiqueta }) {
                 aria-current={entrada === pagina ? "page" : undefined}
                 className={
                   entrada === pagina
-                    ? "font-label-md text-label-md inline-flex h-10 min-w-10 items-center justify-center rounded-lg border border-primary bg-primary px-3 text-on-primary"
+                    ? "font-label-md text-label-md inline-flex h-10 min-h-11 min-w-11 items-center justify-center rounded-lg border border-primary bg-primary px-3 text-on-primary"
                     : CLASE_BOTON
                 }
               >

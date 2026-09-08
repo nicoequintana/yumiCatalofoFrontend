@@ -83,3 +83,24 @@ describe("Paginador", () => {
     expect(screen.getByText("Página 2 de 7")).toBeInTheDocument();
   });
 });
+
+/**
+ * Área táctil (WCAG 2.5.8). Medido en navegador el 07/09/2026 sobre
+ * `/catalogo/admin/productos` con `elementFromPoint` —el área EFECTIVA, no la
+ * caja declarada—: las flechas daban **44×41** y los números **40×41**, las dos
+ * por debajo de 44×44. Son botones sueltos de una barra de navegación: pueden
+ * crecer los 3-4px que faltan sin apretar nada.
+ *
+ * `min-h-11 min-w-11` va ADEMÁS del `h-10 min-w-10`, no en lugar de él (mismo
+ * criterio que `SelectorCantidad.jsx`).
+ */
+describe("Paginador — área táctil", () => {
+  it("todos los botones declaran el mínimo táctil de 44×44", () => {
+    renderPaginador({ pagina: 2 });
+
+    for (const boton of screen.getAllByRole("button")) {
+      expect(boton.className.split(" ")).toContain("min-h-11");
+      expect(boton.className.split(" ")).toContain("min-w-11");
+    }
+  });
+});

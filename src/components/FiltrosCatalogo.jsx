@@ -20,8 +20,18 @@ const DEBOUNCE_PRECIO_MS = 350;
 // buscador de la barra ya está en 13px, y tener dos escalas distintas de
 // input en la misma pantalla se ve peor que el zoom. Si el zoom molesta, se
 // suben LOS DOS a 16px, nunca uno solo.
+//
+// `min-h-11` = 44px, el mínimo táctil (WCAG 2.5.8). Medidos daban 42: el
+// `py-2.5` sobre 14px de texto no llega, y subir el padding cambiaría la
+// escala tipográfica que este bloque acaba de fijar. El mínimo de alto lo
+// resuelve sin tocar el interlineado.
+//
+// ⚠️ El anillo de foco va en `focus-visible` y NO en `focus`, para no
+// dibujarlo al clickear con el mouse. El borde de 1px que cambia de color se
+// conserva: alcanza en contraste pero no en GROSOR — WCAG 2.2 (2.4.11) pide un
+// perímetro de 2px, que es lo que aporta el `ring-2`.
 const CLASE_INPUT =
-  "font-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2.5 text-[14px] text-on-surface focus:border-primary focus:outline-none";
+  "font-body-md min-h-11 w-full rounded-lg border border-outline-variant bg-surface px-3 py-2.5 text-[14px] text-on-surface focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 const CLASE_LABEL = "font-label-sm text-label-sm mb-1.5 block uppercase tracking-widest text-on-surface";
 
@@ -327,7 +337,10 @@ function FiltrosCatalogo({
             placeholder="Buscar por nombre…"
             value={search}
             onChange={(e) => onChangeSearch(e.target.value)}
-            className="font-body-md h-9 w-full rounded-full border border-outline-variant/60 bg-surface-container-lowest pl-8 pr-3 text-[13px] text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:outline-none"
+            // `h-11` (44px) y no `h-9` (36 medidos): es el control más usado de
+            // la pantalla y el que más se toca con el pulgar. Mismo anillo de
+            // foco que los campos del panel — ver `CLASE_INPUT`.
+            className="font-body-md h-11 w-full rounded-full border border-outline-variant/60 bg-surface-container-lowest pl-8 pr-3 text-[13px] text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           />
         </div>
 
@@ -336,7 +349,7 @@ function FiltrosCatalogo({
           onClick={() => setPanelAbierto((prev) => !prev)}
           aria-expanded={panelAbierto}
           aria-controls="panel-filtros"
-          className={`font-label-sm text-label-sm flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 uppercase tracking-widest shadow-ambient transition-colors ${
+          className={`font-label-sm text-label-sm flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 uppercase tracking-widest shadow-ambient transition-colors ${
             panelAbierto || cantidadFiltrosActivos > 0
               ? "border-primary bg-primary text-on-primary"
               : "border-outline-variant bg-surface-container-lowest text-on-surface hover:border-primary"
@@ -369,7 +382,23 @@ function FiltrosCatalogo({
                 type="button"
                 onClick={chip.quitar}
                 aria-label={`Quitar filtro: ${chip.texto}`}
-                className="flex items-center gap-1 rounded-full border border-outline-variant bg-surface-container-lowest py-1 pl-2.5 pr-1.5 text-[12px] text-on-surface transition-colors hover:border-primary hover:text-primary"
+                // `min-h-11` ADEMÁS del `py-1`, no en lugar de él: el mínimo
+                // táctil es un PISO. Medido el 07/09/2026 con
+                // `elementFromPoint` sobre `/coleccion/categoria/cocina` —el
+                // área EFECTIVA, no la caja declarada—: **77×28**.
+                //
+                // ⚠️ Acá se agranda de VERDAD en vez de estirar el área con un
+                // pseudo-elemento, y es la excepción al criterio habitual: los
+                // chips viven en un `flex flex-wrap gap-1.5`, así que con más
+                // de uno envuelven en filas separadas por 6px. Un área postiza
+                // de 44 sobre un chip de 28 se pasa 8px por arriba y por abajo,
+                // y en la segunda fila se comería la de los chips de la
+                // primera. Costo asumido: la fila de chips pasa de 28 a 44.
+                //
+                // ⚠️ No los vio el barrido de la auditoría porque solo existen
+                // con un filtro puesto, y las rutas que recorría eran
+                // `/coleccion` pelada.
+                className="flex min-h-11 items-center gap-1 rounded-full border border-outline-variant bg-surface-container-lowest py-1 pl-2.5 pr-1.5 text-[12px] text-on-surface transition-colors hover:border-primary hover:text-primary"
               >
                 {chip.texto}
                 <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
@@ -406,18 +435,22 @@ function FiltrosCatalogo({
             />
           </div>
 
+          {/* Los dos con `min-h-11` (44px): medidos daban 32 de alto, el peor
+              par de la pantalla. El `inline-flex items-center` es lo que
+              recentra el rótulo dentro de la caja más alta — sin él el texto
+              se queda arriba. */}
           <div className="mt-4 flex justify-end gap-3 border-t border-outline-variant pt-4">
             <button
               type="button"
               onClick={limpiar}
-              className="font-label-sm text-label-sm rounded-full border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary"
+              className="font-label-sm text-label-sm inline-flex min-h-11 items-center rounded-full border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary"
             >
               Limpiar
             </button>
             <button
               type="button"
               onClick={aplicar}
-              className="font-label-sm text-label-sm rounded-full bg-primary px-5 py-2 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
+              className="font-label-sm text-label-sm inline-flex min-h-11 items-center rounded-full bg-primary px-5 py-2 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
             >
               Aplicar
             </button>

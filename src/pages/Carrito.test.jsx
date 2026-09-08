@@ -147,9 +147,9 @@ describe("Carrito", () => {
     // `aria-disabled` sobre un <Link>/<a> no es confiable entre lectores de
     // pantalla, así que el CTA deshabilitado se renderiza como <button
     // disabled> nativo en vez de un link con ARIA — no debe existir ningún
-    // link "Confirmar pedido" enfocable/clickeable en este estado.
-    expect(screen.queryByRole("link", { name: /confirmar pedido/i })).not.toBeInTheDocument();
-    const cta = screen.getByRole("button", { name: /confirmar pedido/i });
+    // link "Continuar" enfocable/clickeable en este estado.
+    expect(screen.queryByRole("link", { name: /continuar/i })).not.toBeInTheDocument();
+    const cta = screen.getByRole("button", { name: /continuar/i });
     expect(cta).toBeDisabled();
   });
 
@@ -166,8 +166,8 @@ describe("Carrito", () => {
     expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
 
     // Habilitado: debe ser un <Link> real (navegable), no un botón.
-    expect(screen.queryByRole("button", { name: /confirmar pedido/i })).not.toBeInTheDocument();
-    const cta = screen.getByRole("link", { name: /confirmar pedido/i });
+    expect(screen.queryByRole("button", { name: /continuar/i })).not.toBeInTheDocument();
+    const cta = screen.getByRole("link", { name: /continuar/i });
     expect(cta).toHaveAttribute("href", "/checkout");
   });
 
@@ -247,6 +247,60 @@ describe("Carrito", () => {
 
     expect(await screen.findByRole("button", { name: /volver/i })).toBeInTheDocument();
   });
+
+  it("el título de la página es el h1, no un h2", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([]);
+
+    renderCarrito();
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Carrito" })).toBeInTheDocument();
+  });
+
+  it("el estado vacío OFRECE la salida al catálogo, no solo la nombra", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([]);
+
+    renderCarrito();
+
+    await screen.findByText(/tu carrito está vacío/i);
+    const salida = screen.getByRole("link", { name: /ver el catálogo/i });
+    expect(salida).toHaveAttribute("href", "/coleccion");
+  });
+
+  it("el CTA del carrito NO promete la compra: dice Continuar y solo lleva al checkout", async () => {
+    // "Confirmar pedido" es el copy del botón que SÍ crea la orden, en
+    // `/checkout`. Repetirlo acá le hace creer al cliente que ya compró.
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+
+    await screen.findByText("Reloj Clásico");
+
+    expect(screen.queryByRole("link", { name: /confirmar pedido/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /continuar/i })).toHaveAttribute("href", "/checkout");
+  });
+
+  it("el precio unitario de la línea dice que es por unidad", async () => {
+    // La línea muestra el subtotal grande a la derecha y el unitario chico
+    // debajo del nombre: sin el "c/u" son dos montos distintos sin explicación.
+    // `Checkout.jsx` ya lo resuelve así.
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+
+    act(() => {
+      carritoHook.current.agregar(1, 2);
+    });
+
+    await screen.findByText("Reloj Clásico");
+
+    expect(screen.getByTestId("carrito-unitario-1")).toHaveTextContent(/\$ 1\.500\s*c\/u/);
+  });
 });
 
 describe("Carrito — tope de cantidad contra el stock disponible", () => {
@@ -277,8 +331,8 @@ describe("Carrito — tope de cantidad contra el stock disponible", () => {
     expect(await screen.findByText(/solo hay 2 unidades disponibles/i)).toBeInTheDocument();
     // La cantidad pedida sigue visible tal cual: nada se recorta en silencio.
     expect(carritoHook.current.carrito).toEqual([{ productId: 3, cantidad: 5 }]);
-    expect(screen.queryByRole("link", { name: /confirmar pedido/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /confirmar pedido/i })).toBeDisabled();
+    expect(screen.queryByRole("link", { name: /continuar/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /continuar/i })).toBeDisabled();
   });
 
   it("el botón de ajustar deja la línea en el stock disponible", async () => {
@@ -332,7 +386,7 @@ describe("Carrito — tope de cantidad contra el stock disponible", () => {
 
     expect(screen.queryByText(/unidades disponibles/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /aumentar/i })).not.toBeDisabled();
-    expect(screen.getByRole("link", { name: /confirmar pedido/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /continuar/i })).toBeInTheDocument();
   });
 });
 

@@ -66,16 +66,41 @@ function ProductCard({ producto }) {
   ) : null;
 
   return (
-    // `draggable={false}` acá y en la `<img>` de abajo: `CarruselDestacados.jsx`
-    // reutiliza esta card y mueve la pista con eventos de puntero sobre el
-    // mismo envoltorio. Sin esto el navegador arranca su propio drag nativo de
-    // enlace/imagen apenas el gesto empieza sobre la foto —la superficie más
-    // grande de la tarjeta— y el arrastre por puntero que gira el carrusel se
-    // corta a la mitad.
-    <Link to={href} className={shell} draggable={false}>
-      <div className="relative aspect-square w-full bg-surface-container-lowest">
-        <BotonFavorito productoId={producto.id} className="absolute top-2 right-2 z-10 rounded-full bg-surface-container-lowest/90 shadow-sm" />
-        {foto ? (
+    // ⚠️ EL CORAZÓN ES HERMANO DEL ENLACE, NO SU HIJO. Un `<button>` dentro de
+    // un `<a>` es HTML inválido, y el daño es medible: el nombre accesible del
+    // enlace arrancaba con "Agregar a favoritos" y después repetía el producto
+    // dos veces ("… Best Seller Tecnología Soporte Celular… $ 14.250"). Son 12
+    // enlaces así en `/coleccion`, 8 en la home y 4 en los relacionados.
+    //
+    // La card entera SIGUE siendo un enlace: el `<a>` cubre todo el contenido y
+    // el corazón se le superpone (`absolute` + `z-20`), que es exactamente lo
+    // que se veía antes. Sus `preventDefault`/`stopPropagation` ya no hacen
+    // falta para no navegar —no está adentro del enlace— pero se conservan:
+    // `BotonFavorito` también vive sobre superficies clickeables en la ficha.
+    <div className={shell}>
+      {/* ⚠️ El posicionamiento va en este `<span>`, NO en el `className` del
+          botón. `BotonFavorito` necesita ser `relative` para anclar el
+          pseudo-elemento que le da los 44×44 de área táctil, y pasarle
+          `absolute` desde acá NO lo pisa: en el CSS de Tailwind la regla
+          `.relative` se emite DESPUÉS de `.absolute`, así que gana `relative`
+          sin importar el orden en el atributo. Medido: el corazón dejaba de
+          estar posicionado, caía al flujo de la tarjeta y se estiraba a 270px
+          de ancho empujando la foto. */}
+      <span className="absolute right-2 top-2 z-20">
+        <BotonFavorito
+          productoId={producto.id}
+          className="rounded-full bg-surface-container-lowest/90 shadow-sm"
+        />
+      </span>
+      {/* `draggable={false}` acá y en la `<img>` de abajo:
+          `CarruselDestacados.jsx` reutiliza esta card y mueve la pista con
+          eventos de puntero sobre el mismo envoltorio. Sin esto el navegador
+          arranca su propio drag nativo de enlace/imagen apenas el gesto empieza
+          sobre la foto —la superficie más grande de la tarjeta— y el arrastre
+          por puntero que gira el carrusel se corta a la mitad. */}
+      <Link to={href} className="flex flex-1 flex-col" draggable={false}>
+        <div className="relative aspect-square w-full bg-surface-container-lowest">
+          {foto ? (
           // `absolute inset-0`, NO `h-full w-full` en flujo normal: un <img> con
           // alto en porcentaje no resuelve si el contenedor solo tiene su alto
           // definido por `aspect-ratio` (gotcha real de CSS con elementos
@@ -85,32 +110,42 @@ function ProductCard({ producto }) {
           // salieran de tamaños distintos según la imagen, con cover o con
           // contain daba lo mismo. Sacándolo del flujo (como ya están el
           // corazón y los chips acá al lado) la caja queda cuadrada siempre.
-          <img
-            className="absolute inset-0 h-full w-full object-contain"
-            src={foto.url}
-            alt={producto.nombre}
-            loading="lazy"
-            decoding="async"
-            draggable={false}
+            <img
+              className="absolute inset-0 h-full w-full object-contain"
+              src={foto.url}
+              alt={producto.nombre}
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+            />
+          ) : null}
+          {destacadoChip}
+          {etiquetaChip}
+          {pocoStockChip}
+        </div>
+        <div className="flex flex-1 flex-col p-2.5 md:p-3">
+          {textoCategoria}
+          {/* DOS líneas, no `truncate`. En la grilla de 4 columnas, "Reloj
+              Despertador Digital Crist…" y "Reloj Despertador Digital Núm…"
+              eran indistinguibles sin abrir cada uno: el nombre se cortaba
+              justo donde empezaba a distinguirlos.
+              `min-h-[2lh]` reserva las dos líneas SIEMPRE. Sin eso, en una fila
+              con un nombre de una línea y otro de dos, la eyebrow de categoría
+              y el nombre quedan a distinta altura entre tarjetas vecinas — el
+              precio no se mueve porque va con `mt-auto`, pero el bloque de
+              texto se desalinea. Reservar el alto lo mantiene parejo. */}
+          <h3 className="font-body-md text-[13px] md:text-body-md mb-1 line-clamp-2 min-h-[2lh] text-on-surface">
+            {producto.nombre}
+          </h3>
+          {/* El precio y su promoción, si la tiene. `PrecioProducto` no calcula
+              nada: el efectivo llega resuelto del backend. */}
+          <PrecioProducto
+            producto={producto}
+            className="font-body-lg text-[15px] md:text-[17px] font-bold mt-auto text-primary"
           />
-        ) : null}
-        {destacadoChip}
-        {etiquetaChip}
-        {pocoStockChip}
-      </div>
-      <div className="flex flex-1 flex-col p-2.5 md:p-3">
-        {textoCategoria}
-        <h3 className="font-body-md text-[13px] md:text-body-md mb-1 truncate text-on-surface">
-          {producto.nombre}
-        </h3>
-        {/* El precio y su promoción, si la tiene. `PrecioProducto` no calcula
-            nada: el efectivo llega resuelto del backend. */}
-        <PrecioProducto
-          producto={producto}
-          className="font-body-lg text-[15px] md:text-[17px] font-bold mt-auto text-primary"
-        />
-      </div>
-    </Link>
+        </div>
+      </Link>
+    </div>
   );
 }
 

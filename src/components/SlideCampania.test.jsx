@@ -181,3 +181,38 @@ describe("SlideCampania", () => {
     expect(imagenes[0]).toHaveAttribute("alt", "");
   });
 });
+
+/**
+ * El copy va sobre una foto que sube el admin, así que el contraste no puede
+ * depender de que esa foto sea oscura. El tinte es lo único que lo garantiza:
+ * el vidrio desenfoca pero NO oscurece.
+ *
+ * Medido en Chromium con un arte PNG **blanco** (el peor caso realista: una
+ * foto de producto sobre fondo blanco, lo más común en e-commerce) a 390px de
+ * ancho, sobre el texto `background` (#fff8f5):
+ *
+ * | tinte | peor píxel del copy | área del copy bajo 4.5 |
+ * |---|---|---|
+ * | `/75` desde 40 %, `/40` en 70 % (antes) | **2.54** | 100 % |
+ * | `/90` desde 45 %, `/75` en 72 % (hoy)   | **5.13** | 0 %   |
+ *
+ * El test fija la REGLA —el piso del tinte y el de su punto medio—, no una
+ * clase literal: el número del medio importa porque la caja del copy llega
+ * hasta el 64 % del ancho en móvil, o sea bastante más allá del primer stop.
+ */
+describe("SlideCampania — el piso del tinte sobre el copy", () => {
+  function alfaDe(clases, prefijo) {
+    const encontrada = clases.split(/\s+/).find((c) => c.startsWith(prefijo));
+    expect(encontrada, `no hay ninguna clase ${prefijo}…`).toBeDefined();
+    return Number(encontrada.split("/")[1]);
+  }
+
+  it("el tinte arranca en 90 % y no baja de 75 % dentro de la zona del copy", () => {
+    const { container } = renderSlide({ ...SLIDE, arteUrl: "https://cdn.test/arte.jpg" });
+
+    const tinte = container.querySelector(".bg-gradient-to-r");
+    expect(tinte).not.toBeNull();
+    expect(alfaDe(tinte.className, "from-on-surface-variant/")).toBeGreaterThanOrEqual(90);
+    expect(alfaDe(tinte.className, "via-on-surface-variant/")).toBeGreaterThanOrEqual(75);
+  });
+});

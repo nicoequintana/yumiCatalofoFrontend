@@ -30,7 +30,14 @@ export default function ModalCampania({ modal, onCerrar }) {
     // documenta `Navbar.jsx`: un ancestro con `backdrop-filter` se convierte en
     // bloque contenedor de sus descendientes `fixed` y les rompe el
     // posicionamiento.
-    <VeloModal className="z-[60] flex items-center justify-center bg-black/50 px-margin-mobile">
+    // Tocar el velo cierra. `useDialogo` ya da Escape, pero en un celular NO
+    // HAY TECLADO: sin esto, el único escape de un cartel que se muestra en
+    // toda ruta pública —el checkout incluido— era un botón de 36×36.
+    // El guard contra el arrastre vive en `VeloModal`.
+    <VeloModal
+      onClickFuera={onCerrar}
+      className="z-[60] flex items-center justify-center bg-black/50 px-margin-mobile"
+    >
       <div
         ref={dialogoRef}
         role="dialog"
@@ -43,7 +50,12 @@ export default function ModalCampania({ modal, onCerrar }) {
           type="button"
           onClick={onCerrar}
           aria-label="Cerrar"
-          className="absolute right-3 top-3 rounded-full p-2 text-on-surface-variant transition-colors hover:bg-surface-container"
+          // 44×44, el mínimo táctil (WCAG 2.5.8). Era `p-2` sobre un ícono de
+          // 20px, o sea 36×36 medidos: la única salida del cartel en un
+          // teléfono quedaba por debajo del mínimo. El `right-2 top-2` compensa
+          // el crecimiento de la caja para que el ícono no se corra del lugar
+          // donde ya estaba.
+          className="absolute right-2 top-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container"
         >
           <span aria-hidden="true" className="material-symbols-outlined block text-[20px]">
             close

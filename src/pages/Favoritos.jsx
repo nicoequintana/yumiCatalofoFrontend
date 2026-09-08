@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
@@ -116,7 +117,7 @@ function Favoritos() {
           <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
             Tu selección
           </span>
-          <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">Favoritos</h2>
+          <h1 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">Favoritos</h1>
         </div>
 
         {cargando ? (
@@ -128,11 +129,23 @@ function Favoritos() {
             mensaje={errorCarga}
           />
         ) : productos.length === 0 ? (
-          <EstadoVacio
-            icono="favorite_border"
-            titulo="Todavía no guardaste favoritos"
-            mensaje="Tocá el corazón en cualquier producto para guardarlo acá."
-          />
+          // El mensaje NOMBRA la salida ("en cualquier producto"), así que la
+          // pantalla también la OFRECE. `EstadoVacio` no tiene prop de acción a
+          // propósito, así que el link va como HERMANO: mismo criterio que el
+          // estado de campaña terminada de `Coleccion.jsx`.
+          <div className="flex flex-col items-center">
+            <EstadoVacio
+              icono="favorite_border"
+              titulo="Todavía no guardaste favoritos"
+              mensaje="Tocá el corazón en cualquier producto para guardarlo acá."
+            />
+            <Link
+              to="/coleccion"
+              className="font-label-md text-label-md -mt-12 mb-4 inline-flex min-h-11 items-center rounded-full bg-primary px-8 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
+            >
+              Ver el catálogo
+            </Link>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 md:gap-gutter lg:grid-cols-4">
             {/* Mismo grid que `/coleccion`: las dos pantallas del catálogo

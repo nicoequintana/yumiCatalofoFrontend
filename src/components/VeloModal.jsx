@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { createPortal } from "react-dom";
 import useBloquearScroll from "../hooks/useBloquearScroll.js";
 
@@ -58,12 +59,43 @@ import useBloquearScroll from "../hooks/useBloquearScroll.js";
  * El tinte y la capa (`z-*`, `bg-*`) siguen viniendo de cada pantalla: son
  * decisiones locales y hoy no son uniformes. Lo único que se comparte es lo que
  * tiene que ser igual en todos lados.
+ *
+ * ── CERRAR AL TOCAR AFUERA (`onClickFuera`, opcional) ──
+ *
+ * Es OPT-IN, no el default: un formulario largo del panel no puede perderse por
+ * un toque distraído al costado. Lo pide el cartel de campaña, donde el velo es
+ * la salida más grande que hay en un celular.
+ *
+ * ⚠️ **No alcanza con mirar el target del `click`.** Un gesto que EMPIEZA
+ * adentro del diálogo —arrastrar para seleccionar un párrafo— y termina afuera
+ * dispara un `click` cuyo target es el velo: leyendo solo eso, seleccionar
+ * texto cerraría el diálogo. Por eso se recuerda dónde bajó el puntero y el
+ * cierre exige que las DOS puntas del gesto hayan sido el velo.
  */
-export default function VeloModal({ className = "", children }) {
+export default function VeloModal({ className = "", children, onClickFuera }) {
   useBloquearScroll(true);
 
+  const gestoEmpezoEnElVelo = useRef(false);
+
+  function alBajarPuntero(evento) {
+    gestoEmpezoEnElVelo.current = evento.target === evento.currentTarget;
+  }
+
+  function alClickear(evento) {
+    if (!onClickFuera) return;
+    if (evento.target !== evento.currentTarget) return;
+    if (!gestoEmpezoEnElVelo.current) return;
+    onClickFuera();
+  }
+
   return createPortal(
-    <div className={`fixed inset-0 backdrop-blur ${className}`}>{children}</div>,
+    <div
+      className={`fixed inset-0 backdrop-blur ${className}`}
+      onPointerDown={onClickFuera ? alBajarPuntero : undefined}
+      onClick={onClickFuera ? alClickear : undefined}
+    >
+      {children}
+    </div>,
     document.body,
   );
 }

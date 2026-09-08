@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { registrarCompartido } from "../api/products.js";
+import { AREA_TACTIL_ANCHA } from "../utils/areaTactil.js";
 
 /**
  * Share button — Web Share API on capable browsers (opens the native OS
@@ -63,9 +64,20 @@ function BotonCompartir({ producto }) {
     <button
       type="button"
       onClick={handleClick}
-      className="font-label-md text-label-md inline-flex items-center gap-2 text-on-surface-variant hover:text-on-surface"
+      // Área táctil: medido en navegador el 07/09/2026 sobre `/producto/21`
+      // con `elementFromPoint` —el área EFECTIVA, no la caja declarada—, este
+      // botón daba **19px de alto** en 390 y en 1280. Es texto en línea y
+      // comparte fila con el enlace de WhatsApp: crecer de verdad a 44
+      // empujaría esa fila 26px hacia abajo, así que se estira solo el blanco
+      // de click. El ancho ya sobra (102px medidos) y `before:w-full` copia el
+      // propio para no invadir al vecino.
+      className={`font-label-md text-label-md inline-flex items-center gap-2 text-on-surface-variant hover:text-on-surface ${AREA_TACTIL_ANCHA}`}
     >
-      <span className="material-symbols-outlined text-[18px]">share</span>
+      {/* `aria-hidden`: sin esto el ligature del ícono entra en el nombre
+            accesible y un lector de pantalla anuncia "share Compartir". Verificado
+            contra el árbol de accesibilidad real el 07/09/2026. Misma trampa
+            que documenta `BotonVolver.jsx`. */}
+      <span aria-hidden="true" className="material-symbols-outlined text-[18px]">share</span>
       {estado === "copiado"
         ? "Link copiado"
         : estado === "error"

@@ -436,3 +436,82 @@ describe("FiltrosCatalogo — chips de filtros aplicados", () => {
     expect(botonFiltros().textContent).not.toMatch(/\d/);
   });
 });
+
+/**
+ * Todo lo que se toca con el dedo en esta barra tiene que llegar a 44×44
+ * (WCAG 2.5.8 y las guías de iOS/Android). Medido en navegador antes del
+ * arreglo: buscador y botón "Filtros" a 36 de alto, "Limpiar" y "Aplicar" a
+ * 32. jsdom no calcula layout, así que se afirma sobre las clases que
+ * producen esa caja — el número medido queda en el comentario.
+ */
+describe("FiltrosCatalogo — área táctil y foco visible", () => {
+  it("el buscador y el botón Filtros llegan a 44 de alto", () => {
+    renderFiltros();
+
+    expect(screen.getByLabelText("Buscar").className).toContain("h-11");
+    expect(botonFiltros().className).toContain("h-11");
+  });
+
+  it("Limpiar y Aplicar llegan a 44 de alto", () => {
+    renderFiltros();
+
+    for (const nombre of ["Limpiar", "Aplicar"]) {
+      expect(screen.getByRole("button", { name: nombre }).className).toContain("min-h-11");
+    }
+  });
+
+  it("los campos del panel llegan a 44 de alto", () => {
+    renderFiltros();
+
+    for (const etiqueta of ["Categoría", "Precio min.", "Precio máx."]) {
+      expect(screen.getAllByLabelText(etiqueta)[0].className).toContain("min-h-11");
+    }
+  });
+
+  it("los cuatro campos marcan el foco de TECLADO con un anillo de 2px", () => {
+    // El borde de 1px que cambia de color alcanza en contraste y no en grosor:
+    // WCAG 2.2 (2.4.11) pide un perímetro de 2px. Va en `focus-visible` y no
+    // en `focus` para no dibujarlo al clickear con el mouse.
+    renderFiltros();
+
+    const campos = [
+      screen.getByLabelText("Buscar"),
+      ...["Categoría", "Precio min.", "Precio máx."].map((e) => screen.getAllByLabelText(e)[0]),
+    ];
+
+    for (const campo of campos) {
+      expect(campo.className).toContain("focus-visible:ring-2");
+      expect(campo.className).toContain("focus-visible:ring-primary");
+    }
+  });
+});
+
+/**
+ * Área táctil (WCAG 2.5.8) de los chips de filtro aplicado.
+ *
+ * ⚠️ **No aparecieron en el barrido de la auditoría del 07/09/2026** porque
+ * solo existen con un filtro puesto, y las rutas que se recorrían eran
+ * `/coleccion` pelada. Se los encontró después midiendo
+ * `/coleccion/categoria/cocina`: **77×28** con `elementFromPoint`, o sea el
+ * área EFECTIVA, no la caja declarada.
+ *
+ * Acá se agranda de VERDAD (`min-h-11`) en vez de usar el pseudo-elemento, y
+ * es la excepción al criterio de "no crecer para no mover el diseño": los
+ * chips viven en un `flex flex-wrap gap-1.5`, así que cuando hay más de uno
+ * envuelven en varias filas separadas por 6px. Un área postiza de 44 sobre un
+ * chip de 28 se pasa 8px por arriba y por abajo, y en la segunda fila se
+ * comería la de los chips de la primera. Costo asumido: la fila de chips pasa
+ * de 28 a 44 de alto.
+ */
+describe("FiltrosCatalogo — área táctil de los chips", () => {
+  it("el botón de quitar un filtro declara el mínimo táctil de 44 de alto", () => {
+    renderFiltros({ categoria: "1", search: "reloj" });
+
+    const chips = screen.getAllByRole("button", { name: /^Quitar filtro/ });
+
+    expect(chips.length).toBeGreaterThan(0);
+    for (const chip of chips) {
+      expect(chip.className.split(" ")).toContain("min-h-11");
+    }
+  });
+});

@@ -49,3 +49,29 @@ describe("BotonWhatsapp", () => {
     });
   });
 });
+
+/**
+ * Área táctil (WCAG 2.5.8). La variante `inline` comparte fila y clases con
+ * `BotonCompartir`, al que la medición del 07/09/2026 le encontró **19px de
+ * alto** de área efectiva. Acá no llegó a medirse en navegador porque el
+ * entorno local no tiene WhatsApp configurado y el componente devuelve `null`
+ * sin número: el problema estaba igual, escondido detrás de esa guarda.
+ */
+describe("BotonWhatsapp — área táctil de la variante inline", () => {
+  beforeEach(() => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify(CONFIG),
+    });
+  });
+
+  it("extiende su área a 44 de alto sin crecer de tamaño visible", async () => {
+    render(<BotonWhatsapp variant="inline" contexto={{ tipo: "home" }} />);
+
+    const enlace = await screen.findByRole("link", { name: "Contactar por WhatsApp" });
+
+    expect(enlace.className).toContain("before:h-11");
+    expect(enlace.className).toContain("before:content-['']");
+    expect(enlace.className).toContain("before:w-full");
+  });
+});

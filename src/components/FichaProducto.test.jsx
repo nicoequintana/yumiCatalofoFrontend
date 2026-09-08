@@ -1,7 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import FichaProducto from "./FichaProducto.jsx";
+import useCarrito from "../hooks/useCarrito.js";
 import { ToastProvider } from "../context/ToastContext.jsx";
 import * as configApi from "../api/config.js";
 
@@ -94,6 +95,28 @@ describe("FichaProducto — modo preview", () => {
 
     const botones = screen.getAllByRole("button", { name: /Agregar/i });
     expect(botones.length).toBeGreaterThan(0);
+  });
+
+  // El editor del panel EMBEBE esta ficha como vista previa en vivo, dentro de
+  // una pantalla que ya tiene su propio `h1` ("Agregar producto"). Con el
+  // título fijo en `h1` quedaban DOS encabezados de nivel 1 visibles a la vez
+  // en el mismo documento — medido el 07/09/2026 en `/productos/nuevo`.
+  //
+  // El nivel se deriva de `modoPreview` y no de una prop nueva a propósito:
+  // esa prop ya distingue "esto es el detalle público" de "esto es el preview
+  // del panel", que es exactamente la pregunta que decide el nivel. Una prop
+  // aparte permitiría desalinearlas.
+  it("fuera de modoPreview el nombre es el h1 de la página", () => {
+    renderFicha(PRODUCTO_BASE);
+
+    expect(screen.getByRole("heading", { level: 1, name: "Reloj Clásico" })).toBeInTheDocument();
+  });
+
+  it("en modoPreview el nombre BAJA a h2, para no duplicar el h1 del editor", () => {
+    renderFicha(PRODUCTO_BASE, { modoPreview: true });
+
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
+    expect(screen.getByRole("heading", { level: 2, name: "Reloj Clásico" })).toBeInTheDocument();
   });
 
   it("en modoPreview los CTA quedan inertes (sin clic, sin foco, fuera del árbol de a11y)", () => {
@@ -337,5 +360,92 @@ describe("FichaProducto — datos incompletos (preview de un producto a medio ca
     renderFicha({ ...PRODUCTO_BASE, nombre: "" }, { modoPreview: true });
 
     expect(screen.getByText("Nombre del producto")).toBeInTheDocument();
+  });
+});
+
+/**
+ * GUARD DE FACTURACIÓN. La ficha monta `BotonAgregarCarrito` DOS veces —el
+ * bloque de precio y la barra fija inferior— y por debajo de `md` las dos
+ * están visibles a la vez. Mientras cada instancia tuvo su propio
+ * `useState(1)`, elegir 2 unidades arriba y tocar AGREGAR abajo guardaba
+ * `cantidad: 1` en el carrito: se facturaba de menos, sin error y sin aviso.
+ * La cantidad es UNA sola y vive en la ficha.
+ */
+describe("FichaProducto — la cantidad es una sola entre las dos instancias del CTA", () => {
+  /** La barra fija se identifica por su testid; el CTA del bloque de precio es el otro. */
+  function botonFueraDeLaBarraFija(nombre) {
+    return screen
+      .getAllByRole("button", { name: nombre })
+      .find((boton) => boton.closest('[data-testid="cta-sticky-mobile"]') === null);
+  }
+
+  it("subir la cantidad en el bloque de precio se refleja en la barra fija", () => {
+    renderFicha();
+
+    fireEvent.click(botonFueraDeLaBarraFija(/aumentar/i));
+
+    const barraFija = screen.getByTestId("cta-sticky-mobile");
+    expect(within(barraFija).getByText("2")).toBeInTheDocument();
+  });
+
+  it("subir la cantidad en la barra fija se refleja en el bloque de precio", () => {
+    renderFicha();
+
+    const barraFija = screen.getByTestId("cta-sticky-mobile");
+    fireEvent.click(within(barraFija).getByRole("button", { name: /aumentar/i }));
+
+    const selectorDelBloque = botonFueraDeLaBarraFija(/aumentar/i).parentElement;
+    expect(within(selectorDelBloque).getByText("2")).toBeInTheDocument();
+  });
+
+  it("agregar desde la barra fija manda la cantidad elegida en el bloque de precio", () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    act(() => {
+      carritoHook.current.vaciar();
+    });
+
+    renderFicha();
+
+    fireEvent.click(botonFueraDeLaBarraFija(/aumentar/i)); // 1 → 2 en el bloque de precio
+
+    const barraFija = screen.getByTestId("cta-sticky-mobile");
+    fireEvent.click(within(barraFija).getByRole("button", { name: /agregar/i }));
+
+    expect(carritoHook.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);
+
+    // El reseteo a 1 también es compartido: si solo volviera a 1 la instancia
+    // que se tocó, la otra seguiría mostrando 2 y el próximo click agregaría
+    // una cantidad que el cliente ya no ve en pantalla.
+    screen
+      .getAllByRole("button", { name: /aumentar/i })
+      .forEach((boton) => expect(boton.previousElementSibling).toHaveTextContent("1"));
+
+    act(() => {
+      carritoHook.current.vaciar();
+    });
+    fetchSpy.mockRestore();
+  });
+
+  it("agregar desde el bloque de precio manda la cantidad elegida en la barra fija", () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    act(() => {
+      carritoHook.current.vaciar();
+    });
+
+    renderFicha();
+
+    const barraFija = screen.getByTestId("cta-sticky-mobile");
+    fireEvent.click(within(barraFija).getByRole("button", { name: /aumentar/i })); // 1 → 2
+
+    fireEvent.click(botonFueraDeLaBarraFija(/agregar al carrito/i));
+
+    expect(carritoHook.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);
+
+    act(() => {
+      carritoHook.current.vaciar();
+    });
+    fetchSpy.mockRestore();
   });
 });

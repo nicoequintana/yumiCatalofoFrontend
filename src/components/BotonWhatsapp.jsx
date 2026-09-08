@@ -1,5 +1,6 @@
 import useWhatsapp from "../hooks/useWhatsapp.js";
 import { registrarEvento } from "../api/products.js";
+import { AREA_TACTIL_ANCHA } from "../utils/areaTactil.js";
 
 /**
  * Floating WhatsApp contact button (FAB) — fixed-position, shown on public
@@ -41,7 +42,14 @@ function BotonWhatsapp({ contexto, productId, className = "", variant = "fab" })
         rel="noopener noreferrer"
         onClick={handleClick}
         aria-label="Contactar por WhatsApp"
-        className={`font-label-md text-label-md inline-flex items-center gap-2 text-on-surface-variant hover:text-on-surface ${className}`}
+        // Área táctil: comparte fila y clases con `BotonCompartir`, al que la
+        // medición del 07/09/2026 con `elementFromPoint` le encontró **19px de
+        // alto** de área efectiva. Acá no llegó a medirse en navegador porque
+        // el entorno local no tiene WhatsApp configurado y el componente
+        // devuelve `null` sin número: el problema estaba igual, escondido
+        // detrás de esa guarda. Mismo criterio que el vecino — pseudo-elemento
+        // y no `min-h-11`, para no empujar la fila 26px.
+        className={`font-label-md text-label-md inline-flex items-center gap-2 text-on-surface-variant hover:text-on-surface ${AREA_TACTIL_ANCHA} ${className}`}
       >
         <span className="inline-flex h-[18px] w-[18px] items-center justify-center">
           <svg viewBox="0 0 32 32" width="16" height="16" fill="currentColor" aria-hidden="true">

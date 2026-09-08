@@ -125,7 +125,7 @@ function Carrito() {
           <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
             Tu pedido
           </span>
-          <h2 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">Carrito</h2>
+          <h1 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">Carrito</h1>
         </div>
 
         {cargando ? (
@@ -133,11 +133,24 @@ function Carrito() {
         ) : errorCarga ? (
           <EstadoVacio icono="cloud_off" titulo="No pudimos cargar tu carrito" mensaje={errorCarga} />
         ) : lineas.length === 0 ? (
-          <EstadoVacio
-            icono="shopping_cart"
-            titulo="Tu carrito está vacío"
-            mensaje="Agregá productos desde el catálogo para verlos acá."
-          />
+          // El mensaje NOMBRA la salida ("desde el catálogo"), así que la
+          // pantalla también la OFRECE. `EstadoVacio` no tiene prop de acción a
+          // propósito —lo comparten media docena de pantallas que no necesitan
+          // ninguna—, así que el link va como HERMANO: mismo criterio que el
+          // estado de campaña terminada de `Coleccion.jsx`.
+          <div className="flex flex-col items-center">
+            <EstadoVacio
+              icono="shopping_cart"
+              titulo="Tu carrito está vacío"
+              mensaje="Agregá productos desde el catálogo para verlos acá."
+            />
+            <Link
+              to="/coleccion"
+              className="font-label-md text-label-md -mt-12 mb-4 inline-flex min-h-11 items-center rounded-full bg-primary px-8 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
+            >
+              Ver el catálogo
+            </Link>
+          </div>
         ) : (
           <div className="mx-auto flex max-w-3xl flex-col gap-6">
             <ul className="flex flex-col gap-4">
@@ -165,10 +178,22 @@ function Carrito() {
                           <span className="font-body-lg text-body-lg text-on-surface">
                             {l.producto.nombre}
                           </span>
-                          <PrecioProducto
-                            producto={l.producto}
-                            className="font-body-md text-body-md text-on-surface-variant"
-                          />
+                          {/* El "c/u" desambigua contra el subtotal de la
+                              derecha: sin él la línea muestra dos montos
+                              distintos y nada dice cuál es cuál. Mismo
+                              tratamiento que el resumen de `Checkout.jsx`. */}
+                          <span
+                            data-testid={`carrito-unitario-${l.productId}`}
+                            className="flex flex-wrap items-baseline gap-x-1"
+                          >
+                            <PrecioProducto
+                              producto={l.producto}
+                              className="font-body-md text-body-md text-on-surface-variant"
+                            />
+                            <span className="font-body-md text-body-md text-on-surface-variant">
+                              c/u
+                            </span>
+                          </span>
                         </>
                       ) : (
                         <span className="font-body-lg text-body-lg text-on-surface-variant">
@@ -274,14 +299,18 @@ function Carrito() {
                 disabled
                 className="font-label-md text-label-md inline-flex cursor-not-allowed items-center justify-center rounded-full bg-surface-container-high px-8 py-4 text-center uppercase tracking-widest text-on-surface-variant"
               >
-                Confirmar pedido
+                Continuar
               </button>
             ) : (
+              // "Confirmar pedido" es el copy del botón que SÍ crea la orden,
+              // en `/checkout`. Repetirlo acá —donde el CTA solo navega— le
+              // hace creer al cliente que ya compró: el mismo texto para dos
+              // acciones distintas, y la que promete menos es la que cobra.
               <Link
                 to="/checkout"
                 className="font-label-md text-label-md inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
               >
-                Confirmar pedido
+                Continuar
               </Link>
             )}
           </div>

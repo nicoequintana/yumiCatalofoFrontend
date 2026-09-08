@@ -219,6 +219,36 @@ describe("BarraAnuncios", () => {
     }
   });
 
+  it("scrolleable a mano es una REGIÓN con nombre, no un div anónimo enfocable", async () => {
+    // Chrome vuelve enfocable a cualquier contenedor con scroll, así que la
+    // cinta quieta se convertía en la PRIMERA parada de Tab a 390px — siendo
+    // un `<div>` sin rol ni nombre, un lector de pantalla anunciaba "grupo"
+    // vacío. Si va a estar en el tabulado, que diga qué es (WCAG 4.1.2), y con
+    // `tabindex` explícito para no depender de una heurística del navegador.
+    const restaurar = instalarMatchMedia(true);
+    restaurarAnchos = stubAnchos({ contenedor: 1000, grupo: 250 });
+    try {
+      renderBarra();
+
+      const region = await screen.findByRole("region", { name: "Anuncios" });
+      expect(region.className).toContain("overflow-x-auto");
+      expect(region).toHaveAttribute("tabindex", "0");
+    } finally {
+      restaurar();
+    }
+  });
+
+  it("en movimiento NO es enfocable: no hay nada que scrollear a mano", async () => {
+    // La cinta animada recorta el desborde, así que no es un contenedor de
+    // scroll: meterla en el tabulado sería una parada que no lleva a nada.
+    restaurarAnchos = stubAnchos({ contenedor: 1000, grupo: 250 });
+    const { container } = renderBarra();
+
+    await waitFor(() => expect(container.firstChild).not.toBeNull());
+    expect(container.firstChild).not.toHaveAttribute("tabindex");
+    expect(screen.queryByRole("region", { name: "Anuncios" })).toBeNull();
+  });
+
   // Una franja vacía empujando la página es peor que ninguna franja. Cubre los
   // tres casos que para el visitante son el mismo: todavía no cargó, el admin
   // los desactivó a todos, o falló la red.
