@@ -24,3 +24,21 @@ describe("NoEncontrado", () => {
     expect(container.querySelector("h1")).not.toBe(null);
   });
 });
+
+/**
+ * Área táctil (WCAG 2.5.8). Medido en navegador el 07/09/2026 con
+ * `elementFromPoint` —el área EFECTIVA, no la caja declarada—: el CTA daba
+ * **42px de alto** a 390 y a 1280 (`py-3` sobre un texto de 17px). Es un botón
+ * suelto en una página vacía, así que puede crecer los 2px que faltan sin
+ * costo: `min-h-11` como PISO, y el `py-3` se conserva porque es lo que le da
+ * el aire horizontal.
+ */
+describe("NoEncontrado — área táctil", () => {
+  it("el CTA al catálogo declara el mínimo táctil de 44px", () => {
+    render(<MemoryRouter><NoEncontrado /></MemoryRouter>);
+
+    const enlace = screen.getByRole("link", { name: /productos/i });
+
+    expect(enlace.className.split(" ")).toContain("min-h-11");
+  });
+});
