@@ -13,35 +13,125 @@ function renderSidebar() {
 
 describe("AdminSidebar", () => {
   /**
-   * `ITEMS_NAV` se mapea dos veces (sidebar mobile + bottom nav desktop), así
-   * que cada entrada debe aparecer exactamente dos veces en el DOM. Las dos
-   * presentaciones se muestran/ocultan por CSS (`md:hidden` / `hidden md:flex`),
-   * no por render condicional, por eso ambas están presentes en el árbol.
+   * Las cinco pantallas de analítica ya no son links sueltos: viven adentro
+   * del acordeón "Analytics" (mismo patrón que "Configuración"), colapsado
+   * por defecto. Antes de desplegarlo, "Ventas" no es un link visible.
    */
-  it("renderiza Ventas en la nav mobile y en la de escritorio", () => {
+  it("no muestra Ventas como link suelto antes de desplegar Analytics", () => {
     renderSidebar();
 
-    const enlaces = screen.getAllByRole("link", { name: /ventas/i });
+    expect(screen.queryByRole("link", { name: /ventas/i })).not.toBeInTheDocument();
+  });
 
-    expect(enlaces).toHaveLength(2);
-    for (const enlace of enlaces) {
-      expect(enlace).toHaveAttribute("href", "/catalogo/admin/ventas");
+  it("el botón Analytics está en las dos navegaciones y despliega sus hijas al tocarlo", () => {
+    renderSidebar();
+
+    const botones = screen.getAllByRole("button", { name: /analytics/i });
+    expect(botones).toHaveLength(2);
+
+    for (const boton of botones) {
+      fireEvent.click(boton);
+    }
+
+    const enlacesVentas = screen.getAllByRole("link", { name: /ventas/i });
+    expect(enlacesVentas).toHaveLength(2);
+    for (const enlace of enlacesVentas) {
+      expect(enlace).toHaveAttribute("href", "/catalogo/admin/analytics/ventas");
     }
   });
 
-  it("mantiene el resto de las entradas de navegación", () => {
+  it("mantiene el resto de las entradas de navegación, sueltas y bajo Analytics", () => {
     renderSidebar();
 
-    for (const etiqueta of [
-      /productos/i,
-      /órdenes/i,
-      /embudo/i,
-      /clientes/i,
-      /operación/i,
-      /métricas/i,
-      /logs/i,
-    ]) {
+    for (const etiqueta of [/productos/i, /órdenes/i, /logs/i]) {
       expect(screen.getAllByRole("link", { name: etiqueta })).toHaveLength(2);
+    }
+
+    for (const boton of screen.getAllByRole("button", { name: /analytics/i })) {
+      fireEvent.click(boton);
+    }
+
+    for (const etiqueta of [/embudo/i, /clientes/i, /operación/i]) {
+      expect(screen.getAllByRole("link", { name: etiqueta })).toHaveLength(2);
+    }
+
+    // "Métricas" (sola) y "Métricas comerciales" comparten la palabra: se
+    // cuenta por el `href`, que es lo único que las distingue sin ambigüedad.
+    const enlacesMetricas = screen
+      .getAllByRole("link", { name: /métricas/i })
+      .filter((enlace) => enlace.getAttribute("href") === "/catalogo/admin/analytics/metricas");
+    expect(enlacesMetricas).toHaveLength(2);
+  });
+
+  it("apunta la ruta nueva de analítica de campañas con un rótulo que no colisiona con el editor", () => {
+    renderSidebar();
+
+    for (const boton of screen.getAllByRole("button", { name: /analytics/i })) {
+      fireEvent.click(boton);
+    }
+
+    // "Campañas" del editor (ITEMS_NAV) sigue existiendo aparte; esta es la
+    // métrica, con rótulo propio para no repetir el mismo texto en el menú.
+    const enlaces = screen.getAllByRole("link", { name: /métricas comerciales/i });
+    expect(enlaces).toHaveLength(2);
+    for (const enlace of enlaces) {
+      expect(enlace).toHaveAttribute("href", "/catalogo/admin/analytics/campanias");
+    }
+
+    const enlacesEditor = screen
+      .getAllByRole("link", { name: /campañas/i })
+      .filter((enlace) => enlace.getAttribute("href") === "/catalogo/admin/campanias");
+    expect(enlacesEditor).toHaveLength(2);
+  });
+});
+
+/**
+ * La asimetría heredada: el botón del acordeón, en el DRAWER, hardcodeaba
+ * `linkInactivo` y nunca se pintaba activo estando en una hija. La bottom nav
+ * sí lo hacía. Analytics nace ya simétrico en los dos lados, y Configuración
+ * se corrige en el mismo cambio.
+ */
+describe("AdminSidebar — el botón del acordeón se pinta activo en una hija", () => {
+  function renderEn(ruta) {
+    return render(
+      <MemoryRouter initialEntries={[ruta]}>
+        <AdminSidebar colapsada={false} onCerrar={() => {}} />
+      </MemoryRouter>,
+    );
+  }
+
+  it("Analytics: el botón del drawer y el de la bottom nav se pintan activos", () => {
+    const { container } = renderEn("/catalogo/admin/analytics/ventas");
+    const aside = container.querySelector("aside");
+
+    const [botonDrawer, botonBottomNav] = screen.getAllByRole("button", { name: /analytics/i });
+
+    expect(aside.contains(botonDrawer)).toBe(true);
+    expect(botonDrawer).toHaveClass("bg-primary", "text-on-primary");
+    expect(botonBottomNav).toHaveClass("bg-primary", "text-on-primary");
+  });
+
+  it("Configuración: el botón del drawer y el de la bottom nav se pintan activos", () => {
+    const { container } = renderEn("/catalogo/admin/configuracion/categorias");
+    const aside = container.querySelector("aside");
+
+    const [botonDrawer, botonBottomNav] = screen.getAllByRole("button", {
+      name: /configuración/i,
+    });
+
+    expect(aside.contains(botonDrawer)).toBe(true);
+    expect(botonDrawer).toHaveClass("bg-primary", "text-on-primary");
+    expect(botonBottomNav).toHaveClass("bg-primary", "text-on-primary");
+  });
+
+  it("fuera de Analytics y de Configuración, ninguno de los dos botones se pinta activo", () => {
+    renderEn("/catalogo/admin/productos");
+
+    for (const boton of [
+      ...screen.getAllByRole("button", { name: /^analytics/i }),
+      ...screen.getAllByRole("button", { name: /configuración/i }),
+    ]) {
+      expect(boton).not.toHaveClass("bg-primary", "text-on-primary");
     }
   });
 });
@@ -157,7 +247,7 @@ describe("AdminSidebar — la sidebar mobile colapsada", () => {
 
     // Los enlaces del menú viven adentro del subárbol inerte, no sueltos.
     const enlaceMobile = screen
-      .getAllByRole("link", { name: /ventas/i })
+      .getAllByRole("link", { name: /productos/i })
       .find((enlace) => aside.contains(enlace));
     expect(enlaceMobile).toBeDefined();
   });
@@ -239,10 +329,10 @@ describe("AdminSidebar — drawer accesible (useDialogo + useBloquearScroll)", (
     const onCerrar = vi.fn();
     renderDrawer(false, onCerrar);
 
-    // El segundo "Ventas" es el de la bottom nav: `ITEMS_NAV` se mapea
+    // El segundo "Productos" es el de la bottom nav: `ITEMS_NAV` se mapea
     // primero en el drawer y después en la nav de escritorio.
-    const [, ventasEscritorio] = screen.getAllByRole("link", { name: /ventas/i });
-    fireEvent.click(ventasEscritorio);
+    const [, productosEscritorio] = screen.getAllByRole("link", { name: /productos/i });
+    fireEvent.click(productosEscritorio);
 
     expect(onCerrar).toHaveBeenCalled();
   });

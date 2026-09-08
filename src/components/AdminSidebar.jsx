@@ -60,12 +60,23 @@ const ITEMS_NAV = [
   { to: "/catalogo/admin/ordenes", icono: "receipt_long", label: "Órdenes" },
   { to: "/catalogo/admin/campanias", icono: "calendar_month", label: "Campañas", soloEscritorio: true },
   { to: "/catalogo/admin/promociones", icono: "sell", label: "Promociones", soloEscritorio: true },
-  { to: "/catalogo/admin/ventas", icono: "payments", label: "Ventas" },
-  { to: "/catalogo/admin/embudo", icono: "filter_alt", label: "Embudo" },
-  { to: "/catalogo/admin/clientes", icono: "group", label: "Clientes" },
-  { to: "/catalogo/admin/operacion", icono: "pending_actions", label: "Operación" },
-  { to: "/catalogo/admin/metricas", icono: "query_stats", label: "Métricas" },
   { to: "/catalogo/admin/logs", icono: "history", label: "Logs" },
+];
+
+// Las seis pantallas de analítica, agrupadas bajo el mismo acordeón que
+// Configuración. El sexto ítem, `analytics/campanias`, MIDE campañas y
+// promociones (clicks, impresiones) — es una pantalla distinta del editor
+// `/catalogo/admin/campanias` que ya vive en `ITEMS_NAV`. Como los dos se
+// llamarían "Campañas" en el mismo menú, este usa el título que la propia
+// pantalla muestra en su `<h1>` ("Métricas comerciales") en vez de inventar
+// un rótulo nuevo: desambigua sin duplicar una tercera decisión de nombre.
+const ITEMS_ANALYTICS = [
+  { to: "/catalogo/admin/analytics/ventas", icono: "payments", label: "Ventas" },
+  { to: "/catalogo/admin/analytics/embudo", icono: "filter_alt", label: "Embudo" },
+  { to: "/catalogo/admin/analytics/clientes", icono: "group", label: "Clientes" },
+  { to: "/catalogo/admin/analytics/operacion", icono: "pending_actions", label: "Operación" },
+  { to: "/catalogo/admin/analytics/metricas", icono: "query_stats", label: "Métricas" },
+  { to: "/catalogo/admin/analytics/campanias", icono: "campaign", label: "Métricas comerciales" },
 ];
 
 const ITEMS_CONFIGURACION = [
@@ -103,8 +114,11 @@ function AdminSidebar({ colapsada, onCerrar }) {
   const location = useLocation();
   const navigate = useNavigate();
   const enConfiguracion = location.pathname.startsWith("/catalogo/admin/configuracion");
+  const enAnalytics = location.pathname.startsWith("/catalogo/admin/analytics");
   const [configuracionAbierta, setConfiguracionAbierta] = useState(enConfiguracion);
   const [menuConfigDesktopAbierto, setMenuConfigDesktopAbierto] = useState(false);
+  const [analyticsAbierta, setAnalyticsAbierta] = useState(enAnalytics);
+  const [menuAnalyticsDesktopAbierto, setMenuAnalyticsDesktopAbierto] = useState(false);
 
   const abierto = !colapsada;
   const drawerRef = useDialogo({ abierto, onCerrar });
@@ -117,6 +131,14 @@ function AdminSidebar({ colapsada, onCerrar }) {
       setMenuConfigDesktopAbierto(false);
     }
   }, [enConfiguracion]);
+
+  useEffect(() => {
+    if (enAnalytics) {
+      setAnalyticsAbierta(true);
+    } else {
+      setMenuAnalyticsDesktopAbierto(false);
+    }
+  }, [enAnalytics]);
 
   function handleCerrarSesion() {
     clearToken();
@@ -189,8 +211,35 @@ function AdminSidebar({ colapsada, onCerrar }) {
             ))}
             <button
               type="button"
+              onClick={() => setAnalyticsAbierta((abierta) => !abierta)}
+              className={`${linkBase} ${enAnalytics ? linkActivo : linkInactivo} justify-between`}
+              aria-expanded={analyticsAbierta}
+            >
+              <span className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[18px]">analytics</span>
+                Analytics
+              </span>
+              <span className="material-symbols-outlined text-[18px]">
+                {analyticsAbierta ? "expand_less" : "expand_more"}
+              </span>
+            </button>
+            {analyticsAbierta && (
+              <div className="ml-4 flex flex-col gap-1 border-l border-outline-variant pl-4">
+                {ITEMS_ANALYTICS.map((item) => (
+                  <NavLink key={item.to} to={item.to} className={claseLink} onClick={onCerrar}>
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
               onClick={() => setConfiguracionAbierta((abierta) => !abierta)}
-              className={`${linkBase} ${linkInactivo} justify-between`}
+              // Antes hardcodeaba `linkInactivo`: el botón nunca se pintaba
+              // activo aunque estuvieras parado en una hija. Se corrige acá
+              // junto con el alta de Analytics para que los dos acordeones
+              // sigan la misma regla (la que ya usaba la bottom nav).
+              className={`${linkBase} ${enConfiguracion ? linkActivo : linkInactivo} justify-between`}
               aria-expanded={configuracionAbierta}
             >
               <span className="flex items-center gap-3">
@@ -276,6 +325,40 @@ function AdminSidebar({ colapsada, onCerrar }) {
               {item.label}
             </NavLink>
           ))}
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                onCerrar();
+                setMenuAnalyticsDesktopAbierto((abierto) => !abierto);
+              }}
+              className={`${tabBase} ${enAnalytics ? tabActivo : tabInactivo}`}
+              aria-expanded={menuAnalyticsDesktopAbierto}
+            >
+              <span className="material-symbols-outlined text-[20px]">analytics</span>
+              <span className="flex items-center gap-1">
+                Analytics
+                <span className="material-symbols-outlined text-[16px]">
+                  {menuAnalyticsDesktopAbierto ? "expand_more" : "expand_less"}
+                </span>
+              </span>
+            </button>
+            {menuAnalyticsDesktopAbierto && (
+              <div className="absolute bottom-full left-1/2 mb-2 flex w-52 -translate-x-1/2 flex-col gap-1 rounded-lg border border-outline-variant bg-surface-container-lowest p-2 shadow-ambient">
+                {ITEMS_ANALYTICS.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={claseLink}
+                    onClick={() => setMenuAnalyticsDesktopAbierto(false)}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="relative">
             <button
