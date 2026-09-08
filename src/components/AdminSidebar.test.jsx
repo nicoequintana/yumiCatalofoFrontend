@@ -63,6 +63,23 @@ describe("AdminSidebar", () => {
     expect(enlacesMetricas).toHaveLength(2);
   });
 
+  // Los dos dropdowns de escritorio son `absolute` y centrados sobre botones
+  // vecinos de la bottom nav: `w-52` (Analítica) y `w-44` (Configuración) se
+  // pisan unos 60px si los dos quedan abiertos a la vez.
+  it("abrir un dropdown de escritorio cierra el otro si estaba abierto", () => {
+    renderSidebar();
+
+    const [, analiticaEscritorio] = screen.getAllByRole("button", { name: /analítica/i });
+    const [, configuracionEscritorio] = screen.getAllByRole("button", { name: /configuración/i });
+
+    fireEvent.click(configuracionEscritorio);
+    expect(configuracionEscritorio).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(analiticaEscritorio);
+    expect(analiticaEscritorio).toHaveAttribute("aria-expanded", "true");
+    expect(configuracionEscritorio).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("apunta la ruta nueva de analítica de campañas con un rótulo que no colisiona con el editor", () => {
     renderSidebar();
 
@@ -82,6 +99,33 @@ describe("AdminSidebar", () => {
       .getAllByRole("link", { name: /campañas/i })
       .filter((enlace) => enlace.getAttribute("href") === "/catalogo/admin/campanias");
     expect(enlacesEditor).toHaveLength(2);
+  });
+});
+
+/**
+ * Guard de no-regresión de `ITEMS_NAV`: no está exportado (no hace falta
+ * fuera de este componente), así que se afirma indirectamente contando los
+ * links de la bottom nav — que mapea ese mismo array 1:1, sin acordeones
+ * mezclados adentro.
+ *
+ * Existe porque `e2e/admin-desktop-layout.spec.js` (el guard REAL del
+ * breakpoint) está fuera del CI a propósito, y este archivo fija las clases
+ * pero no el TAMAÑO de la barra. Sin este test, sumar un sexto ítem a
+ * `ITEMS_NAV` deja la suite entera en verde y reabre el bug de "no se puede
+ * cerrar sesión entre 1024 y N" descrito en el comentario del `<nav>` de
+ * `AdminSidebar.jsx` — silencioso hasta que alguien lo mide en navegador.
+ * **Si tocás `ITEMS_NAV`, corré `e2e/admin-desktop-layout.spec.js` antes de
+ * mergear.**
+ */
+describe("AdminSidebar — ITEMS_NAV no crece en silencio", () => {
+  it("la bottom nav tiene hoy cinco ítems sueltos (más los dos acordeones)", () => {
+    const { container } = renderSidebar();
+    const bottomNav = container.querySelector("nav.fixed.inset-x-0.bottom-0");
+
+    // Los links directos de la bottom nav (no los de adentro de un dropdown,
+    // que solo existen cuando el acordeón está abierto).
+    const linksSueltos = within(bottomNav).getAllByRole("link");
+    expect(linksSueltos).toHaveLength(5);
   });
 });
 

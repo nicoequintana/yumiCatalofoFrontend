@@ -16,9 +16,10 @@ import {
  * drawer sigue inerte cuando no se abrió y la bottom nav sigue en su lugar.
  *
  * ⚠️ HISTORIA DEL CORTE: entre el 07/09/2026 y el 08/09/2026 este spec medía a
- * 1280 y ahí NO había bottom nav. Con diez ítems (los seis de hoy más
- * Analítica y Configuración desplegados en línea) el corte se subió de `lg`
- * (1024px) a `min-[1360px]` porque la barra medía 1326px de ancho intrínseco y
+ * 1280 y ahí NO había bottom nav. Con diez ítems (los cinco de hoy más las
+ * cinco pantallas de analítica que estaban en línea, antes del acordeón
+ * "Analítica") el corte se subió de `lg` (1024px) a `min-[1360px]` porque la
+ * barra medía 1326px de ancho intrínseco y
  * no llevaba `flex-wrap` ni scroll: entre 1024 y 1325 lo que sobraba se
  * pintaba fuera del viewport sin generar scroll de documento, y "Cerrar
  * sesión" era inalcanzable con el mouse por debajo de 1134px. El motivo

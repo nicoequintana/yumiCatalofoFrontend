@@ -208,6 +208,18 @@ function AdminSidebar({ colapsada, onCerrar }) {
                 // de tabulado, que es lo que hay que lograr: un enlace visible
                 // solo para el lector de pantalla llevaría a la pantalla que
                 // `SoloEscritorio` bloquea a ese mismo ancho.
+                //
+                // ⚠️ Con el corte del shell de vuelta en `lg` (08/09/2026),
+                // este `hidden lg:flex` quedó INERTE en todo ancho: vive
+                // dentro de un `<aside>` que es `lg:hidden` (línea del
+                // `className` del `<aside>`, más abajo), así que por debajo de
+                // `lg` gana `hidden` y desde `lg` el `<aside>` entero es
+                // `display:none`. No hay bug — la bottom nav ya cubre
+                // Campañas/Promociones desde `lg` — pero el rango en el que
+                // esto SÍ mostraba el ítem (cuando el corte del shell estaba
+                // por encima de `lg`, como pasó con `min-[1360px]` entre el
+                // 07/09 y el 08/09) hoy no existe. Solo vuelve a importar si
+                // el corte del shell sube otra vez por encima de `lg`.
                 className={(estado) => claseLink(estado, item.soloEscritorio ? "hidden lg:flex" : "")}
                 onClick={onCerrar}
               >
@@ -360,6 +372,10 @@ function AdminSidebar({ colapsada, onCerrar }) {
               type="button"
               onClick={() => {
                 onCerrar();
+                // Cierra el OTRO dropdown al abrir este: con `w-52` y `w-44`
+                // centrados sobre sus botones (a 60px uno del otro en la
+                // bottom nav) los dos abiertos a la vez se pisan.
+                setMenuConfigDesktopAbierto(false);
                 setMenuAnalyticsDesktopAbierto((abierto) => !abierto);
               }}
               className={`${tabBase} ${enAnalytics ? tabActivo : tabInactivo}`}
@@ -394,6 +410,9 @@ function AdminSidebar({ colapsada, onCerrar }) {
               type="button"
               onClick={() => {
                 onCerrar();
+                // Mismo criterio que el botón de Analítica: cierra el otro
+                // dropdown al abrir este.
+                setMenuAnalyticsDesktopAbierto(false);
                 setMenuConfigDesktopAbierto((abierto) => !abierto);
               }}
               className={`${tabBase} ${enConfiguracion ? tabActivo : tabInactivo}`}
