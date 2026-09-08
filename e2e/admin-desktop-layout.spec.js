@@ -15,14 +15,21 @@ import {
  * esa segunda mitad de la promesa: la tabla sigue siendo `display: table`, el
  * drawer sigue inerte cuando no se abrió y la bottom nav sigue en su lugar.
  *
- * ⚠️ ESTE SPEC MEDÍA A 1280 Y AHÍ YA NO HAY BOTTOM NAV. El corte pasó de `lg`
- * (1024px) a 1360px porque la barra mide 1326px de ancho intrínseco y no lleva
- * `flex-wrap` ni scroll: entre 1024 y 1325 lo que sobraba se pintaba fuera del
- * viewport sin generar scroll de documento, y "Cerrar sesión" era inalcanzable
- * con el mouse por debajo de 1134px. El motivo completo está en el comentario
- * del `<nav>` de `AdminSidebar.jsx`. Por eso hay dos mediciones acá: la barra
- * a 1440, y el drawer —con su logout— en los tres anchos de la banda que antes
- * quedaba huérfana.
+ * ⚠️ HISTORIA DEL CORTE: entre el 07/09/2026 y el 08/09/2026 este spec medía a
+ * 1280 y ahí NO había bottom nav. Con diez ítems (los seis de hoy más
+ * Analítica y Configuración desplegados en línea) el corte se subió de `lg`
+ * (1024px) a `min-[1360px]` porque la barra medía 1326px de ancho intrínseco y
+ * no llevaba `flex-wrap` ni scroll: entre 1024 y 1325 lo que sobraba se
+ * pintaba fuera del viewport sin generar scroll de documento, y "Cerrar
+ * sesión" era inalcanzable con el mouse por debajo de 1134px. El motivo
+ * completo está en el comentario del `<nav>` de `AdminSidebar.jsx`.
+ *
+ * La reorganización del 08/09/2026 (diez ítems → cinco más dos acordeones)
+ * sacó la causa, y este spec fue el que lo confirmó: medido con los mismos
+ * `scrollWidth`/`elementFromPoint` de siempre a 1024, 1100 y 1280px, la barra
+ * entra entera y "Cerrar sesión" recibe el click en su centro en los tres. El
+ * corte volvió a `lg`, y el guard de abajo mide contra la bottom nav REAL en
+ * vez del drawer de la banda huérfana, que ya no existe.
  */
 test.describe("Admin en escritorio (no-regresión)", () => {
   let producto;
@@ -48,7 +55,7 @@ test.describe("Admin en escritorio (no-regresión)", () => {
    * tres del presupuesto de toda la suite. Los anchos se recorren con
    * `setViewportSize` sobre la misma sesión.
    */
-  test("la bottom nav a 1360+, el drawer con su logout alcanzable por debajo", async ({ page }) => {
+  test("la bottom nav aparece desde 1024px (lg), entra entera y su logout es clickeable", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 800 });
     await page.goto("/catalogo/admin/login");
     await page.getByLabel("Email").fill(usuarioAdmin.email);
@@ -83,7 +90,7 @@ test.describe("Admin en escritorio (no-regresión)", () => {
       await expect(tabla).toBeVisible();
       await expect(tabla).toHaveCSS("display", "table");
 
-      // La barra superior mobile (y su botón de menú) es `min-[1360px]:hidden`.
+      // La barra superior mobile (y su botón de menú) es `lg:hidden`.
       await expect(page.getByRole("button", { name: "Abrir menú" })).toBeHidden();
 
       // El drawer nunca se abrió en esta corrida: sigue inerte, como en su
@@ -98,12 +105,16 @@ test.describe("Admin en escritorio (no-regresión)", () => {
       const drawer = page.locator('aside[role="dialog"][aria-label="Menú"]');
       expect(await drawer.evaluate((el) => el.inert)).toBe(true);
 
-      const linkVentas = page.getByRole("link", { name: "Ventas" });
-      await expect(linkVentas).toBeVisible();
-      const caja = await linkVentas.boundingBox();
-      expect(caja.y, "el link Ventas de la bottom nav está en la franja inferior").toBeGreaterThan(
-        680,
-      );
+      // "Ventas" vive adentro del acordeón "Analítica" (05/09/2026), no como
+      // link suelto de primer nivel — "Productos" sí lo es y alcanza para
+      // verificar que la bottom nav está en la franja inferior.
+      const linkProductos = page.getByRole("link", { name: "Productos" });
+      await expect(linkProductos).toBeVisible();
+      const caja = await linkProductos.boundingBox();
+      expect(
+        caja.y,
+        "el link Productos de la bottom nav está en la franja inferior",
+      ).toBeGreaterThan(680);
 
       // La barra entra ENTERA: su ancho intrínseco (`scrollWidth`) no puede
       // pasarse del viewport. Es la medición que faltaba y que dejó el bug
@@ -114,31 +125,44 @@ test.describe("Admin en escritorio (no-regresión)", () => {
       expect(desborde, "la bottom nav no desborda el viewport a 1440px").toBeLessThanOrEqual(0);
     });
 
-    // La banda que antes quedaba sin salida: la bottom nav ya estaba encendida
-    // (`lg:flex`) pero recortada, y el drawer —que es quien tiene el otro
-    // logout— ya estaba apagado. Los tres anchos incluyen 1280, el viewport
-    // por defecto del proyecto `chromium`.
-    for (const ancho of [1024, 1280, 1359]) {
-      await test.step(`${ancho}px: el drawer atiende y su logout es clickeable`, async () => {
+    /**
+     * La medición que decidió el corte (08/09/2026): con la nav reorganizada
+     * en cinco ítems más dos acordeones, ¿entra la bottom nav a los anchos
+     * donde antes (con diez ítems) se pintaba fuera del viewport? Los tres
+     * anchos son los mismos que delataron el bug original — 1024 y 1280 son
+     * los extremos de la banda rota, 1100 es un punto intermedio — y las dos
+     * afirmaciones son las que importan: `scrollWidth` no se pasa del
+     * viewport (nada se pinta fuera de pantalla) y `elementFromPoint` en el
+     * centro de "Cerrar sesión" devuelve el botón de verdad (visible no es lo
+     * mismo que alcanzable: eso fue justo lo que ocultó el bug anterior).
+     */
+    for (const ancho of [1024, 1100, 1280]) {
+      await test.step(`${ancho}px: la bottom nav entra entera y su logout es clickeable`, async () => {
         await page.setViewportSize({ width: ancho, height: 800 });
 
-        const botonMenu = page.getByRole("button", { name: "Abrir menú" });
-        await expect(botonMenu, `a ${ancho}px hay con qué abrir la navegación`).toBeVisible();
-        await botonMenu.click();
+        const nav = page.locator("nav.fixed.inset-x-0.bottom-0");
+        await expect(nav, `a ${ancho}px la bottom nav está visible`).toBeVisible();
 
-        const drawer = page.getByRole("dialog", { name: "Menú" });
-        await expect(drawer).toBeVisible();
+        const { scrollWidth, innerWidth } = await page.evaluate(() => {
+          const n = document.querySelector("nav.fixed.inset-x-0.bottom-0");
+          return { scrollWidth: n.scrollWidth, innerWidth: window.innerWidth };
+        });
+        expect(
+          scrollWidth,
+          `a ${ancho}px la bottom nav entra entera (scrollWidth ${scrollWidth} <= innerWidth ${innerWidth})`,
+        ).toBeLessThanOrEqual(innerWidth);
 
-        const logout = drawer.getByRole("button", { name: "Cerrar sesión" });
+        const logout = nav.getByRole("button", { name: "Cerrar sesión" });
         await expect(logout, `a ${ancho}px "Cerrar sesión" se ve`).toBeVisible();
 
         const caja = await logout.boundingBox();
         expect(caja.height, `a ${ancho}px el logout mide 44px o más`).toBeGreaterThanOrEqual(44);
 
         // Visible no es alcanzable: lo que decide si el click llega es qué
-        // devuelve `elementFromPoint` en el centro del control. Es la medición
-        // que delató el bug original (a 1024 el logout de la bottom nav no lo
-        // devolvía: estaba pintado fuera de pantalla).
+        // devuelve `elementFromPoint` en el centro del control. Es la
+        // medición que delató el bug original (a 1024, con diez ítems, el
+        // logout de la bottom nav no lo devolvía: estaba pintado fuera de
+        // pantalla pese a "verse" para Playwright).
         const recibeElClick = await page.evaluate(
           ({ x, y }) => {
             const boton = document.elementFromPoint(x, y)?.closest("button");
@@ -147,20 +171,50 @@ test.describe("Admin en escritorio (no-regresión)", () => {
           { x: caja.x + caja.width / 2, y: caja.y + caja.height / 2 },
         );
         expect(recibeElClick, `a ${ancho}px el logout recibe el click en su centro`).toBe(true);
-
-        // Escape lo cierra, pero NO con `toBeHidden()`: el drawer se cierra
-        // deslizándose (`-translate-x-full`), así que conserva su caja y para
-        // Playwright sigue siendo "visible". Antes del 07/09/2026 esa
-        // aserción pasaba por otro motivo —abajo de `lg` el drawer ni se
-        // montaba—, así que medía la ausencia del nodo, no el cierre.
-        //
-        // Lo que prueba de verdad que quedó cerrado es `inert`: saca el
-        // subárbol del foco, del click y del árbol de accesibilidad. Es lo
-        // mismo que el resto del repo verifica cuando jsdom no alcanza.
-        await page.keyboard.press("Escape");
-        await expect(drawer).toHaveAttribute("inert", "");
-        await expect(drawer).toHaveClass(/-translate-x-full/);
       });
     }
+
+    /**
+     * Por debajo de `lg` el drawer es la navegación, con su propio logout —
+     * mismo mecanismo de siempre (`useDialogo` + `useBloquearScroll`), que
+     * `admin-mobile.spec.js` ya cubre a 412px. Acá alcanza con un ancho justo
+     * debajo del corte para confirmar que el drawer sigue siendo la salida
+     * ahí, ya sin la banda huérfana que existía con el corte en 1360.
+     */
+    await test.step("1023px: por debajo de lg, el drawer atiende con su logout alcanzable", async () => {
+      await page.setViewportSize({ width: 1023, height: 800 });
+
+      const botonMenu = page.getByRole("button", { name: "Abrir menú" });
+      await expect(botonMenu, "a 1023px hay con qué abrir la navegación").toBeVisible();
+      await botonMenu.click();
+
+      const drawer = page.getByRole("dialog", { name: "Menú" });
+      await expect(drawer).toBeVisible();
+
+      const logout = drawer.getByRole("button", { name: "Cerrar sesión" });
+      await expect(logout, "a 1023px \"Cerrar sesión\" se ve").toBeVisible();
+
+      const caja = await logout.boundingBox();
+      expect(caja.height, "a 1023px el logout mide 44px o más").toBeGreaterThanOrEqual(44);
+
+      const recibeElClick = await page.evaluate(
+        ({ x, y }) => {
+          const boton = document.elementFromPoint(x, y)?.closest("button");
+          return boton ? boton.textContent.includes("Cerrar sesión") : false;
+        },
+        { x: caja.x + caja.width / 2, y: caja.y + caja.height / 2 },
+      );
+      expect(recibeElClick, "a 1023px el logout recibe el click en su centro").toBe(true);
+
+      // Escape lo cierra, pero NO con `toBeHidden()`: el drawer se cierra
+      // deslizándose (`-translate-x-full`), así que conserva su caja y para
+      // Playwright sigue siendo "visible". Lo que prueba de verdad que quedó
+      // cerrado es `inert`: saca el subárbol del foco, del click y del árbol
+      // de accesibilidad. Es lo mismo que el resto del repo verifica cuando
+      // jsdom no alcanza.
+      await page.keyboard.press("Escape");
+      await expect(drawer).toHaveAttribute("inert", "");
+      await expect(drawer).toHaveClass(/-translate-x-full/);
+    });
   });
 });

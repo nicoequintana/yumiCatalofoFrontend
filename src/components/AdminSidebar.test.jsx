@@ -14,19 +14,19 @@ function renderSidebar() {
 describe("AdminSidebar", () => {
   /**
    * Las cinco pantallas de analítica ya no son links sueltos: viven adentro
-   * del acordeón "Analytics" (mismo patrón que "Configuración"), colapsado
+   * del acordeón "Analítica" (mismo patrón que "Configuración"), colapsado
    * por defecto. Antes de desplegarlo, "Ventas" no es un link visible.
    */
-  it("no muestra Ventas como link suelto antes de desplegar Analytics", () => {
+  it("no muestra Ventas como link suelto antes de desplegar Analítica", () => {
     renderSidebar();
 
     expect(screen.queryByRole("link", { name: /ventas/i })).not.toBeInTheDocument();
   });
 
-  it("el botón Analytics está en las dos navegaciones y despliega sus hijas al tocarlo", () => {
+  it("el botón Analítica está en las dos navegaciones y despliega sus hijas al tocarlo", () => {
     renderSidebar();
 
-    const botones = screen.getAllByRole("button", { name: /analytics/i });
+    const botones = screen.getAllByRole("button", { name: /analítica/i });
     expect(botones).toHaveLength(2);
 
     for (const boton of botones) {
@@ -40,14 +40,14 @@ describe("AdminSidebar", () => {
     }
   });
 
-  it("mantiene el resto de las entradas de navegación, sueltas y bajo Analytics", () => {
+  it("mantiene el resto de las entradas de navegación, sueltas y bajo Analítica", () => {
     renderSidebar();
 
     for (const etiqueta of [/productos/i, /órdenes/i, /logs/i]) {
       expect(screen.getAllByRole("link", { name: etiqueta })).toHaveLength(2);
     }
 
-    for (const boton of screen.getAllByRole("button", { name: /analytics/i })) {
+    for (const boton of screen.getAllByRole("button", { name: /analítica/i })) {
       fireEvent.click(boton);
     }
 
@@ -66,7 +66,7 @@ describe("AdminSidebar", () => {
   it("apunta la ruta nueva de analítica de campañas con un rótulo que no colisiona con el editor", () => {
     renderSidebar();
 
-    for (const boton of screen.getAllByRole("button", { name: /analytics/i })) {
+    for (const boton of screen.getAllByRole("button", { name: /analítica/i })) {
       fireEvent.click(boton);
     }
 
@@ -88,7 +88,7 @@ describe("AdminSidebar", () => {
 /**
  * La asimetría heredada: el botón del acordeón, en el DRAWER, hardcodeaba
  * `linkInactivo` y nunca se pintaba activo estando en una hija. La bottom nav
- * sí lo hacía. Analytics nace ya simétrico en los dos lados, y Configuración
+ * sí lo hacía. Analítica nace ya simétrico en los dos lados, y Configuración
  * se corrige en el mismo cambio.
  */
 describe("AdminSidebar — el botón del acordeón se pinta activo en una hija", () => {
@@ -100,11 +100,11 @@ describe("AdminSidebar — el botón del acordeón se pinta activo en una hija",
     );
   }
 
-  it("Analytics: el botón del drawer y el de la bottom nav se pintan activos", () => {
+  it("Analítica: el botón del drawer y el de la bottom nav se pintan activos", () => {
     const { container } = renderEn("/catalogo/admin/analytics/ventas");
     const aside = container.querySelector("aside");
 
-    const [botonDrawer, botonBottomNav] = screen.getAllByRole("button", { name: /analytics/i });
+    const [botonDrawer, botonBottomNav] = screen.getAllByRole("button", { name: /analítica/i });
 
     expect(aside.contains(botonDrawer)).toBe(true);
     expect(botonDrawer).toHaveClass("bg-primary", "text-on-primary");
@@ -124,11 +124,11 @@ describe("AdminSidebar — el botón del acordeón se pinta activo en una hija",
     expect(botonBottomNav).toHaveClass("bg-primary", "text-on-primary");
   });
 
-  it("fuera de Analytics y de Configuración, ninguno de los dos botones se pinta activo", () => {
+  it("fuera de Analítica y de Configuración, ninguno de los dos botones se pinta activo", () => {
     renderEn("/catalogo/admin/productos");
 
     for (const boton of [
-      ...screen.getAllByRole("button", { name: /^analytics/i }),
+      ...screen.getAllByRole("button", { name: /analítica/i }),
       ...screen.getAllByRole("button", { name: /configuración/i }),
     ]) {
       expect(boton).not.toHaveClass("bg-primary", "text-on-primary");
@@ -137,33 +137,38 @@ describe("AdminSidebar — el botón del acordeón se pinta activo en una hija",
 });
 
 /**
- * El agujero que cerró el corte en 1360px: la bottom nav mide 1326px de ancho
- * INTRÍNSECO y no tiene `flex-wrap` ni scroll, así que entre 1024 (donde
- * `lg:flex` la encendía) y 1325 lo que sobraba se pintaba fuera del viewport
- * SIN generar scroll de documento — "Cerrar sesión" era inalcanzable con el
- * mouse por debajo de 1134px, y a 1024 ni el toggle de tema ni el logout los
- * devolvía `elementFromPoint`.
+ * El corte entre drawer y bottom nav vivió en `min-[1360px]` entre el
+ * 07/09/2026 y el 08/09/2026: con diez ítems la bottom nav medía 1326px de
+ * ancho INTRÍNSECO y no tenía `flex-wrap` ni scroll, así que entre 1024
+ * (donde `lg:flex` la encendía) y 1325 lo que sobraba se pintaba fuera del
+ * viewport SIN generar scroll de documento — "Cerrar sesión" era
+ * inalcanzable con el mouse por debajo de 1134px, y a 1024 ni el toggle de
+ * tema ni el logout los devolvía `elementFromPoint`.
+ *
+ * La reorganización del 08/09/2026 (diez ítems → cinco más dos acordeones)
+ * sacó la causa: medido en navegador, la barra vuelve a entrar entera a
+ * 1024px. El corte volvió a `lg`, y estos tests afirman el contrato nuevo.
  *
  * jsdom no aplica `@media`, así que acá se fija el CONTRATO DE CLASES; la
- * medición real (visible + clickeable a 1024, 1280 y 1359) vive en
+ * medición real (entra + clickeable a 1024, 1100 y 1280) vive en
  * `e2e/admin-desktop-layout.spec.js`.
  */
 describe("AdminSidebar — el corte entre drawer y bottom nav", () => {
-  it("la bottom nav recién aparece en 1360px, no en lg", () => {
+  it("la bottom nav aparece en lg, no en min-[1360px]", () => {
     const { container } = renderSidebar();
     const bottomNav = container.querySelector("nav.fixed.inset-x-0.bottom-0");
 
     expect(bottomNav).not.toBeNull();
-    expect(bottomNav).toHaveClass("min-[1360px]:flex");
-    expect(bottomNav).not.toHaveClass("lg:flex");
+    expect(bottomNav).toHaveClass("lg:flex");
+    expect(bottomNav).not.toHaveClass("min-[1360px]:flex");
   });
 
-  it("el drawer sigue disponible por debajo de 1360px", () => {
+  it("el drawer sigue disponible por debajo de lg", () => {
     const { container } = renderSidebar();
     const aside = container.querySelector("aside");
 
-    expect(aside).toHaveClass("min-[1360px]:hidden");
-    expect(aside).not.toHaveClass("lg:hidden");
+    expect(aside).toHaveClass("lg:hidden");
+    expect(aside).not.toHaveClass("min-[1360px]:hidden");
   });
 
   it("el overlay del drawer acompaña el mismo corte", () => {
@@ -171,18 +176,18 @@ describe("AdminSidebar — el corte entre drawer y bottom nav", () => {
     const overlay = container.querySelector("div.fixed.inset-0.z-40");
 
     expect(overlay).not.toBeNull();
-    expect(overlay).toHaveClass("min-[1360px]:hidden");
-    expect(overlay).not.toHaveClass("lg:hidden");
+    expect(overlay).toHaveClass("lg:hidden");
+    expect(overlay).not.toHaveClass("min-[1360px]:hidden");
   });
 
   /**
    * Campañas y Promociones estaban filtradas del drawer porque su pantalla no
-   * entra en un teléfono. Con el drawer siendo ahora la navegación hasta
-   * 1359px, filtrarlas las dejaba inalcanzables en iPad apaisado y en un
-   * portátil de 1280 — justo los anchos donde SÍ funcionan. Vuelven al drawer
-   * con el mismo mecanismo de siempre (flag en el dato + CSS, nunca
-   * `matchMedia`): `hidden lg:flex` las muestra desde 1024, que es el mismo
-   * umbral que usa `SoloEscritorio` para dejar entrar a la pantalla.
+   * entra en un teléfono. Con el corte de vuelta en `lg`, el drawer y el
+   * filtro `soloEscritorio` alternan en el MISMO umbral que usa
+   * `SoloEscritorio` para dejar entrar a la pantalla — coincidencia de
+   * número, no la misma pregunta (ver el comentario de `ITEMS_NAV` en
+   * `AdminSidebar.jsx`). Se resuelven con el mismo mecanismo de siempre (flag
+   * en el dato + CSS, nunca `matchMedia`): `hidden lg:flex`.
    */
   it("los módulos solo-escritorio están en el drawer, ocultos por debajo de lg", () => {
     const { container } = renderSidebar();

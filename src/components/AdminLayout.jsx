@@ -14,25 +14,30 @@ import { urlAbsoluta } from "../constants/seo.js";
  * público (ver docs/superpowers/specs/2026-08-16-admin-sidebar-design.md).
  *
  * La navegación tiene dos formas totalmente distintas según el tamaño de
- * pantalla (ver AdminSidebar.jsx): por debajo de 1360px usa un drawer lateral
- * colapsable, abierto por la barra superior EN FLUJO de acá abajo (`sticky
- * top-0`, `h-topbar-admin`, `min-[1360px]:hidden`) — ya no el botón `fixed` de antes,
- * que tapaba el `<h1>` de cada pantalla en mobile. El drawer es un diálogo
- * modal de verdad (`useDialogo` dentro de `AdminSidebar.jsx`: foco inicial,
- * trampa de foco, Escape, bloqueo de scroll del body) y se cierra solo al
- * cambiar de ruta —el `useEffect` de acá abajo, mismo patrón que el panel
- * móvil de `Navbar.jsx`—, además de por el `onClick={onCerrar}` de cada
- * `NavLink`. De 1360px en adelante la navegación es una bottom nav horizontal
- * siempre visible, sin necesidad de ningún botón para desplegarla — el
- * breakpoint del shell fue `md`, después `lg`, y hoy es `min-[1360px]` porque
- * la bottom nav mide 1326px de ancho intrínseco y por debajo de eso perdía
- * ítems fuera del viewport, "Cerrar sesión" incluido (el relato medido está en
- * `AdminSidebar.jsx`, sobre el `<nav>`). El `<main>` lleva `min-[1360px]:pb-20`
- * para que esa bottom nav fija (~73px de alto) nunca tape el final del
- * contenido al scrollear hasta abajo; el padding va SOLO a partir de ese ancho
- * porque ahí es donde la bottom nav existe. Los TRES valores —barra superior,
- * drawer y padding del main— se mueven juntos: si se desincronizan queda un
- * rango sin ninguna navegación, que es exactamente el bug que esto arregló.
+ * pantalla (ver AdminSidebar.jsx): por debajo de `lg` (1024px) usa un drawer
+ * lateral colapsable, abierto por la barra superior EN FLUJO de acá abajo
+ * (`sticky top-0`, `h-topbar-admin`, `lg:hidden`) — ya no el botón `fixed` de
+ * antes, que tapaba el `<h1>` de cada pantalla en mobile. El drawer es un
+ * diálogo modal de verdad (`useDialogo` dentro de `AdminSidebar.jsx`: foco
+ * inicial, trampa de foco, Escape, bloqueo de scroll del body) y se cierra
+ * solo al cambiar de ruta —el `useEffect` de acá abajo, mismo patrón que el
+ * panel móvil de `Navbar.jsx`—, además de por el `onClick={onCerrar}` de cada
+ * `NavLink`. Desde `lg` en adelante la navegación es una bottom nav
+ * horizontal siempre visible, sin necesidad de ningún botón para
+ * desplegarla — el breakpoint del shell fue `md`, después `lg`, subió a
+ * `min-[1360px]` el 07/09/2026 porque con diez ítems la bottom nav medía
+ * 1326px de ancho intrínseco y por debajo de eso perdía ítems fuera del
+ * viewport ("Cerrar sesión" incluido), y volvió a `lg` el 08/09/2026 cuando la
+ * navegación se reorganizó en cinco ítems más dos acordeones y la barra
+ * volvió a entrar entera a 1024px (medido, no supuesto — el relato completo
+ * está en `AdminSidebar.jsx`, sobre el `<nav>`). El `<main>` lleva
+ * `lg:pb-20` para que esa bottom nav fija (~73px de alto) nunca tape el final
+ * del contenido al scrollear hasta abajo; el padding va SOLO a partir de ese
+ * ancho porque ahí es donde la bottom nav existe. Los TRES valores —barra
+ * superior, drawer y padding del main— se mueven juntos: si se desincronizan
+ * queda un rango con navegación duplicada (header mobile Y bottom nav) o con
+ * la bottom nav tapando el final del contenido, que es exactamente el bug que
+ * esto arregló.
  *
  * `overflow-x-clip` en el `<main>` (reemplazó a `overflow-x-auto`) sigue
  * cortando el desborde horizontal SIN convertirlo en scroll container: con
@@ -178,7 +183,7 @@ function AdminLayout() {
             — mismo valor que el `top-0` de antes, así que el resultado
             publicado no cambia. Sin esto la cinta, `fixed` y sin empujar el
             layout, se pintaba encima de la mitad superior de esta barra. */}
-        <header className="sticky top-[var(--alto-cinta-ambiente)] z-30 flex h-topbar-admin items-center justify-between gap-2 border-b border-outline-variant bg-surface-container-lowest px-margin-mobile min-[1360px]:hidden">
+        <header className="sticky top-[var(--alto-cinta-ambiente)] z-30 flex h-topbar-admin items-center justify-between gap-2 border-b border-outline-variant bg-surface-container-lowest px-margin-mobile lg:hidden">
           <button
             type="button"
             aria-label="Abrir menú"
@@ -219,16 +224,20 @@ function AdminLayout() {
             `EditorHeader`— declaraba `min-h-11` y medía 89x44 de CAJA, pero
             solo 89x36 de área EFECTIVA. Los 8px que faltaban son exactamente
             los que le quedaban debajo de la cinta (24 - 16). Pasaba en 390 y
-            en 1280, los dos anchos donde esta barra existe.
+            en 1280, los dos anchos donde esta barra existía ESE día — con el
+            corte en `min-[1360px]`. Desde que volvió a `lg` (08/09/2026),
+            1280 ya no es uno de esos anchos: la barra existe por debajo de
+            1024, no de 1360. El mecanismo (24px de la cinta comiéndose los
+            primeros clicks del `<main>`) sigue igual, cambió el rango.
 
             En producción la cinta no está en el DOM, la variable vale `0px` y
             este padding es cero: no cambia nada de lo publicado. Por encima de
-            1360, donde la barra se esconde, sigue haciendo falta — ahí es la
+            `lg`, donde la barra se esconde, sigue haciendo falta — ahí es la
             cinta `fixed` la que se monta sobre el tope del contenido. */}
         <main
           id="contenido-admin"
           tabIndex={-1}
-          className="relative w-full overflow-x-clip pt-[var(--alto-cinta-ambiente)] focus:outline-none min-[1360px]:pb-20"
+          className="relative w-full overflow-x-clip pt-[var(--alto-cinta-ambiente)] focus:outline-none lg:pb-20"
         >
           <Suspense
             fallback={

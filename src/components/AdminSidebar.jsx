@@ -45,10 +45,16 @@ function claseTab({ isActive }) {
  *
  * Antes se filtraban del drawer con `.filter()` en JS, porque el drawer era la
  * navegación solo hasta 1023px y de ahí en adelante mandaba la bottom nav. Con
- * el corte de la bottom nav corrido a 1360px (ver el comentario del `<nav>` de
- * abajo) ese filtro los volvía inalcanzables entre 1024 y 1359 —iPad apaisado,
- * portátil de 1280—, que es justo donde las pantallas SÍ funcionan. Ahora se
- * renderizan siempre y se ocultan con `hidden lg:flex`.
+ * el corte de la bottom nav corrido a 1360px (07/09/2026, ver el comentario
+ * histórico del `<nav>` de abajo) ese filtro los volvía inalcanzables entre
+ * 1024 y 1359 —iPad apaisado, portátil de 1280—, que es justo donde las
+ * pantallas SÍ funcionan. Ahora se renderizan siempre y se ocultan con
+ * `hidden lg:flex`. **El 08/09/2026 el corte de la bottom nav volvió a `lg`**
+ * (la reorganización de la nav en cinco ítems + dos acordeones dejó de
+ * desbordar a 1024px, medido), así que hoy el drawer y la bottom nav alternan
+ * en el MISMO punto que este filtro — pero siguen siendo dos preguntas
+ * distintas (qué ítems existen para el tamaño de pantalla vs. qué shell de
+ * navegación se muestra) que solo comparten número por coincidencia.
  *
  * Se resuelve con un flag en el dato y CSS, NO con `matchMedia`: el frontend no
  * tiene ninguno y el plan del admin responsive lo descarta a propósito. Mismo
@@ -90,13 +96,13 @@ const ITEMS_CONFIGURACION = [
  * Navegación del panel admin. Dos presentaciones completamente distintas
  * según el tamaño de pantalla — no es la misma barra reposicionada:
  *
- * - Mobile/tablet/portátil chico (< 1360px): drawer lateral fixed, colapsado
- *   por defecto, se abre con el botón de la barra superior de
+ * - Mobile/tablet/portátil chico (< 1024px, `lg`): drawer lateral fixed,
+ *   colapsado por defecto, se abre con el botón de la barra superior de
  *   `AdminLayout.jsx` y flota con overlay. Es un diálogo modal de verdad, no
  *   solo una superficie que corre por CSS: `useDialogo` le da foco inicial,
  *   trampa de foco y cierre por Escape, y `useBloquearScroll` bloquea el
  *   scroll de la página de atrás mientras está abierto.
- * - Desktop ancho (≥ 1360px): bottom nav horizontal fijo abajo (`fixed
+ * - Desktop (≥ 1024px, `lg`): bottom nav horizontal fijo abajo (`fixed
  *   inset-x-0 bottom-0`), siempre visible, sin colapsar — logo a la
  *   izquierda, tabs ícono+label centradas, "Cerrar sesión" a la derecha.
  *
@@ -150,7 +156,7 @@ function AdminSidebar({ colapsada, onCerrar }) {
       {/* Mobile/tablet: overlay del drawer colapsable */}
       {!colapsada && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 min-[1360px]:hidden"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={onCerrar}
           aria-hidden="true"
         />
@@ -176,7 +182,7 @@ function AdminSidebar({ colapsada, onCerrar }) {
         aria-label="Menú"
         tabIndex={-1}
         inert={colapsada}
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col justify-between border-r border-outline-variant bg-surface-container-lowest px-4 py-6 shadow-ambient transition-transform min-[1360px]:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col justify-between border-r border-outline-variant bg-surface-container-lowest px-4 py-6 shadow-ambient transition-transform lg:hidden ${
           colapsada ? "-translate-x-full" : "translate-x-0"
         }`}
       >
@@ -217,7 +223,7 @@ function AdminSidebar({ colapsada, onCerrar }) {
             >
               <span className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-[18px]">analytics</span>
-                Analytics
+                Analítica
               </span>
               <span className="material-symbols-outlined text-[18px]">
                 {analyticsAbierta ? "expand_less" : "expand_more"}
@@ -275,47 +281,61 @@ function AdminSidebar({ colapsada, onCerrar }) {
         </div>
       </aside>
 
-      {/* Desktop ANCHO: bottom nav horizontal fija, siempre visible.
+      {/* Desktop: bottom nav horizontal fija, siempre visible.
 
-          EL CORTE ES 1360px Y NO `lg` (1024px), y esto REVISA con datos la
-          decisión que `docs/reglas/admin-panel.md` daba por cerrada. Ahí se
-          había aceptado la banda 1024–1100px como "apretada pero usable", con
-          el argumento de no introducir un breakpoint custom para un solo caso.
-          La medición en navegador mostró que no era apriete sino pérdida de
-          funcionalidad: esta barra no lleva `flex-wrap` ni scroll, su ancho
-          INTRÍNSECO es de 1326px, y lo que no entra se pinta fuera del
-          viewport SIN generar scroll de documento (`overflow-x` computa
-          `visible`, `scrollWidth === innerWidth`). O sea que no había forma de
-          llegar con el mouse: "Cerrar sesión" empieza en x=1134 y quedaba
-          invisible por debajo de ese ancho, el toggle de tema por debajo de
-          1082 y "Configuración" por debajo de 943. A 1024 `elementFromPoint`
+          ⚠️ HISTORIA DEL CORTE (07/09/2026 → 08/09/2026), para que nadie vuelva
+          a bajarlo sin saber qué se rompió la primera vez:
+
+          Con DIEZ ítems en la barra (los cinco de hoy más Analytics y
+          Configuración desplegados en línea, más los dos solo-escritorio), el
+          corte se subió de `lg` (1024px) a `min-[1360px]` por una medición, no
+          por estética. La barra no llevaba `flex-wrap` ni scroll, su ancho
+          INTRÍNSECO era de 1326px, y lo que no entraba se pintaba fuera del
+          viewport SIN generar scroll de documento (`overflow-x` computaba
+          `visible`, `scrollWidth === innerWidth`). No había forma de llegar
+          con el mouse: "Cerrar sesión" empezaba en x=1134 y quedaba invisible
+          por debajo de ese ancho, el toggle de tema por debajo de 1082 y
+          "Configuración" por debajo de 943. A 1024 `elementFromPoint`
           directamente no devolvía ni el toggle ni el logout — y a ese ancho el
-          drawer, que sí tiene su propio logout, ya estaba apagado. O sea que el
-          agujero se abría EXACTAMENTE en el breakpoint `lg`, e incluía 1280,
-          el viewport del propio E2E de escritorio del proyecto.
+          drawer, que sí tiene su propio logout, ya estaba apagado. El agujero
+          se abría EXACTAMENTE en el breakpoint `lg`, e incluía 1280, el
+          viewport del propio E2E de escritorio del proyecto.
 
-          `overflow-x-auto` no era arreglo: una barra fija que scrollea de
-          costado no se descubre, nadie va a buscar ahí el botón de salir.
-          Colapsar los labels a solo-ícono entre 1024 y 1360 tampoco: haría
-          falta esconder los diez de las tabs para que entre, y diez íconos sin
-          rótulo en el ancho de portátil más común es cambiar un bloqueo por
-          una navegación que hay que adivinar. Lo que sí escala es lo que ya
-          está probado: el drawer, con sus rótulos completos, atiende hasta
-          1359 y cuesta un click.
+          `overflow-x-auto` no era arreglo (una barra fija que scrollea de
+          costado no se descubre) ni colapsar a solo-ícono (diez íconos sin
+          rótulo en el ancho de portátil más común cambia un bloqueo por una
+          navegación que hay que adivinar). La salida entonces fue correr el
+          corte a 1360 y dejar que el drawer, con sus rótulos completos,
+          atendiera 1024–1359.
 
-          Sus ítems llaman a `onCerrar` aunque el drawer sea
-          `min-[1360px]:hidden`, y no es redundante: abrir el drawer por debajo
-          de 1360 y ensanchar la ventana esconde el `<aside>` por CSS sin que
-          React se entere, así que `useBloquearScroll` deja el body bloqueado y
-          `useDialogo` sigue atrapando el foco en enlaces invisibles. Detectar
-          el cruce pediría `matchMedia` —el primer breakpoint en JS del
-          proyecto, que el plan del admin responsive descarta a propósito—, así
-          que la salida es esta: la bottom nav ya está en pantalla y cualquier
-          toque suyo libera el drawer fantasma, incluida la pestaña ACTUAL, que
-          no navega y por eso no dispara el cierre por cambio de ruta de
-          `AdminLayout`. Residuo asumido y documentado en CLAUDE.md: hasta ese
-          toque (o Escape, o navegar) el scroll sigue bloqueado. */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-6 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] min-[1360px]:flex">
+          **La reorganización del 08/09/2026 (diez ítems → cinco más dos
+          acordeones desplegables) sacó la causa, no solo el síntoma**: menos
+          ítems en la fila significa menos ancho intrínseco. Se volvió a medir
+          en navegador antes de tocar el número — mismo método que la vez
+          anterior, `scrollWidth`/`elementFromPoint` reales, no "se ve
+          apretado" — a 1024, 1100 y 1280px: la barra entra
+          (`scrollWidth <= innerWidth` en los tres) y "Cerrar sesión" recibe el
+          click en su centro en los tres. El detalle de la medición vive en
+          `docs/reglas/admin-panel.md` y en el guard de
+          `e2e/admin-desktop-layout.spec.js`. Con eso el corte volvió a `lg`
+          (1024px), el mismo que ya usaba `SoloEscritorio.jsx` y el filtro
+          `soloEscritorio` de acá arriba — y por eso ahora coincide con ese
+          otro uso de `lg` sin ser la misma pregunta (ver el comentario de
+          `ITEMS_NAV`).
+
+          Sus ítems llaman a `onCerrar` aunque el drawer sea `lg:hidden`, y no
+          es redundante: abrir el drawer por debajo de `lg` y ensanchar la
+          ventana esconde el `<aside>` por CSS sin que React se entere, así que
+          `useBloquearScroll` deja el body bloqueado y `useDialogo` sigue
+          atrapando el foco en enlaces invisibles. Detectar el cruce pediría
+          `matchMedia` —el primer breakpoint en JS del proyecto, que el plan
+          del admin responsive descarta a propósito—, así que la salida es
+          esta: la bottom nav ya está en pantalla y cualquier toque suyo libera
+          el drawer fantasma, incluida la pestaña ACTUAL, que no navega y por
+          eso no dispara el cierre por cambio de ruta de `AdminLayout`. Residuo
+          asumido y documentado en CLAUDE.md: hasta ese toque (o Escape, o
+          navegar) el scroll sigue bloqueado. */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-6 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:flex">
         <LogoYima className="h-6 shrink-0" doodleUrl={doodleUrl} />
 
         <div className="flex items-center gap-2">
@@ -338,7 +358,7 @@ function AdminSidebar({ colapsada, onCerrar }) {
             >
               <span className="material-symbols-outlined text-[20px]">analytics</span>
               <span className="flex items-center gap-1">
-                Analytics
+                Analítica
                 <span className="material-symbols-outlined text-[16px]">
                   {menuAnalyticsDesktopAbierto ? "expand_more" : "expand_less"}
                 </span>

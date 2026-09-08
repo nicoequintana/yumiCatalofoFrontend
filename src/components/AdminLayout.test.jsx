@@ -228,17 +228,21 @@ describe("AdminLayout", () => {
       expect(container.querySelector("main")).toHaveClass("pt-[var(--alto-cinta-ambiente)]");
     });
 
-    it("acompaña el corte de 1360px de la bottom nav", () => {
+    it("acompaña el corte de lg de la bottom nav", () => {
       // La barra superior y el hueco del `<main>` son la contraparte exacta
-      // de la bottom nav: si la nav aparece recién en 1360 y la barra se
-      // escondiera en 1024, entre esos dos anchos no habría NADA que abra el
-      // drawer. Los tres valores tienen que moverse juntos.
+      // de la bottom nav: si la nav aparece en `lg` y la barra se escondiera
+      // en otro ancho, en el medio no habría NADA que abra el drawer, o la
+      // bottom nav taparía el final del contenido. Los tres valores tienen
+      // que moverse juntos. El corte vivió en `min-[1360px]` entre el
+      // 07/09/2026 y el 08/09/2026 (diez ítems en la nav); la reorganización
+      // en cinco ítems más dos acordeones lo devolvió a `lg`, medido en
+      // `AdminSidebar.jsx` / `e2e/admin-desktop-layout.spec.js`.
       const { container } = renderAdmin(<p>listado de productos</p>);
 
-      expect(container.querySelector("header")).toHaveClass("min-[1360px]:hidden");
-      expect(container.querySelector("header")).not.toHaveClass("lg:hidden");
-      expect(container.querySelector("main")).toHaveClass("min-[1360px]:pb-20");
-      expect(container.querySelector("main")).not.toHaveClass("lg:pb-20");
+      expect(container.querySelector("header")).toHaveClass("lg:hidden");
+      expect(container.querySelector("header")).not.toHaveClass("min-[1360px]:hidden");
+      expect(container.querySelector("main")).toHaveClass("lg:pb-20");
+      expect(container.querySelector("main")).not.toHaveClass("min-[1360px]:pb-20");
     });
 
     it("cierra el drawer al cambiar de ruta", async () => {
