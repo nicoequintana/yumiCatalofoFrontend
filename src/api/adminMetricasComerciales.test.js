@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const fetchAutenticadoMock = vi.fn();
 vi.mock("./authClient.js", () => ({
@@ -8,6 +8,10 @@ vi.mock("./authClient.js", () => ({
 const { getMetricasComerciales } = await import("./adminMetricasComerciales.js");
 
 describe("getMetricasComerciales", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("pega al endpoint sin query cuando no hay filtro", async () => {
     fetchAutenticadoMock.mockResolvedValue({ ok: true, text: async () => "{}" });
 

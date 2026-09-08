@@ -10,8 +10,6 @@ export default defineConfig({
     // lo atrape: acá la corrida falla fuerte si queda uno. Para enfocar un
     // test durante el desarrollo, usar `npx vitest run <archivo>` o `-t`.
     forbidOnly: true,
-    // Limpiar los mocks entre tests para evitar contaminación de estado.
-    clearMocks: true,
     // Los tests E2E de Playwright viven en /e2e y corren con `playwright
     // test`, no con Vitest — sin este exclude, Vitest los recogería también
     // (mismo patrón *.spec.js) e intentaría correrlos en jsdom, donde
