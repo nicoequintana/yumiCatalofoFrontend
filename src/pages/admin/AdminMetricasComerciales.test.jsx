@@ -192,4 +192,31 @@ describe("AdminMetricasComerciales", () => {
     expect(await screen.findByText(/sin resultados/i)).toBeInTheDocument();
     expect(screen.queryByText(/todavía no/i)).not.toBeInTheDocument();
   });
+  it("el botón Actualizar vuelve a pedir los datos sin cambiar el filtro", async () => {
+    const usuario = userEvent.setup();
+    montar();
+    await screen.findByText("Primavera");
+
+    // El mount ya consumió una llamada. El click tiene que producir OTRA, con
+    // el MISMO filtro: actualizar no es reiniciar la vista.
+    expect(getMetricasComercialesMock).toHaveBeenCalledTimes(1);
+
+    await usuario.click(screen.getByRole("button", { name: /actualizar/i }));
+
+    expect(getMetricasComercialesMock).toHaveBeenCalledTimes(2);
+    expect(getMetricasComercialesMock).toHaveBeenLastCalledWith({ estado: undefined });
+  });
+
+  it("Actualizar conserva el filtro activo en vez de volver a Todas", async () => {
+    const usuario = userEvent.setup();
+    montar();
+    await screen.findByText("Primavera");
+
+    await usuario.click(screen.getByRole("button", { name: "Activas" }));
+    await screen.findByText("Primavera");
+
+    await usuario.click(screen.getByRole("button", { name: /actualizar/i }));
+
+    expect(getMetricasComercialesMock).toHaveBeenLastCalledWith({ estado: "ACTIVA" });
+  });
 });

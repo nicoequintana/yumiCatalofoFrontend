@@ -3,6 +3,7 @@ import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
+import BotonActualizar from "../../components/admin/BotonActualizar.jsx";
 import Advertencia from "../../components/admin/Advertencia.jsx";
 import BadgeEstado from "../../components/admin/BadgeEstado.jsx";
 import { getMetricasComerciales } from "../../api/adminMetricasComerciales.js";
@@ -231,6 +232,7 @@ function AdminMetricasComerciales() {
           </h1>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2">
         <div
           role="group"
           aria-label="Filtrar por estado temporal"
@@ -251,6 +253,17 @@ function AdminMetricasComerciales() {
               {filtro.etiqueta}
             </button>
           ))}
+        </div>
+
+          {/* Reusa el contador `reintento` que ya dispara el refetch, igual
+              que AdminMetricas: un segundo contador para lo mismo serían dos
+              formas distintas de recargar la misma pantalla. Actualizar NO
+              toca `estado`, así que conserva el filtro que el admin eligió —
+              volver a "Todas" al refrescar le haría perder el lugar. */}
+          <BotonActualizar
+            onActualizar={() => setReintento((actual) => actual + 1)}
+            actualizando={cargando}
+          />
         </div>
       </div>
 
