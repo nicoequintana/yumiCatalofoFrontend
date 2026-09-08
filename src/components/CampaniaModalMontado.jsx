@@ -1,5 +1,7 @@
+import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import ModalCampania from "./ModalCampania.jsx";
+import { registrarEventoComercial } from "../api/campanias.js";
 import useContextoComercial from "../hooks/useContextoComercial.js";
 import useModalCampania from "../hooks/useModalCampania.js";
 
@@ -29,6 +31,20 @@ export default function CampaniaModalMontado() {
 
   const esAdmin = pathname.startsWith("/catalogo/admin");
   const { visible, cerrar } = useModalCampania(esAdmin ? null : modal, claveDia);
+
+  // La impresión va acá y no en `ModalCampania` porque este componente decide
+  // el MONTAJE y el otro se re-renderiza. El ref evita contar dos veces si
+  // React vuelve a correr el efecto sin que el cartel se haya cerrado.
+  const impreso = useRef(false);
+  useEffect(() => {
+    if (!visible || !modal || impreso.current) return;
+    impreso.current = true;
+    registrarEventoComercial({
+      tipo: "IMPRESION_COMERCIAL",
+      origen: "MODAL",
+      campaniaId: modal.campaniaId,
+    });
+  }, [visible, modal]);
 
   if (!visible || !modal) return null;
 
