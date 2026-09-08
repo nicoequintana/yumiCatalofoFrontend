@@ -219,4 +219,21 @@ describe("AdminMetricasComerciales", () => {
 
     expect(getMetricasComercialesMock).toHaveBeenLastCalledWith({ estado: "ACTIVA" });
   });
+  it("los encabezados numéricos se alinean igual que sus números", async () => {
+    montar();
+    const tabla = await screen.findByRole("table");
+
+    // Un `<th>` a la izquierda sobre celdas a la derecha se lee como si los
+    // datos estuvieran corridos de columna. El `md:` es el mismo de las
+    // celdas: debajo de ese ancho la tabla se apila y no hay qué alinear.
+    for (const rotulo of ["Impresiones", "Clicks", "Tasa"]) {
+      const th = within(tabla).getByRole("columnheader", { name: rotulo });
+      expect(th.className.split(" ")).toContain("md:text-right");
+    }
+
+    // El de texto NO se toca: alinear "Origen" a la derecha sería el error
+    // simétrico.
+    const origen = within(tabla).getByRole("columnheader", { name: "Origen" });
+    expect(origen.className.split(" ")).not.toContain("md:text-right");
+  });
 });

@@ -76,6 +76,21 @@ export const claseEncabezado =
   "font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant";
 
 /**
+ * El encabezado de una columna NUMÉRICA.
+ *
+ * Un `<th>` alineado a la izquierda sobre celdas alineadas a la derecha se lee
+ * como si los datos estuvieran corridos de columna: el rótulo queda pegado al
+ * borde izquierdo y su número al derecho, con el ancho de la columna entre los
+ * dos. Cuanto más anchas las columnas y más numéricas, peor — en una tabla de
+ * tres columnas de números sobre cuatro se vuelve ilegible.
+ *
+ * Lleva el MISMO `md:` que `claseNumero` a propósito: debajo de ese ancho la
+ * tabla se apila, los encabezados desaparecen y cada número queda solo con su
+ * rótulo, así que no hay ninguna columna que alinear.
+ */
+export const claseEncabezadoNumerico = `${claseEncabezado} ${claseNumero}`;
+
+/**
  * Clase que convierte una tabla del admin en una tabla apilada por CSS debajo
  * de `md` (767.98px): cada `<tr>` pasa a tarjeta y cada `<td>` muestra su
  * columna con `data-label` + `::before { content: attr(data-label) }`. El CSS

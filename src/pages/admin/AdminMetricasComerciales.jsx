@@ -13,6 +13,7 @@ import {
   claseCelda,
   claseCeldaNumerica,
   claseEncabezado,
+  claseEncabezadoNumerico,
   claseTablaApilada,
 } from "../../components/admin/clasesTabla.js";
 
@@ -90,9 +91,9 @@ function TarjetaItemComercial({ item, origenes, registraDesde }) {
           <thead role="rowgroup">
             <tr role="row" className="border-b border-outline-variant">
               <th role="columnheader" className={claseEncabezado}>Origen</th>
-              <th role="columnheader" className={claseEncabezado}>Impresiones</th>
-              <th role="columnheader" className={claseEncabezado}>Clicks</th>
-              <th role="columnheader" className={claseEncabezado}>Tasa</th>
+              <th role="columnheader" className={claseEncabezadoNumerico}>Impresiones</th>
+              <th role="columnheader" className={claseEncabezadoNumerico}>Clicks</th>
+              <th role="columnheader" className={claseEncabezadoNumerico}>Tasa</th>
             </tr>
           </thead>
           <tbody role="rowgroup">
