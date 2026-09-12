@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import BotonVolver from "../components/BotonVolver.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
-import useCarrito from "../hooks/useCarrito.js";
+import useCarrito, { storageDisponible } from "../hooks/useCarrito.js";
+import usePerfilCliente from "../hooks/usePerfilCliente.js";
 import { getProductsByIds } from "../api/products.js";
 import { crearOrden } from "../api/ordenes.js";
 import { formatPrecio, precioACentavos } from "../utils/formato.js";
@@ -12,95 +13,130 @@ import { precioAPagar } from "../utils/precioEfectivo.js";
 import { MENSAJE_ERROR_CARGA } from "../hooks/useOfertas.js";
 
 /**
- * `/checkout` — formulario de checkout de invitado (Sprint 6, Task 1).
+ * `/checkout` — checkout CON SESIÓN (spec "Checkout autenticado").
  *
- * Reconciliación: igual criterio que `Carrito.jsx` (re-fetch acotado a los
- * ids del carrito con `getProductsByIds()`), pero repetida
- * acá porque el usuario pudo haber estado en `/carrito` un rato antes de
- * llegar a `/checkout` — un producto puede haberse agotado o eliminado en el
- * medio. Si el carrito está vacío o TODAS las líneas quedaron inválidas, no
- * hay nada que cobrar: se redirige a `/carrito` (que ya sabe mostrar el aviso
- * puntual por línea y dejar que el usuario la quite).
+ * Dejó de pedir dni/nombre/teléfono/email como campos libres: esos datos salen
+ * de la cuenta. Se MUESTRAN, con un botón "Editar" que abre los tres inputs
+ * para corregirlos en el momento. El email nunca se edita acá.
  *
- * El submit solo envía las líneas válidas (`lineasValidas`) — el backend es
- * la autoridad final igual, pero de esta forma no le mandamos items que ya
- * sabemos que van a ser rechazados.
+ * ⚠️ **Editar SÍ actualiza la cuenta.** `POST /ordenes` con sesión escribe
+ * `nombre`/`telefono`/`dni` en `CuentaCliente` antes de crear la orden, y esa
+ * escritura queda hecha aunque la orden después falle (por stock, por ejemplo).
+ * Por eso los tres campos viajan SOLO cuando su valor DIFIERE del perfil: abrir
+ * el panel y cerrarlo sin tocar nada no puede disparar una escritura de perfil.
+ *
+ * Bajo `RequireAuthCliente` el perfil llega completo (el guard no deja pasar sin
+ * `nombre`/`telefono`/`dni`), pero esta pantalla igual mira los tres estados de
+ * `usePerfilCliente` por su cuenta: hoy la ruta todavía no está envuelta por el
+ * guard, y aunque lo estuviera, la sesión puede vencerse mientras la persona
+ * completa el pedido.
+ *
+ * ⚠️ **Sin sesión NO se envía nada.** Con el flag apagado, el backend toma un
+ * request sin cookie como checkout de INVITADO: ignora `claveIdempotencia`, saca
+ * el contacto del body y escribe `cuentaClienteId: null` — una orden que no
+ * aparece nunca en "Mis pedidos" y que un reenvío DUPLICA, porque sin sesión no
+ * hay clave que arbitre. "Creía tener sesión" se resuelve volviendo a entrar,
+ * jamás cayendo a un envío de invitado.
  */
-/**
- * Campos obligatorios, en el orden en que aparecen en el formulario. El orden
- * importa: es el que define a cuál se le devuelve el foco cuando el submit
- * falla, y tiene que ser el primero de la pantalla, no el primero del objeto.
- * Cada clave es además el `id` del input, que es como se lo encuentra.
- */
-const CAMPOS_REQUERIDOS = ["dni", "nombre", "telefono", "email"];
 
 /**
- * Chequeo de formato del DNI, solo para dar feedback inmediato y evitar un
- * viaje de ida y vuelta obviamente perdido. NO es la validación real: la
- * autoridad sigue siendo `backend/src/lib/dni.js` (normaliza y exige 7-8
- * dígitos), y su mensaje se muestra igual si alguna vez difieren.
+ * El borrador vive en `sessionStorage` (no en `localStorage`): es de ESTA
+ * pestaña y de este intento de compra, no una preferencia que deba sobrevivir
+ * al cierre del navegador.
  *
- * Se ignoran los separadores porque el backend también los ignora: quien
- * escribe "12.345.678" no está cometiendo un error, y rechazárselo acá sería
- * más estricto que el servidor.
+ * ⚠️ `OrdenConfirmada.jsx` limpia esta misma clave: si cambia acá, cambia allá.
  */
-const DNI_DIGITOS_MIN = 7;
-const DNI_DIGITOS_MAX = 8;
+const STORAGE_KEY_BORRADOR = "yumi-checkout-borrador";
 
 /**
- * Tope de caracteres del input de DNI: los 8 dígitos máximos más los dos
- * puntos de "12.345.678". Cortar en 8 truncaría en silencio a quien escribe
- * con separadores.
+ * A dónde vuelve el login. Es la constante `/checkout` y no `useLocation()` a
+ * propósito: esta pantalla vive en esa ruta y en ninguna otra, y leer la
+ * ubicación acá solo agregaría una forma de que el `volverA` salga mal.
  */
-const DNI_LARGO_MAX = 10;
+const RUTA_PROPIA = "/checkout";
 
 /**
  * Lo primero que el cliente necesita saber cuando el submit falla NO es qué se
- * rompió, sino si su pedido existe. Antes acá se mostraba `err.message` pelado,
- * así que ante un 500 leía "Error interno del servidor." — sin saber si tenía
- * que reintentar o si iba a terminar con dos pedidos.
- *
- * El mensaje de reintento es el compartido de `useOfertas.js`, no una tercera
- * redacción del mismo consejo.
+ * rompió, sino si su pedido existe. El mensaje de reintento es el compartido de
+ * `useOfertas.js`, no una tercera redacción del mismo consejo.
  */
 const MENSAJE_ERROR_ENVIO = `No pudimos confirmar tu compra: no se generó ningún pedido y no se te cobró nada. ${MENSAJE_ERROR_CARGA}`;
 
-function dniTieneFormatoPlausible(valor) {
-  const digitos = valor.replace(/\D/g, "");
-  return digitos.length >= DNI_DIGITOS_MIN && digitos.length <= DNI_DIGITOS_MAX;
+function leerBorrador() {
+  try {
+    const crudo = sessionStorage.getItem(STORAGE_KEY_BORRADOR);
+    return crudo ? JSON.parse(crudo) : null;
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Chequeo de formato del email, del mismo tenor que el del DNI: feedback
- * inmediato, no la validación real. La autoridad es
- * `backend/src/lib/emailValido.js`, y usa esta misma forma (`algo@algo.algo`).
- */
-const FORMATO_EMAIL = /^\S+@\S+\.\S+$/;
+function escribirBorrador(borrador) {
+  try {
+    sessionStorage.setItem(STORAGE_KEY_BORRADOR, JSON.stringify(borrador));
+  } catch {
+    // Best-effort: un storage bloqueado no puede tumbar el formulario, solo
+    // pierde la persistencia entre remontes.
+  }
+}
 
-function emailTieneFormatoPlausible(valor) {
-  return FORMATO_EMAIL.test(valor.trim());
+function borrarBorrador() {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY_BORRADOR);
+  } catch {
+    // Ídem: no hay nada que hacer, y no vale romper la confirmación por esto.
+  }
 }
 
 function Checkout() {
   const navigate = useNavigate();
   const { carrito } = useCarrito();
+  const { perfil, resuelto, error: errorSesion } = usePerfilCliente();
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState(null);
 
-  const [dni, setDni] = useState("");
-  const [nombre, setNombre] = useState("");
-  const [telefono, setTelefono] = useState("");
-  const [email, setEmail] = useState("");
-  const [notas, setNotas] = useState("");
+  // Se lee UNA vez, con initializer perezoso: leerlo en cada render volvería a
+  // parsear el JSON a cada tecla del campo de notas.
+  const [borradorInicial] = useState(leerBorrador);
 
-  const [erroresCampos, setErroresCampos] = useState({});
+  // `null` = el comprador no tocó "Editar". Cualquier otra cosa es el panel
+  // abierto con sus tres valores. Guardar el objeto (y no un booleano aparte)
+  // es lo que hace que una corrección sobreviva al remonte: el borrador
+  // restaura los valores Y el hecho de que hubo edición.
+  const [edicion, setEdicion] = useState(borradorInicial?.edicion ?? null);
+  const [notas, setNotas] = useState(borradorInicial?.notas ?? "");
+
   const [errorEnvio, setErrorEnvio] = useState(null);
   const [enviando, setEnviando] = useState(false);
 
+  /**
+   * Una sola clave por INTENTO DE COMPRA, no por submit ni por montaje: dos
+   * clicks en "Confirmar pedido" —el dedo que hace doble click, el reintento
+   * tras un timeout— tienen que viajar con la MISMA clave para que el backend
+   * los trate como el mismo intento y conteste 200 con la orden que ya existe.
+   *
+   * Por eso se persiste en el borrador y no solo en un ref: un F5 justo después
+   * de un envío que sí llegó estrenaría una clave nueva, y el backend crearía
+   * una SEGUNDA orden sin forma de saber que era la misma compra.
+   */
+  const claveIdempotenciaRef = useRef(null);
+  if (claveIdempotenciaRef.current === null) {
+    claveIdempotenciaRef.current = borradorInicial?.clave ?? crypto.randomUUID();
+  }
+
+  // Se levanta al confirmar: sin esto, un re-render posterior al éxito podría
+  // reescribir el borrador que se acaba de borrar y dejar la clave ya usada
+  // esperando a la compra siguiente.
+  const descartado = useRef(false);
+
+  useEffect(() => {
+    if (descartado.current) return;
+    escribirBorrador({ notas, edicion, clave: claveIdempotenciaRef.current });
+  }, [notas, edicion]);
+
   // Misma clave de refetch que `Carrito.jsx`: los ids del carrito, sin las
-  // cantidades. Antes esta pantalla se bajaba el catálogo completo para
-  // cotizar las pocas líneas del pedido.
+  // cantidades.
   const claveIds = [...new Set(carrito.map((l) => l.productId))].sort((a, b) => a - b).join(",");
 
   useEffect(() => {
@@ -130,35 +166,24 @@ function Checkout() {
 
   const lineas = carrito.map((linea) => {
     const producto = productosPorId.get(linea.productId);
-    const noDisponible = !producto;
-    return { ...linea, producto, noDisponible };
+    return { ...linea, producto, noDisponible: !producto };
   });
 
   const lineasValidas = lineas.filter((l) => !l.noDisponible);
   const hayProblemas = lineas.some((l) => l.noDisponible);
 
-  // Total del pedido, con los precios FRESCOS de la reconciliación (los
-  // mismos que el backend va a snapshotear en la orden). Se acumula en
-  // centavos enteros — ver `precioACentavos` — igual que en `Carrito.jsx`:
-  // sumar floats decimales linea a linea acumula drift de punto flotante.
+  // Se acumula en centavos ENTEROS: sumar floats línea a línea acumula drift.
   // Solo cuenta las líneas válidas, que son exactamente las que se envían.
   const totalCentavos = lineasValidas.reduce(
-    // El EFECTIVO, no el de lista: es lo que el backend va a cobrar al
-    // crear la orden. Sumar el de lista mostraría un total que no coincide
-    // con la factura, y el cliente lo descubriría al recibir el mail.
     (total, l) => total + precioACentavos(precioAPagar(l.producto)) * l.cantidad,
     0,
   );
   const total = formatPrecio(totalCentavos / 100);
 
-  // Redirige a /carrito si no hay nada que checkear: carrito vacío, o todas
-  // las líneas quedaron no-disponibles tras la reconciliación en vivo. Se
-  // espera a que termine el fetch (`cargando`) para no redirigir de más
-  // mientras `productos` todavía está vacío por estar cargando (eso haría
-  // que TODAS las líneas parezcan "no disponibles" un instante).
-  // Si el fetch falló no hay reconciliación posible: `productos` está vacío
-  // por la falla, no porque el carrito lo esté, así que redirigir sería
-  // mandar al usuario a otra pantalla que muestra el mismo error.
+  // Redirige a /carrito si no hay nada que checkear. Se espera a que termine el
+  // fetch para no redirigir mientras `productos` está vacío por estar cargando.
+  // Si el fetch FALLÓ no se redirige: `productos` está vacío por la falla, no
+  // porque el carrito lo esté, y allá se vería el mismo error.
   useEffect(() => {
     if (cargando || errorCarga) return;
     if (lineasValidas.length === 0) {
@@ -167,89 +192,67 @@ function Checkout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargando, errorCarga, lineasValidas.length, navigate]);
 
-  function validarCampos() {
-    const errores = {};
-    if (!dni.trim()) {
-      errores.dni = "El DNI es obligatorio.";
-    } else if (!dniTieneFormatoPlausible(dni)) {
-      errores.dni = "El DNI debe tener 7 u 8 dígitos.";
+  /**
+   * Los campos de contacto que REALMENTE cambiaron. Un campo que quedó igual al
+   * de la cuenta no viaja: escribiría el perfil sin que nadie lo haya pedido.
+   */
+  function contactoEditado() {
+    if (!edicion || !perfil) return {};
+    const cambios = {};
+    for (const campo of ["nombre", "telefono", "dni"]) {
+      const valor = (edicion[campo] ?? "").trim();
+      if (valor !== "" && valor !== (perfil[campo] ?? "")) cambios[campo] = valor;
     }
-    if (!nombre.trim()) errores.nombre = "El nombre es obligatorio.";
-    if (!telefono.trim()) errores.telefono = "El teléfono es obligatorio.";
-    if (!email.trim()) {
-      errores.email = "El email es obligatorio.";
-    } else if (!emailTieneFormatoPlausible(email)) {
-      errores.email = "El email no tiene un formato válido.";
-    }
-    setErroresCampos(errores);
-    return Object.keys(errores).length === 0;
+    return cambios;
   }
-
-  // Mueve el foco al primer campo inválido cuando el submit falla. Sin esto el
-  // foco se queda en el botón: los mensajes de error aparecen abajo de cada
-  // campo, fuera de la vista y sin anunciarse, y el usuario solo percibe que el
-  // botón "no hizo nada".
-  //
-  // Va en un efecto y no dentro de `validarCampos` a propósito: enfocar en el
-  // mismo tick dejaría al input todavía sin `aria-invalid` ni el
-  // `aria-describedby` que apunta al mensaje, que es justamente lo que el lector
-  // de pantalla lee al recibir el foco. `erroresCampos` es un objeto nuevo en
-  // cada validación, así que un segundo submit fallido vuelve a enfocar.
-  useEffect(() => {
-    const primerInvalido = CAMPOS_REQUERIDOS.find((campo) => erroresCampos[campo]);
-    if (primerInvalido === undefined) return;
-    document.getElementById(primerInvalido)?.focus();
-  }, [erroresCampos]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setErrorEnvio(null);
-
-    if (!validarCampos()) return;
     if (lineasValidas.length === 0) return;
+    // Defensa en profundidad: sin perfil esta pantalla ni siquiera renderiza el
+    // botón, pero un envío sin sesión se convertiría en una orden de invitado
+    // silenciosa. La guarda se queda acá también.
+    if (!perfil) return;
 
     setEnviando(true);
     try {
       const orden = await crearOrden({
-        dni: dni.trim(),
-        nombre: nombre.trim(),
-        telefono: telefono.trim(),
-        email: email.trim(),
-        notas: notas.trim() || undefined,
         items: lineasValidas.map((l) => ({ productId: l.productId, cantidad: l.cantidad })),
+        notas: notas.trim() || undefined,
+        claveIdempotencia: claveIdempotenciaRef.current,
+        ...contactoEditado(),
       });
 
-      // El carrito se vacía recién en OrdenConfirmada.jsx al montar, no acá:
-      // si la navegación se interrumpe (el usuario cierra la pestaña, se
-      // corta la conexión) el carrito no se pierde y puede reintentar.
+      // El borrador muere con la compra: su clave de idempotencia ya se usó, y
+      // reutilizarla en el pedido SIGUIENTE de esta pestaña haría que el backend
+      // conteste 200 con la orden vieja.
+      descartado.current = true;
+      borrarBorrador();
+
+      // El carrito se vacía recién en OrdenConfirmada.jsx al montar, no acá: si
+      // la navegación se interrumpe, el carrito no se pierde.
       navigate("/checkout/confirmacion", { state: { orden } });
     } catch (err) {
       // El detalle del backend se conserva como SEGUNDA línea, nunca como
-      // titular: hay errores que sí sirven ("Stock insuficiente para X") y
-      // descartarlos dejaría al cliente sin saber qué ajustar. Lo que no puede
-      // pasar es que el primer renglón sea jerga del servidor.
+      // titular: hay errores que sí sirven ("Stock insuficiente para X").
       setErrorEnvio({ mensaje: MENSAJE_ERROR_ENVIO, detalle: err?.message || null });
       setEnviando(false);
     }
   }
 
-  // Props estáticas (no dependen de la reconciliación ni del formulario), así
-  // que se arman una sola vez y se reutilizan en cada rama de return —
-  // incluidas carga y error— para que la pestaña diga "Finalizar compra —
-  // YIMA" y lleve `noindex` desde el primer render, no solo en el camino
-  // feliz. La única rama que NO la lleva es el `return null` de más abajo:
-  // en ese instante no se renderiza nada (el efecto ya está por redirigir a
-  // `/carrito`), así que no hay `<head>` que emitir para esta página.
   const metaSeo = (
     <MetaSeo
       titulo="Finalizar compra — YIMA"
-      descripcion="Completá tus datos para confirmar el pedido."
-      canonical={urlAbsoluta("/checkout")}
+      descripcion="Confirmá los datos de tu cuenta para completar el pedido."
+      canonical={urlAbsoluta(RUTA_PROPIA)}
       noindex
     />
   );
 
-  if (cargando) {
+  // `!resuelto` va junto con `cargando`: hasta que el perfil se resuelva no se
+  // puede decidir ninguna de las ramas de abajo sin mostrar algo falso.
+  if (cargando || !resuelto) {
     return (
       <>
         {metaSeo}
@@ -267,11 +270,68 @@ function Checkout() {
     );
   }
 
-  // Mientras el efecto de redirección todavía no corrió (mismo render en el
-  // que `lineasValidas` quedó en 0), no renderizar el formulario.
+  // ORDEN DELIBERADO: el error de verificación va ANTES que `!perfil`. Los dos
+  // llegan con `perfil: null`, y lo único que los separa es `error`. Mandar a
+  // login a alguien cuya verificación se cayó le haría creer que se le venció la
+  // sesión, y volver a entrar no le arregla nada.
+  if (errorSesion) {
+    return (
+      <>
+        {metaSeo}
+        <EstadoVacio
+          icono="cloud_off"
+          titulo="No pudimos verificar tu sesión"
+          mensaje={MENSAJE_ERROR_CARGA}
+        />
+      </>
+    );
+  }
+
+  if (!perfil) {
+    return (
+      <>
+        {metaSeo}
+        <section className="mx-auto flex w-full max-w-container-max flex-col items-center px-margin-mobile py-16 md:px-margin-desktop md:py-24">
+          <EstadoVacio
+            icono="lock"
+            titulo="Iniciá sesión para terminar tu compra"
+            mensaje="Tu pedido queda guardado en tu cuenta, así podés seguirlo desde Mis pedidos."
+          />
+          <div className="-mt-12 flex flex-col items-center gap-4 text-center">
+            {/*
+              El aviso va ANTES de mandar a login, que es el único momento en el
+              que sirve: `escribirCarrito` se traga el error de storage, así que
+              sin esto la persona vuelve del login a un carrito vacío y sin
+              ninguna explicación de qué pasó.
+            */}
+            {!storageDisponible() ? (
+              <p
+                role="status"
+                className="max-w-md rounded-lg bg-tertiary-container px-4 py-3 font-body-md text-body-md text-on-surface"
+              >
+                Tu navegador tiene el almacenamiento bloqueado: no vamos a poder guardar tu carrito
+                mientras iniciás sesión. Anotá lo que elegiste antes de seguir.
+              </p>
+            ) : null}
+            <Link
+              to={`/cuenta/entrar?volverA=${encodeURIComponent(RUTA_PROPIA)}`}
+              className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-8 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
+            >
+              Iniciar sesión
+            </Link>
+          </div>
+        </section>
+      </>
+    );
+  }
+
+  // Mientras el efecto de redirección todavía no corrió (mismo render en el que
+  // `lineasValidas` quedó en 0), no renderizar el formulario.
   if (lineasValidas.length === 0) {
     return null;
   }
+
+  const editando = edicion !== null;
 
   return (
     <>
@@ -285,10 +345,6 @@ function Checkout() {
           <span className="font-label-sm text-label-sm mb-4 uppercase tracking-[0.2em] text-secondary">
             Un paso más
           </span>
-          {/* "Checkout" era la única palabra en inglés del sitio, entre "Tu
-              pedido" y "Un paso más". Cambia el TEXTO VISIBLE nada más: la
-              ruta `/checkout`, el nombre del archivo y los identificadores se
-              quedan como están — renombrarlos rompería links e historial. */}
           <h1 className="font-headline-lg text-headline-lg text-primary md:text-[40px]">
             Finalizar compra
           </h1>
@@ -302,11 +358,8 @@ function Checkout() {
             </p>
           ) : null}
 
-          {/* Resumen con montos: es el último paso donde todavía se puede
-              desistir, así que el usuario tiene que ver cuánto va a pagar ANTES
-              de confirmar — no recién en la pantalla de confirmación, con la
-              orden ya creada. Los precios son los frescos del re-fetch, los
-              mismos que el backend snapshotea al crear la orden. */}
+          {/* El último paso donde todavía se puede desistir: el comprador tiene
+              que ver cuánto va a pagar ANTES de confirmar. */}
           <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
             <ul className="flex flex-col gap-3">
               {lineasValidas.map((l) => (
@@ -338,103 +391,87 @@ function Checkout() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="dni" className="font-label-md text-label-md text-on-surface">
-                DNI
-              </label>
-              {/* `inputMode="numeric"` abre el teclado numérico en el celular:
-                  un DNI son dígitos, y el QWERTY completo es fricción pura en
-                  el formulario que más importa de la app. Sigue siendo
-                  `type="text"` porque `type="number"` agrega flechas de spinner
-                  y descarta los separadores que el backend sí acepta. */}
-              <input
-                id="dni"
-                type="text"
-                inputMode="numeric"
-                maxLength={DNI_LARGO_MAX}
-                value={dni}
-                onChange={(e) => setDni(e.target.value)}
-                aria-invalid={Boolean(erroresCampos.dni)}
-                aria-describedby={erroresCampos.dni ? "dni-error" : undefined}
-                className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
-              />
-              {erroresCampos.dni ? (
-                <p id="dni-error" className="font-body-md text-body-md text-error">
-                  {erroresCampos.dni}
-                </p>
+          <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
+            <div className="flex items-center justify-between gap-4">
+              <span className="font-label-md text-label-md text-on-surface">Datos de entrega</span>
+              {!editando ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEdicion({
+                      nombre: perfil.nombre ?? "",
+                      telefono: perfil.telefono ?? "",
+                      dni: perfil.dni ?? "",
+                    })
+                  }
+                  className="font-label-md text-label-md inline-flex min-h-11 items-center text-primary underline"
+                >
+                  Editar
+                </button>
               ) : null}
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="nombre" className="font-label-md text-label-md text-on-surface">
-                Nombre
-              </label>
-              <input
-                id="nombre"
-                type="text"
-                autoComplete="name"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                aria-invalid={Boolean(erroresCampos.nombre)}
-                aria-describedby={erroresCampos.nombre ? "nombre-error" : undefined}
-                className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
-              />
-              {erroresCampos.nombre ? (
-                <p id="nombre-error" className="font-body-md text-body-md text-error">
-                  {erroresCampos.nombre}
-                </p>
-              ) : null}
-            </div>
+            <p className="mt-2 font-body-md text-body-md text-on-surface">{perfil.email}</p>
+            <p className="font-body-md text-body-md text-on-surface-variant">
+              Para cambiarlo, andá a Mi cuenta.
+            </p>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="telefono" className="font-label-md text-label-md text-on-surface">
-                Teléfono
-              </label>
-              <input
-                id="telefono"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-                aria-invalid={Boolean(erroresCampos.telefono)}
-                aria-describedby={erroresCampos.telefono ? "telefono-error" : undefined}
-                className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
-              />
-              {erroresCampos.telefono ? (
-                <p id="telefono-error" className="font-body-md text-body-md text-error">
-                  {erroresCampos.telefono}
-                </p>
-              ) : null}
-            </div>
+            {!editando ? (
+              <div className="mt-3 flex flex-col gap-1 font-body-md text-body-md text-on-surface">
+                <span>{perfil.nombre}</span>
+                <span>{perfil.telefono}</span>
+                <span>{perfil.dni}</span>
+              </div>
+            ) : (
+              <div className="mt-3 flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="nombre" className="font-label-md text-label-md text-on-surface">
+                    Nombre
+                  </label>
+                  <input
+                    id="nombre"
+                    type="text"
+                    autoComplete="name"
+                    value={edicion.nombre}
+                    onChange={(e) => setEdicion({ ...edicion, nombre: e.target.value })}
+                    className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="telefono" className="font-label-md text-label-md text-on-surface">
+                    Teléfono
+                  </label>
+                  <input
+                    id="telefono"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={edicion.telefono}
+                    onChange={(e) => setEdicion({ ...edicion, telefono: e.target.value })}
+                    className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="dni" className="font-label-md text-label-md text-on-surface">
+                    DNI
+                  </label>
+                  {/* `inputMode="numeric"` abre el teclado numérico en el
+                      celular; sigue siendo `type="text"` porque `number`
+                      descarta los separadores que el backend sí acepta. */}
+                  <input
+                    id="dni"
+                    type="text"
+                    inputMode="numeric"
+                    value={edicion.dni}
+                    onChange={(e) => setEdicion({ ...edicion, dni: e.target.value })}
+                    className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="email" className="font-label-md text-label-md text-on-surface">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                aria-invalid={Boolean(erroresCampos.email)}
-                aria-describedby={erroresCampos.email ? "email-error" : "email-ayuda"}
-                className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
-              />
-              {erroresCampos.email ? (
-                <p id="email-error" className="font-body-md text-body-md text-error">
-                  {erroresCampos.email}
-                </p>
-              ) : (
-                <p id="email-ayuda" className="font-body-md text-body-md text-on-surface-variant">
-                  Te enviamos ahí la confirmación del pedido y los cambios de estado.
-                </p>
-              )}
-            </div>
-
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
               <label htmlFor="notas" className="font-label-md text-label-md text-on-surface">
                 Notas (opcional)

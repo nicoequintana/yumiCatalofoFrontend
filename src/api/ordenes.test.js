@@ -47,6 +47,18 @@ describe("crearOrden", () => {
     expect(opciones.signal).toBeInstanceOf(AbortSignal);
   });
 
+  it("manda credentials: include — el checkout ahora vive bajo sesión", async () => {
+    // Sin esto el navegador no adjunta la cookie `sesion_cliente`: el backend
+    // trata la request como checkout de INVITADO, ignora `claveIdempotencia` y
+    // escribe `cuentaClienteId: null` — una orden que nunca aparece en "Mis
+    // pedidos" y que un reenvío duplica. Falla en silencio, sin error.
+    mockFetchOnce({ id: 1 });
+
+    await crearOrden({ items: [], claveIdempotencia: "abc" });
+
+    expect(global.fetch.mock.calls[0][1]).toMatchObject({ credentials: "include" });
+  });
+
   it("lanza Error con el mensaje del backend ante un error", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,

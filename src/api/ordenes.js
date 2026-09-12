@@ -42,14 +42,30 @@ async function pedirAutenticado(url, options) {
 }
 
 /**
- * Crea una orden de checkout de invitado.
- * @param {{dni: string, nombre: string, telefono: string, email?: string, notas?: string, items: Array<{productId: number, cantidad: number}>}} data
- * @returns {Promise<Object>} la orden creada, con `cliente` e `items` incluidos.
+ * Crea una orden. El checkout vive detrás de la sesión de cliente (spec,
+ * "Checkout autenticado"), así que esta request SIEMPRE necesita
+ * `credentials: "include"`: sin eso el navegador no adjunta la cookie
+ * `sesion_cliente` y el backend la toma como checkout de INVITADO — ignora
+ * `claveIdempotencia` (un reenvío duplica la orden) y escribe
+ * `cuentaClienteId: null`, o sea una orden que no aparece nunca en "Mis
+ * pedidos". Falla sin error y sin test rojo.
+ *
+ * NO usa `pedirCliente` (`api/clienteAuth.js`) a propósito: ese cliente redirige
+ * a login ante un 401 con `SESION_INVALIDA`, y acá eso es justo lo que
+ * `Checkout.jsx` tiene que poder mostrar como error de envío del pedido.
+ *
+ * `email` NUNCA viaja con sesión: lo pone el backend desde la cuenta.
+ * `nombre`/`telefono`/`dni` son opcionales y ESCRIBEN la cuenta, así que van
+ * solo cuando el comprador los editó.
+ *
+ * @param {{notas?: string, claveIdempotencia?: string, items: Array<{productId: number, cantidad: number}>, nombre?: string, telefono?: string, dni?: string}} data
+ * @returns {Promise<Object>} la orden creada (201) o la ya existente (200, reenvío).
  */
 export async function crearOrden(data) {
   return pedir(`${BASE}/ordenes`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(data),
   });
 }
