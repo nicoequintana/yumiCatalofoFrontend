@@ -104,13 +104,32 @@ describe("tokens tipográficos", () => {
     expect(sinDefinir.sort()).toEqual([...PENDIENTES_SIN_DEFINIR].sort());
   });
 
-  it("label-lg pesa más que label-md, que es lo que lo hace servir de título", () => {
-    // El motivo de que exista: la escala salta de 14px/600 (`label-md`) a
-    // 16px/400 (`body-md`). Sin un peldaño de 16/600, un título de fila queda
-    // más liviano que el subtítulo de 14/600 que lleva debajo.
+  it("label-lg es más pesado que body-md y más grande que label-md: por eso sirve de título", () => {
+    // Este test afirma una RELACIÓN, no tres números. La versión anterior
+    // clavaba `16px` y se puso roja el día que se bajó la escala un peldaño,
+    // sin que nada estuviera mal: medía el valor en vez de la propiedad.
+    //
+    // La propiedad que sostiene el diseño es que un título de fila domine al
+    // subtítulo que lleva debajo. Eso se cumple mientras `label-lg` sea más
+    // grande que `label-md` (el subtítulo) y más pesado que `body-md` (el
+    // cuerpo). El tamaño exacto puede moverse; el orden, no.
+    const px = (token) => Number.parseInt(fontSize[token][0], 10);
+    const peso = (token) => Number(fontSize[token][1].fontWeight);
+
     expect(fontSize["label-lg"]).toBeDefined();
-    const [tamanio, opciones] = fontSize["label-lg"];
-    expect(tamanio).toBe("16px");
-    expect(opciones.fontWeight).toBe("600");
+    expect(px("label-lg")).toBeGreaterThan(px("label-md"));
+    expect(peso("label-lg")).toBeGreaterThan(peso("body-md"));
+  });
+
+  it("body-md NO baja de 16px: es el tamaño de los campos y iOS hace zoom por debajo", () => {
+    // Safari en iOS amplía TODA la página al enfocar un input con menos de
+    // 16px, y no vuelve solo. No se puede desactivar desde CSS. Los campos
+    // toman este token vía `CampoPassword` y `pages/cuenta/clasesCuenta.js`,
+    // así que bajarlo rompe el formulario en todos los iPhone.
+    //
+    // Cuando el resto de la escala bajó un peldaño, este token se quedó. El
+    // test está para que la próxima vez que alguien "termine el trabajo" se
+    // entere acá y no en un checkout real.
+    expect(Number.parseInt(fontSize["body-md"][0], 10)).toBeGreaterThanOrEqual(16);
   });
 });

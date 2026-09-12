@@ -106,21 +106,33 @@ export default {
         "body-md": ["Plus Jakarta Sans", "sans-serif"],
       },
       fontSize: {
-        "headline-md": ["24px", { lineHeight: "1.3", fontWeight: "600" }],
-        "headline-lg-mobile": ["28px", { lineHeight: "1.2", fontWeight: "600" }],
-        "label-sm": ["12px", { lineHeight: "1.2", letterSpacing: "0.08em", fontWeight: "500" }],
-        "headline-lg": ["32px", { lineHeight: "1.2", fontWeight: "600" }],
-        "label-md": ["14px", { lineHeight: "1.2", letterSpacing: "0.05em", fontWeight: "600" }],
-        // El peldaño que faltaba: la escala saltaba de `label-md` (14px/600) a
-        // `body-md` (16px/**400**), así que un título de 16px se resolvía más
-        // LIVIANO que el subtítulo de 14/600 que lleva debajo. Sin 16/600 no
-        // hay forma de que un título domine a su propio subtítulo.
+        // Escala bajada un peldaño el 12/09/2026, a pedido: los títulos y las
+        // etiquetas se leían grandes en pantallas angostas. Bajaron TODOS menos
+        // `body-md`, que se queda en 16px — ver el comentario sobre él.
+        //
+        // `headline-lg` y `headline-lg-mobile` se mueven SIEMPRE JUNTOS: son el
+        // par de un mismo título. Bajar solo el de escritorio deja el título más
+        // grande en el teléfono que en la compu, que es al revés de lo que hace
+        // el resto de la escala.
+        "headline-md": ["20px", { lineHeight: "1.3", fontWeight: "600" }],
+        "headline-lg-mobile": ["23px", { lineHeight: "1.2", fontWeight: "600" }],
+        "label-sm": ["11px", { lineHeight: "1.2", letterSpacing: "0.08em", fontWeight: "500" }],
+        "headline-lg": ["26px", { lineHeight: "1.2", fontWeight: "600" }],
+        "label-md": ["13px", { lineHeight: "1.2", letterSpacing: "0.05em", fontWeight: "600" }],
+        // El peldaño que faltaba entre `label-md` y `body-md`: sin él, un título
+        // se resolvía más LIVIANO que el subtítulo de 13/600 que lleva debajo, y
+        // no había forma de que dominara a su propio subtítulo.
+        //
+        // Queda 1px por DEBAJO de `body-md` y eso es correcto: lo que lo hace
+        // leer como título no es el tamaño sino el peso (600 contra 400).
+        // `body-md` no puede bajar con el resto de la escala (ver su comentario),
+        // así que la jerarquía de este par la sostiene el peso.
         //
         // `text-label-lg` ya se escribía en el markup (`CartelCampania.jsx`, y
         // desde el rediseño también `MiCuenta.jsx`) sin que el token existiera:
         // Tailwind no emite CSS para un token que no está y la clase queda de
         // adorno, sin error ni warning. El guard vive en `src/tokens.test.js`.
-        "label-lg": ["16px", { lineHeight: "1.4", letterSpacing: "0.01em", fontWeight: "600" }],
+        "label-lg": ["15px", { lineHeight: "1.4", letterSpacing: "0.01em", fontWeight: "600" }],
         "display-lg": ["48px", { lineHeight: "1.1", fontWeight: "700" }],
         // Hero headline. Split into a desktop and a mobile token (instead of a
         // single fluid `clamp()`) to match the `headline-lg` / `headline-lg-mobile`
@@ -132,7 +144,26 @@ export default {
           "44px",
           { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700" },
         ],
-        "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "400" }],
+        "body-lg": ["17px", { lineHeight: "1.6", fontWeight: "400" }],
+        // ┌──────────────────────────────────────────────────────────────────┐
+        // │ `body-md` NO BAJA DE 16px. No es una preferencia estética.       │
+        // └──────────────────────────────────────────────────────────────────┘
+        //
+        // Es el tamaño de los CONTROLES DE FORMULARIO: lo consumen
+        // `CampoPassword` (`CLASES_APARIENCIA`), `pages/cuenta/clasesCuenta.js`
+        // y los inputs sueltos del panel. Safari en iOS hace zoom de TODA la
+        // página al enfocar un campo con `font-size` menor a 16px, y después no
+        // vuelve solo: la persona queda con el sitio ampliado y desplazado a
+        // mitad de un checkout. Se ve como un bug del sitio y no hay forma de
+        // desactivarlo desde CSS (el `maximum-scale` del viewport lo ignora iOS
+        // desde hace años, y usarlo rompe el zoom manual de quien lo necesita).
+        //
+        // Cuando el 12/09/2026 se bajó un peldaño el resto de la escala, este
+        // token se dejó donde estaba por ese motivo. Si algún día hay que
+        // bajarlo igual, primero hay que darle a los controles de formulario un
+        // tamaño propio de 16px — no alcanza con una regla base en `index.css`,
+        // porque una utilidad de Tailwind en el `class` le gana por
+        // especificidad a cualquier selector de elemento.
         "body-md": ["16px", { lineHeight: "1.6", fontWeight: "400" }],
       },
       boxShadow: {
