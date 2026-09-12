@@ -39,12 +39,32 @@ function esLineaValida(linea) {
   );
 }
 
+/**
+ * Lee el carrito del storage, o `null` si el storage NO SE PUDO LEER.
+ *
+ * La distincion importa: `[]` significa "el storage anduvo y no hay carrito",
+ * mientras que `null` significa "no sabemos" —modo privado, storage bloqueado,
+ * la misma falla que detecta `storageDisponible()`—. Confundirlos hacia `[]`
+ * borraba el carrito en memoria de toda instancia que montara despues de una
+ * escritura fallida: se agregaba en la ficha, el Checkout montaba fresco, leia
+ * vacio y redirigia a /carrito. El carrito se evaporaba al ir a comprar.
+ */
 function leerCarrito() {
+  let crudo;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
+    crudo = localStorage.getItem(STORAGE_KEY);
+  } catch {
+    // No se pudo ACCEDER al storage: no hay dato, ni siquiera uno vacio.
+    return null;
+  }
+
+  try {
+    const parsed = crudo ? JSON.parse(crudo) : [];
     return Array.isArray(parsed) ? parsed.filter(esLineaValida) : [];
   } catch {
+    // El storage SI se leyo y lo que habia es basura: eso es un carrito vacio,
+    // no una incognita. Confundirlo con `null` dejaria vivo para siempre un
+    // carrito en memoria que el storage ya no puede corregir.
     return [];
   }
 }
@@ -58,7 +78,7 @@ function leerCarrito() {
 // (e.g. two `agregar(id, 1)` racing would net cantidad: 1 instead of 2).
 // Reading `carritoActual` instead makes every mutation see the latest
 // write, regardless of which instance's render last captured it.
-let carritoActual = leerCarrito();
+let carritoActual = leerCarrito() ?? [];
 
 function escribirCarrito(lineas) {
   carritoActual = lineas;
@@ -83,6 +103,9 @@ function escribirCarrito(lineas) {
 function manejarStorageDeOtraPestana(evento) {
   if (evento.key !== null && evento.key !== STORAGE_KEY) return;
   const lineas = leerCarrito();
+  // Storage ilegible: el evento no trae informacion utilizable, y tomar []
+  // vaciaria un carrito bueno que solo vive en memoria.
+  if (lineas === null) return;
   carritoActual = lineas;
   listeners.forEach((listener) => listener(lineas));
 }
@@ -98,7 +121,7 @@ function manejarStorageDeOtraPestana(evento) {
  * useFavoritos.js's architecture exactly.
  */
 function useCarrito() {
-  const [carrito, setCarrito] = useState(() => leerCarrito());
+  const [carrito, setCarrito] = useState(() => leerCarrito() ?? carritoActual);
 
   useEffect(() => {
     // El listener de `storage` es uno solo por pestaña: se registra cuando
@@ -112,7 +135,8 @@ function useCarrito() {
       // `carritoActual`. El initializer del estado ya leyó el valor fresco
       // para ESTA instancia; acá se realinea el estado de módulo para que la
       // primera mutación no parta del valor viejo y pise esa escritura.
-      carritoActual = leerCarrito();
+      const desdeStorage = leerCarrito();
+      if (desdeStorage !== null) carritoActual = desdeStorage;
       window.addEventListener("storage", manejarStorageDeOtraPestana);
     }
     listeners.add(setCarrito);

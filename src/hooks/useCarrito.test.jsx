@@ -478,3 +478,56 @@ describe("storageDisponible", () => {
     expect(storageDisponible()).toBe(false);
   });
 });
+
+describe("useCarrito — con el storage roto, la memoria es la fuente de verdad", () => {
+  // El `localStorage` global de este entorno es un objeto sin métodos, así que
+  // toda escritura falla en silencio: es el mismo escenario que el modo privado
+  // o el storage bloqueado del navegador, el que motivó `storageDisponible()`.
+  // `escribirCarrito` ya tolera esa falla y actualiza la memoria igual; lo que
+  // faltaba era que las LECTURAS respetaran esa memoria en vez de volver al
+  // storage roto y recibir vacío.
+  beforeEach(() => {
+    restaurarStorage();
+    const { result, unmount } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    unmount();
+  });
+
+  it("una instancia que monta después ve lo que escribió otra", () => {
+    // El caso real: se agrega al carrito en la ficha, se navega a /checkout y
+    // el Checkout monta fresco. Si lee del storage roto, arranca vacío y manda
+    // de vuelta a /carrito: el carrito se evapora en el momento de comprar.
+    const primera = renderHook(() => useCarrito());
+    act(() => {
+      primera.result.current.agregar(1, 2);
+    });
+    expect(primera.result.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);
+
+    primera.unmount();
+
+    const segunda = renderHook(() => useCarrito());
+    expect(segunda.result.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);
+    segunda.unmount();
+  });
+
+  it("desmontar la última instancia no vacía el carrito en memoria", () => {
+    // Al quedarse sin listeners el efecto realinea la memoria con el storage
+    // para no pisar lo que otra pestaña escribió mientras no había nadie
+    // montado. Con el storage ROTO esa relectura devuelve vacío y borra un
+    // carrito bueno: la realineación solo vale si el storage se pudo leer.
+    const primera = renderHook(() => useCarrito());
+    act(() => {
+      primera.result.current.agregar(7, 3);
+    });
+    primera.unmount();
+
+    const segunda = renderHook(() => useCarrito());
+    act(() => {
+      segunda.result.current.agregar(7, 1);
+    });
+    expect(segunda.result.current.carrito).toEqual([{ productId: 7, cantidad: 4 }]);
+    segunda.unmount();
+  });
+});
