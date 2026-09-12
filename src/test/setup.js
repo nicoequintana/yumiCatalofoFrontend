@@ -18,6 +18,27 @@ class IntersectionObserverStub {
 
 global.IntersectionObserver = IntersectionObserverStub;
 
+// Mismo hueco de jsdom con ResizeObserver, y `BarraAnuncios.jsx` lo construye
+// sin guardas: al no existir, TIRA en el render y se lleva puesto el árbol
+// entero de React, no solo la barra. Como la barra vive en el Layout público,
+// eso convertía en vacío CUALQUIER test que renderizara una ruta pública desde
+// `App.jsx` — el síntoma era un body vacío y un timeout de `findBy`, sin
+// ninguna pista del componente culpable.
+//
+// `BarraAnuncios.test.jsx` mantiene su propio stub, más rico: necesita capturar
+// el callback para simular un resize. Este es solo el piso para que el resto de
+// los tests no se caiga.
+class ResizeObserverStub {
+  constructor(callback) {
+    this.callback = callback;
+  }
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+global.ResizeObserver = ResizeObserverStub;
+
 // JSDOM tampoco implementa window.scrollTo: existe, pero cada llamada escupe
 // "Not implemented: Window's scrollTo() method" por la consola virtual. Lo usa
 // el paginador de `/coleccion` para volver arriba al cambiar de página, así
