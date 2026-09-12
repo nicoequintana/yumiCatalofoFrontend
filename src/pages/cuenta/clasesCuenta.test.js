@@ -11,6 +11,7 @@ import {
   claseEtiquetaSuelta,
   clasePagina,
   clasePaginaDensa,
+  claseTarjetaEscritorio,
 } from "./clasesCuenta.js";
 
 const dirCuenta = dirname(fileURLToPath(import.meta.url));
@@ -105,5 +106,39 @@ describe("convenciones del proyecto", () => {
   it("el CTA principal sale en terracota (`bg-primary`), no en el teal de marca", () => {
     expect(claseBotonPrimario).toContain("bg-primary");
     expect(claseBotonPrimario).not.toContain("bg-brand-teal");
+  });
+});
+
+/*
+ * Layout de escritorio: `clasePagina`/`clasePaginaDensa` deciden el ANCHO del
+ * contenedor en `lg`, y `claseTarjetaEscritorio` decide la tarjeta que
+ * envuelve el formulario. Como las tres son constantes compartidas por las
+ * cuatro pantallas, un cambio acá alcanza a todas — por eso el guard vive en
+ * este archivo y no repetido en cada test de pantalla.
+ */
+describe("clases de escritorio (lg)", () => {
+  it("las pantallas de formulario pasan a la tarjeta centrada de 34rem", () => {
+    expect(clasePagina).toContain("lg:max-w-[34rem]");
+  });
+
+  it("MiCuenta pasa a un contenedor ancho de container-max", () => {
+    expect(clasePaginaDensa).toContain("lg:max-w-container-max");
+  });
+
+  it("la tarjeta de escritorio lleva borde, fondo y padding, y ninguno actúa antes de lg", () => {
+    expect(claseTarjetaEscritorio).toContain("lg:rounded-3xl");
+    expect(claseTarjetaEscritorio).toContain("lg:border");
+    expect(claseTarjetaEscritorio).toContain("lg:bg-surface-container-lowest");
+    expect(claseTarjetaEscritorio).toContain("lg:p-12");
+    // Ninguna clase de tarjeta sin el prefijo `lg:`: en mobile no hay tarjeta.
+    expect(claseTarjetaEscritorio).not.toMatch(/(?<!lg:)\brounded-3xl\b/);
+  });
+
+  it("el fondo del campo baja un tono en escritorio para no perderse dentro de la tarjeta blanca", () => {
+    // Las tres constantes de campo derivan de la misma base común: un solo
+    // cambio ahí alcanza para email, contraseñas y los campos sin ícono.
+    expect(claseCampoConIcono).toContain("lg:bg-surface-container-low");
+    expect(claseCampoSinIcono).toContain("lg:bg-surface-container-low");
+    expect(claseCampoPassword).toContain("lg:bg-surface-container-low");
   });
 });

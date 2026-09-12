@@ -39,8 +39,14 @@ function iniciales(nombre) {
 const CLASES_BOTON_SALIR =
   "font-label-lg text-label-lg min-h-11 rounded-2xl bg-error px-4 py-3.5 text-on-error";
 
+/**
+ * Fila de acceso. En escritorio deja de ser una fila de una lista dividida y
+ * pasa a ser su propia tarjeta: `Un solo componente, dos formas` — no hay una
+ * segunda versión de este componente para `lg`, las clases de tarjeta se
+ * agregan encima de las mismas de siempre.
+ */
 const CLASES_FILA =
-  "flex items-center justify-between gap-3 p-4 hover:bg-surface-container-low active:bg-surface-container";
+  "flex items-center justify-between gap-3 p-4 hover:bg-surface-container-low active:bg-surface-container lg:rounded-2xl lg:border lg:border-outline-variant lg:bg-surface-container-lowest lg:p-5";
 
 function FilaAcceso({ to, href, icono, titulo, subtitulo, chevron = "chevron_right" }) {
   const contenido = (
@@ -80,6 +86,38 @@ function FilaAcceso({ to, href, icono, titulo, subtitulo, chevron = "chevron_rig
   );
 }
 
+/**
+ * Fila de contacto (email / teléfono), como sub-tarjeta: ícono a la
+ * izquierda, rótulo en mayúsculas arriba del valor, acción a la derecha
+ * centrada verticalmente. Es UN componente porque email y teléfono difieren
+ * solo en ícono, rótulo, valor y destino — repetir el markup sería la cuarta
+ * copia del mismo bloque que ya pasó una vez con los campos de formulario
+ * (ver el comentario de `clasesCuenta.js`).
+ */
+function FilaContacto({ icono, rotulo, valor, to, etiquetaAccion }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-surface-container-low p-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-container-lowest text-brand-teal">
+        <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+          {icono}
+        </span>
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="font-label-sm text-label-sm uppercase tracking-wide text-on-surface-variant">
+          {rotulo}
+        </span>
+        <span className="truncate font-body-md text-body-md text-on-surface">{valor}</span>
+      </div>
+      <Link
+        to={to}
+        className="font-label-md text-label-md shrink-0 self-center text-primary underline underline-offset-4"
+      >
+        {etiquetaAccion}
+      </Link>
+    </div>
+  );
+}
+
 function MiCuenta() {
   const { perfil } = usePerfilCliente();
   const navigate = useNavigate();
@@ -115,138 +153,149 @@ function MiCuenta() {
         </p>
       </header>
 
-      <section className="flex flex-col gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
-        <div className="flex items-center gap-3.5">
-          <span
-            data-testid="avatar-iniciales"
-            aria-hidden="true"
-            className="font-headline-md text-headline-md flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand-teal text-white"
-          >
-            {iniciales(nombreVisible)}
-          </span>
-          <h2 data-testid="nombre-visible" className="font-headline-md text-headline-md text-on-surface">
-            {nombreVisible}
-          </h2>
-        </div>
-
-        <div className="flex flex-col gap-2.5 border-t border-dashed border-outline-variant pt-3.5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="flex min-w-0 items-center gap-2.5">
-              <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-brand-teal">
-                mail
-              </span>
-              <span className="truncate font-body-md text-body-md text-on-surface">{perfil.email}</span>
-            </span>
-            <Link
-              to="/cuenta/email"
-              className="font-label-md text-label-md shrink-0 text-primary underline underline-offset-4"
-            >
-              Cambiar
-            </Link>
-          </div>
-
-          <div className="flex items-center justify-between gap-3">
-            <span className="flex min-w-0 items-center gap-2.5">
-              <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-brand-teal">
-                call
-              </span>
-              <span className="truncate font-body-md text-body-md text-on-surface">{perfil.telefono}</span>
-            </span>
-            <Link
-              to="/cuenta/datos"
-              className="font-label-md text-label-md shrink-0 text-primary underline underline-offset-4"
-            >
-              Editar
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <Link
-        to="/cuenta/pedidos"
-        className="flex items-center justify-between gap-3 rounded-2xl bg-brand-teal p-4 text-white"
+      {/* En mobile, columna única (mismo orden de siempre). En escritorio,
+          grilla de 5: la tarjeta de perfil ocupa 2, pedidos+configuración
+          ocupan 3. `items-start` es obligatorio: sin él las dos columnas se
+          estiran a la altura de la más alta y la tarjeta de perfil queda con
+          un hueco vacío abajo. */}
+      <div
+        data-testid="grilla-mi-cuenta"
+        className="flex flex-col gap-4 lg:grid lg:grid-cols-5 lg:items-start lg:gap-6"
       >
-        <span className="flex items-center gap-3.5">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15">
-            <span aria-hidden="true" className="material-symbols-outlined">
-              inventory_2
+        <section
+          data-testid="tarjeta-perfil"
+          className="flex flex-col gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 lg:col-span-2"
+        >
+          <div className="flex items-center gap-3.5">
+            <span
+              data-testid="avatar-iniciales"
+              aria-hidden="true"
+              className="font-headline-md text-headline-md flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand-teal text-white lg:h-24 lg:w-24"
+            >
+              {iniciales(nombreVisible)}
             </span>
-          </span>
-          <span className="flex flex-col text-left">
-            <span className="font-label-lg text-label-lg">Mis pedidos</span>
-            <span className="font-label-md text-label-md text-white/80">Ver historial</span>
-          </span>
-        </span>
-        <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-          chevron_right
-        </span>
-      </Link>
+            <h2 data-testid="nombre-visible" className="font-headline-md text-headline-md text-on-surface">
+              {nombreVisible}
+            </h2>
+          </div>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-label-md text-label-md px-1 uppercase tracking-wide text-on-surface-variant">
-          Configuración
-        </h2>
-        <div className="divide-y divide-outline-variant overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest">
-          <FilaAcceso
-            to="/favoritos"
-            icono="favorite"
-            titulo="Mis favoritos"
-            subtitulo="Los productos que guardaste"
-          />
-          <FilaAcceso
-            to="/cuenta/seguridad"
-            icono="shield"
-            titulo="Seguridad y acceso"
-            subtitulo="Contraseña y datos de ingreso"
-          />
-          {/* Un `null` no renderiza ningún nodo, así que `divide-y` (que separa
-              con `> * + *`) no deja ningún borde huérfano cuando falta el
-              número: la lista se cierra sola en la fila anterior. */}
-          {urlWhatsapp ? (
-            <FilaAcceso
-              href={urlWhatsapp}
-              icono="chat"
-              titulo="Ayuda y soporte"
-              subtitulo="Escribinos por WhatsApp"
-              chevron="open_in_new"
+          <div className="flex flex-col gap-2.5 border-t border-dashed border-outline-variant pt-3.5">
+            <FilaContacto
+              icono="mail"
+              rotulo="Email"
+              valor={perfil.email}
+              to="/cuenta/email"
+              etiquetaAccion="Cambiar"
             />
-          ) : null}
-        </div>
-      </section>
+            <FilaContacto
+              icono="call"
+              rotulo="Teléfono"
+              valor={perfil.telefono}
+              to="/cuenta/datos"
+              etiquetaAccion="Editar"
+            />
+          </div>
 
-      <div className="flex flex-col gap-3 pt-2">
-        {confirmandoSalida ? (
-          <>
-            <p className="font-body-md text-body-md text-on-surface-variant">
-              Vas a cerrar sesión en todos tus dispositivos.
-            </p>
-            <button
-              type="button"
-              onClick={handleCerrarSesion}
-              className={CLASES_BOTON_SALIR}
-            >
-              Confirmar cierre de sesión
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmandoSalida(false)}
-              className="font-label-lg text-label-lg min-h-11 text-on-surface-variant"
-            >
-              Cancelar
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmandoSalida(true)}
-            className="font-label-lg text-label-lg flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-surface-container-lowest px-4 py-3.5 text-primary"
+          {/* "Cerrar sesión" vive ADENTRO de la tarjeta de perfil, como botón
+              de ancho completo al pie. Se conserva la confirmación de dos
+              pasos con sus textos literales: cambia dónde vive el botón, no
+              cómo se comporta. */}
+          <div className="flex flex-col gap-3 pt-2">
+            {confirmandoSalida ? (
+              <>
+                <p className="font-body-md text-body-md text-on-surface-variant">
+                  Vas a cerrar sesión en todos tus dispositivos.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCerrarSesion}
+                  className={CLASES_BOTON_SALIR}
+                >
+                  Confirmar cierre de sesión
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmandoSalida(false)}
+                  className="font-label-lg text-label-lg min-h-11 text-on-surface-variant"
+                >
+                  Cancelar
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmandoSalida(true)}
+                className="font-label-lg text-label-lg flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-surface-container-lowest px-4 py-3.5 text-primary"
+              >
+                <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                  logout
+                </span>
+                Cerrar sesión
+              </button>
+            )}
+          </div>
+        </section>
+
+        <div className="flex flex-col gap-4 lg:col-span-3">
+          <Link
+            to="/cuenta/pedidos"
+            className="flex items-center justify-between gap-3 rounded-2xl bg-brand-teal p-4 text-white lg:p-6"
           >
-            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-              logout
+            <span className="flex items-center gap-3.5">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                <span aria-hidden="true" className="material-symbols-outlined">
+                  inventory_2
+                </span>
+              </span>
+              <span className="flex flex-col text-left">
+                <span className="font-headline-sm text-headline-sm">Mis pedidos</span>
+                <span className="font-label-md text-label-md text-white/80">Ver historial</span>
+              </span>
             </span>
-            Cerrar sesión
-          </button>
-        )}
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined text-[18px] lg:flex lg:h-8 lg:w-8 lg:items-center lg:justify-center lg:rounded-full lg:bg-white/10"
+            >
+              chevron_right
+            </span>
+          </Link>
+
+          <section className="flex flex-col gap-2">
+            <h2 className="font-label-md text-label-md px-1 uppercase tracking-wide text-on-surface-variant">
+              Configuración
+            </h2>
+            <div
+              data-testid="lista-configuracion"
+              className="divide-y divide-outline-variant overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest lg:grid lg:grid-cols-2 lg:gap-4 lg:divide-y-0 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent"
+            >
+              <FilaAcceso
+                to="/favoritos"
+                icono="favorite"
+                titulo="Mis favoritos"
+                subtitulo="Los productos que guardaste"
+              />
+              <FilaAcceso
+                to="/cuenta/seguridad"
+                icono="shield"
+                titulo="Seguridad y acceso"
+                subtitulo="Contraseña y datos de ingreso"
+              />
+              {/* Un `null` no renderiza ningún nodo, así que `divide-y` (que
+                  separa con `> * + *`) no deja ningún borde huérfano cuando
+                  falta el número: la lista se cierra sola en la fila
+                  anterior. */}
+              {urlWhatsapp ? (
+                <FilaAcceso
+                  href={urlWhatsapp}
+                  icono="chat"
+                  titulo="Ayuda y soporte"
+                  subtitulo="Escribinos por WhatsApp"
+                  chevron="open_in_new"
+                />
+              ) : null}
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

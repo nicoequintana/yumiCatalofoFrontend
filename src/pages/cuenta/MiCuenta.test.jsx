@@ -172,3 +172,54 @@ describe("MiCuenta — cerrar sesión", () => {
     expect(navigateMock).toHaveBeenCalledWith("/");
   });
 });
+
+/*
+ * jsdom no aplica media queries: estos tests NO verifican cómo se ve la
+ * pantalla en escritorio, solo que el markup del que depende ESE CSS está
+ * puesto — el contenedor tiene las clases de grilla, la fila tiene las de
+ * tarjeta, el botón de salir quedó anidado donde el diseño lo pide.
+ */
+describe("MiCuenta — markup del layout de escritorio", () => {
+  it("la grilla de dos columnas tiene sus clases de lg", () => {
+    renderMiCuenta(PERFIL_LOCAL);
+    expect(screen.getByTestId("grilla-mi-cuenta")).toHaveClass(
+      "lg:grid",
+      "lg:grid-cols-5",
+      "lg:items-start",
+      "lg:gap-6",
+    );
+  });
+
+  it("el botón de Cerrar sesión queda DENTRO de la tarjeta de perfil", () => {
+    renderMiCuenta(PERFIL_LOCAL);
+    const boton = screen.getByRole("button", { name: "Cerrar sesión" });
+    const tarjeta = screen.getByTestId("tarjeta-perfil");
+    expect(tarjeta.contains(boton)).toBe(true);
+  });
+
+  it("cada fila de Configuración gana su propio marco de tarjeta en escritorio", () => {
+    renderMiCuenta(PERFIL_LOCAL);
+    const fila = screen.getByRole("link", { name: /Mis favoritos/ });
+    expect(fila).toHaveClass(
+      "lg:rounded-2xl",
+      "lg:border",
+      "lg:border-outline-variant",
+      "lg:bg-surface-container-lowest",
+    );
+  });
+
+  it("el contenedor de la lista pasa de lista dividida a grilla en escritorio", () => {
+    renderMiCuenta(PERFIL_LOCAL);
+    expect(screen.getByTestId("lista-configuracion")).toHaveClass(
+      "lg:grid",
+      "lg:grid-cols-2",
+      "lg:divide-y-0",
+      "lg:border-0",
+    );
+  });
+
+  it("el avatar crece en escritorio", () => {
+    renderMiCuenta(PERFIL_LOCAL);
+    expect(screen.getByTestId("avatar-iniciales")).toHaveClass("lg:h-24", "lg:w-24");
+  });
+});

@@ -8,6 +8,7 @@ import {
   claseCampoPassword,
   claseEtiquetaSuelta,
   clasePagina,
+  claseTarjetaEscritorio,
 } from "./clasesCuenta.js";
 
 function Seguridad() {
@@ -56,64 +57,69 @@ function Seguridad() {
     <div className={clasePagina}>
       <BotonVolver fallback="/cuenta" destinoFijo etiqueta="Volver a mi cuenta" />
 
-      <header className="flex flex-col gap-1.5">
-        <h1 className="font-display-lg text-headline-lg text-on-background">Seguridad y acceso</h1>
-        <p className="font-body-md text-body-md text-on-surface-variant">
-          Contraseña y datos de ingreso a tu cuenta.
-        </p>
-      </header>
-
-      {perfil.tienePassword ? (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <CampoPassword
-            value={actual}
-            onChange={setActual}
-            etiqueta="Contraseña actual"
-            etiquetaVisible
-            etiquetaClassName={claseEtiquetaSuelta}
-            autoComplete="current-password"
-            required
-            icono="lock"
-            className={claseCampoPassword}
-          />
-          <CampoPassword
-            value={nueva}
-            onChange={setNueva}
-            etiqueta="Contraseña nueva"
-            etiquetaVisible
-            etiquetaClassName={claseEtiquetaSuelta}
-            autoComplete="new-password"
-            required
-            icono="lock_reset"
-            className={claseCampoPassword}
-          />
-          {error ? (
-            <p role="alert" className="font-body-md text-body-md text-error">
-              {error}
-            </p>
-          ) : null}
-          {actualizada ? (
-            <p role="status" className="font-body-md text-body-md text-on-surface">
-              Contraseña actualizada.
-            </p>
-          ) : null}
-          <button
-            type="submit"
-            disabled={cargando}
-            className={claseBotonPrimario}
-          >
-            {cargando ? "Guardando..." : "Guardar contraseña"}
-          </button>
-        </form>
-      ) : (
-        <div className="flex flex-col gap-2 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
-          <p className="font-body-md text-body-md text-on-surface">Entrás a tu cuenta con Google.</p>
+      {/* La tarjeta en escritorio es la misma que `Entrar` y `Datos`: las
+          cuatro pantallas de cuenta comparten un solo sistema, y "Volver a mi
+          cuenta" queda AFUERA de ella, igual que "Volver a la tienda". */}
+      <div className={claseTarjetaEscritorio}>
+        <header className="flex flex-col gap-1.5 lg:text-center">
+          <h1 className="font-display-lg text-headline-lg text-on-background">Seguridad y acceso</h1>
           <p className="font-body-md text-body-md text-on-surface-variant">
-            No tenés contraseña que cambiar. Si querés una, usá “¿Olvidaste tu contraseña?” en la
-            pantalla de ingreso.
+            Contraseña y datos de ingreso a tu cuenta.
           </p>
-        </div>
-      )}
+        </header>
+
+        {perfil.tienePassword ? (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <CampoPassword
+              value={actual}
+              onChange={setActual}
+              etiqueta="Contraseña actual"
+              etiquetaVisible
+              etiquetaClassName={claseEtiquetaSuelta}
+              autoComplete="current-password"
+              required
+              icono="lock"
+              className={claseCampoPassword}
+            />
+            <CampoPassword
+              value={nueva}
+              onChange={setNueva}
+              etiqueta="Contraseña nueva"
+              etiquetaVisible
+              etiquetaClassName={claseEtiquetaSuelta}
+              autoComplete="new-password"
+              required
+              icono="lock_reset"
+              className={claseCampoPassword}
+            />
+            {error ? (
+              <p role="alert" className="font-body-md text-body-md text-error">
+                {error}
+              </p>
+            ) : null}
+            {actualizada ? (
+              <p role="status" className="font-body-md text-body-md text-on-surface">
+                Contraseña actualizada.
+              </p>
+            ) : null}
+            <button
+              type="submit"
+              disabled={cargando}
+              className={claseBotonPrimario}
+            >
+              {cargando ? "Guardando..." : "Guardar contraseña"}
+            </button>
+          </form>
+        ) : (
+          <div className="flex flex-col gap-2 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
+            <p className="font-body-md text-body-md text-on-surface">Entrás a tu cuenta con Google.</p>
+            <p className="font-body-md text-body-md text-on-surface-variant">
+              No tenés contraseña que cambiar. Si querés una, usá “¿Olvidaste tu contraseña?” en la
+              pantalla de ingreso.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

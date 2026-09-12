@@ -32,7 +32,13 @@
  * entre "estás acá" y "esto es lo que hay que apretar".
  */
 const CAMPO_COMUN =
-  "rounded-2xl border border-outline-variant bg-surface-container-lowest py-3.5 font-body-md text-body-md text-on-surface focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/40";
+  // `lg:bg-surface-container-low` es el único cambio de escritorio acá, y es a
+  // propósito UN SOLO lugar: en escritorio el campo vive dentro de la tarjeta
+  // de `claseTarjetaEscritorio` (fondo `-lowest`, blanco), y un input con ESE
+  // mismo fondo solo se distingue de la tarjeta por el borde. Bajar un peldaño
+  // el tono en escritorio alcanza para los tres campos que derivan de esta
+  // constante sin tocarlos uno por uno.
+  "rounded-2xl border border-outline-variant bg-surface-container-lowest py-3.5 font-body-md text-body-md text-on-surface focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/40 lg:bg-surface-container-low";
 
 /**
  * Campo con un ícono dibujado adentro, a la izquierda: `pl-11` es el hueco que
@@ -78,12 +84,31 @@ export const claseBotonPrimario =
 
 const PAGINA_COMUN = "mx-auto flex max-w-sm flex-col px-margin-mobile py-16 md:px-margin-desktop";
 
-/** Contenedor de las pantallas con formulario. */
-export const clasePagina = `${PAGINA_COMUN} gap-6`;
+/**
+ * Contenedor de las pantallas con formulario (`Entrar`, `Seguridad`, `Datos`).
+ * En mobile es el angosto de siempre. En escritorio pasa a alojar la tarjeta
+ * centrada (`claseTarjetaEscritorio`): `lg:max-w-[34rem]` (544px) es el ancho
+ * de ESA tarjeta, no el del contenido — el "Volver a la tienda"/"Volver a mi
+ * cuenta" de cada pantalla vive AFUERA de la tarjeta pero adentro de este
+ * mismo contenedor, así los dos quedan alineados en la misma columna.
+ */
+export const clasePagina = `${PAGINA_COMUN} gap-6 lg:max-w-[34rem]`;
 
 /**
  * Contenedor de `MiCuenta`. `gap-4` y no `gap-6` a propósito: son tarjetas
  * pegadas una debajo de la otra, no campos de un formulario — con el gap de
  * los formularios la lista se desarma en bloques sueltos.
+ *
+ * En escritorio pasa a un contenedor ancho (`container-max`, 1280px): es la
+ * única pantalla de cuenta que en `lg` se arma en dos columnas en vez de una
+ * tarjeta centrada.
  */
-export const clasePaginaDensa = `${PAGINA_COMUN} gap-4`;
+export const clasePaginaDensa = `${PAGINA_COMUN} gap-4 lg:max-w-container-max`;
+
+/**
+ * La tarjeta que envuelve el FORMULARIO (no el "Volver...") de `Entrar`,
+ * `Seguridad` y `Datos` en escritorio. En mobile no agrega nada: ahí el
+ * formulario sigue yendo directo sobre el fondo, como hoy.
+ */
+export const claseTarjetaEscritorio =
+  "flex flex-col gap-6 lg:rounded-3xl lg:border lg:border-outline-variant lg:bg-surface-container-lowest lg:p-12 lg:shadow-sm";

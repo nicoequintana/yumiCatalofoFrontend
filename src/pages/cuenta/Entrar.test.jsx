@@ -255,3 +255,49 @@ describe("Entrar — Google no disponible", () => {
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
   });
 });
+
+/*
+ * jsdom no aplica media queries: acá no se verifica el layout de escritorio,
+ * solo el markup del que depende ese CSS. En particular, el link de
+ * "¿Olvidaste tu contraseña?" tiene que seguir siendo el MISMO nodo que hoy
+ * (no uno nuevo con un `htmlFor` propio) — mover cómo `CampoPassword` arma su
+ * etiqueta rompe sus siete consumidores, dos de ellos del panel admin.
+ */
+describe("Entrar — markup del layout de escritorio", () => {
+  it('"Volver a la tienda" solo se muestra en escritorio', () => {
+    renderEntrar();
+    expect(screen.getByTestId("volver-tienda-escritorio")).toHaveClass("hidden", "lg:block");
+    expect(screen.getByRole("button", { name: "Volver a la tienda" })).toBeInTheDocument();
+  });
+
+  it("el formulario vive en la tarjeta de escritorio, con su etiqueta y su campo intactos", () => {
+    renderEntrar();
+    const tarjeta = screen.getByTestId("tarjeta-entrar");
+    expect(tarjeta).toHaveClass(
+      "lg:rounded-3xl",
+      "lg:border",
+      "lg:border-outline-variant",
+      "lg:bg-surface-container-lowest",
+      "lg:p-12",
+    );
+    // El campo de Contraseña sigue asociado a SU etiqueta, adentro de la
+    // tarjeta: `getByLabelText` solo encuentra el input si `CampoPassword`
+    // sigue armando el `<label htmlFor>` como siempre.
+    expect(tarjeta.contains(screen.getByLabelText("Contraseña"))).toBe(true);
+  });
+
+  it('"¿Olvidaste tu contraseña?" se posiciona sin reemplazar la etiqueta de CampoPassword', () => {
+    renderEntrar();
+    const link = screen.getByRole("link", { name: "¿Olvidaste tu contraseña?" });
+    expect(link).toHaveClass("lg:absolute", "lg:right-0", "lg:top-0");
+    // Sigue siendo un link normal DEBAJO del campo en mobile: nada de
+    // `etiquetaVisible={false}` ni de un `<label>` armado a mano.
+    expect(screen.getByLabelText("Contraseña")).toBeInTheDocument();
+  });
+
+  it("el botón de submit sigue llamándose exactamente \"Iniciar sesión\" con la flecha decorativa", () => {
+    renderEntrar();
+    const boton = screen.getByRole("button", { name: "Iniciar sesión" });
+    expect(boton.querySelector('[aria-hidden="true"]')).toHaveTextContent("arrow_forward");
+  });
+});
