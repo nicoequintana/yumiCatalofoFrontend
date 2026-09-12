@@ -24,7 +24,12 @@ describe("token brand-teal", () => {
   });
 
   it("NO se declara en el tema oscuro del admin: es color de marca, no de tema", () => {
-    const oscuro = indexCss.slice(indexCss.indexOf('[data-tema-admin="oscuro"]'));
+    // `indexOf` sobre el string pelado encontraría la MENCIÓN del selector en
+    // el comentario de encabezado, no el bloque. Se ancla al principio de
+    // línea y a la llave de apertura para dar con la regla de verdad.
+    const inicioBloque = indexCss.search(/^\[data-tema-admin="oscuro"\]\s*\{/m);
+    expect(inicioBloque).toBeGreaterThan(-1);
+    const oscuro = indexCss.slice(inicioBloque);
     expect(oscuro).not.toMatch(/--color-brand-teal/);
   });
 });

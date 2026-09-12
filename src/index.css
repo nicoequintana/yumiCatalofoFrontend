@@ -5,7 +5,7 @@
 /* `.paleta-clara` comparte el bloque de `:root` A PROPOSITO: es la unica forma
    de forzar la paleta del catalogo dentro del panel sin escribir los 34 tokens
    una cuarta vez. El proyecto ya sostiene tres copias sincronizadas a mano
-   (`:root`, el bloque oscuro del admin y `tailwind.config.js`); una cuarta,
+   (`:root`, `[data-tema-admin="oscuro"]` y `tailwind.config.js`); una cuarta,
    ademas parcial, se desincronizaria sin que nada falle.
 
    Funciona por herencia: un elemento con esta clase adentro de un `<html>` en
