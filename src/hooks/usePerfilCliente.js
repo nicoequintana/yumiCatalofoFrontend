@@ -160,6 +160,40 @@ export function refrescarPerfil() {
 }
 
 /**
+ * Mete en el cache un perfil que el servidor ACABA de devolver: sin refetch y,
+ * sobre todo, SIN bajar `resuelto`.
+ *
+ * `refrescarPerfil()` no sirve para esto. Deja `resuelto:false`, y la PRIMERA
+ * rama de `RequireAuthCliente` es `if (!resuelto) return <Spinner/>`: la
+ * pantalla que acaba de escribir se desmonta en ese mismo repintado y se lleva
+ * puesto su `setAviso`/`setActualizada`, que estaban batcheados en el mismo
+ * tick. En la app se veía un parpadeo de spinner, el formulario volvía
+ * remontado con los valores nuevos y ningún acuse de recibo.
+ *
+ * `invalidarPerfil()` tampoco: deja `ESTADO_VACIO` (o sea `resuelto:false`) y
+ * no dispara ningún fetch, así que la pantalla montada queda con el spinner
+ * girando para siempre.
+ *
+ * Lo que sí corresponde es esto, y no es solo por el aviso: el perfil
+ * actualizado YA viene en la respuesta del PUT, así que volver a pedirlo es un
+ * viaje de más contra un dato que ya se tiene — regla 1 del proyecto, el dato
+ * derivado viaja en la respuesta y el frontend no lo re-pide.
+ *
+ * Incrementa `generacion` por el mismo motivo que las otras dos: una carga
+ * vieja que llegue tarde compara antes de notificar y no pisa esto.
+ *
+ * @param {object} perfil el cuerpo tal cual lo devolvió el endpoint.
+ */
+export function sincronizarPerfil(perfil) {
+  generacion += 1;
+  promesaEnVuelo = null;
+  // `error: null` a propósito: si el PUT respondió, la sesión está viva. Dejar
+  // un error viejo mandaría al guard a la pantalla de "no pudimos verificar tu
+  // sesión" justo después de una escritura exitosa.
+  notificar({ perfil, resuelto: true, error: null });
+}
+
+/**
  * Vuelve el módulo a cero. **Helper de tests**, mismo criterio que
  * `reiniciarContextoComercial`: el estado a nivel de módulo sobrevive entre
  * casos del mismo archivo, y sin esto el segundo test heredaría el cache, la

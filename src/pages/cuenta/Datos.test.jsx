@@ -11,6 +11,7 @@ vi.mock("../../hooks/usePerfilCliente.js", () => ({
   default: vi.fn(),
   invalidarPerfil: vi.fn(),
   refrescarPerfil: vi.fn(),
+  sincronizarPerfil: vi.fn(),
 }));
 
 function renderDatos(perfil) {
@@ -101,8 +102,10 @@ describe("Datos — edición del perfil", () => {
     ).toBeInTheDocument();
   });
 
-  it("al guardar bien refresca el perfil y confirma", async () => {
+  it("al guardar bien sincroniza el cache CON LA RESPUESTA del PUT y confirma", async () => {
     const user = userEvent.setup();
+    const devuelto = { ...PERFIL, nombre: "Otro Nombre" };
+    cuentaApi.actualizarPerfil.mockResolvedValue(devuelto);
     renderDatos(PERFIL);
 
     await user.clear(screen.getByLabelText("Nombre"));
@@ -110,7 +113,9 @@ describe("Datos — edición del perfil", () => {
     await user.click(screen.getByRole("button", { name: "Guardar datos" }));
 
     await waitFor(() => expect(screen.getByText("Datos actualizados.")).toBeInTheDocument());
-    expect(perfilCliente.refrescarPerfil).toHaveBeenCalledTimes(1);
+    // El perfil actualizado ya vino en la respuesta: no se lo vuelve a pedir.
+    expect(perfilCliente.sincronizarPerfil).toHaveBeenCalledWith(devuelto);
+    expect(perfilCliente.refrescarPerfil).not.toHaveBeenCalled();
   });
 
   it("con apodo null y sin tocar nada, NO manda apodo", () => {

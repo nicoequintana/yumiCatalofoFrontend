@@ -4,6 +4,7 @@ import usePerfilCliente, {
   _reiniciarParaTests,
   invalidarPerfil,
   refrescarPerfil,
+  sincronizarPerfil,
 } from "./usePerfilCliente.js";
 
 function respuesta(status, body) {
@@ -211,5 +212,77 @@ describe("refrescarPerfil", () => {
     expect(result.current.error).toBeNull();
     expect(result.current.perfil).toEqual({ id: 1, nombre: "Ana" });
     expect(result.current.resuelto).toBe(true);
+  });
+
+  it("baja `resuelto` mientras el fetch está en vuelo, y por eso NO sirve tras escribir", () => {
+    // Esta es la mitad que rompía la confirmación de `Datos`/`Seguridad`: la
+    // primera rama de `RequireAuthCliente` es `if (!resuelto) return <Spinner/>`,
+    // así que este `false` desmonta la pantalla que acaba de guardar y se lleva
+    // puesto su mensaje de éxito. El caso de arriba solo mira el final.
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+
+    const { result } = renderHook(() => usePerfilCliente());
+    act(() => {
+      refrescarPerfil();
+    });
+
+    expect(result.current.resuelto).toBe(false);
+  });
+});
+
+describe("sincronizarPerfil", () => {
+  it("mete el perfil en el cache SIN bajar `resuelto` y sin pedir nada", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(respuesta(200, { id: 1, nombre: "Ana" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => usePerfilCliente());
+    await waitFor(() => expect(result.current.resuelto).toBe(true));
+
+    act(() => {
+      sincronizarPerfil({ id: 1, nombre: "Ana Nueva" });
+    });
+
+    expect(result.current).toEqual({
+      perfil: { id: 1, nombre: "Ana Nueva" },
+      resuelto: true,
+      error: null,
+    });
+    // Ni un viaje de más: el dato ya vino en la respuesta del PUT.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("limpia el error anterior: si el PUT respondió, la sesión está viva", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
+
+    const { result } = renderHook(() => usePerfilCliente());
+    await waitFor(() => expect(result.current.error).toBe("No pudimos verificar tu sesión."));
+
+    act(() => {
+      sincronizarPerfil({ id: 1, nombre: "Ana" });
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.resuelto).toBe(true);
+  });
+
+  it("una carga vieja que llega tarde no pisa lo que acaba de escribirse", async () => {
+    // Mismo motivo que la `generacion` de `invalidarPerfil`/`refrescarPerfil`:
+    // anular `promesaEnVuelo` corta la deduplicación, no la promesa ya lanzada.
+    let resolver;
+    const fetchMock = vi.fn(() => new Promise((r) => { resolver = r; }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => usePerfilCliente());
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+
+    act(() => {
+      sincronizarPerfil({ id: 1, nombre: "Ana Nueva" });
+    });
+    await act(async () => {
+      resolver(respuesta(200, { id: 1, nombre: "Ana Vieja" }));
+    });
+
+    expect(result.current.perfil).toEqual({ id: 1, nombre: "Ana Nueva" });
   });
 });

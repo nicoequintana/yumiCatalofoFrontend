@@ -1,6 +1,6 @@
 import { useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
-import usePerfilCliente, { refrescarPerfil } from "../../hooks/usePerfilCliente.js";
+import usePerfilCliente, { sincronizarPerfil } from "../../hooks/usePerfilCliente.js";
 import { actualizarPerfil } from "../../api/cuenta.js";
 
 const CLASES_CAMPO =
@@ -50,11 +50,15 @@ function Datos() {
 
     setCargando(true);
     try {
-      await actualizarPerfil(cambios);
+      // El PUT DEVUELVE el perfil actualizado, así que el cache se sincroniza
+      // con esa respuesta en vez de volver a pedirlo. Ni `refrescarPerfil()`
+      // ni `invalidarPerfil()`: los dos dejan `resuelto:false`, y con eso la
+      // primera rama de `RequireAuthCliente` devuelve el Spinner y DESMONTA
+      // esta pantalla en el mismo repintado — el aviso de abajo no llegaba a
+      // pintarse nunca. Ver el comentario de `sincronizarPerfil`.
+      const perfilActualizado = await actualizarPerfil(cambios);
+      sincronizarPerfil(perfilActualizado);
       setAviso("Datos actualizados.");
-      // La pantalla sigue montada: `refrescarPerfil()`, nunca
-      // `invalidarPerfil()` — mismo criterio que en `Seguridad.jsx`.
-      refrescarPerfil();
     } catch (err) {
       setError(err.message);
     } finally {

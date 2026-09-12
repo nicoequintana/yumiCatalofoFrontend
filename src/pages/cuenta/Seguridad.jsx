@@ -1,7 +1,7 @@
 import { useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import CampoPassword from "../../components/CampoPassword.jsx";
-import usePerfilCliente, { refrescarPerfil } from "../../hooks/usePerfilCliente.js";
+import usePerfilCliente from "../../hooks/usePerfilCliente.js";
 import { cambiarPassword } from "../../api/cuenta.js";
 
 const CLASES_CAMPO =
@@ -24,15 +24,21 @@ function Seguridad() {
     setActualizada(false);
     setCargando(true);
     try {
+      // NO se toca el cache del perfil, y es a propósito: `PUT /cuenta/password`
+      // responde `{ok:true}` y no cambia NINGÚN campo del perfil. Lo que
+      // escribe son `passwordHash` y `tokenVersion`, y de los dos el perfil
+      // solo deriva `tienePassword`, que ya era `true` (si no, esta pantalla ni
+      // muestra el formulario); `tokenVersion` no viaja en el perfil, y la
+      // cookie nueva la reemite el backend en esta misma respuesta.
+      //
+      // Antes acá había un `refrescarPerfil()`: además de ser un viaje al
+      // pedo, dejaba `resuelto:false` y la primera rama de
+      // `RequireAuthCliente` devolvía el Spinner, así que esta pantalla se
+      // desmontaba y el "Contraseña actualizada." de abajo no se pintaba nunca.
       await cambiarPassword({ actual, nueva });
       setActualizada(true);
       setActual("");
       setNueva("");
-      // La pantalla sigue montada (no hay navegación tras esta escritura), así
-      // que se usa `refrescarPerfil()` y NO `invalidarPerfil()`: invalidar
-      // limpia el cache y espera un montaje futuro que acá no va a llegar, y
-      // `RequireAuthCliente` quedaría con `resuelto:false` para siempre.
-      refrescarPerfil();
     } catch (err) {
       // 409: la contraseña cambió por otro lado entre que se abrió el form y
       // se envió. Es un estado real, no un edge case: se muestra el mensaje
