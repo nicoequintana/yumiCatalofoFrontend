@@ -360,7 +360,7 @@ function FiltrosCatalogo({
           </span>
           Filtros
           {cantidadFiltrosActivos > 0 ? (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-on-primary text-[10px] font-bold text-primary">
+            <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full bg-on-primary text-[11px] font-bold text-primary">
               {cantidadFiltrosActivos}
             </span>
           ) : null}
