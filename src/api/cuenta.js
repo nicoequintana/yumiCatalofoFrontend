@@ -132,7 +132,7 @@ export function salirCuenta() {
 
 /**
  * El perfil de la sesión.
- * @returns {Promise<{id: number, email: string, origenRegistro: string, nombre: string|null, telefono: string|null, dni: string|null, tieneGoogle: boolean, tienePassword: boolean}>}
+ * @returns {Promise<{id: number, email: string, origenRegistro: string, nombre: string|null, telefono: string|null, dni: string|null, apodo: string|null, tieneGoogle: boolean, tienePassword: boolean}>}
  * @throws {Error} 401 `SESION_INVALIDA` (lo maneja `clienteAuth.js`, no el
  *   caller) o 503 `VERIFICACION_NO_DISPONIBLE`.
  */
