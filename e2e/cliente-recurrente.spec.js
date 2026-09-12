@@ -1,142 +1,111 @@
 import { test, expect } from "@playwright/test";
-import { crearProductoDeTest, borrarProductoDeTest, borrarOrdenDeTest, crearOrdenDeTest, crearDniDeTest, prisma } from "./helpers/db.js";
+import {
+  crearProductoDeTest,
+  borrarProductoDeTest,
+  borrarOrdenDeTest,
+  crearCuentaClienteDeTest,
+  borrarCuentaClienteDeTest,
+  iniciarSesionCliente,
+  prisma,
+} from "./helpers/db.js";
 import { neutralizarContextoComercial } from "./helpers/contextoComercial.js";
 
-const NOMBRE_CLIENTE_TEST = "E2E-TEST-Cliente Recurrente";
+const NOMBRE_CLIENTE_TEST = "E2E-TEST-Cliente Recurrente Cuenta";
 
 /**
- * Sprint 7, Task 2 — Escenario 2: cliente recurrente.
+ * Cliente recurrente CON CUENTA (reescrito, Parte 5): dos compras con la
+ * MISMA cuenta autenticada.
  *
- * Dos órdenes con el MISMO dni deben resolver al MISMO `Cliente` (sin fila
- * duplicada) y quedar ambas asociadas a él. La primera orden se siembra
- * directo vía Prisma (`crearOrdenDeTest`, rápido, no ejercita UI) — ya existe
- * un cliente con historial ANTES de que arranque el test. La segunda orden sí
- * se dirige por un checkout real de UI con el MISMO dni, para ejercitar el
- * camino real de `upsertClienteConReintento` (backend, `ordenes.controller.js`):
- * la rama de UPDATE sobre un cliente ya existente, no la de CREATE.
- *
- * Alcance decidido para este escenario: la verificación es a nivel DB
- * (Prisma) — no se agrega una aserción extra sobre `AdminOrdenes.jsx`
- * filtrado por `?dni=` porque esa UI de filtrado ya tiene cobertura propia en
- * los tests Vitest del Sprint 6 (`AdminOrdenes.test.jsx`); repetirla acá solo
- * infla el tiempo de corrida sin agregar una garantía E2E nueva — lo que
- * ESTE escenario necesita probar de punta a punta es la regla de negocio del
- * upsert-por-dni, que vive en el backend y no en esa pantalla.
+ * A diferencia de la versión de invitado que este spec probaba antes (el
+ * upsert por dni de un comprador sin cuenta — ya no existe: `/checkout` es
+ * inalcanzable sin sesión), acá lo que se prueba es que el contacto de una
+ * orden con cuenta se resuelve desde `CuentaCliente`: el checkout
+ * autenticado prellena esos datos en la segunda compra, y el `Cliente`
+ * comercial que `upsertClienteConReintento` sigue escribiendo por detrás es
+ * el MISMO en las dos órdenes (mismo dni).
  */
-test.describe("Cliente recurrente — dos órdenes, mismo dni, un solo Cliente", () => {
-  // El modal de campaña es `fixed inset-0` e intercepta el primer click de
-  // cualquier página. Se neutraliza el contexto comercial para que estos
-  // specs no dependan de si hay una campaña prendida en la base de dev.
+test.describe("Cliente recurrente — segunda compra con la misma cuenta", () => {
   test.beforeEach(async ({ page }) => {
     await neutralizarContextoComercial(page);
   });
 
   let producto;
-  let dniTest;
-  let clienteSembradoId;
-  let ordenSembradaId;
+  let cuentaInfo;
 
   test.beforeEach(async ({ page }) => {
     producto = await crearProductoDeTest({
       nombre: "E2E-TEST-Producto Cliente Recurrente",
       precio: "1800",
     });
-    dniTest = crearDniDeTest();
-
-    // Primera orden: sembrada directo vía Prisma, con el cliente ya
-    // existente ANTES de que el test dispare el checkout de UI.
-    const ordenSembrada = await crearOrdenDeTest({
-      estado: "PENDIENTE",
-      items: [
-        {
-          productId: producto.id,
-          nombreProducto: producto.nombre,
-          precioUnitario: producto.precio.toString(),
-          cantidad: 1,
-        },
-      ],
+    cuentaInfo = await crearCuentaClienteDeTest({
+      nombre: NOMBRE_CLIENTE_TEST,
+      telefono: "1155667788",
     });
-    // `crearOrdenDeTest` generó su propio cliente porque no se pasó
-    // `clienteId` — se lo actualiza acá para usar EL MISMO dni de test que
-    // el checkout de UI va a reusar más abajo (si no, serían dos clientes
-    // distintos y el escenario no probaría nada).
-    await prisma.cliente.update({
-      where: { id: ordenSembrada.clienteId },
-      data: { dni: dniTest, nombre: NOMBRE_CLIENTE_TEST },
-    });
-    clienteSembradoId = ordenSembrada.clienteId;
-    ordenSembradaId = ordenSembrada.id;
 
     await page.goto("/");
     await page.evaluate(() => localStorage.removeItem("yumi-carrito"));
   });
 
   test.afterEach(async () => {
-    const clienteEnDb = await prisma.cliente.findUnique({ where: { dni: dniTest } }).catch(() => null);
-    if (clienteEnDb) {
-      const ordenesDelCliente = await prisma.orden.findMany({ where: { clienteId: clienteEnDb.id } });
-      for (const orden of ordenesDelCliente) {
-        await borrarOrdenDeTest(orden.id, clienteEnDb.id);
-      }
-    } else if (clienteSembradoId) {
-      // Fallback si el update de dni de arriba falló a mitad de camino.
-      await borrarOrdenDeTest(ordenSembradaId, clienteSembradoId).catch(() => {});
+    const ordenes = await prisma.orden.findMany({ where: { cuentaClienteId: cuentaInfo.cuenta.id } });
+    for (const orden of ordenes) {
+      await borrarOrdenDeTest(orden.id, orden.clienteId ?? undefined);
     }
-
+    await borrarCuentaClienteDeTest(cuentaInfo.cuenta.id);
     if (producto?.id) {
       await borrarProductoDeTest(producto.id);
     }
   });
 
-  test("segunda orden con el mismo dni actualiza el Cliente existente, sin duplicarlo", async ({ page }) => {
-    // Precondición: efectivamente hay 1 cliente y 1 orden antes de tocar la UI.
-    const clientesAntes = await prisma.cliente.findMany({ where: { dni: dniTest } });
-    expect(clientesAntes).toHaveLength(1);
-    const ordenesAntes = await prisma.orden.findMany({ where: { clienteId: clientesAntes[0].id } });
-    expect(ordenesAntes).toHaveLength(1);
+  test("dos compras seguidas con la misma cuenta: datos prellenados en la segunda, y el mismo Cliente comercial", async ({
+    page,
+  }) => {
+    await test.step("primera compra: sin sesión todavía, hace login antes de llegar al formulario", async () => {
+      await page.goto(`/producto/${producto.id}`);
+      await page.getByRole("button", { name: /agregar al carrito/i }).click();
+      await page.goto("/checkout");
+      await expect(page).toHaveURL(`/cuenta/entrar?volverA=${encodeURIComponent("/checkout")}`);
 
-    // Checkout real de UI con el mismo dni, pero datos de contacto NUEVOS —
-    // así la aserción final puede distinguir "quedó el dato viejo" (bug: creó
-    // un cliente nuevo o no actualizó) de "quedó el dato nuevo" (correcto:
-    // pasó por la rama de update de upsertClienteConReintento).
-    await page.goto("/coleccion");
-    await page.getByPlaceholder(/buscar/i).fill("E2E-TEST-Producto Cliente Recurrente");
-    await expect(page).toHaveURL(/search=E2E-TEST-Producto/);
+      await iniciarSesionCliente(page, {
+        email: cuentaInfo.cuenta.email,
+        password: cuentaInfo.password,
+        tokenDispositivo: cuentaInfo.tokenDispositivo,
+      });
+      // El helper navega de entrada a `/cuenta/entrar` sin el `volverA` que
+      // el guard había puesto, así que el login cae en `/cuenta` (default de
+      // Entrar.jsx) y no de vuelta en el checkout — se vuelve a navegar.
+      await page.goto("/checkout");
+      await expect(page).toHaveURL(/\/checkout$/);
 
-    const linkProducto = page.getByRole("link", { name: /E2E-TEST-Producto Cliente Recurrente/i });
-    await expect(linkProducto).toBeVisible();
-    await linkProducto.click();
-
-    // `(-|$)`: las URLs de producto son `/producto/{id}-{slug}` desde el
-    // 24/08/2026 (`feat(seo): usar URLs con slug en los links de producto`).
-    // El `$` anclado al id venía fallando desde entonces. El borde importa:
-    // sin él, `/producto/52` matchearía también `/producto/5289`.
-    await expect(page).toHaveURL(new RegExp(`/producto/${producto.id}(-|$)`));
-    await page.getByRole("button", { name: /agregar al carrito/i }).click();
-    await expect(page.getByRole("button", { name: /agregado/i })).toBeVisible();
-
-    await page.goto("/checkout");
-    await expect(page).toHaveURL(/\/checkout$/);
-
-    await page.getByLabel("DNI").fill(dniTest);
-    await page.getByLabel("Nombre").fill(NOMBRE_CLIENTE_TEST);
-    await page.getByLabel("Teléfono").fill("1155667788"); // teléfono NUEVO, distinto del seed inicial
-    await page.getByLabel("Email").fill("cliente-recurrente-e2e@example.com");
-
-    await page.getByRole("button", { name: "Confirmar pedido" }).click();
-    await expect(page).toHaveURL(/\/checkout\/confirmacion$/);
-
-    // Verificación final: un solo Cliente para ese dni, con el teléfono
-    // actualizado, y 2 Orden asociadas (la sembrada + la de UI).
-    const clientesDespues = await prisma.cliente.findMany({ where: { dni: dniTest } });
-    expect(clientesDespues).toHaveLength(1);
-    expect(clientesDespues[0].telefono).toBe("1155667788");
-
-    const ordenesDespues = await prisma.orden.findMany({
-      where: { clienteId: clientesDespues[0].id },
-      orderBy: { createdAt: "asc" },
+      await page.getByRole("button", { name: "Confirmar pedido" }).click();
+      await expect(page).toHaveURL(/\/checkout\/confirmacion$/);
     });
-    expect(ordenesDespues).toHaveLength(2);
-    expect(ordenesDespues[0].id).toBe(ordenSembradaId);
+
+    await test.step("segunda compra: sigue logueado, el checkout llega con los datos de la cuenta ya prellenados", async () => {
+      await page.goto(`/producto/${producto.id}`);
+      await page.getByRole("button", { name: /agregar al carrito/i }).click();
+      await page.goto("/checkout");
+
+      // Sigue logueado (`sesion_cliente` sobrevive a la navegación): no
+      // vuelve a pasar por /cuenta/entrar esta vez.
+      await expect(page).toHaveURL(/\/checkout$/);
+      await expect(page.getByText(NOMBRE_CLIENTE_TEST)).toBeVisible();
+      await expect(page.getByText("1155667788")).toBeVisible();
+
+      await page.getByRole("button", { name: "Confirmar pedido" }).click();
+      await expect(page).toHaveURL(/\/checkout\/confirmacion$/);
+    });
+
+    await test.step("verificación en DB: dos órdenes, mismo cuentaClienteId, y un único Cliente comercial", async () => {
+      const ordenes = await prisma.orden.findMany({
+        where: { cuentaClienteId: cuentaInfo.cuenta.id },
+        orderBy: { createdAt: "asc" },
+      });
+      expect(ordenes).toHaveLength(2);
+      expect(ordenes[0].clienteId).toBe(ordenes[1].clienteId);
+
+      const clientesConEseDni = await prisma.cliente.findMany({ where: { dni: cuentaInfo.cuenta.dni } });
+      expect(clientesConEseDni).toHaveLength(1);
+    });
   });
 });
