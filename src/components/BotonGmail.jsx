@@ -92,8 +92,10 @@ function BotonGmail({ onCredential, onNoDisponible }) {
           // Google dibuja SU botón dentro de un iframe: no se puede restilar
           // por CSS. Estos son los únicos parámetros que la API expone
           // (`GsiButtonConfiguration`), y son lo más cerca que se llega del
-          // pill de ancho completo del diseño. `width` acepta hasta 400px; el
-          // contenedor de la pantalla mide 384.
+          // pill de ancho completo del diseño. `width` se MIDE del contenedor:
+          // un valor fijo (era 384) se salía de la tarjeta en pantallas más
+          // angostas. GIS acepta entre 200 y 400px.
+          const ancho = Math.min(400, Math.max(200, contenedorRef.current.clientWidth));
           window.google.accounts.id.renderButton(contenedorRef.current, {
             type: "standard",
             theme: "outline",
@@ -101,7 +103,7 @@ function BotonGmail({ onCredential, onNoDisponible }) {
             shape: "pill",
             logo_alignment: "center",
             text: "signin_with",
-            width: "384",
+            width: String(ancho),
             locale: "es",
           });
         }
@@ -122,7 +124,9 @@ function BotonGmail({ onCredential, onNoDisponible }) {
 
   if (!clientId || !disponible) return null;
 
-  return <div ref={contenedorRef} />;
+  // `w-full` + `flex justify-center`: el div mide el ancho disponible (de ahí
+  // sale `width`) y, cuando la tarjeta pasa de 400px, el botón queda centrado.
+  return <div ref={contenedorRef} className="flex w-full justify-center" />;
 }
 
 export default BotonGmail;

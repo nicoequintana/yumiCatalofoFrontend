@@ -72,8 +72,46 @@ describe("BotonGmail — con Client ID", () => {
       shape: "pill",
       logo_alignment: "center",
       text: "signin_with",
-      width: "384",
       locale: "es",
+    });
+  });
+
+  describe("ancho del botón", () => {
+    // Google dibuja el botón en un iframe con el `width` que se le pasa: si es
+    // más ancho que el contenedor, se sale de la tarjeta. jsdom no calcula
+    // layout, así que el ancho del contenedor se simula.
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+
+    function simularAnchoContenedor(ancho) {
+      Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+        configurable: true,
+        get: () => ancho,
+      });
+    }
+
+    afterEach(() => {
+      if (original) Object.defineProperty(HTMLElement.prototype, "clientWidth", original);
+      else delete HTMLElement.prototype.clientWidth;
+    });
+
+    async function anchoPedido() {
+      render(<BotonGmail onCredential={() => {}} />);
+      await waitFor(() =>
+        expect(document.querySelector(`script[src="${SRC_GIS}"]`)).not.toBeNull(),
+      );
+      const { renderButton } = simularCargaGis();
+      await waitFor(() => expect(renderButton).toHaveBeenCalledTimes(1));
+      return renderButton.mock.calls[0][1].width;
+    }
+
+    it("toma el ancho del contenedor, no uno fijo", async () => {
+      simularAnchoContenedor(318);
+      expect(await anchoPedido()).toBe("318");
+    });
+
+    it("no pasa del máximo de 400 que acepta GIS", async () => {
+      simularAnchoContenedor(544);
+      expect(await anchoPedido()).toBe("400");
     });
   });
 

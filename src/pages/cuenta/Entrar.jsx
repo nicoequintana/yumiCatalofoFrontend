@@ -160,12 +160,11 @@ function Entrar() {
             </div>
           </div>
 
-          {/* El link se POSICIONA sobre la línea de la etiqueta en escritorio;
-              no se toca cómo `CampoPassword` arma su `<label>` (genera el
-              `id` con `useId()` y no lo expone, así que un `htmlFor` propio
-              acá no tendría a qué apuntar). El contenedor relativo envuelve
-              los dos, y el link va absoluto solo desde `lg`. */}
-          <div className="relative flex flex-col gap-4">
+          {/* El link va DEBAJO del campo en todos los anchos. Antes subía a la
+              línea de la etiqueta en escritorio con `lg:absolute`; se decidió
+              dejarlo abajo. No se toca cómo `CampoPassword` arma su `<label>`
+              (genera el `id` con `useId()` y no lo expone). */}
+          <div className="flex flex-col gap-2">
             <CampoPassword
               value={password}
               onChange={setPassword}
@@ -178,13 +177,9 @@ function Entrar() {
               className={claseCampoPassword}
             />
 
-            {/* Mobile: bloque propio debajo del campo, alineado a la derecha
-                — igual que hoy. Escritorio: mismo nodo, pero absoluto en la
-                esquina superior derecha del contenedor, a la altura de la
-                etiqueta CONTRASEÑA. El DOM no se mueve entre los dos casos. */}
             <Link
               to="/cuenta/olvide"
-              className="block text-right font-label-md text-label-md text-on-surface-variant underline underline-offset-4 hover:text-primary lg:absolute lg:right-0 lg:top-0"
+              className="block text-right font-label-md text-label-md text-on-surface-variant underline underline-offset-4 hover:text-primary"
             >
               ¿Olvidaste tu contraseña?
             </Link>

@@ -286,11 +286,17 @@ describe("Entrar — markup del layout de escritorio", () => {
     expect(tarjeta.contains(screen.getByLabelText("Contraseña"))).toBe(true);
   });
 
-  it('"¿Olvidaste tu contraseña?" se posiciona sin reemplazar la etiqueta de CampoPassword', () => {
+  it('"¿Olvidaste tu contraseña?" va debajo del campo también en escritorio', () => {
     renderEntrar();
     const link = screen.getByRole("link", { name: "¿Olvidaste tu contraseña?" });
-    expect(link).toHaveClass("lg:absolute", "lg:right-0", "lg:top-0");
-    // Sigue siendo un link normal DEBAJO del campo en mobile: nada de
+    // Antes subía a la línea de la etiqueta CONTRASEÑA con `lg:absolute`; se
+    // decidió que quede debajo del input en todos los anchos.
+    expect(link).not.toHaveClass("lg:absolute");
+    expect(
+      screen.getByLabelText("Contraseña").compareDocumentPosition(link) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Sin tocar cómo `CampoPassword` arma su etiqueta: nada de
     // `etiquetaVisible={false}` ni de un `<label>` armado a mano.
     expect(screen.getByLabelText("Contraseña")).toBeInTheDocument();
   });
