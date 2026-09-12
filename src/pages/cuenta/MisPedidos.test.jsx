@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MisPedidos from "./MisPedidos.jsx";
 import * as cuentaApi from "../../api/cuenta.js";
@@ -42,6 +42,21 @@ describe("MisPedidos — con pedidos", () => {
     const link = await screen.findByRole("link", { name: /Pedido #42/ });
     expect(link).toHaveAttribute("href", "/cuenta/pedidos/42");
     expect(screen.getByText(/Entregada/)).toBeInTheDocument();
+  });
+
+  it('tiene "Volver a mi cuenta" que lleva a /cuenta', async () => {
+    cuentaApi.getPedidos.mockResolvedValue({ data: [PEDIDO], page: 1, pageSize: 20, total: 1 });
+    render(
+      <MemoryRouter initialEntries={["/cuenta/pedidos"]}>
+        <Routes>
+          <Route path="/cuenta/pedidos" element={<MisPedidos />} />
+          <Route path="/cuenta" element={<p>pantalla mi cuenta</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: "Volver a mi cuenta" }));
+    expect(screen.getByText("pantalla mi cuenta")).toBeInTheDocument();
   });
 });
 

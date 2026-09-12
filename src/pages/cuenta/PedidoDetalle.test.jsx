@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PedidoDetalle from "./PedidoDetalle.jsx";
@@ -45,6 +46,21 @@ describe("PedidoDetalle — éxito", () => {
     expect(screen.getByText(/Entregada/)).toBeInTheDocument();
     expect(screen.getByText(/Reloj Clásico/)).toBeInTheDocument();
     expect(cuentaApi.getPedidoPorId).toHaveBeenCalledWith("42");
+  });
+
+  it('tiene "Volver a mis pedidos" que lleva al listado', async () => {
+    cuentaApi.getPedidoPorId.mockResolvedValue(PEDIDO);
+    render(
+      <MemoryRouter initialEntries={["/cuenta/pedidos/42"]}>
+        <Routes>
+          <Route path="/cuenta/pedidos/:id" element={<PedidoDetalle />} />
+          <Route path="/cuenta/pedidos" element={<p>listado de pedidos</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: "Volver a mis pedidos" }));
+    expect(screen.getByText("listado de pedidos")).toBeInTheDocument();
   });
 });
 

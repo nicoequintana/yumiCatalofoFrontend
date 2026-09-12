@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { formatFecha, formatPrecio } from "../../utils/formato.js";
 import { getPedidoPorId } from "../../api/cuenta.js";
@@ -66,6 +67,7 @@ function PedidoDetalle() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 px-margin-mobile py-16 md:px-margin-desktop">
+      <BotonVolver fallback="/cuenta/pedidos" destinoFijo etiqueta="Volver a mis pedidos" />
       <div className="flex flex-col gap-1">
         <h1 className="font-display-lg text-headline-lg text-on-background">
           Pedido #{pedido.id}

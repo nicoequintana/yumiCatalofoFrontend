@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import BotonVolver from "../../components/BotonVolver.jsx";
 import usePerfilCliente, { invalidarPerfil } from "../../hooks/usePerfilCliente.js";
 import useWhatsapp from "../../hooks/useWhatsapp.js";
 import { salirCuenta } from "../../api/cuenta.js";
@@ -87,33 +88,46 @@ function FilaAcceso({ to, href, icono, titulo, subtitulo, chevron = "chevron_rig
 }
 
 /**
- * Fila de contacto (email / teléfono), como sub-tarjeta: ícono a la
- * izquierda, rótulo en mayúsculas arriba del valor, acción a la derecha
- * centrada verticalmente. Es UN componente porque email y teléfono difieren
- * solo en ícono, rótulo, valor y destino — repetir el markup sería la cuarta
- * copia del mismo bloque que ya pasó una vez con los campos de formulario
- * (ver el comentario de `clasesCuenta.js`).
+ * Fila de contacto como sub-tarjeta: uno o más campos (ícono + rótulo/valor)
+ * apilados y separados por un divisor, y la acción al pie, debajo de todos
+ * los campos. Es UN componente porque el email y los datos personales
+ * difieren solo en campos y destino — repetir el markup sería la cuarta copia
+ * del mismo bloque que ya pasó una vez con los campos de formulario (ver el
+ * comentario de `clasesCuenta.js`). Los datos personales van en UNA fila con
+ * UN "Editar" porque los tres se editan en la misma pantalla
+ * (`/cuenta/datos`); el ícono y el divisor por campo evitan que se lean como
+ * un solo bloque amontonado.
  */
-function FilaContacto({ icono, rotulo, valor, to, etiquetaAccion }) {
+function FilaContacto({ campos, to, etiquetaAccion, testId }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-surface-container-low p-3">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-container-lowest text-brand-teal">
-        <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-          {icono}
-        </span>
-      </span>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <span className="font-label-sm text-label-sm uppercase tracking-wide text-on-surface-variant">
-          {rotulo}
-        </span>
-        <span className="truncate font-body-md text-body-md text-on-surface">{valor}</span>
+    <div data-testid={testId} className="flex flex-col rounded-xl bg-surface-container-low p-3">
+      <dl className="flex min-w-0 flex-col divide-y divide-outline-variant">
+        {campos.map(({ icono, rotulo, valor }) => (
+          <div
+            key={rotulo}
+            data-testid="campo-contacto"
+            data-icono={icono}
+            className="flex min-w-0 items-center gap-3 py-3 first:pt-0 last:pb-0"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-container-lowest text-brand-teal">
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                {icono}
+              </span>
+            </span>
+            <div className="flex min-w-0 flex-col">
+              <dt className="font-label-sm text-label-sm uppercase tracking-wide text-on-surface-variant">
+                {rotulo}
+              </dt>
+              <dd className="truncate font-body-md text-body-md text-on-surface">{valor}</dd>
+            </div>
+          </div>
+        ))}
+      </dl>
+      <div data-testid="pie-contacto" className="mt-3 flex justify-end border-t border-outline-variant pt-3">
+        <Link to={to} className="font-label-md text-label-md text-primary underline underline-offset-4">
+          {etiquetaAccion}
+        </Link>
       </div>
-      <Link
-        to={to}
-        className="font-label-md text-label-md shrink-0 self-center text-primary underline underline-offset-4"
-      >
-        {etiquetaAccion}
-      </Link>
     </div>
   );
 }
@@ -146,6 +160,8 @@ function MiCuenta() {
 
   return (
     <div className={clasePaginaDensa}>
+      <BotonVolver fallback="/" destinoFijo etiqueta="Volver a la tienda" />
+
       <header className="flex flex-col gap-1">
         <h1 className="font-display-lg text-headline-lg text-on-background">Mi cuenta</h1>
         <p className="font-body-md text-body-md text-on-surface-variant">
@@ -157,18 +173,20 @@ function MiCuenta() {
           pie (`order-last`): es la única acción destructiva de la pantalla y
           no puede quedar arriba de "Mis pedidos"/"Configuración". En
           escritorio, grilla de 5 con posiciones EXPLÍCITAS (no basta con el
-          orden del DOM): la tarjeta de perfil y el botón de salir comparten
-          la columna 1 (filas 1 y 2), pedidos y configuración comparten la
-          columna 3 (filas 1 y 2). `items-start` es obligatorio: sin él las
-          columnas se estiran a la altura de la más alta y quedan huecos
-          vacíos. */}
+          orden del DOM): la tarjeta de perfil ocupa las filas 1 y 2 de la
+          columna 1 y el botón de salir la fila 3; pedidos y configuración
+          comparten la columna 3 (filas 1 y 2). La fila 2 es `1fr` para que
+          absorba lo que el perfil mide de más: con filas `auto`, la fila 1
+          tomaba la altura del perfil y "Configuración" quedaba colgando lejos
+          de "Mis pedidos". `items-start` es obligatorio: sin él las columnas
+          se estiran a la altura de la más alta y quedan huecos vacíos. */}
       <div
         data-testid="grilla-mi-cuenta"
-        className="flex flex-col gap-4 lg:grid lg:grid-cols-5 lg:items-start lg:gap-6"
+        className="flex flex-col gap-4 lg:grid lg:grid-cols-5 lg:grid-rows-[auto_1fr_auto] lg:items-start lg:gap-6"
       >
         <section
           data-testid="tarjeta-perfil"
-          className="flex flex-col gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 lg:col-span-2 lg:col-start-1 lg:row-start-1"
+          className="flex flex-col gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 lg:col-span-2 lg:col-start-1 lg:row-span-2 lg:row-start-1"
         >
           <div className="flex items-center gap-3.5">
             <span
@@ -185,16 +203,19 @@ function MiCuenta() {
 
           <div className="flex flex-col gap-2.5 border-t border-dashed border-outline-variant pt-3.5">
             <FilaContacto
-              icono="mail"
-              rotulo="Email"
-              valor={perfil.email}
+              testId="fila-email"
+              campos={[{ icono: "mail", rotulo: "Email", valor: perfil.email }]}
               to="/cuenta/email"
               etiquetaAccion="Cambiar"
             />
             <FilaContacto
-              icono="call"
-              rotulo="Teléfono"
-              valor={perfil.telefono}
+              testId="fila-datos-personales"
+              campos={[
+                { icono: "person", rotulo: "Nombre", valor: perfil.nombre },
+                { icono: "sell", rotulo: "Apodo", valor: perfil.apodo || "Sin apodo" },
+                { icono: "call", rotulo: "Teléfono", valor: perfil.telefono },
+                { icono: "badge", rotulo: "DNI", valor: perfil.dni },
+              ]}
               to="/cuenta/datos"
               etiquetaAccion="Editar"
             />
@@ -271,7 +292,7 @@ function MiCuenta() {
             deja que la posición la decida la grilla, no el orden del DOM. Se
             conserva la confirmación de dos pasos con sus textos literales:
             cambia dónde vive el botón, no cómo se comporta. */}
-        <div className="order-last flex flex-col gap-3 lg:order-none lg:col-span-2 lg:col-start-1 lg:row-start-2 lg:mt-0">
+        <div className="order-last flex flex-col gap-3 lg:order-none lg:col-span-2 lg:col-start-1 lg:row-start-3 lg:mt-0">
           {confirmandoSalida ? (
             <>
               <p className="font-body-md text-body-md text-on-surface-variant">

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -105,9 +105,46 @@ describe("MiCuenta — identidad", () => {
     expect(screen.getByTestId("avatar-iniciales")).toHaveTextContent("");
     expect(screen.getByText("cliente@gmail.com")).toBeInTheDocument();
   });
+
+  it("la fila de datos muestra nombre, apodo, teléfono y DNI con UN solo Editar", () => {
+    renderMiCuenta({ ...PERFIL_LOCAL, apodo: "Tito" });
+    const fila = screen.getByTestId("fila-datos-personales");
+    expect(fila).toHaveTextContent("Cliente Prueba");
+    expect(fila).toHaveTextContent("Tito");
+    expect(fila).toHaveTextContent("1122334455");
+    expect(fila).toHaveTextContent("12345678");
+    expect(screen.getAllByRole("link", { name: /Editar/ })).toHaveLength(1);
+  });
+
+  it("cada dato personal va en su propio bloque con su ícono", () => {
+    renderMiCuenta({ ...PERFIL_LOCAL, apodo: "Tito" });
+    const campos = within(screen.getByTestId("fila-datos-personales")).getAllByTestId("campo-contacto");
+    expect(campos.map((campo) => campo.dataset.icono)).toEqual(["person", "sell", "call", "badge"]);
+  });
+
+  it("la acción de cada fila de contacto va abajo de todo, después de los campos", () => {
+    renderMiCuenta(PERFIL_LOCAL);
+    const filaDatos = screen.getByTestId("fila-datos-personales");
+    const filaEmail = screen.getByTestId("fila-email");
+    expect(filaDatos.lastElementChild).toHaveAttribute("data-testid", "pie-contacto");
+    expect(filaDatos.lastElementChild).toHaveTextContent("Editar");
+    expect(filaEmail.lastElementChild).toHaveAttribute("data-testid", "pie-contacto");
+    expect(filaEmail.lastElementChild).toHaveTextContent("Cambiar");
+  });
+
+  it("sin apodo, la fila de datos lo dice en vez de dejar el hueco", () => {
+    renderMiCuenta({ ...PERFIL_LOCAL, apodo: null });
+    expect(screen.getByTestId("fila-datos-personales")).toHaveTextContent("Sin apodo");
+  });
 });
 
 describe("MiCuenta — navegación", () => {
+  it('"Volver a la tienda" lleva siempre a la home', async () => {
+    renderMiCuenta(PERFIL_LOCAL);
+    await userEvent.click(screen.getByRole("button", { name: "Volver a la tienda" }));
+    expect(navigateMock).toHaveBeenCalledWith("/");
+  });
+
   it("cada acceso apunta a su destino", () => {
     renderMiCuenta(PERFIL_LOCAL);
     const destino = (nombre) =>
@@ -187,6 +224,10 @@ describe("MiCuenta — markup del layout de escritorio", () => {
       "lg:grid-cols-5",
       "lg:items-start",
       "lg:gap-6",
+      // La fila 2 (`1fr`) absorbe lo que la tarjeta de perfil mide de más:
+      // con filas `auto`, la fila 1 tomaba la altura del perfil y dejaba
+      // "Configuración" colgando lejos de "Mis pedidos".
+      "lg:grid-rows-[auto_1fr_auto]",
     );
   });
 
@@ -247,13 +288,14 @@ describe("MiCuenta — markup del layout de escritorio", () => {
     expect(screen.getByTestId("tarjeta-perfil")).toHaveClass(
       "lg:col-start-1",
       "lg:row-start-1",
+      "lg:row-span-2",
     );
     const boton = screen.getByRole("button", { name: "Cerrar sesión" });
     expect(boton.parentElement).toHaveClass(
       "order-last",
       "lg:order-none",
       "lg:col-start-1",
-      "lg:row-start-2",
+      "lg:row-start-3",
     );
   });
 
