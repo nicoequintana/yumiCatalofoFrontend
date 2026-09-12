@@ -26,6 +26,7 @@ function soloLoQueCambio(valores, perfil) {
   const cambios = {};
   if (valores.nombre !== (perfil.nombre ?? "")) cambios.nombre = valores.nombre;
   if (valores.telefono !== (perfil.telefono ?? "")) cambios.telefono = valores.telefono;
+  if (valores.dni !== (perfil.dni ?? "")) cambios.dni = valores.dni;
   if (valores.apodo !== (perfil.apodo ?? "")) cambios.apodo = valores.apodo;
   return cambios;
 }
@@ -35,6 +36,7 @@ function Datos() {
 
   const [nombre, setNombre] = useState(perfil?.nombre ?? "");
   const [telefono, setTelefono] = useState(perfil?.telefono ?? "");
+  const [dni, setDni] = useState(perfil?.dni ?? "");
   const [apodo, setApodo] = useState(perfil?.apodo ?? "");
   const [error, setError] = useState(null);
   const [aviso, setAviso] = useState(null);
@@ -45,7 +47,7 @@ function Datos() {
     setError(null);
     setAviso(null);
 
-    const cambios = soloLoQueCambio({ nombre, telefono, apodo }, perfil);
+    const cambios = soloLoQueCambio({ nombre, telefono, dni, apodo }, perfil);
     if (Object.keys(cambios).length === 0) {
       setAviso("No hay cambios para guardar.");
       return;
@@ -73,7 +75,14 @@ function Datos() {
 
   return (
     <div className={clasePagina}>
-      <BotonVolver fallback="/cuenta" destinoFijo etiqueta="Volver a mi cuenta" />
+      {/*
+        Esta pantalla se entra desde MÁS DE UN lugar (Mi cuenta y, desde el
+        checkout, "Editar" en Datos de entrega): vuelve por el HISTORIAL, no a
+        un destino fijo, para que cada quien vuelva adonde estaba. `fallback`
+        solo se usa cuando no hay historial interno (entrada directa a la
+        URL), y ahí "/cuenta" es lo más razonable.
+      */}
+      <BotonVolver fallback="/cuenta" etiqueta="Volver" />
 
       <div className={claseTarjetaEscritorio}>
         <header className={claseEncabezado}>
@@ -110,6 +119,24 @@ function Datos() {
               required
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
+              className={claseCampoSinIcono}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="datos-dni" className={claseEtiqueta}>
+              DNI
+            </label>
+            {/* `inputMode="numeric"` abre el teclado numérico en el celular;
+                sigue siendo `type="text"` porque `number` descarta los
+                separadores que el backend sí acepta. */}
+            <input
+              id="datos-dni"
+              type="text"
+              inputMode="numeric"
+              required
+              value={dni}
+              onChange={(e) => setDni(e.target.value)}
               className={claseCampoSinIcono}
             />
           </div>

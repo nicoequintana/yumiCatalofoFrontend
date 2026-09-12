@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Datos from "./Datos.jsx";
 import usePerfilCliente, * as perfilCliente from "../../hooks/usePerfilCliente.js";
@@ -19,6 +19,25 @@ function renderDatos(perfil) {
   return render(
     <MemoryRouter>
       <Datos />
+    </MemoryRouter>,
+  );
+}
+
+/**
+ * Monta `Datos` con historial real (SIN mockear `react-router-dom`): el botón
+ * "Volver" usa `navigate(-1)` por dentro de `useVolver`, y eso solo se puede
+ * afirmar viendo a qué pantalla real se llega, no con un mock de `navigate`.
+ * Mismo patrón que `components/BotonVolver.test.jsx`.
+ */
+function renderDatosConHistorial(entradas) {
+  vi.mocked(usePerfilCliente).mockReturnValue({ perfil: PERFIL, resuelto: true, error: null });
+  return render(
+    <MemoryRouter initialEntries={entradas} initialIndex={entradas.length - 1}>
+      <Routes>
+        <Route path="/checkout" element={<div>Checkout de nuevo</div>} />
+        <Route path="/cuenta" element={<div>Mi cuenta de nuevo</div>} />
+        <Route path="/cuenta/datos" element={<Datos />} />
+      </Routes>
     </MemoryRouter>,
   );
 }
@@ -48,7 +67,20 @@ describe("Datos — edición del perfil", () => {
     renderDatos(PERFIL);
     expect(screen.getByLabelText("Nombre")).toHaveValue("Cliente Prueba");
     expect(screen.getByLabelText("Teléfono")).toHaveValue("1122334455");
+    expect(screen.getByLabelText("DNI")).toHaveValue("12345678");
     expect(screen.getByLabelText("Apodo")).toHaveValue("Tito");
+  });
+
+  it("manda el DNI cuando cambia", async () => {
+    const user = userEvent.setup();
+    renderDatos(PERFIL);
+
+    await user.clear(screen.getByLabelText("DNI"));
+    await user.type(screen.getByLabelText("DNI"), "87654321");
+    await user.click(screen.getByRole("button", { name: "Guardar datos" }));
+
+    await waitFor(() => expect(cuentaApi.actualizarPerfil).toHaveBeenCalledTimes(1));
+    expect(cuentaApi.actualizarPerfil).toHaveBeenCalledWith({ dni: "87654321" });
   });
 
   it("manda SOLO los campos que cambiaron", async () => {
@@ -146,5 +178,31 @@ describe("Datos — edición del perfil", () => {
     // Sin el `?? ""` en la comparación, `"" !== null` daría true y acá viajaría
     // `apodo: ""`, que el backend interpreta como BORRAR. Silencioso y caro.
     expect(cuentaApi.actualizarPerfil).toHaveBeenCalledWith({ telefono: "1199887766" });
+  });
+});
+
+describe("Datos — volver", () => {
+  it("llegando desde el checkout, vuelve ahí por el historial", async () => {
+    const user = userEvent.setup();
+    renderDatosConHistorial(["/checkout", "/cuenta/datos"]);
+
+    await user.click(screen.getByRole("button", { name: "Volver" }));
+    expect(screen.getByText("Checkout de nuevo")).toBeInTheDocument();
+  });
+
+  it("llegando desde Mi cuenta, vuelve ahí por el historial", async () => {
+    const user = userEvent.setup();
+    renderDatosConHistorial(["/cuenta", "/cuenta/datos"]);
+
+    await user.click(screen.getByRole("button", { name: "Volver" }));
+    expect(screen.getByText("Mi cuenta de nuevo")).toBeInTheDocument();
+  });
+
+  it("sin historial interno (entrada directa a la URL), cae al fallback /cuenta", async () => {
+    const user = userEvent.setup();
+    renderDatosConHistorial(["/cuenta/datos"]);
+
+    await user.click(screen.getByRole("button", { name: "Volver" }));
+    expect(screen.getByText("Mi cuenta de nuevo")).toBeInTheDocument();
   });
 });

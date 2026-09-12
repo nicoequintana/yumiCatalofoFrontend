@@ -16,14 +16,13 @@ import { MENSAJE_ERROR_CARGA } from "../hooks/useOfertas.js";
  * `/checkout` — checkout CON SESIÓN (spec "Checkout autenticado").
  *
  * Dejó de pedir dni/nombre/teléfono/email como campos libres: esos datos salen
- * de la cuenta. Se MUESTRAN, con un botón "Editar" que abre los tres inputs
- * para corregirlos en el momento. El email nunca se edita acá.
- *
- * ⚠️ **Editar SÍ actualiza la cuenta.** `POST /ordenes` con sesión escribe
- * `nombre`/`telefono`/`dni` en `CuentaCliente` antes de crear la orden, y esa
- * escritura queda hecha aunque la orden después falle (por stock, por ejemplo).
- * Por eso los tres campos viajan SOLO cuando su valor DIFIERE del perfil: abrir
- * el panel y cerrarlo sin tocar nada no puede disparar una escritura de perfil.
+ * de la cuenta y se MUESTRAN de solo lectura (el DNI no se muestra en esta
+ * card: ver "Mi cuenta"). El botón "Editar" ya NO abre un panel inline: lleva
+ * a `/cuenta/datos` —la misma pantalla de "Mis datos" que usa Mi cuenta—, que
+ * vuelve por el HISTORIAL (`useVolver`) y no necesita ningún parámetro para
+ * saber que hay que volver acá. El pedido no vuelve a mandar
+ * `nombre`/`telefono`/`dni`: el backend los toma directo de la cuenta. El
+ * email nunca se edita.
  *
  * Bajo `RequireAuthCliente` el perfil llega completo (el guard no deja pasar sin
  * `nombre`/`telefono`/`dni`), pero esta pantalla igual mira los tres estados de
@@ -100,11 +99,6 @@ function Checkout() {
   // parsear el JSON a cada tecla del campo de notas.
   const [borradorInicial] = useState(leerBorrador);
 
-  // `null` = el comprador no tocó "Editar". Cualquier otra cosa es el panel
-  // abierto con sus tres valores. Guardar el objeto (y no un booleano aparte)
-  // es lo que hace que una corrección sobreviva al remonte: el borrador
-  // restaura los valores Y el hecho de que hubo edición.
-  const [edicion, setEdicion] = useState(borradorInicial?.edicion ?? null);
   const [notas, setNotas] = useState(borradorInicial?.notas ?? "");
 
   const [errorEnvio, setErrorEnvio] = useState(null);
@@ -132,8 +126,8 @@ function Checkout() {
 
   useEffect(() => {
     if (descartado.current) return;
-    escribirBorrador({ notas, edicion, clave: claveIdempotenciaRef.current });
-  }, [notas, edicion]);
+    escribirBorrador({ notas, clave: claveIdempotenciaRef.current });
+  }, [notas]);
 
   // Misma clave de refetch que `Carrito.jsx`: los ids del carrito, sin las
   // cantidades.
@@ -192,20 +186,6 @@ function Checkout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargando, errorCarga, lineasValidas.length, navigate]);
 
-  /**
-   * Los campos de contacto que REALMENTE cambiaron. Un campo que quedó igual al
-   * de la cuenta no viaja: escribiría el perfil sin que nadie lo haya pedido.
-   */
-  function contactoEditado() {
-    if (!edicion || !perfil) return {};
-    const cambios = {};
-    for (const campo of ["nombre", "telefono", "dni"]) {
-      const valor = (edicion[campo] ?? "").trim();
-      if (valor !== "" && valor !== (perfil[campo] ?? "")) cambios[campo] = valor;
-    }
-    return cambios;
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
     setErrorEnvio(null);
@@ -221,7 +201,6 @@ function Checkout() {
         items: lineasValidas.map((l) => ({ productId: l.productId, cantidad: l.cantidad })),
         notas: notas.trim() || undefined,
         claveIdempotencia: claveIdempotenciaRef.current,
-        ...contactoEditado(),
       });
 
       // El borrador muere con la compra: su clave de idempotencia ya se usó, y
@@ -331,8 +310,6 @@ function Checkout() {
     return null;
   }
 
-  const editando = edicion !== null;
-
   return (
     <>
       {metaSeo}
@@ -394,21 +371,12 @@ function Checkout() {
           <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
             <div className="flex items-center justify-between gap-4">
               <span className="font-label-md text-label-md text-on-surface">Datos de entrega</span>
-              {!editando ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setEdicion({
-                      nombre: perfil.nombre ?? "",
-                      telefono: perfil.telefono ?? "",
-                      dni: perfil.dni ?? "",
-                    })
-                  }
-                  className="font-label-lg text-label-lg inline-flex min-h-11 items-center text-primary underline"
-                >
-                  Editar
-                </button>
-              ) : null}
+              <Link
+                to="/cuenta/datos"
+                className="font-label-lg text-label-lg inline-flex min-h-11 items-center text-primary underline"
+              >
+                Editar
+              </Link>
             </div>
 
             <p className="mt-2 font-body-md text-body-md text-on-surface">{perfil.email}</p>
@@ -416,59 +384,10 @@ function Checkout() {
               Para cambiarlo, andá a Mi cuenta.
             </p>
 
-            {!editando ? (
-              <div className="mt-3 flex flex-col gap-1 font-body-md text-body-md text-on-surface">
-                <span>{perfil.nombre}</span>
-                <span>{perfil.telefono}</span>
-                <span>{perfil.dni}</span>
-              </div>
-            ) : (
-              <div className="mt-3 flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="nombre" className="font-label-md text-label-md text-on-surface">
-                    Nombre
-                  </label>
-                  <input
-                    id="nombre"
-                    type="text"
-                    autoComplete="name"
-                    value={edicion.nombre}
-                    onChange={(e) => setEdicion({ ...edicion, nombre: e.target.value })}
-                    className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="telefono" className="font-label-md text-label-md text-on-surface">
-                    Teléfono
-                  </label>
-                  <input
-                    id="telefono"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    value={edicion.telefono}
-                    onChange={(e) => setEdicion({ ...edicion, telefono: e.target.value })}
-                    className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="dni" className="font-label-md text-label-md text-on-surface">
-                    DNI
-                  </label>
-                  {/* `inputMode="numeric"` abre el teclado numérico en el
-                      celular; sigue siendo `type="text"` porque `number`
-                      descarta los separadores que el backend sí acepta. */}
-                  <input
-                    id="dni"
-                    type="text"
-                    inputMode="numeric"
-                    value={edicion.dni}
-                    onChange={(e) => setEdicion({ ...edicion, dni: e.target.value })}
-                    className="rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3 font-body-md text-body-md text-on-surface"
-                  />
-                </div>
-              </div>
-            )}
+            <div className="mt-3 flex flex-col gap-1 font-body-md text-body-md text-on-surface">
+              <span>{perfil.nombre}</span>
+              <span>{perfil.telefono}</span>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">

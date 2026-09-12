@@ -17,10 +17,11 @@ import { neutralizarContextoComercial } from "./helpers/contextoComercial.js";
  * autenticado seguía validando DNI/Nombre/Teléfono al submit
  * (`aria-invalid`/`aria-describedby`/"El DNI es obligatorio.") con una
  * cuenta creada a propósito con `dni: ""`. Eso ya no es así en
- * `Checkout.jsx` (commit `cc9b548` y posteriores): los tres campos se
- * MUESTRAN de la cuenta como texto plano y solo se vuelven inputs editables
- * detrás de un botón "Editar" — no hay ninguna validación de campo
- * requerido en ese panel, y el submit no la dispara. Además, una cuenta con
+ * `Checkout.jsx` (commit `cc9b548` y posteriores): nombre y teléfono se
+ * MUESTRAN de la cuenta como texto plano (el DNI no se muestra), y "Editar"
+ * lleva a `/cuenta/datos` en vez de abrir inputs en el checkout — no hay
+ * ninguna validación de campo requerido en esta pantalla, y el submit no la
+ * dispara. Además, una cuenta con
  * `dni: ""` nunca llegaría a `/checkout`: `RequireAuthCliente` la manda a
  * `/cuenta/completar` por perfil incompleto ANTES de que el checkout monte.
  * Ese mecanismo de accesibilidad de campo requerido simplemente no existe
@@ -29,7 +30,7 @@ import { neutralizarContextoComercial } from "./helpers/contextoComercial.js";
  * Lo que SÍ sigue siendo cierto y vale la pena confirmar bajo render real de
  * browser (no solo jsdom):
  *   1. Los labels que quedan resuelven por accesible name (`Notas`, y los
- *      tres del panel de edición cuando se abre).
+ *      de "Mis datos" al llegar desde "Editar", con "Volver" al checkout).
  *   2. Un error de envío del backend se anuncia con `role="alert"` — esto
  *      no cambió, sigue viviendo en `Checkout.jsx`.
  */
@@ -58,7 +59,7 @@ test.describe("Checkout autenticado — accesibilidad básica del formulario", (
     }
   });
 
-  test("los labels resuelven por accesible name (sin Email) y el panel de edición expone Nombre/Teléfono/DNI", async ({
+  test("los labels resuelven por accesible name (sin Email) y Editar lleva a Mis datos sin mostrar el DNI", async ({
     page,
   }) => {
     await page.goto(`/producto/${producto.id}`);
@@ -82,14 +83,20 @@ test.describe("Checkout autenticado — accesibilidad básica del formulario", (
     // "Notas (opcional)" resuelve por su label asociado, tal cual antes.
     await expect(page.getByLabel("Notas (opcional)")).toBeVisible();
 
-    // El panel de edición se abre con "Editar" y expone Nombre/Teléfono/DNI,
-    // cada uno con su label programáticamente asociado (htmlFor/id) — si
-    // esto falla, `getByLabel` no encuentra el input bajo render real de
-    // browser.
-    await page.getByRole("button", { name: "Editar" }).click();
+    // El DNI no se muestra en los datos de entrega: vive en Mi cuenta.
+    await expect(page.getByText(cuentaInfo.cuenta.dni, { exact: true })).toHaveCount(0);
+
+    // "Editar" ya no abre inputs en el checkout: lleva a "Mis datos", la
+    // misma pantalla que el Editar de Mi cuenta, con sus labels asociados
+    // (htmlFor/id) bajo render real de browser. "Volver" regresa al checkout
+    // por historial, no a Mi cuenta.
+    await page.getByRole("link", { name: "Editar" }).click();
+    await expect(page).toHaveURL(/\/cuenta\/datos$/);
     for (const label of ["Nombre", "Teléfono", "DNI"]) {
       await expect(page.getByLabel(label)).toBeVisible();
     }
+    await page.getByRole("button", { name: "Volver" }).click();
+    await expect(page).toHaveURL(/\/checkout$/);
   });
 
   test("un error de envío del backend se anuncia con role=alert", async ({ page }) => {

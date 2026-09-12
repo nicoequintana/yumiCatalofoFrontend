@@ -97,16 +97,24 @@ describe("Checkout — datos del perfil", () => {
     expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
   });
 
-  it("muestra nombre, teléfono y DNI del perfil sin inputs, hasta tocar Editar", async () => {
-    const { user } = await prepararCheckout();
+  it("muestra nombre y teléfono del perfil, sin DNI y sin inputs editables", async () => {
+    await prepararCheckout();
 
+    expect(screen.getByText("Cliente Prueba")).toBeInTheDocument();
+    expect(screen.getByText("1122334455")).toBeInTheDocument();
+    // El DNI no se muestra acá: ver "Mi cuenta" para eso.
+    expect(screen.queryByText("12345678")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Nombre")).not.toBeInTheDocument();
+  });
 
-    await user.click(screen.getByRole("button", { name: "Editar" }));
+  it('"Editar" es un link a /cuenta/datos', async () => {
+    await prepararCheckout();
 
-    expect(screen.getByLabelText("Nombre")).toHaveValue("Cliente Prueba");
-    expect(screen.getByLabelText("Teléfono")).toHaveValue("1122334455");
-    expect(screen.getByLabelText("DNI")).toHaveValue("12345678");
+    // Editar dejó de abrir un panel inline: ahora es la misma pantalla de
+    // "Mis datos" que usa Mi cuenta. Esa pantalla vuelve por el HISTORIAL
+    // (`useVolver`), así que no necesita ningún parámetro acá.
+    const enlace = screen.getByRole("link", { name: "Editar" });
+    expect(enlace).toHaveAttribute("href", "/cuenta/datos");
   });
 });
 
@@ -147,44 +155,12 @@ describe("Checkout — envío", () => {
     expect(clave1).toBe(clave2);
   });
 
-  it("no manda nombre/telefono/dni si el comprador no tocó Editar", async () => {
+  it("nunca manda nombre/telefono/dni: la orden los toma de la cuenta", async () => {
+    // Esos tres campos se editan ahora en /cuenta/datos, no en el checkout: el
+    // pedido no los vuelve a mandar.
     ordenesApi.crearOrden.mockResolvedValue({ id: 1, items: [] });
     const { user } = await prepararCheckout();
 
-    await user.click(screen.getByRole("button", { name: "Confirmar pedido" }));
-
-    await waitFor(() => expect(ordenesApi.crearOrden).toHaveBeenCalled());
-    const body = ordenesApi.crearOrden.mock.calls[0][0];
-    // Estos tres campos ESCRIBEN la cuenta del lado del backend, y la escritura
-    // ocurre aunque la orden después falle. Sin tocar nada no hay nada que
-    // escribir.
-    expect(body.nombre).toBeUndefined();
-    expect(body.telefono).toBeUndefined();
-    expect(body.dni).toBeUndefined();
-  });
-
-  it("manda nombre/telefono/dni editados cuando el comprador los cambia", async () => {
-    ordenesApi.crearOrden.mockResolvedValue({ id: 1, items: [] });
-    const { user } = await prepararCheckout();
-
-    await user.click(screen.getByRole("button", { name: "Editar" }));
-    await user.clear(screen.getByLabelText("Nombre"));
-    await user.type(screen.getByLabelText("Nombre"), "Nombre Nuevo");
-    await user.click(screen.getByRole("button", { name: "Confirmar pedido" }));
-
-    await waitFor(() => expect(ordenesApi.crearOrden).toHaveBeenCalled());
-    const body = ordenesApi.crearOrden.mock.calls[0][0];
-    expect(body.nombre).toBe("Nombre Nuevo");
-  });
-
-  it("abrir Editar sin cambiar nada no manda los campos de la cuenta", async () => {
-    // Abrir el panel no es editar. Mandar los tres campos por haber abierto
-    // dispara una escritura del perfil que puede quedar hecha aunque el pedido
-    // después falle por stock.
-    ordenesApi.crearOrden.mockResolvedValue({ id: 1, items: [] });
-    const { user } = await prepararCheckout();
-
-    await user.click(screen.getByRole("button", { name: "Editar" }));
     await user.click(screen.getByRole("button", { name: "Confirmar pedido" }));
 
     await waitFor(() => expect(ordenesApi.crearOrden).toHaveBeenCalled());
@@ -361,30 +337,6 @@ describe("Checkout — borrador en sessionStorage", () => {
     renderCheckout();
     await screen.findByText("Cliente Prueba");
     expect(screen.getByLabelText("Notas (opcional)")).toHaveValue("Tocar timbre 2B");
-  });
-
-  it("los datos EDITADOS sobreviven al remonte y se siguen mandando", async () => {
-    // El borrador guarda además que el comprador EDITÓ. Sin ese dato, al
-    // remontar se restauraban los valores pero el componente los creía
-    // intactos: la corrección se perdía en silencio justo antes de pagar.
-    ordenesApi.crearOrden.mockResolvedValue({ id: 1, items: [] });
-    const { user, vista } = await prepararCheckout();
-
-    await user.click(screen.getByRole("button", { name: "Editar" }));
-    await user.clear(screen.getByLabelText("Nombre"));
-    await user.type(screen.getByLabelText("Nombre"), "Nombre Nuevo");
-
-    vista.unmount();
-
-    renderCheckout();
-    // El borrador restauro la EDICION, asi que el nombre vuelve como input con
-    // el valor corregido: el texto de solo lectura del perfil ya no esta.
-    await screen.findByLabelText("Nombre");
-    expect(screen.getByLabelText("Nombre")).toHaveValue("Nombre Nuevo");
-
-    await userEvent.setup().click(screen.getByRole("button", { name: "Confirmar pedido" }));
-    await waitFor(() => expect(ordenesApi.crearOrden).toHaveBeenCalled());
-    expect(ordenesApi.crearOrden.mock.calls[0][0].nombre).toBe("Nombre Nuevo");
   });
 
   it("la clave de idempotencia sobrevive al remonte: un reenvío no duplica", async () => {
