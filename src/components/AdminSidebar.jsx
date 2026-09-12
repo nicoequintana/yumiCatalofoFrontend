@@ -8,10 +8,12 @@ import LogoYima from "./LogoYima.jsx";
 import ToggleTemaAdmin from "./ToggleTemaAdmin.jsx";
 
 // `min-h-11` = 44px, el piso de área táctil que mide `admin-mobile.spec.js`.
-// Con `py-3` sobre `text-label-md` (14px, interlínea 1.2) estos controles
-// medían 42px: dos píxeles de menos, en las dieciséis pantallas del panel y en
-// cada ítem del menú. El padding sigue mandando cuando el contenido crece; el
-// `min-h` solo pone el piso.
+// Con el sistema tipográfico responsive, `text-label-md` quedó en 14px con
+// interlínea 1.45 (antes: 14px/1.2, que daba 42px con este mismo `py-3` — dos
+// píxeles de menos que el piso). Hoy 14×1.45 + `py-3` (24px) da 44,3px: el
+// `py-3` ya supera el piso por sí solo y es el padding, no `min-h-11`, el que
+// fija el alto real. El `min-h` se conserva igual, como piso para cuando el
+// contenido sea más chico.
 const linkBase =
   "flex min-h-11 items-center gap-3 rounded-lg px-4 py-3 font-label-md text-label-md uppercase tracking-widest transition-colors";
 const linkInactivo = "text-on-surface-variant hover:bg-surface-container hover:text-on-surface";

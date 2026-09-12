@@ -360,13 +360,16 @@ function AdminUsuarios() {
                   {/* Los botones de esta celda son TEXTO en línea, así que
                       llevan `AREA_TACTIL_ANCHA`: 44 de alto por
                       pseudo-elemento, con el ancho propio (`before:w-full`)
-                      para no invadir al de al lado. Medido el 07/09/2026 con
-                      `elementFromPoint`: 80x19 ("Editar") y 93x19 ("Eliminar")
-                      a 1280px — el `max-md:min-h-11` ya los cubría a 390px y
-                      por eso el escritorio había quedado atrás. Agrandar la
-                      caja de verdad partiría la fila de acciones en dos
-                      renglones; entre filas el paso es de 48 (la insignia de
-                      permiso más el `py-3`), así que no se superponen. */}
+                      para no invadir al de al lado. Medido el 12/09/2026
+                      renderizando las clases reales sobre el CSS compilado
+                      (`npm run build`, fuentes reales) a 1280px, tras migrar
+                      estos botones de `label-md` a `label-lg`: ~87x18
+                      ("Editar") y ~109x18 ("Eliminar") — el `max-md:min-h-11`
+                      ya los cubría a 390px y por eso el escritorio había
+                      quedado atrás. Agrandar la caja de verdad partiría la
+                      fila de acciones en dos renglones; entre filas el paso
+                      es de 48 (la insignia de permiso más el `py-3`), así que
+                      no se superponen. */}
                   <td role="cell" data-celda="acciones" className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                       {editandoId === usuario.id ? (

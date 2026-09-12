@@ -535,9 +535,13 @@ function AdminCategorias() {
                   {/* Los botones de TEXTO de esta celda (Guardar, Cancelar, Sí,
                       No) llevan `AREA_TACTIL_ANCHA`: 44 de alto por
                       pseudo-elemento, con el ancho propio para no invadir al de
-                      al lado. Medían 19 de alto a 1280px (el `max-md:min-h-11`
-                      ya los cubría a 390px). Residuo conocido: en modo edición
-                      la fila envuelve —Guardar + Cancelar no entran junto al
+                      al lado. Medido el 12/09/2026 renderizando las clases
+                      reales sobre el CSS compilado (`npm run build`, fuentes
+                      reales) a 1280px, tras migrar estos botones de
+                      `label-md` a `label-lg`: 16px de alto (el
+                      `max-md:min-h-11` ya los cubría a 390px). Residuo
+                      conocido: en modo edición la fila envuelve —Guardar +
+                      Cancelar no entran junto al
                       ícono de eliminar en los ~180px de la columna— y ahí el
                       ícono, que sí mide 44 de verdad y va después en el DOM, le
                       come unos 4px al área de los de arriba (paso de 39,5). Es
