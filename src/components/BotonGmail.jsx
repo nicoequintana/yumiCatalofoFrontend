@@ -1,0 +1,115 @@
+import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
+
+const SRC_GIS = "https://accounts.google.com/gsi/client";
+const TIMEOUT_MS = 5000;
+
+/**
+ * Cache module-level de la carga del script: dos instancias de `BotonGmail`
+ * montadas en la misma carga de página (improbable, pero gratis de cubrir)
+ * no piden el script dos veces.
+ */
+let promesaScript = null;
+
+function cargarScriptGis() {
+  if (window.google?.accounts?.id) return Promise.resolve();
+  if (promesaScript) return promesaScript;
+
+  promesaScript = new Promise((resolve, reject) => {
+    const existente = document.querySelector(`script[src="${SRC_GIS}"]`);
+    if (existente) {
+      existente.addEventListener("load", () => resolve(), { once: true });
+      existente.addEventListener("error", () => reject(new Error("GIS no cargó")), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = SRC_GIS;
+    script.async = true;
+    script.defer = true;
+    script.addEventListener("load", () => resolve(), { once: true });
+    script.addEventListener("error", () => reject(new Error("GIS no cargó")), { once: true });
+    document.head.appendChild(script);
+  })
+    // Al asentarse, se libera la caché: una vez cargado, `window.google` ya
+    // responde el chequeo de arriba, así que esto no dispara un segundo
+    // pedido de red en producción. Sin liberarla, un montaje posterior en el
+    // mismo documento reusaría la promesa resuelta aunque `window.google` ya
+    // no exista (por ejemplo, entre tests de este archivo).
+    .finally(() => {
+      promesaScript = null;
+    });
+
+  return promesaScript;
+}
+
+/**
+ * Botón "Iniciar sesión con Gmail" — en realidad el `<div>` donde Google
+ * Identity Services dibuja SU propio botón (`renderButton`): no hay forma de
+ * personalizar su texto interno, por eso `Entrar.jsx` (Task 8) pone la
+ * etiqueta "Iniciar sesión con Gmail" AL LADO, no adentro.
+ *
+ * `ux_mode: "popup"` SIEMPRE — nunca `"redirect"` (Global Constraints): un
+ * redirect abandonaría el carrito en memoria de la pestaña.
+ *
+ * Sin `VITE_GOOGLE_CLIENT_ID` (build sin la variable) o si `window.google`
+ * no aparece en `TIMEOUT_MS`, renderiza `null` y llama a `onNoDisponible()`
+ * — el formulario local sigue disponible, nunca hay redirect de reserva.
+ */
+function BotonGmail({ onCredential, onNoDisponible }) {
+  const contenedorRef = useRef(null);
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const [disponible, setDisponible] = useState(Boolean(clientId));
+
+  useEffect(() => {
+    if (!clientId) return;
+
+    let activo = true;
+    const timer = setTimeout(() => {
+      if (!activo) return;
+      // `flushSync`: sin esto, con fake timers en el test el commit queda
+      // pendiente del scheduler de React (que usa MessageChannel, no
+      // mockeado) y `container` sigue mostrando el <div> viejo aunque el
+      // estado ya cambió.
+      flushSync(() => setDisponible(false));
+      onNoDisponible?.();
+    }, TIMEOUT_MS);
+
+    cargarScriptGis()
+      .then(() => {
+        clearTimeout(timer);
+        if (!activo || !window.google?.accounts?.id) return;
+
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (respuesta) => onCredential?.(respuesta.credential),
+          ux_mode: "popup",
+        });
+
+        if (contenedorRef.current) {
+          window.google.accounts.id.renderButton(contenedorRef.current, {
+            type: "standard",
+            text: "signin_with",
+            locale: "es",
+          });
+        }
+      })
+      .catch(() => {
+        clearTimeout(timer);
+        if (!activo) return;
+        flushSync(() => setDisponible(false));
+        onNoDisponible?.();
+      });
+
+    return () => {
+      activo = false;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
+
+  if (!clientId || !disponible) return null;
+
+  return <div ref={contenedorRef} />;
+}
+
+export default BotonGmail;
