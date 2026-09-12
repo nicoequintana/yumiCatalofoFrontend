@@ -44,6 +44,8 @@ import { config as cargarEnv } from "dotenv";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import bcrypt from "bcryptjs";
+import { createHash, randomBytes } from "node:crypto";
+import { expect } from "@playwright/test";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 cargarEnv({ path: path.resolve(__dirname, "../../../backend/.env") });
@@ -57,6 +59,16 @@ const { prisma } = await import("../../../backend/src/lib/prisma.js");
 const { claveDiaArgentino, inicioDelDiaArgentino } = await import(
   "../../../backend/src/lib/horarioArgentino.js"
 );
+
+// Igual criterio que `horarioArgentino.js`: se resuelven DESPUÉS de cargar el
+// `.env` del backend, porque `lib/tokensCuenta.js` y `lib/cuentasCliente.js`
+// importan (transitivamente) `lib/env.js`, que lee `process.env` al cargarse.
+const { hashDeCodigo } = await import("../../../backend/src/lib/tokensCuenta.js");
+const {
+  TIPOS_TOKEN,
+  COOKIE_DISPOSITIVO,
+  DURACION_DISPOSITIVO_MS,
+} = await import("../../../backend/src/lib/cuentasCliente.js");
 
 export const MARCA_TEST = "E2E-TEST-";
 
@@ -283,6 +295,140 @@ export async function borrarUsuarioAdminDeTest(usuarioId) {
 }
 
 /**
+ * Crea una CuentaCliente de test vía Prisma directo — nunca por
+ * POST /api/cuenta/registro, que además exige verificación de email y no
+ * puede devolver el claro de un token para que un test lo use. Costo 11,
+ * el mismo COSTO_BCRYPT de `lib/passwords.js` (Parte 1) — no un costo más
+ * barato "porque es test": el flujo que se está probando es exactamente el
+ * de producción, y bajar el costo acá invalidaría cualquier medición de
+ * timing que un test hiciera sobre el login.
+ *
+ * @param {object} [opciones]
+ * @param {string} [opciones.email]
+ * @param {string} [opciones.password] clave en texto plano — se devuelve tal
+ *   cual para que el spec pueda loguearse con ella por UI.
+ * @param {string} [opciones.nombre]
+ * @param {string} [opciones.telefono]
+ * @param {string} [opciones.dni]
+ * @param {boolean} [opciones.verificada=true]
+ * @param {boolean} [opciones.conDispositivo=true] si crea también un
+ *   DispositivoConocido, para que el login NO pida el código de acceso — la
+ *   mayoría de los specs de cuenta no están probando el código, y sin esto
+ *   cada login de fixture pagaría un paso extra que no le interesa.
+ * @returns {Promise<{cuenta: object, password: string, tokenDispositivo: string|null}>}
+ */
+export async function crearCuentaClienteDeTest(opciones = {}) {
+  const email = opciones.email ?? `e2e-test-cuenta-${Date.now()}-${Math.floor(Math.random() * 10000)}@example.com`;
+  const password = opciones.password ?? "clave-e2e-larga-2026";
+  const verificada = opciones.verificada ?? true;
+  const conDispositivo = opciones.conDispositivo ?? true;
+
+  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+  const cuenta = await prisma.cuentaCliente.create({
+    data: {
+      email,
+      passwordHash,
+      origenRegistro: "LOCAL",
+      emailVerificado: verificada,
+      nombre: opciones.nombre ?? `${MARCA_TEST}Cliente cuenta`,
+      telefono: opciones.telefono ?? "1122334455",
+      dni: opciones.dni ?? crearDniDeTest(),
+    },
+  });
+
+  let tokenDispositivo = null;
+  if (conDispositivo) {
+    tokenDispositivo = randomBytes(32).toString("base64url");
+    await prisma.dispositivoConocido.create({
+      data: {
+        cuentaClienteId: cuenta.id,
+        tokenHash: createHash("sha256").update(tokenDispositivo).digest("hex"),
+        expiraEn: new Date(Date.now() + DURACION_DISPOSITIVO_MS),
+      },
+    });
+  }
+
+  return { cuenta, password, tokenDispositivo };
+}
+
+/**
+ * Siembra un TokenCuenta de un solo uso para una cuenta ya existente, y
+ * devuelve el CLARO — el único punto donde un test puede tener ese claro,
+ * porque `TokenCuenta.tokenHash` guarda sha256 del claro (Parte 1) y no hay
+ * forma de recuperarlo leyendo la base después. El test arma el claro,
+ * calcula su propio hash, y siembra el hash: exactamente lo que hace
+ * `lib/tokensCuenta.js` en producción, solo que acá el "mail" es este
+ * helper en vez de `email.service.js`.
+ *
+ * @param {object} opciones
+ * @param {number} opciones.cuentaClienteId
+ * @param {"VERIFICACION"|"RESET"|"CAMBIO_EMAIL"} opciones.tipo
+ * @param {number} [opciones.minutosDeVida=60]
+ * @param {string} [opciones.emailNuevo] solo para tipo CAMBIO_EMAIL
+ * @returns {Promise<string>} el token en claro, para poner en la URL del spec
+ */
+export async function sembrarTokenDeTest({ cuentaClienteId, tipo, minutosDeVida = 60, emailNuevo }) {
+  const tokenClaro = randomBytes(32).toString("base64url");
+  const tokenHash = createHash("sha256").update(tokenClaro).digest("hex");
+
+  await prisma.tokenCuenta.create({
+    data: {
+      cuentaClienteId,
+      tipo,
+      tokenHash,
+      emailNuevo: emailNuevo ?? null,
+      expiraEn: new Date(Date.now() + minutosDeVida * 60 * 1000),
+    },
+  });
+
+  return tokenClaro;
+}
+
+/**
+ * Siembra un CODIGO_ACCESO con un claro CONOCIDO ("123456" por default) —
+ * distinto de `sembrarTokenDeTest`, porque acá el "claro" no es aleatorio:
+ * es lo que el usuario tipea, y el spec necesita saber ese valor de
+ * antemano para escribirlo en el input. El hash sigue el mismo esquema que
+ * `lib/tokensCuenta.js` (`hashDeCodigo`, sha256 de `cuentaId:codigo`) — se
+ * importa esa función en vez de reimplementar el hash a mano, para que un
+ * cambio futuro del esquema de hash no desincronice el seed del test contra
+ * el código real.
+ *
+ * @param {object} opciones
+ * @param {number} opciones.cuentaClienteId
+ * @param {string} [opciones.codigo="123456"]
+ * @returns {Promise<string>} el código, tal cual se pasó (o el default)
+ */
+export async function sembrarCodigoAccesoDeTest({ cuentaClienteId, codigo = "123456" }) {
+  await prisma.tokenCuenta.create({
+    data: {
+      cuentaClienteId,
+      tipo: TIPOS_TOKEN.CODIGO_ACCESO,
+      tokenHash: hashDeCodigo(cuentaClienteId, codigo),
+      intentos: 0,
+      expiraEn: new Date(Date.now() + 10 * 60 * 1000),
+    },
+  });
+
+  return codigo;
+}
+
+/**
+ * Borra una CuentaCliente de test por id. Las hojas (TokenCuenta,
+ * DispositivoConocido, IdentidadGoogle, ClaveIdempotencia) cuelgan con
+ * onDelete: Cascade (Parte 1) y se van solas. Las Orden asociadas NO —
+ * `Orden.cuentaCliente` es NoAction (mismo criterio que Cliente -> Orden) —
+ * así que si el spec creó una orden real con esta cuenta, hay que
+ * desvincularla o borrarla ANTES de llamar a este helper, o el delete falla
+ * por FK. Silencioso si ya no existe, como el resto de sus hermanas.
+ * @param {number} cuentaClienteId
+ */
+export async function borrarCuentaClienteDeTest(cuentaClienteId) {
+  await prisma.cuentaCliente.delete({ where: { id: cuentaClienteId } }).catch(() => {});
+}
+
+/**
  * Crea una campaña de test directo vía Prisma.
  *
  * `Campania` no tiene default para `tipo`, `estado`, `desde` ni `hasta` (ver
@@ -345,6 +491,29 @@ export async function borrarCampaniaDeTest(campaniaId) {
  * depende de que el patrón de nombre no cambie).
  */
 export async function limpiarTodoRastroDeTest() {
+  // --- Cuentas de cliente (Parte 5), en orden de dependencia ---
+  const cuentasDeTest = await prisma.cuentaCliente.findMany({
+    where: { nombre: { startsWith: MARCA_TEST } },
+    select: { id: true },
+  });
+  const idsCuentas = cuentasDeTest.map((c) => c.id);
+
+  if (idsCuentas.length > 0) {
+    await prisma.claveIdempotencia.deleteMany({ where: { cuentaClienteId: { in: idsCuentas } } });
+    await prisma.dispositivoConocido.deleteMany({ where: { cuentaClienteId: { in: idsCuentas } } });
+    await prisma.tokenCuenta.deleteMany({ where: { cuentaClienteId: { in: idsCuentas } } });
+    await prisma.identidadGoogle.deleteMany({ where: { cuentaClienteId: { in: idsCuentas } } });
+    // Orden.cuentaClienteId es NoAction (igual que Cliente -> Orden): se
+    // desvincula, NO se borra la orden — una orden real es historial
+    // comercial, y el checkout autenticado de un spec no la vuelve
+    // descartable solo porque la cuenta que la generó era de test.
+    await prisma.orden.updateMany({
+      where: { cuentaCliente: { nombre: { startsWith: MARCA_TEST } } },
+      data: { cuentaClienteId: null },
+    });
+    await prisma.cuentaCliente.deleteMany({ where: { nombre: { startsWith: MARCA_TEST } } });
+  }
+
   // Órdenes de clientes de test, antes que los clientes (mismo motivo que
   // borrarOrdenDeTest: NoAction en Cliente -> Orden).
   const clientesDeTest = await prisma.cliente.findMany({
@@ -354,8 +523,8 @@ export async function limpiarTodoRastroDeTest() {
   const idsClientes = clientesDeTest.map((c) => c.id);
 
   if (idsClientes.length > 0) {
-    await prisma.orden.deleteMany({ where: { clienteId: { in: idsClientes } } });
-    await prisma.cliente.deleteMany({ where: { id: { in: idsClientes } } });
+    await prisma.orden.deleteMany({ where: { clienteId: { in: idsClientes } } }).catch(() => {});
+    await prisma.cliente.deleteMany({ where: { id: { in: idsClientes } } }).catch(() => {});
   }
 
   // Campañas de test, ANTES que los productos: una campaña con la vitrina
@@ -377,6 +546,80 @@ export async function limpiarTodoRastroDeTest() {
   // pero igual se acota el patrón al dominio reservado `@yumi.test` en vez de
   // un `startsWith` sobre el prefijo genérico, más explícito sobre qué barre.
   await prisma.usuario.deleteMany({ where: { email: { endsWith: "@yumi.test" } } });
+}
+
+/**
+ * Login de UI para un test que ya sembró una CuentaCliente con dispositivo
+ * conocido (`crearCuentaClienteDeTest` con `conDispositivo: true`, el
+ * default). Setea la cookie `dispositivo_cliente` ANTES de navegar —así el
+ * login por UI no dispara el paso de código de acceso, que es un flujo
+ * aparte cubierto por `cuenta-codigo.spec.js` (Tarea F)— y completa el
+ * formulario de `/cuenta/entrar` con los labels reales de la Parte 4
+ * (`Email`, `Contraseña`, botón `Iniciar sesión`).
+ *
+ * ⚠️ Chromium acepta cookies `Secure` sobre `http://localhost` (no todos los
+ * motores lo hacen — Firefox históricamente las rechazaba sin HTTPS real).
+ * Este proyecto E2E corre `chromium`/`mobile`, los dos sobre el motor
+ * Chromium (ver playwright.config.js), así que `secure: true` acá refleja
+ * el atributo real de la cookie de producción sin que el test necesite un
+ * servidor HTTPS local.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {object} opciones
+ * @param {string} opciones.email
+ * @param {string} opciones.password
+ * @param {string} opciones.tokenDispositivo el claro devuelto por
+ *   `crearCuentaClienteDeTest`
+ */
+export async function iniciarSesionCliente(page, { email, password, tokenDispositivo }) {
+  await page.context().addCookies([
+    {
+      name: COOKIE_DISPOSITIVO,
+      value: tokenDispositivo,
+      domain: "localhost",
+      path: "/",
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+    },
+  ]);
+
+  await page.goto("/cuenta/entrar");
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  // `{ exact: true }` no es cosmético: `CampoPassword.jsx` dibuja un botón de
+  // ojito con `aria-label="Mostrar contraseña"`, que `getByLabel("Contraseña")`
+  // sin `exact` matchea por substring además del input — Playwright tira
+  // "strict mode violation" con las dos coincidencias. Verificado corriendo
+  // este helper contra la página real.
+  await page.getByLabel("Contraseña", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Iniciar sesión" }).click();
+
+  await expect(page).not.toHaveURL(/\/cuenta\/entrar$/);
+}
+
+/**
+ * Simula un navegador donde `localStorage` está bloqueado (modo privado
+ * agresivo, política de organización, storage lleno) — Playwright NO
+ * expone un permiso `storage` para esto (a diferencia de geolocalización o
+ * cámara), así que se logra reemplazando el accessor global ANTES de que
+ * cargue cualquier script de la página, vía `addInitScript` (corre en cada
+ * documento nuevo del contexto, incluida cada navegación).
+ *
+ * Sirve al spec `cuenta-checkout.spec.js` (Tarea F) para afirmar el
+ * contrato de la spec (§ "🚪 El carrito"): `escribirCarrito` detecta el
+ * storage no disponible y avisa ANTES de mandar a login, en vez de fallar
+ * en silencio con un carrito que nunca se pudo guardar.
+ *
+ * @param {import('@playwright/test').BrowserContext} context
+ */
+export async function bloquearStorage(context) {
+  await context.addInitScript(() => {
+    Object.defineProperty(window, "localStorage", {
+      get() {
+        throw new Error("bloqueado");
+      },
+    });
+  });
 }
 
 export { prisma };
