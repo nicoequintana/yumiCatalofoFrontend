@@ -98,6 +98,7 @@ export default {
         "label-sm": ["Plus Jakarta Sans", "sans-serif"],
         "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
         "label-md": ["Plus Jakarta Sans", "sans-serif"],
+        "label-lg": ["Plus Jakarta Sans", "sans-serif"],
         "display-lg": ["Plus Jakarta Sans", "sans-serif"],
         "display-xl": ["Plus Jakarta Sans", "sans-serif"],
         "display-xl-mobile": ["Plus Jakarta Sans", "sans-serif"],
@@ -110,6 +111,16 @@ export default {
         "label-sm": ["12px", { lineHeight: "1.2", letterSpacing: "0.08em", fontWeight: "500" }],
         "headline-lg": ["32px", { lineHeight: "1.2", fontWeight: "600" }],
         "label-md": ["14px", { lineHeight: "1.2", letterSpacing: "0.05em", fontWeight: "600" }],
+        // El peldaño que faltaba: la escala saltaba de `label-md` (14px/600) a
+        // `body-md` (16px/**400**), así que un título de 16px se resolvía más
+        // LIVIANO que el subtítulo de 14/600 que lleva debajo. Sin 16/600 no
+        // hay forma de que un título domine a su propio subtítulo.
+        //
+        // `text-label-lg` ya se escribía en el markup (`CartelCampania.jsx`, y
+        // desde el rediseño también `MiCuenta.jsx`) sin que el token existiera:
+        // Tailwind no emite CSS para un token que no está y la clase queda de
+        // adorno, sin error ni warning. El guard vive en `src/tokens.test.js`.
+        "label-lg": ["16px", { lineHeight: "1.4", letterSpacing: "0.01em", fontWeight: "600" }],
         "display-lg": ["48px", { lineHeight: "1.1", fontWeight: "700" }],
         // Hero headline. Split into a desktop and a mobile token (instead of a
         // single fluid `clamp()`) to match the `headline-lg` / `headline-lg-mobile`

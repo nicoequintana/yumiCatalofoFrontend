@@ -8,11 +8,21 @@ import { salirCuenta } from "../../api/cuenta.js";
  * Iniciales para el avatar. Recibe el MISMO valor que se pinta como nombre
  * grande — no `perfil.nombre` por su cuenta: si las dos cosas salieran de
  * fuentes distintas, alguien con apodo vería "NQ" al lado de "Tito".
+ *
+ * El `filter(Boolean)` no es defensa de más: un nombre que queda VACÍO al
+ * recortarlo es alcanzable. `cuentaLogin.controller.js` guarda el nombre que
+ * manda Google con un check `!== ""` y **sin `trim()`**, así que `" "` entra
+ * tal cual; después `!perfil.nombre` con `" "` da `false`, y ese nombre pasa
+ * tanto el guard de `RequireAuthCliente` como el `faltaNombre` de
+ * `Completar.jsx`. Sin filtrar, `" ".split(/\s+/)` devuelve `[""]` y
+ * `undefined.toUpperCase()` tira en render: la pantalla entera en blanco por
+ * un espacio. Degrada a un avatar sin letras, que es feo pero se ve.
  */
 function iniciales(nombre) {
-  return nombre
+  return (nombre ?? "")
     .trim()
     .split(/\s+/)
+    .filter(Boolean)
     .slice(0, 2)
     .map((palabra) => palabra[0].toUpperCase())
     .join("");
@@ -31,8 +41,8 @@ function FilaAcceso({ to, href, icono, titulo, subtitulo, chevron = "chevron_rig
           </span>
         </span>
         <span className="flex flex-col text-left">
-          <span className="text-label-lg text-on-surface">{titulo}</span>
-          <span className="text-label-md text-on-surface-variant">{subtitulo}</span>
+          <span className="font-label-lg text-label-lg text-on-surface">{titulo}</span>
+          <span className="font-label-md text-label-md text-on-surface-variant">{subtitulo}</span>
         </span>
       </span>
       <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-on-surface-variant">
@@ -45,6 +55,10 @@ function FilaAcceso({ to, href, icono, titulo, subtitulo, chevron = "chevron_rig
     return (
       <a href={href} target="_blank" rel="noopener noreferrer" className={CLASES_FILA}>
         {contenido}
+        {/* El único aviso de que el link sale del sitio era el ícono
+            `open_in_new`, y va en `aria-hidden`. Sin esto, quien usa lector de
+            pantalla pierde la pantalla en la que estaba sin enterarse. */}
+        <span className="sr-only">(se abre en una pestaña nueva)</span>
       </a>
     );
   }
@@ -85,7 +99,7 @@ function MiCuenta() {
     <div className="mx-auto flex max-w-sm flex-col gap-4 px-margin-mobile py-16 md:px-margin-desktop">
       <header className="flex flex-col gap-1">
         <h1 className="font-display-lg text-headline-lg text-on-background">Mi cuenta</h1>
-        <p className="text-body-md text-on-surface-variant">
+        <p className="font-body-md text-body-md text-on-surface-variant">
           Administrá tu perfil, pedidos y configuración
         </p>
       </header>
@@ -99,7 +113,7 @@ function MiCuenta() {
           >
             {iniciales(nombreVisible)}
           </span>
-          <h2 data-testid="nombre-visible" className="text-label-lg text-on-surface">
+          <h2 data-testid="nombre-visible" className="font-headline-md text-headline-md text-on-surface">
             {nombreVisible}
           </h2>
         </div>
@@ -110,11 +124,11 @@ function MiCuenta() {
               <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-brand-teal">
                 mail
               </span>
-              <span className="truncate text-body-md text-on-surface">{perfil.email}</span>
+              <span className="truncate font-body-md text-body-md text-on-surface">{perfil.email}</span>
             </span>
             <Link
               to="/cuenta/email"
-              className="shrink-0 text-label-md text-primary underline underline-offset-4"
+              className="font-label-md text-label-md shrink-0 text-primary underline underline-offset-4"
             >
               Cambiar
             </Link>
@@ -125,11 +139,11 @@ function MiCuenta() {
               <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-brand-teal">
                 call
               </span>
-              <span className="truncate text-body-md text-on-surface">{perfil.telefono}</span>
+              <span className="truncate font-body-md text-body-md text-on-surface">{perfil.telefono}</span>
             </span>
             <Link
               to="/cuenta/datos"
-              className="shrink-0 text-label-md text-primary underline underline-offset-4"
+              className="font-label-md text-label-md shrink-0 text-primary underline underline-offset-4"
             >
               Editar
             </Link>
@@ -148,8 +162,8 @@ function MiCuenta() {
             </span>
           </span>
           <span className="flex flex-col text-left">
-            <span className="text-label-lg">Mis pedidos</span>
-            <span className="text-label-md text-white/80">Ver historial</span>
+            <span className="font-label-lg text-label-lg">Mis pedidos</span>
+            <span className="font-label-md text-label-md text-white/80">Ver historial</span>
           </span>
         </span>
         <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
@@ -158,7 +172,7 @@ function MiCuenta() {
       </Link>
 
       <section className="flex flex-col gap-2">
-        <h2 className="px-1 text-label-md uppercase tracking-wide text-on-surface-variant">
+        <h2 className="font-label-md text-label-md px-1 uppercase tracking-wide text-on-surface-variant">
           Configuración
         </h2>
         <div className="divide-y divide-outline-variant overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest">
@@ -192,20 +206,20 @@ function MiCuenta() {
       <div className="flex flex-col gap-3 pt-2">
         {confirmandoSalida ? (
           <>
-            <p className="text-body-md text-on-surface-variant">
+            <p className="font-body-md text-body-md text-on-surface-variant">
               Vas a cerrar sesión en todos tus dispositivos.
             </p>
             <button
               type="button"
               onClick={handleCerrarSesion}
-              className="min-h-11 rounded-2xl bg-error px-4 py-3.5 text-label-md text-on-error"
+              className="font-label-md text-label-md min-h-11 rounded-2xl bg-error px-4 py-3.5 text-on-error"
             >
               Confirmar cierre de sesión
             </button>
             <button
               type="button"
               onClick={() => setConfirmandoSalida(false)}
-              className="min-h-11 text-label-md text-on-surface-variant"
+              className="font-label-md text-label-md min-h-11 text-on-surface-variant"
             >
               Cancelar
             </button>
@@ -214,7 +228,7 @@ function MiCuenta() {
           <button
             type="button"
             onClick={() => setConfirmandoSalida(true)}
-            className="flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-surface-container-lowest px-4 py-3.5 text-label-md text-primary"
+            className="font-label-md text-label-md flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-surface-container-lowest px-4 py-3.5 text-primary"
           >
             <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
               logout

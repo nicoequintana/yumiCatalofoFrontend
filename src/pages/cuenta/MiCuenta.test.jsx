@@ -78,6 +78,33 @@ describe("MiCuenta — identidad", () => {
     renderMiCuenta({ ...PERFIL_LOCAL, apodo: "Tito" });
     expect(screen.getByTestId("avatar-iniciales")).toHaveTextContent("T");
   });
+
+  it("el nombre grande usa headline-md, no el mismo peldaño que el email", () => {
+    // No es cosmética: `label-lg` (16/600) queda casi igual que el email
+    // (`body-md`, 16/400) que tiene justo debajo, y el "nombre grande" de la
+    // spec deja de existir. La jerarquía la fija el token, y el token es lo
+    // único que se puede afirmar acá: jsdom no calcula el CSS de Tailwind.
+    renderMiCuenta(PERFIL_LOCAL);
+    expect(screen.getByTestId("nombre-visible")).toHaveClass("text-headline-md");
+  });
+
+  it("un nombre que queda vacío al recortarlo NO rompe la pantalla", () => {
+    // `" "` entra a la base tal cual: el guardado del login valida `!== ""`
+    // SIN `trim()`, y `!perfil.nombre` con `" "` da false, así que pasa el
+    // guard y el chequeo de perfil incompleto. Sin blindar, `[""]` del split
+    // hacía `undefined.toUpperCase()` y la pantalla quedaba en blanco.
+    renderMiCuenta({ ...PERFIL_LOCAL, nombre: " ", apodo: null });
+    expect(screen.getByTestId("avatar-iniciales")).toHaveTextContent("");
+    expect(screen.getByText("cliente@gmail.com")).toBeInTheDocument();
+  });
+
+  it("un apodo que queda vacío al recortarlo tampoco rompe la pantalla", () => {
+    // `" "` es truthy, así que gana el `||` y llega a `iniciales()` igual que
+    // un nombre en blanco.
+    renderMiCuenta({ ...PERFIL_LOCAL, apodo: " " });
+    expect(screen.getByTestId("avatar-iniciales")).toHaveTextContent("");
+    expect(screen.getByText("cliente@gmail.com")).toBeInTheDocument();
+  });
 });
 
 describe("MiCuenta — navegación", () => {
@@ -97,6 +124,16 @@ describe("MiCuenta — navegación", () => {
     renderMiCuenta(PERFIL_LOCAL);
     const ayuda = screen.getByRole("link", { name: /Ayuda y soporte/ });
     expect(ayuda).toHaveAttribute("href", expect.stringContaining("wa.me"));
+  });
+
+  it("la fila de ayuda avisa en su nombre accesible que abre otra pestaña", () => {
+    // El único indicador de que el link sale del sitio es el ícono
+    // `open_in_new`, y está en `aria-hidden`: quien usa lector de pantalla no
+    // se entera de que va a perder la pantalla en la que estaba.
+    renderMiCuenta(PERFIL_LOCAL);
+    expect(
+      screen.getByRole("link", { name: /Ayuda y soporte.*pestaña nueva/s }),
+    ).toBeInTheDocument();
   });
 
   it("sin número de WhatsApp, la fila de ayuda no se dibuja", () => {
