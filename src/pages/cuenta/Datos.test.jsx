@@ -112,4 +112,23 @@ describe("Datos — edición del perfil", () => {
     await waitFor(() => expect(screen.getByText("Datos actualizados.")).toBeInTheDocument());
     expect(perfilCliente.refrescarPerfil).toHaveBeenCalledTimes(1);
   });
+
+  it("con apodo null y sin tocar nada, NO manda apodo", () => {
+    renderDatos({ ...PERFIL, apodo: null });
+    expect(screen.getByLabelText("Apodo")).toHaveValue("");
+  });
+
+  it("con apodo null, cambiar OTRO campo no arrastra el apodo vacío", async () => {
+    const user = userEvent.setup();
+    renderDatos({ ...PERFIL, apodo: null });
+
+    await user.clear(screen.getByLabelText("Teléfono"));
+    await user.type(screen.getByLabelText("Teléfono"), "1199887766");
+    await user.click(screen.getByRole("button", { name: "Guardar datos" }));
+
+    await waitFor(() => expect(cuentaApi.actualizarPerfil).toHaveBeenCalledTimes(1));
+    // Sin el `?? ""` en la comparación, `"" !== null` daría true y acá viajaría
+    // `apodo: ""`, que el backend interpreta como BORRAR. Silencioso y caro.
+    expect(cuentaApi.actualizarPerfil).toHaveBeenCalledWith({ telefono: "1199887766" });
+  });
 });
