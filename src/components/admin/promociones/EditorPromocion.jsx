@@ -98,7 +98,7 @@ export default function EditorPromocion({ promocion, guardando, onGuardarItems, 
           type="button"
           disabled={guardando || masivo === ""}
           onClick={aplicarATodos}
-          className="font-label-md text-label-md rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60"
+          className="font-label-lg text-label-lg rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-60"
         >
           Aplicar a los {items.length}
         </button>
@@ -178,7 +178,7 @@ export default function EditorPromocion({ promocion, guardando, onGuardarItems, 
           type="button"
           disabled={guardando || !hayCambios}
           onClick={guardar}
-          className="font-label-md text-label-md rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
+          className="font-label-lg text-label-lg rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           {guardando ? "Guardando…" : "Guardar descuentos"}
         </button>

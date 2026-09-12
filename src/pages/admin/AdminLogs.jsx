@@ -96,7 +96,7 @@ function StackColapsable({ stack }) {
         type="button"
         onClick={() => setAbierto((valor) => !valor)}
         aria-expanded={abierto}
-        className="font-label-md text-label-md inline-flex items-center gap-1 self-start uppercase tracking-widest text-secondary hover:underline"
+        className="font-label-lg text-label-lg inline-flex items-center gap-1 self-start uppercase tracking-widest text-secondary hover:underline"
       >
         <span className="material-symbols-outlined text-[16px]">
           {abierto ? "expand_less" : "expand_more"}
@@ -202,7 +202,7 @@ function AdminLogs() {
   const esAuditoria = pestana === PESTANA_AUDITORIA;
 
   function claseTab(activa) {
-    return `font-label-md text-label-md min-h-11 rounded-lg px-4 py-2 uppercase tracking-widest transition-colors ${
+    return `font-label-lg text-label-lg min-h-11 rounded-lg px-4 py-2 uppercase tracking-widest transition-colors ${
       activa
         ? "bg-primary text-on-primary"
         : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
@@ -375,7 +375,7 @@ function AdminLogs() {
               type="button"
               onClick={() => setPage((p) => p - 1)}
               disabled={!hayAnterior}
-              className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-40"
+              className="font-label-lg text-label-lg rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-40"
             >
               Anterior
             </button>
@@ -384,7 +384,7 @@ function AdminLogs() {
               type="button"
               onClick={() => setPage((p) => p + 1)}
               disabled={!haySiguiente}
-              className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-40"
+              className="font-label-lg text-label-lg rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-40"
             >
               Siguiente
             </button>

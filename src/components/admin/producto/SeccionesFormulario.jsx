@@ -408,7 +408,7 @@ function SeccionesFormulario({
               <button
                 type="button"
                 onClick={agregarCaracteristica}
-                className="font-label-md text-label-md min-h-11 shrink-0 rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+                className="font-label-lg text-label-lg min-h-11 shrink-0 rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
               >
                 Agregar
               </button>
@@ -477,7 +477,7 @@ function SeccionesFormulario({
               <button
                 type="button"
                 onClick={agregarEspecificacion}
-                className="font-label-md text-label-md min-h-11 shrink-0 rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+                className="font-label-lg text-label-lg min-h-11 shrink-0 rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
               >
                 + Agregar especificación
               </button>

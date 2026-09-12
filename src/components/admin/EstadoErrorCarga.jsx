@@ -34,7 +34,7 @@ function EstadoErrorCarga({ titulo, onReintentar }) {
         <button
           type="button"
           onClick={onReintentar}
-          className="font-label-md text-label-md -mt-16 mb-16 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+          className="font-label-lg text-label-lg -mt-16 mb-16 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
         >
           Reintentar
         </button>

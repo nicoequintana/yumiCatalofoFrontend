@@ -659,7 +659,7 @@ function AdminPrecios() {
             // `px-5 py-3` + borde sobre una línea de 17px daba 43 de alto: a UN
             // píxel del mínimo táctil, que es la peor forma de fallarlo
             // porque a ojo no se nota. `min-h-11` además del padding.
-            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+            className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
           >
             <span className="material-symbols-outlined text-[18px]">arrow_back</span>
             Productos
@@ -675,7 +675,7 @@ function AdminPrecios() {
             onClick={() => setReintento((n) => n + 1)}
             // 35 de alto con `py-2`. Botón suelto en su propia franja: crece
             // en alto sin empujar nada.
-            className="font-label-md text-label-md min-h-11 shrink-0 rounded-lg border border-on-error-container px-4 py-2 uppercase tracking-widest text-on-error-container hover:bg-error-container"
+            className="font-label-lg text-label-lg min-h-11 shrink-0 rounded-lg border border-on-error-container px-4 py-2 uppercase tracking-widest text-on-error-container hover:bg-error-container"
           >
             Reintentar
           </button>
@@ -715,7 +715,7 @@ function AdminPrecios() {
             // que informa el resultado, y el botón dejaría de leerse como
             // parte de ese aviso. `before:w-full`: el texto ya sobra de
             // ancho, y una caja fija de 44 le robaría área al vecino.
-            className={`font-label-md text-label-md mt-2 uppercase tracking-widest text-primary hover:underline ${AREA_TACTIL_ANCHA}`}
+            className={`font-label-lg text-label-lg mt-2 uppercase tracking-widest text-primary hover:underline ${AREA_TACTIL_ANCHA}`}
           >
             Cerrar
           </button>
@@ -796,7 +796,7 @@ function AdminPrecios() {
                 // `elementFromPoint`: 93×35 a 390px y 93×36 a 1280px — falla el
                 // alto, el ancho ya sobra. Crecen sin costo: la barra es
                 // `flex-wrap` y los chips no comparten fila con nada más.
-                className={`font-label-md text-label-md min-h-11 rounded-lg border px-4 py-2 uppercase tracking-widest ${
+                className={`font-label-lg text-label-lg min-h-11 rounded-lg border px-4 py-2 uppercase tracking-widest ${
                   activo
                     ? "border-primary bg-primary text-on-primary"
                     : "border-outline-variant text-on-surface-variant hover:border-outline"
@@ -853,7 +853,7 @@ function AdminPrecios() {
             onClick={abrirConfirmacion}
             // 37 de alto con `py-2.5`. Tiene molde propio y la barra es
             // `flex-wrap`: crece en alto sin costo.
-            className="font-label-md text-label-md min-h-11 rounded-lg bg-primary px-5 py-2.5 uppercase tracking-widest text-on-primary hover:opacity-90"
+            className="font-label-lg text-label-lg min-h-11 rounded-lg bg-primary px-5 py-2.5 uppercase tracking-widest text-on-primary hover:opacity-90"
           >
             Actualizar precios
           </button>
@@ -864,7 +864,7 @@ function AdminPrecios() {
             // `min-h-11` acá estiraría la barra entera para un solo
             // control. El pseudo-elemento le da los 44 sin mover nada, y
             // el `gap-3` (12px) alcanza para que no se pise con el vecino.
-            className={`font-label-md text-label-md uppercase tracking-widest text-on-surface-variant hover:underline ${AREA_TACTIL_ANCHA}`}
+            className={`font-label-lg text-label-lg uppercase tracking-widest text-on-surface-variant hover:underline ${AREA_TACTIL_ANCHA}`}
           >
             Limpiar selección
           </button>
@@ -1159,7 +1159,7 @@ function AdminPrecios() {
                 // de 44 se superpondrían — el segundo le robaría área al
                 // primero, que es el modo de falla que advierte
                 // `utils/areaTactil.js`. Hacia arriba no hay nada que pisar.
-                className="font-label-md text-label-md min-h-11 rounded-lg border border-outline-variant px-5 py-2.5 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+                className="font-label-lg text-label-lg min-h-11 rounded-lg border border-outline-variant px-5 py-2.5 uppercase tracking-widest text-on-surface-variant hover:border-outline"
               >
                 Cancelar
               </button>
@@ -1167,7 +1167,7 @@ function AdminPrecios() {
                 type="button"
                 onClick={confirmar}
                 disabled={aplicando || aCambiar === 0}
-                className="font-label-md text-label-md min-h-11 rounded-lg bg-primary px-5 py-2.5 uppercase tracking-widest text-on-primary hover:opacity-90 disabled:opacity-50"
+                className="font-label-lg text-label-lg min-h-11 rounded-lg bg-primary px-5 py-2.5 uppercase tracking-widest text-on-primary hover:opacity-90 disabled:opacity-50"
               >
                 {aplicando ? "Aplicando…" : "Confirmar"}
               </button>

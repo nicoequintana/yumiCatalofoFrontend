@@ -103,7 +103,7 @@ function AdminLayout() {
           aparecería debajo de ellos. */}
       <a
         href="#contenido-admin"
-        className="font-label-md text-label-md sr-only rounded-lg bg-primary uppercase tracking-widest text-on-primary focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:inline-flex focus:min-h-11 focus:items-center focus:px-4"
+        className="font-label-lg text-label-lg sr-only rounded-lg bg-primary uppercase tracking-widest text-on-primary focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:inline-flex focus:min-h-11 focus:items-center focus:px-4"
       >
         Saltar al contenido
       </a>
@@ -281,7 +281,7 @@ function ErrorDePantallaAdmin() {
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="font-label-md text-label-md rounded-lg bg-primary px-4 py-2 uppercase tracking-widest text-on-primary"
+        className="font-label-lg text-label-lg rounded-lg bg-primary px-4 py-2 uppercase tracking-widest text-on-primary"
       >
         Recargar
       </button>

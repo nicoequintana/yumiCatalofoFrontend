@@ -152,14 +152,14 @@ export default function DialogoProgramar({ promociones, diaInicial, guardando, o
                   <button
                     type="button"
                     onClick={onCerrar}
-                    className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container"
+                    className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={sinProductos}
-                    className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
+                    className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
                   >
                     {guardando ? "Programando…" : "Programar"}
                   </button>

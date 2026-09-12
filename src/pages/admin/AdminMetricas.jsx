@@ -117,7 +117,7 @@ function AdminMetricas() {
           <button
             type="button"
             onClick={() => setReintento((actual) => actual + 1)}
-            className="font-label-md text-label-md shrink-0 rounded-lg border border-on-error-container px-4 py-2 uppercase tracking-widest text-on-error-container hover:bg-error-container"
+            className="font-label-lg text-label-lg shrink-0 rounded-lg border border-on-error-container px-4 py-2 uppercase tracking-widest text-on-error-container hover:bg-error-container"
           >
             Reintentar
           </button>

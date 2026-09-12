@@ -125,7 +125,7 @@ function AdminSaludCatalogo() {
         </div>
         <Link
           to="/catalogo/admin/productos"
-          className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+          className="font-label-lg text-label-lg inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
           Productos
@@ -138,7 +138,7 @@ function AdminSaludCatalogo() {
           <button
             type="button"
             onClick={() => setReintento((n) => n + 1)}
-            className="font-label-md text-label-md shrink-0 rounded-lg border border-on-error-container px-4 py-2 uppercase tracking-widest text-on-error-container hover:bg-error-container"
+            className="font-label-lg text-label-lg shrink-0 rounded-lg border border-on-error-container px-4 py-2 uppercase tracking-widest text-on-error-container hover:bg-error-container"
           >
             Reintentar
           </button>

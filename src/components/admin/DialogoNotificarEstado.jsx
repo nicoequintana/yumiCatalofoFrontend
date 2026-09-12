@@ -95,7 +95,7 @@ function DialogoNotificarEstado({
             type="button"
             onClick={() => onConfirmar(true)}
             disabled={guardando || !puedeNotificar}
-            className="rounded-lg bg-primary px-5 py-3 font-label-md text-label-md text-on-primary disabled:opacity-50"
+            className="rounded-lg bg-primary px-5 py-3 font-label-lg text-label-lg text-on-primary disabled:opacity-50"
           >
             {guardando ? "Guardando…" : "Notificar y guardar"}
           </button>
@@ -103,7 +103,7 @@ function DialogoNotificarEstado({
             type="button"
             onClick={() => onConfirmar(false)}
             disabled={guardando}
-            className="rounded-lg border border-outline px-5 py-3 font-label-md text-label-md text-on-surface disabled:opacity-50"
+            className="rounded-lg border border-outline px-5 py-3 font-label-lg text-label-lg text-on-surface disabled:opacity-50"
           >
             Guardar sin notificar
           </button>
@@ -111,7 +111,7 @@ function DialogoNotificarEstado({
             type="button"
             onClick={onCancelar}
             disabled={guardando}
-            className="rounded-lg px-5 py-3 font-label-md text-label-md text-on-surface-variant disabled:opacity-50 sm:mr-auto"
+            className="rounded-lg px-5 py-3 font-label-lg text-label-lg text-on-surface-variant disabled:opacity-50 sm:mr-auto"
           >
             Cancelar
           </button>

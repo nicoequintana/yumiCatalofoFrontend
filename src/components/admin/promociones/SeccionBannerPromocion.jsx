@@ -283,7 +283,7 @@ export default function SeccionBannerPromocion({
               type="button"
               disabled={guardando}
               onClick={guardar}
-              className="font-label-md text-label-md rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
+              className="font-label-lg text-label-lg rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60"
             >
               {guardando ? "Guardando…" : "Guardar banner"}
             </button>

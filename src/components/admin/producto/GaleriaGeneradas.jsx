@@ -252,7 +252,7 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas, visible
                 type="button"
                 onClick={handleBorrar}
                 disabled={trabajando}
-                className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant disabled:opacity-60"
+                className="font-label-lg text-label-lg inline-flex items-center gap-2 rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant disabled:opacity-60"
               >
                 <span className="material-symbols-outlined text-[16px]">delete</span> Borrar generadas
               </button>
@@ -260,7 +260,7 @@ function GaleriaGeneradas({ productoId, fotosActuales = [], onAdoptadas, visible
                 type="button"
                 onClick={handleAdoptar}
                 disabled={trabajando || excede || seleccion.length === 0}
-                className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 uppercase tracking-widest text-on-primary disabled:opacity-60"
+                className="font-label-lg text-label-lg inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 uppercase tracking-widest text-on-primary disabled:opacity-60"
               >
                 {trabajando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
                 Agregar a la ficha

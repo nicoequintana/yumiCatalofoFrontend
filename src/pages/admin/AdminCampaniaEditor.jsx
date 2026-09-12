@@ -333,7 +333,7 @@ export default function AdminCampaniaEditor() {
                 type="button"
                 disabled={eliminando}
                 onClick={() => setConfirmandoBorrado(false)}
-                className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:border-outline disabled:opacity-60"
+                className="font-label-lg text-label-lg rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:border-outline disabled:opacity-60"
               >
                 Cancelar
               </button>
@@ -341,7 +341,7 @@ export default function AdminCampaniaEditor() {
                 type="button"
                 disabled={eliminando}
                 onClick={eliminar}
-                className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-error px-5 py-3 uppercase tracking-widest text-on-error transition-opacity hover:opacity-90 disabled:opacity-60"
+                className="font-label-lg text-label-lg inline-flex items-center gap-2 rounded-lg bg-error px-5 py-3 uppercase tracking-widest text-on-error transition-opacity hover:opacity-90 disabled:opacity-60"
               >
                 {eliminando ? <Spinner className="h-4 w-4 text-on-error" decorativo /> : null}
                 Sí, eliminar

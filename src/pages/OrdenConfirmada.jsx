@@ -99,7 +99,7 @@ function OrdenConfirmada() {
 
           <Link
             to="/"
-            className="font-label-md text-label-md inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
+            className="font-label-lg text-label-lg inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
           >
             Volver al catálogo
           </Link>

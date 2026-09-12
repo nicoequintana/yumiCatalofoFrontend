@@ -141,7 +141,7 @@ function Favoritos() {
             />
             <Link
               to="/coleccion"
-              className="font-label-md text-label-md -mt-12 mb-4 inline-flex min-h-11 items-center rounded-full bg-primary px-8 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
+              className="font-label-lg text-label-lg -mt-12 mb-4 inline-flex min-h-11 items-center rounded-full bg-primary px-8 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
             >
               Ver el catálogo
             </Link>

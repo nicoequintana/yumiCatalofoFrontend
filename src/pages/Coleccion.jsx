@@ -785,7 +785,7 @@ function Coleccion() {
               />
               <Link
                 to="/coleccion"
-                className="font-label-md text-label-md -mt-12 mb-4 rounded-full border border-outline px-8 py-3 uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary"
+                className="font-label-lg text-label-lg -mt-12 mb-4 rounded-full border border-outline px-8 py-3 uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary"
               >
                 Ver el catálogo
               </Link>
@@ -835,7 +835,7 @@ function Coleccion() {
                 // `min-h-11` (44px): medido daba 43 de alto con `py-3`, un
                 // píxel por debajo del mínimo táctil. El `inline-flex` recentra
                 // el rótulo en la caja más alta.
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-outline px-8 py-3 font-label-md text-label-md uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-outline px-8 py-3 font-label-lg text-label-lg uppercase tracking-widest text-on-surface transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
               >
                 {cargandoMas ? "Cargando…" : "Mostrar más"}
               </button>

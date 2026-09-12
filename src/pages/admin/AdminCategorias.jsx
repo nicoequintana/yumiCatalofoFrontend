@@ -264,7 +264,7 @@ function AdminCategorias() {
           <button
             type="submit"
             disabled={creando}
-            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+            className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
           >
             {creando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
             Agregar
@@ -552,7 +552,7 @@ function AdminCategorias() {
                             type="button"
                             onClick={() => handleGuardarEdicion(categoria.id)}
                             disabled={guardandoEdicion || eliminandoId === categoria.id}
-                            className={`font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
+                            className={`font-label-lg text-label-lg inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                           >
                             {guardandoEdicion ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Guardar
@@ -560,7 +560,7 @@ function AdminCategorias() {
                           <button
                             type="button"
                             onClick={() => setEditandoId(null)}
-                            className={`font-label-md text-label-md inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
+                            className={`font-label-lg text-label-lg inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                           >
                             Cancelar
                           </button>
@@ -586,7 +586,7 @@ function AdminCategorias() {
                             type="button"
                             onClick={() => handleEliminar(categoria.id)}
                             disabled={eliminandoId === categoria.id || guardandoEdicion}
-                            className={`font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
+                            className={`font-label-lg text-label-lg inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                           >
                             {eliminandoId === categoria.id ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Sí
@@ -594,7 +594,7 @@ function AdminCategorias() {
                           <button
                             type="button"
                             onClick={() => setConfirmandoId(null)}
-                            className={`font-label-md text-label-md inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
+                            className={`font-label-lg text-label-lg inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                           >
                             No
                           </button>

@@ -219,7 +219,7 @@ function AdminUsuarios() {
         <button
           type="submit"
           disabled={creando}
-          className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+          className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
         >
           {creando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
           Agregar
@@ -375,7 +375,7 @@ function AdminUsuarios() {
                             type="button"
                             onClick={() => handleGuardarEdicion(usuario.id)}
                             disabled={guardandoEdicion || eliminandoId === usuario.id}
-                            className={`font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
+                            className={`font-label-lg text-label-lg inline-flex items-center gap-1 uppercase tracking-widest text-secondary hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                           >
                             {guardandoEdicion ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Guardar
@@ -383,7 +383,7 @@ function AdminUsuarios() {
                           <button
                             type="button"
                             onClick={() => setEditandoId(null)}
-                            className={`font-label-md text-label-md inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
+                            className={`font-label-lg text-label-lg inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                           >
                             Cancelar
                           </button>
@@ -392,7 +392,7 @@ function AdminUsuarios() {
                         <button
                           type="button"
                           onClick={() => iniciarEdicion(usuario)}
-                          className={`flex items-center gap-1 font-label-md text-label-md uppercase tracking-widest text-secondary hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
+                          className={`flex items-center gap-1 font-label-lg text-label-lg uppercase tracking-widest text-secondary hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                         >
                           <span className="material-symbols-outlined text-[18px]">edit</span>
                           Editar
@@ -406,7 +406,7 @@ function AdminUsuarios() {
                             type="button"
                             onClick={() => handleEliminar(usuario.id)}
                             disabled={eliminandoId === usuario.id || guardandoEdicion}
-                            className={`font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
+                            className={`font-label-lg text-label-lg inline-flex items-center gap-1 uppercase tracking-widest text-error hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                           >
                             {eliminandoId === usuario.id ? <Spinner className="h-3.5 w-3.5" decorativo /> : null}
                             Sí
@@ -414,7 +414,7 @@ function AdminUsuarios() {
                           <button
                             type="button"
                             onClick={() => setConfirmandoId(null)}
-                            className={`font-label-md text-label-md inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
+                            className={`font-label-lg text-label-lg inline-flex items-center uppercase tracking-widest text-on-surface-variant hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                           >
                             No
                           </button>
@@ -426,7 +426,7 @@ function AdminUsuarios() {
                             setEditandoId(null);
                             setConfirmandoId(usuario.id);
                           }}
-                          className={`flex items-center gap-1 font-label-md text-label-md uppercase tracking-widest text-error hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
+                          className={`flex items-center gap-1 font-label-lg text-label-lg uppercase tracking-widest text-error hover:underline max-md:min-h-11 ${AREA_TACTIL_ANCHA}`}
                         >
                           <span className="material-symbols-outlined text-[18px]">delete</span>
                           Eliminar

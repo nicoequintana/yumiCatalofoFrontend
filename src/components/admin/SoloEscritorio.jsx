@@ -53,7 +53,7 @@ export default function SoloEscritorio({ titulo, children }) {
             página vacía con una salida. */}
         <Link
           to="/catalogo/admin/productos"
-          className="font-label-md text-label-md mt-2 inline-flex min-h-11 items-center rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
+          className="font-label-lg text-label-lg mt-2 inline-flex min-h-11 items-center rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
         >
           Ir a Productos
         </Link>

@@ -22,7 +22,7 @@
  * @returns {string} las clases del botón
  */
 export function claseToggleOrdenes(activo) {
-  return `font-label-md text-label-md inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border px-4 py-2 uppercase tracking-widest transition-colors ${
+  return `font-label-lg text-label-lg inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border px-4 py-2 uppercase tracking-widest transition-colors ${
     activo
       ? "border-primary bg-primary text-on-primary"
       : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-outline hover:text-on-surface"

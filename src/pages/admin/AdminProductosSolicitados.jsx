@@ -107,7 +107,7 @@ function AdminProductosSolicitados() {
             // `min-h-11` ADEMÁS del `py-3`, no en lugar de él: el mínimo táctil
             // es un PISO. 221×42 medidos el 07/09/2026. Este CTA está solo en
             // su columna del encabezado, así que puede crecer sin costo.
-            className="font-label-md text-label-md inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:opacity-90 disabled:opacity-40"
+            className="font-label-lg text-label-lg inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:opacity-90 disabled:opacity-40"
           >
             <span className="material-symbols-outlined text-[18px]">download</span>
             {descargando ? "Descargando…" : "Descargar Excel"}

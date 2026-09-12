@@ -23,7 +23,7 @@ function ToggleTemaAdmin({ compacto = false }) {
   // `AdminSidebar.jsx`, que es donde vive este botón en sus dos formas.
   const base = compacto
     ? "flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 font-label-sm text-label-sm transition-colors"
-    : "flex min-h-11 w-full items-center gap-3 rounded-lg px-4 py-3 font-label-md text-label-md uppercase tracking-widest transition-colors";
+    : "flex min-h-11 w-full items-center gap-3 rounded-lg px-4 py-3 font-label-lg text-label-lg uppercase tracking-widest transition-colors";
 
   return (
     <button

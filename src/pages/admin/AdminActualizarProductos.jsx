@@ -134,7 +134,7 @@ function AdminActualizarProductos() {
             disabled={exportando}
             // `min-h-11` ADEMÁS del `py-3`: el mínimo táctil es un PISO.
             // 42 de alto medidos el 07/09/2026.
-            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
+            className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
           >
             {exportando ? (
               <Spinner className="h-4 w-4 text-on-surface-variant" decorativo />
@@ -170,7 +170,7 @@ function AdminActualizarProductos() {
             type="button"
             onClick={handleActualizar}
             disabled={!archivo || actualizando}
-            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+            className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
           >
             {actualizando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
             {actualizando ? "Actualizando…" : "Actualizar"}

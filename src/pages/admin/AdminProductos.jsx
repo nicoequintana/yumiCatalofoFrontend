@@ -608,35 +608,35 @@ function AdminProductos() {
           />
           <Link
             to="/catalogo/admin/productos/importar"
-            className="font-label-md text-label-md inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
+            className="font-label-lg text-label-lg inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
           >
             <span className="material-symbols-outlined text-[18px]">upload_file</span>
             Importar
           </Link>
           <Link
             to="/catalogo/admin/productos/actualizar-masivo"
-            className="font-label-md text-label-md inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
+            className="font-label-lg text-label-lg inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
           >
             <span className="material-symbols-outlined text-[18px]">sync_alt</span>
             Actualizar por Excel
           </Link>
           <Link
             to="/catalogo/admin/productos/precios"
-            className="font-label-md text-label-md inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
+            className="font-label-lg text-label-lg inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
           >
             <span className="material-symbols-outlined text-[18px]">sell</span>
             Costos y precios
           </Link>
           <Link
             to="/catalogo/admin/productos/salud"
-            className="font-label-md text-label-md inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
+            className="font-label-lg text-label-lg inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline sm:grow-0 sm:basis-auto"
           >
             <span className="material-symbols-outlined text-[18px]">monitor_heart</span>
             Salud
           </Link>
           <Link
             to="/catalogo/admin/productos/nuevo"
-            className="font-label-md text-label-md inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container sm:grow-0 sm:basis-auto"
+            className="font-label-lg text-label-lg inline-flex min-h-11 grow basis-[calc(50%-0.375rem)] items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container sm:grow-0 sm:basis-auto"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
             Agregar producto
@@ -1221,7 +1221,7 @@ function AdminProductos() {
                 type="button"
                 onClick={() => setConfirmandoBorradoMasivo(false)}
                 disabled={accionMasivaEnCurso}
-                className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
+                className="font-label-lg text-label-lg rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
               >
                 Cancelar
               </button>
@@ -1229,7 +1229,7 @@ function AdminProductos() {
                 type="button"
                 onClick={handleEliminarMasivo}
                 disabled={accionMasivaEnCurso}
-                className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-error px-5 py-3 uppercase tracking-widest text-on-error disabled:opacity-60"
+                className="font-label-lg text-label-lg inline-flex items-center gap-2 rounded-lg bg-error px-5 py-3 uppercase tracking-widest text-on-error disabled:opacity-60"
               >
                 {accionMasivaEnCurso ? <Spinner className="h-4 w-4 text-on-error" decorativo /> : null}
                 Eliminar

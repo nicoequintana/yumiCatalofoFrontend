@@ -272,7 +272,7 @@ function AdminEtiquetas() {
    * breakpoint.
    */
   const claseAccion =
-    "font-label-md text-label-md inline-flex min-h-11 min-w-11 items-center justify-center gap-1 uppercase tracking-widest hover:underline disabled:opacity-60";
+    "font-label-lg text-label-lg inline-flex min-h-11 min-w-11 items-center justify-center gap-1 uppercase tracking-widest hover:underline disabled:opacity-60";
 
   /**
    * Editar y Eliminar van SOLO CON EL ÍCONO: con el nombre de la etiqueta
@@ -341,7 +341,7 @@ function AdminEtiquetas() {
         <button
           type="submit"
           disabled={creando}
-          className="font-label-md text-label-md inline-flex h-max min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+          className="font-label-lg text-label-lg inline-flex h-max min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
         >
           {creando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
           Agregar

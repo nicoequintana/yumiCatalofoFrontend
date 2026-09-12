@@ -45,7 +45,7 @@ function BotonVolver({ fallback = "/", puedeSalir, destinoFijo = false, etiqueta
     <button
       type="button"
       onClick={handleClick}
-      className="font-label-md text-label-md -mx-2 inline-flex min-h-11 items-center gap-2 px-2 text-on-surface-variant hover:text-on-surface"
+      className="font-label-lg text-label-lg -mx-2 inline-flex min-h-11 items-center gap-2 px-2 text-on-surface-variant hover:text-on-surface"
     >
       {/* `aria-hidden`: sin esto el ligature del ícono entra en el nombre
           accesible y un lector de pantalla anuncia "arrow_back Volver". */}

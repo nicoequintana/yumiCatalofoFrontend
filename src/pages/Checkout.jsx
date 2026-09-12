@@ -315,7 +315,7 @@ function Checkout() {
             ) : null}
             <Link
               to={`/cuenta/entrar?volverA=${encodeURIComponent(RUTA_PROPIA)}`}
-              className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-8 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
+              className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-8 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
             >
               Iniciar sesión
             </Link>
@@ -404,7 +404,7 @@ function Checkout() {
                       dni: perfil.dni ?? "",
                     })
                   }
-                  className="font-label-md text-label-md inline-flex min-h-11 items-center text-primary underline"
+                  className="font-label-lg text-label-lg inline-flex min-h-11 items-center text-primary underline"
                 >
                   Editar
                 </button>
@@ -500,7 +500,7 @@ function Checkout() {
             <button
               type="submit"
               disabled={enviando}
-              className="font-label-md text-label-md inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:bg-surface-container-high disabled:text-on-surface-variant"
+              className="font-label-lg text-label-lg inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:bg-surface-container-high disabled:text-on-surface-variant"
             >
               {enviando ? "Enviando…" : "Confirmar pedido"}
             </button>

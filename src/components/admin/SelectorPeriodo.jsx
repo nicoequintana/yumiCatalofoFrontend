@@ -12,7 +12,7 @@ const PERIODOS = [
 ];
 
 function claseBoton(activo) {
-  return `font-label-md text-label-md min-h-11 rounded-lg px-4 py-2 uppercase tracking-widest transition-colors ${
+  return `font-label-lg text-label-lg min-h-11 rounded-lg px-4 py-2 uppercase tracking-widest transition-colors ${
     activo
       ? "bg-primary text-on-primary"
       : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"

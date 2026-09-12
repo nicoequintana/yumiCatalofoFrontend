@@ -37,7 +37,7 @@ function iniciales(nombre) {
  * Vive acá y no en `clasesCuenta.js` porque es de esta pantalla nada más.
  */
 const CLASES_BOTON_SALIR =
-  "font-label-md text-label-md min-h-11 rounded-2xl bg-error px-4 py-3.5 text-on-error";
+  "font-label-lg text-label-lg min-h-11 rounded-2xl bg-error px-4 py-3.5 text-on-error";
 
 const CLASES_FILA =
   "flex items-center justify-between gap-3 p-4 hover:bg-surface-container-low active:bg-surface-container";
@@ -230,7 +230,7 @@ function MiCuenta() {
             <button
               type="button"
               onClick={() => setConfirmandoSalida(false)}
-              className="font-label-md text-label-md min-h-11 text-on-surface-variant"
+              className="font-label-lg text-label-lg min-h-11 text-on-surface-variant"
             >
               Cancelar
             </button>
@@ -239,7 +239,7 @@ function MiCuenta() {
           <button
             type="button"
             onClick={() => setConfirmandoSalida(true)}
-            className="font-label-md text-label-md flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-surface-container-lowest px-4 py-3.5 text-primary"
+            className="font-label-lg text-label-lg flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-surface-container-lowest px-4 py-3.5 text-primary"
           >
             <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
               logout

@@ -118,7 +118,7 @@ function BotonAgregarCarrito({
         // que iguala este CTA con el `SelectorCantidad` que va PEGADO al lado
         // —que aplica el mismo piso—: si uno flotara a 44 y el otro se quedara
         // en 40, la fila quedaría desalineada.
-        className={`font-label-md text-label-md inline-flex items-center gap-2 rounded-full bg-primary uppercase tracking-wide text-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70 ${
+        className={`font-label-lg text-label-lg inline-flex items-center gap-2 rounded-full bg-primary uppercase tracking-wide text-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70 ${
           compacto ? "h-9 min-h-11 px-4" : "h-10 min-h-11 px-6"
         }`}
       >

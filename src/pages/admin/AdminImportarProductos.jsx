@@ -88,7 +88,7 @@ function AdminImportarProductos() {
             // es un PISO. 42 de alto medidos el 07/09/2026. Son dos botones
             // sueltos, cada uno en su bloque con `gap-4` de por medio, así que
             // crecen sin costo de diseño y sin superponer áreas.
-            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
+            className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
           >
             {descargando ? (
               <Spinner className="h-4 w-4 text-on-surface-variant" decorativo />
@@ -124,7 +124,7 @@ function AdminImportarProductos() {
             type="button"
             onClick={handleImportar}
             disabled={!archivo || importando}
-            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+            className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
           >
             {importando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
             {importando ? "Importando…" : "Importar"}

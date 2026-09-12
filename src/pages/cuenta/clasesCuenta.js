@@ -74,7 +74,7 @@ export const claseEtiquetaSuelta = `${claseEtiqueta} mb-1.5 block`;
  * es de foco, avatar y banner.
  */
 export const claseBotonPrimario =
-  "font-label-md text-label-md min-h-11 rounded-2xl bg-primary px-4 py-3.5 text-on-primary disabled:opacity-50";
+  "font-label-lg text-label-lg min-h-11 rounded-2xl bg-primary px-4 py-3.5 text-on-primary disabled:opacity-50";
 
 const PAGINA_COMUN = "mx-auto flex max-w-sm flex-col px-margin-mobile py-16 md:px-margin-desktop";
 

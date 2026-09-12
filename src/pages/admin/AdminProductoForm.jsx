@@ -127,7 +127,7 @@ function AdminProductoForm() {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container"
+          className="font-label-lg text-label-lg inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container"
         >
           <span className="material-symbols-outlined text-[18px]">refresh</span>
           Reintentar
@@ -250,7 +250,7 @@ function AdminProductoForm() {
                 type="button"
                 onClick={() => setConfirmandoBorrado(false)}
                 disabled={eliminando}
-                className="font-label-md text-label-md rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
+                className="font-label-lg text-label-lg rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline disabled:opacity-60"
               >
                 Cancelar
               </button>
@@ -258,7 +258,7 @@ function AdminProductoForm() {
                 type="button"
                 onClick={eliminarProducto}
                 disabled={eliminando}
-                className="font-label-md text-label-md inline-flex items-center gap-2 rounded-lg bg-error px-5 py-3 uppercase tracking-widest text-on-error disabled:opacity-60"
+                className="font-label-lg text-label-lg inline-flex items-center gap-2 rounded-lg bg-error px-5 py-3 uppercase tracking-widest text-on-error disabled:opacity-60"
               >
                 {eliminando ? <Spinner className="h-4 w-4 text-on-error" decorativo /> : null}
                 Eliminar

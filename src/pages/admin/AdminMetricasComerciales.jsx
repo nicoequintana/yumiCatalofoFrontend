@@ -245,7 +245,7 @@ function AdminMetricasComerciales() {
               type="button"
               aria-pressed={estado === filtro.valor}
               onClick={() => setEstado(filtro.valor)}
-              className={`font-label-md text-label-md rounded-lg border px-4 py-2 uppercase tracking-widest ${
+              className={`font-label-lg text-label-lg rounded-lg border px-4 py-2 uppercase tracking-widest ${
                 estado === filtro.valor
                   ? "border-primary bg-primary text-on-primary"
                   : "border-outline-variant text-on-surface-variant hover:border-outline"

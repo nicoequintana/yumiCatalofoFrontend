@@ -71,7 +71,7 @@ function BotonCompartir({ producto }) {
       // empujaría esa fila 26px hacia abajo, así que se estira solo el blanco
       // de click. El ancho ya sobra (102px medidos) y `before:w-full` copia el
       // propio para no invadir al vecino.
-      className={`font-label-md text-label-md inline-flex items-center gap-2 text-on-surface-variant hover:text-on-surface ${AREA_TACTIL_ANCHA}`}
+      className={`font-label-lg text-label-lg inline-flex items-center gap-2 text-on-surface-variant hover:text-on-surface ${AREA_TACTIL_ANCHA}`}
     >
       {/* `aria-hidden`: sin esto el ligature del ícono entra en el nombre
             accesible y un lector de pantalla anuncia "share Compartir". Verificado

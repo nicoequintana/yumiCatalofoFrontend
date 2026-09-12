@@ -89,7 +89,7 @@ function PantallaDeError() {
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="font-label-md text-label-md mt-2 inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
+        className="font-label-lg text-label-lg mt-2 inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
       >
         Recargar la página
       </button>

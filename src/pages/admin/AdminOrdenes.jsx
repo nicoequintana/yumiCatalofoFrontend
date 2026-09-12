@@ -410,7 +410,7 @@ function AdminOrdenes() {
           <BotonActualizar onActualizar={() => setRefresco((n) => n + 1)} actualizando={cargando} />
           <Link
             to="/catalogo/admin/ordenes/productos-solicitados"
-            className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+            className="font-label-lg text-label-lg inline-flex items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
               inventory_2

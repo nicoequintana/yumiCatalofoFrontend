@@ -72,10 +72,10 @@ const PORCENTAJE_INICIAL = 5;
  * horizontal, porque ya sobran de ancho.
  */
 const claseCtaPrimario =
-  "font-label-md text-label-md inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60";
+  "font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90 disabled:opacity-60";
 
 const claseBotonPaginador =
-  "font-label-md text-label-md inline-flex min-h-11 items-center justify-center rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40";
+  "font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center rounded-lg border border-outline-variant px-4 py-2 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40";
 
 const claseBotonFila =
   "font-label-sm text-label-sm inline-flex min-h-11 items-center justify-center rounded-lg px-3 py-2 uppercase tracking-widest disabled:opacity-60";

@@ -70,7 +70,7 @@ export default function CalendarioComercial({
           <button
             type="button"
             onClick={() => onCambiarMes(null)}
-            className={`font-label-md text-label-md ${claseNavegacion} px-4 py-2 uppercase tracking-widest`}
+            className={`font-label-lg text-label-lg ${claseNavegacion} px-4 py-2 uppercase tracking-widest`}
           >
             Hoy
           </button>

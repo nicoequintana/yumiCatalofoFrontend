@@ -338,14 +338,14 @@ export default function AdminCampanias() {
                 <button
                   type="button"
                   onClick={() => setProgramando(claveDia)}
-                  className="font-label-md text-label-md inline-flex min-h-11 items-center rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container"
+                  className="font-label-lg text-label-lg inline-flex min-h-11 items-center rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container"
                 >
                   Programar promoción
                 </button>
                 <button
                   type="button"
                   onClick={() => abrirAlta(claveDia)}
-                  className="font-label-md text-label-md inline-flex min-h-11 items-center rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
+                  className="font-label-lg text-label-lg inline-flex min-h-11 items-center rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-opacity hover:opacity-90"
                 >
                   Nueva campaña
                 </button>
@@ -440,7 +440,7 @@ export default function AdminCampanias() {
                   onClick={() => alternarProgramacion(programacionAbierta)}
                   // `min-h-11` ADEMÁS del `py-3`, mismo criterio que
                   // `claseAccion` acá abajo: el mínimo táctil es un PISO.
-                  className={`font-label-md text-label-md inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 py-3 uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-60 ${
+                  className={`font-label-lg text-label-lg inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 py-3 uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-60 ${
                     programacionAbierta.habilitada
                       ? "bg-surface-container text-on-surface"
                       : "bg-primary text-on-primary"
@@ -581,7 +581,7 @@ function FilaCampania({ campania, guardando, onAbrir, onAlternarEstado }) {
  * cargados.
  */
 const claseAccion =
-  "font-label-md text-label-md inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-60";
+  "font-label-lg text-label-lg inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-outline-variant px-4 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-60";
 
 /**
  * `min-h-11` va ADEMÁS del `py-2`, nunca en lugar de él (mismo criterio que

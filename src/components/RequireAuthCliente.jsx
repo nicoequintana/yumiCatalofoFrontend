@@ -82,7 +82,7 @@ function RequireAuthCliente() {
             // recargar, y el guard ya está montado — la pantalla se quedaría
             // con el spinner girando para siempre.
             onClick={() => refrescarPerfil()}
-            className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-8 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
+            className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center rounded-full bg-primary px-8 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
           >
             Reintentar
           </button>

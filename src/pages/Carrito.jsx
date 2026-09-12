@@ -146,7 +146,7 @@ function Carrito() {
             />
             <Link
               to="/coleccion"
-              className="font-label-md text-label-md -mt-12 mb-4 inline-flex min-h-11 items-center rounded-full bg-primary px-8 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
+              className="font-label-lg text-label-lg -mt-12 mb-4 inline-flex min-h-11 items-center rounded-full bg-primary px-8 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
             >
               Ver el catálogo
             </Link>
@@ -218,7 +218,7 @@ function Carrito() {
                         type="button"
                         onClick={() => quitar(l.productId)}
                         aria-label="Quitar producto no disponible del carrito"
-                        className="font-label-md text-label-md text-on-error-container underline"
+                        className="font-label-lg text-label-lg text-on-error-container underline"
                       >
                         Quitar
                       </button>
@@ -234,7 +234,7 @@ function Carrito() {
                           <button
                             type="button"
                             onClick={() => actualizarCantidad(l.productId, l.producto.stock)}
-                            className="font-label-md text-label-md shrink-0 text-on-error-container underline"
+                            className="font-label-lg text-label-lg shrink-0 text-on-error-container underline"
                           >
                             Ajustar a {l.producto.stock}
                           </button>
@@ -250,7 +250,7 @@ function Carrito() {
                         type="button"
                         onClick={() => quitar(l.productId)}
                         aria-label="Eliminar del carrito"
-                        className="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant hover:text-error"
+                        className="inline-flex items-center gap-1 font-label-lg text-label-lg text-on-surface-variant hover:text-error"
                       >
                         <span className="material-symbols-outlined text-[18px]">delete</span>
                         Eliminar
@@ -297,7 +297,7 @@ function Carrito() {
               <button
                 type="button"
                 disabled
-                className="font-label-md text-label-md inline-flex cursor-not-allowed items-center justify-center rounded-full bg-surface-container-high px-8 py-4 text-center uppercase tracking-widest text-on-surface-variant"
+                className="font-label-lg text-label-lg inline-flex cursor-not-allowed items-center justify-center rounded-full bg-surface-container-high px-8 py-4 text-center uppercase tracking-widest text-on-surface-variant"
               >
                 Continuar
               </button>
@@ -308,7 +308,7 @@ function Carrito() {
               // acciones distintas, y la que promete menos es la que cobra.
               <Link
                 to="/checkout"
-                className="font-label-md text-label-md inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
+                className="font-label-lg text-label-lg inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container"
               >
                 Continuar
               </Link>

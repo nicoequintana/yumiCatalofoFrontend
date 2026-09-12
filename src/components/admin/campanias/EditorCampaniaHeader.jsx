@@ -92,7 +92,7 @@ export default function EditorCampaniaHeader({
                 type="button"
                 disabled={guardando}
                 onClick={onEliminar}
-                className="font-label-md text-label-md mr-3 inline-flex min-h-11 items-center gap-2 rounded-lg border border-error px-5 py-3 uppercase tracking-widest text-error transition-colors hover:bg-error-container disabled:opacity-60"
+                className="font-label-lg text-label-lg mr-3 inline-flex min-h-11 items-center gap-2 rounded-lg border border-error px-5 py-3 uppercase tracking-widest text-error transition-colors hover:bg-error-container disabled:opacity-60"
               >
                 <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
                   delete
@@ -122,7 +122,7 @@ export default function EditorCampaniaHeader({
             type="submit"
             form="form-campania"
             disabled={guardando}
-            className="font-label-md text-label-md inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container disabled:opacity-60"
+            className="font-label-lg text-label-lg inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container disabled:opacity-60"
           >
             {guardando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
             {guardando ? "Guardando…" : "Guardar"}
@@ -147,4 +147,4 @@ export default function EditorCampaniaHeader({
  * "Eliminar") daban **41 de alto** a 1280px, porque comparten esta caja.
  */
 const claseAccion =
-  "font-label-md text-label-md inline-flex min-h-11 items-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:border-outline disabled:opacity-60";
+  "font-label-lg text-label-lg inline-flex min-h-11 items-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:border-outline disabled:opacity-60";

@@ -123,7 +123,7 @@ function SeccionGenerarImagenes({ productoId }) {
         // Sin referencias el pedido no puede prosperar: el flujo usa
         // gpt-image-1 en modo `edit`, que necesita imagen de entrada.
         disabled={enviando || excedido || archivos.length === 0}
-        className="font-label-md text-label-md inline-flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-3 uppercase tracking-widest text-on-primary hover:opacity-90 disabled:opacity-60"
+        className="font-label-lg text-label-lg inline-flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-3 uppercase tracking-widest text-on-primary hover:opacity-90 disabled:opacity-60"
       >
         {enviando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
         {/* Dos textos distintos durante el envío: comprimir 4 imágenes toma

@@ -52,7 +52,7 @@ function construirRango(pagina, totalPaginas) {
  * que había, que era el mismo tipo de piso pero 4px corto.
  */
 const CLASE_BOTON =
-  "font-label-md text-label-md inline-flex h-10 min-h-11 min-w-11 items-center justify-center rounded-lg border border-outline-variant px-3 text-on-surface-variant transition-colors hover:border-outline hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-outline-variant";
+  "font-label-lg text-label-lg inline-flex h-10 min-h-11 min-w-11 items-center justify-center rounded-lg border border-outline-variant px-3 text-on-surface-variant transition-colors hover:border-outline hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-outline-variant";
 
 function Paginador({ pagina, totalPaginas, onCambiar, etiqueta }) {
   // Con una sola página no hay nada que navegar: mostrar un paginador inerte
@@ -92,7 +92,7 @@ function Paginador({ pagina, totalPaginas, onCambiar, etiqueta }) {
                 aria-current={entrada === pagina ? "page" : undefined}
                 className={
                   entrada === pagina
-                    ? "font-label-md text-label-md inline-flex h-10 min-h-11 min-w-11 items-center justify-center rounded-lg border border-primary bg-primary px-3 text-on-primary"
+                    ? "font-label-lg text-label-lg inline-flex h-10 min-h-11 min-w-11 items-center justify-center rounded-lg border border-primary bg-primary px-3 text-on-primary"
                     : CLASE_BOTON
                 }
               >

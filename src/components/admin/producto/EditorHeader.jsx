@@ -62,7 +62,7 @@ function EditorHeader({
           <button
             type="button"
             onClick={onEliminar}
-            className="font-label-md text-label-md mr-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-error px-5 py-3 uppercase tracking-widest text-error hover:bg-error-container"
+            className="font-label-lg text-label-lg mr-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-error px-5 py-3 uppercase tracking-widest text-error hover:bg-error-container"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
               delete
@@ -73,7 +73,7 @@ function EditorHeader({
         <button
           type="button"
           onClick={onCancelar}
-          className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
+          className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant px-5 py-3 uppercase tracking-widest text-on-surface-variant hover:border-outline"
         >
           Cancelar
         </button>
@@ -82,7 +82,7 @@ function EditorHeader({
           form="form-producto"
           onClick={onGuardar}
           disabled={guardando}
-          className="font-label-md text-label-md inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+          className="font-label-lg text-label-lg inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
         >
           {guardando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
           {guardando ? "Guardando…" : "Guardar"}

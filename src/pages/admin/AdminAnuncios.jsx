@@ -192,7 +192,7 @@ function AdminAnuncios() {
   // fila de acciones en dos renglones. Con los botones de reordenar ya en 44,
   // la fila mide 68 de alto y las áreas de dos filas consecutivas no se tocan.
   const claseAccion =
-    `font-label-md text-label-md inline-flex items-center gap-1 uppercase tracking-widest hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`;
+    `font-label-lg text-label-lg inline-flex items-center gap-1 uppercase tracking-widest hover:underline disabled:opacity-60 max-md:min-h-11 ${AREA_TACTIL_ANCHA}`;
 
   return (
     <main className="w-full px-4 py-6 md:px-8 md:py-8">
@@ -234,7 +234,7 @@ function AdminAnuncios() {
         <button
           type="submit"
           disabled={creando}
-          className="font-label-md text-label-md inline-flex h-max min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
+          className="font-label-lg text-label-lg inline-flex h-max min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 uppercase tracking-widest text-on-primary hover:bg-primary-container disabled:opacity-60"
         >
           {creando ? <Spinner className="h-4 w-4 text-on-primary" decorativo /> : null}
           Agregar
