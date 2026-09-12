@@ -37,9 +37,10 @@ const DESTINOS = [{ to: "/", texto: "Inicio", esActivo: (pathname) => pathname =
  * isla no se monta: esa pantalla tiene su propia barra de compra fija abajo y
  * la isla le tapaba el botón "Agregar" (ver el guard en `NavFlotante.jsx`).
  *
- * **No hay ícono de cuenta**, aunque el mockup lo mostraba: este proyecto no
- * tiene login público — el checkout es de invitado por DNI. Un ícono de persona
- * sería un control que no lleva a ninguna parte.
+ * **El ícono de cuenta lleva siempre a `/cuenta`**, con sesión o sin ella: el
+ * guard `RequireAuthCliente` manda al login cuando hace falta y vuelve al
+ * destino. Decidir acá qué mostrar obligaría al Navbar a consultar el perfil en
+ * cada pantalla del sitio para un link que el guard ya resuelve solo.
  *
  * **La lupa navega a `/coleccion`, no abre un input acá.** El buscador real es
  * el de `FiltrosCatalogo`, que además escribe el término en la URL; un segundo
@@ -268,6 +269,12 @@ function Navbar() {
               <Link to="/coleccion" aria-label="Buscar productos" className={claseAccion}>
                 <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
                   search
+                </span>
+              </Link>
+
+              <Link to="/cuenta" aria-label="Ir a mi cuenta" className={claseAccion}>
+                <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
+                  person
                 </span>
               </Link>
 

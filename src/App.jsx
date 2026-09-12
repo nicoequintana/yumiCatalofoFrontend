@@ -55,6 +55,33 @@ const AdminMetricasComerciales = lazy(
 // para no sumar peso al bundle público, que nunca lo necesita.
 const NoEncontradoAdmin = lazy(() => import("./components/admin/NoEncontradoAdmin.jsx"));
 
+// Las pantallas de cuenta entran bajo demanda por el mismo motivo que el
+// admin: quien llega a mirar el catálogo no necesita descargarse el login, el
+// registro ni "Mis pedidos". `RequireAuthCliente` va `lazy` también — mantenerlo
+// síncrono mientras todo lo que envuelve es `lazy` no ahorra nada y rompe el
+// patrón.
+const RequireAuthCliente = lazy(() => import("./components/RequireAuthCliente.jsx"));
+const Entrar = lazy(() => import("./pages/cuenta/Entrar.jsx"));
+const EntrarCodigo = lazy(() => import("./pages/cuenta/EntrarCodigo.jsx"));
+const Registro = lazy(() => import("./pages/cuenta/Registro.jsx"));
+const Verificar = lazy(() => import("./pages/cuenta/Verificar.jsx"));
+const Completar = lazy(() => import("./pages/cuenta/Completar.jsx"));
+const Olvide = lazy(() => import("./pages/cuenta/Olvide.jsx"));
+const Restablecer = lazy(() => import("./pages/cuenta/Restablecer.jsx"));
+const CambiarEmail = lazy(() => import("./pages/cuenta/CambiarEmail.jsx"));
+const ConfirmarEmail = lazy(() => import("./pages/cuenta/ConfirmarEmail.jsx"));
+const MiCuenta = lazy(() => import("./pages/cuenta/MiCuenta.jsx"));
+const MisPedidos = lazy(() => import("./pages/cuenta/MisPedidos.jsx"));
+const PedidoDetalle = lazy(() => import("./pages/cuenta/PedidoDetalle.jsx"));
+
+// El mismo fallback para las trece pantallas de cuenta: repetirlo inline en
+// cada `Suspense` era catorce copias del mismo div.
+const fallbackPantalla = (
+  <div className="flex min-h-[50vh] items-center justify-center text-on-surface-variant">
+    <Spinner className="h-8 w-8" />
+  </div>
+);
+
 // Admin routes reestructuradas per
 // docs/superpowers/specs/2026-08-16-admin-sidebar-design.md: dejan de
 // compartir el `Layout` público (Navbar/Footer) y pasan a vivir bajo
@@ -73,13 +100,41 @@ function App() {
         <Route path="/coleccion/categoria/:slugCategoria" element={<Coleccion />} />
         <Route path="/favoritos" element={<Favoritos />} />
         <Route path="/carrito" element={<Carrito />} />
-        <Route path="/checkout" element={<Checkout />} />
         <Route path="/checkout/confirmacion" element={<OrdenConfirmada />} />
         <Route path="/producto/:idSlug" element={<ProductoDetalle />} />
         {/* El login vive en el `Layout` público (con Navbar/Footer) porque
             todavía no hay sesión, pero es una pantalla del admin y también se
             carga bajo demanda. Como el resto de ese branch es síncrono, lleva
             su propio `Suspense` en vez de apoyarse en el de `AdminLayout`. */}
+        {/* Pantallas de cuenta SIN guard: todavía no hay sesión, o el flujo
+            mismo ES la forma de conseguirla (verificar, recuperar). */}
+        <Route path="/cuenta/entrar" element={<Suspense fallback={fallbackPantalla}><Entrar /></Suspense>} />
+        <Route path="/cuenta/entrar/codigo" element={<Suspense fallback={fallbackPantalla}><EntrarCodigo /></Suspense>} />
+        <Route path="/cuenta/registro" element={<Suspense fallback={fallbackPantalla}><Registro /></Suspense>} />
+        <Route path="/cuenta/verificar" element={<Suspense fallback={fallbackPantalla}><Verificar /></Suspense>} />
+        <Route path="/cuenta/olvide" element={<Suspense fallback={fallbackPantalla}><Olvide /></Suspense>} />
+        <Route path="/cuenta/restablecer" element={<Suspense fallback={fallbackPantalla}><Restablecer /></Suspense>} />
+        <Route path="/cuenta/email/confirmar" element={<Suspense fallback={fallbackPantalla}><ConfirmarEmail /></Suspense>} />
+
+        {/* Pantallas que EXIGEN sesión (y perfil completo salvo
+            /cuenta/completar, que RequireAuthCliente deja pasar aunque falte un
+            dato: es la pantalla que lo completa). /checkout entra ACÁ y dejó de
+            ser público. /checkout/confirmacion NO se mueve: a esa altura la
+            orden ya se creó, y negarle ver la confirmación por una sesión que
+            venció en el medio no protege nada.
+
+            Las hijas no llevan su propio Suspense: cuelgan de la ruta del
+            guard, que ya está envuelta, y el guard tiene que renderizar ANTES
+            de que exista la pantalla hija. */}
+        <Route element={<Suspense fallback={fallbackPantalla}><RequireAuthCliente /></Suspense>}>
+          <Route path="/cuenta" element={<MiCuenta />} />
+          <Route path="/cuenta/completar" element={<Completar />} />
+          <Route path="/cuenta/email" element={<CambiarEmail />} />
+          <Route path="/cuenta/pedidos" element={<MisPedidos />} />
+          <Route path="/cuenta/pedidos/:id" element={<PedidoDetalle />} />
+          <Route path="/checkout" element={<Checkout />} />
+        </Route>
+
         <Route
           path="/catalogo/admin/login"
           element={

@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, useLocation, useNavigationType } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.jsx";
 import { getToken } from "./api/authClient.js";
+import usePerfilCliente from "./hooks/usePerfilCliente.js";
 
 // Mismo patrón que RequireAuth.test.jsx: se mockea el módulo de auth entero
 // para no depender del localStorage roto de este entorno (ver el comentario
@@ -37,6 +38,21 @@ vi.mock("./pages/admin/AdminMetricasComerciales.jsx", () => ({
 vi.mock("./pages/admin/AdminCampanias.jsx", () => ({
   default: () => <p>pantalla: editor de campañas</p>,
 }));
+
+vi.mock("./hooks/usePerfilCliente.js", () => ({
+  default: vi.fn(),
+  invalidarPerfil: vi.fn(),
+  refrescarPerfil: vi.fn(),
+}));
+
+// Todas las pantallas de /cuenta hacen su propio fetch al montar (perfil,
+// pedidos): se reemplazan por una cáscara mínima, mismo criterio que las
+// pantallas de analytics de más arriba — acá se verifica a qué RUTA resuelve
+// la navegación, no el contenido de la pantalla de destino.
+vi.mock("./pages/cuenta/Entrar.jsx", () => ({ default: () => <p>pantalla: entrar</p> }));
+vi.mock("./pages/cuenta/MiCuenta.jsx", () => ({ default: () => <p>pantalla: mi cuenta</p> }));
+vi.mock("./pages/cuenta/Completar.jsx", () => ({ default: () => <p>pantalla: completar</p> }));
+vi.mock("./pages/cuenta/MisPedidos.jsx", () => ({ default: () => <p>pantalla: pedidos</p> }));
 
 /**
  * JWT de juguete con `exp` futuro, codificado en base64url real — mismo
@@ -138,5 +154,48 @@ describe("la trampa: /analytics/campanias no le roba la ruta al editor", () => {
 
     expect(await screen.findByText("pantalla: métricas comerciales")).toBeInTheDocument();
     expect(screen.queryByText("pantalla: editor de campañas")).toBeNull();
+  });
+});
+
+describe("rutas de cuenta de cliente", () => {
+  it("/cuenta/entrar es pública, no exige perfil", async () => {
+    vi.mocked(usePerfilCliente).mockReturnValue({ perfil: null, resuelto: true, error: null });
+    renderEnRuta("/cuenta/entrar");
+    expect(await screen.findByText("pantalla: entrar")).toBeInTheDocument();
+  });
+
+  it("/cuenta sin perfil redirige a /cuenta/entrar (vía RequireAuthCliente)", async () => {
+    vi.mocked(usePerfilCliente).mockReturnValue({ perfil: null, resuelto: true, error: null });
+    renderEnRuta("/cuenta");
+    expect(await screen.findByText("pantalla: entrar")).toBeInTheDocument();
+  });
+
+  it("/cuenta con perfil completo muestra Mi cuenta", async () => {
+    vi.mocked(usePerfilCliente).mockReturnValue({
+      perfil: { id: 1, nombre: "A", telefono: "1", dni: "111" },
+      resuelto: true,
+      error: null,
+    });
+    renderEnRuta("/cuenta");
+    expect(await screen.findByText("pantalla: mi cuenta")).toBeInTheDocument();
+  });
+
+  it("/checkout con perfil completo monta el checkout, ya no el público sin guard", async () => {
+    vi.mocked(usePerfilCliente).mockReturnValue({
+      perfil: { id: 1, nombre: "A", telefono: "1", dni: "111" },
+      resuelto: true,
+      error: null,
+    });
+    renderEnRuta("/checkout");
+    // Checkout.jsx real se monta acá (no está mockeado): con el carrito vacío
+    // redirige a /carrito, y que la sonda termine ahí —y no en /cuenta/entrar—
+    // es justamente la prueba de que pasó el guard.
+    await waitFor(() => expect(screen.getByTestId("sonda-ruta")).toHaveTextContent("/carrito"));
+  });
+
+  it("/checkout sin perfil redirige a /cuenta/entrar", async () => {
+    vi.mocked(usePerfilCliente).mockReturnValue({ perfil: null, resuelto: true, error: null });
+    renderEnRuta("/checkout");
+    expect(await screen.findByText("pantalla: entrar")).toBeInTheDocument();
   });
 });
