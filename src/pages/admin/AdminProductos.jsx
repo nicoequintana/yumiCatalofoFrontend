@@ -988,9 +988,9 @@ function AdminProductos() {
                   <ThOrdenable etiqueta="SKU" asc="sku-asc" desc="sku-desc" orden={orden} onOrden={cambiarOrden} />
                   <ThOrdenable etiqueta="Etiqueta" asc="etiqueta-asc" desc="etiqueta-desc" orden={orden} onOrden={cambiarOrden} secundaria />
                   <ThOrdenable etiqueta="Categoría" asc="categoria-asc" desc="categoria-desc" orden={orden} onOrden={cambiarOrden} secundaria />
-                  <ThOrdenable etiqueta="Precio" asc="precio-asc" desc="precio-desc" orden={orden} onOrden={cambiarOrden} />
-                  <ThOrdenable etiqueta="Stock" asc="stock-asc" desc="stock-desc" orden={orden} onOrden={cambiarOrden} />
-                  <ThOrdenable etiqueta="Fotos" asc="fotos-asc" desc="fotos-desc" orden={orden} onOrden={cambiarOrden} secundaria />
+                  <ThOrdenable etiqueta="Precio" asc="precio-asc" desc="precio-desc" orden={orden} onOrden={cambiarOrden} claseExtra={claseNumero} />
+                  <ThOrdenable etiqueta="Stock" asc="stock-asc" desc="stock-desc" orden={orden} onOrden={cambiarOrden} claseExtra={claseNumero} />
+                  <ThOrdenable etiqueta="Fotos" asc="fotos-asc" desc="fotos-desc" orden={orden} onOrden={cambiarOrden} secundaria claseExtra={claseNumero} />
                   <ThOrdenable etiqueta="Catálogo" asc="visible-asc" desc="visible-desc" orden={orden} onOrden={cambiarOrden} />
                   <ThOrdenable etiqueta="Destacado" asc="destacado-asc" desc="destacado-desc" orden={orden} onOrden={cambiarOrden} />
                 </tr>

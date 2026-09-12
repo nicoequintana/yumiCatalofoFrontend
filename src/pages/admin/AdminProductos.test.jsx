@@ -781,3 +781,38 @@ describe("AdminProductos — área táctil de 44×44", () => {
     }
   });
 });
+
+describe("AdminProductos — alineación de las columnas numéricas", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    productsApi.getProducts.mockResolvedValue(pagina([PRODUCTO]));
+  });
+
+  it("los encabezados numéricos se alinean igual que sus números", async () => {
+    renderPagina();
+    await screen.findByText("Reloj Clásico");
+    const tabla = screen.getByRole("table");
+
+    // Un `<th>` a la izquierda sobre celdas alineadas a la derecha se lee como
+    // si los datos estuvieran corridos de columna: el rótulo pegado al borde
+    // izquierdo y su número al derecho, con el ancho de la columna entre los
+    // dos. El `md:` es el mismo de las celdas (`claseNumero`): debajo de ese
+    // ancho la tabla se apila, el thead queda sr-only y no hay qué alinear.
+    //
+    // El th se busca por `data-titulo` y no por nombre accesible: el
+    // `textContent` de un encabezado ordenable suma el botón, la flecha y el
+    // fallback textual de mobile.
+    for (const titulo of ["Precio", "Stock", "Fotos"]) {
+      const th = tabla.querySelector(`th[data-titulo="${titulo}"]`);
+      expect(th, `falta el encabezado ${titulo}`).not.toBeNull();
+      expect(th.className.split(" ")).toContain("md:text-right");
+    }
+
+    // Los de texto NO se tocan: alinear "Nombre" a la derecha sería el error
+    // simétrico.
+    for (const titulo of ["Nombre", "SKU", "Categoría"]) {
+      const th = tabla.querySelector(`th[data-titulo="${titulo}"]`);
+      expect(th.className.split(" ")).not.toContain("md:text-right");
+    }
+  });
+});
