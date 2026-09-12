@@ -3,7 +3,9 @@ import {
   crearProductoDeTest,
   borrarProductoDeTest,
   borrarOrdenDeTest,
-  crearDniDeTest,
+  crearCuentaClienteDeTest,
+  borrarCuentaClienteDeTest,
+  iniciarSesionCliente,
   prisma,
 } from "./helpers/db.js";
 import { neutralizarContextoComercial } from "./helpers/contextoComercial.js";
@@ -11,20 +13,23 @@ import { neutralizarContextoComercial } from "./helpers/contextoComercial.js";
 const NOMBRE_CLIENTE_TEST = "E2E-TEST-Cliente Playwright";
 
 /**
- * Sprint 7, Task 1 — Escenario 1: flujo feliz completo de guest checkout.
+ * Flujo feliz de checkout AUTENTICADO (reescrito en la Parte 5 de cuentas de
+ * cliente — antes probaba el checkout de invitado; `/checkout` pasó a vivir
+ * bajo `RequireAuthCliente`, que es INCONDICIONAL: no mira ningún flag, así
+ * que un comprador sin sesión nunca ve el formulario, con o sin
+ * `CHECKOUT_REQUIERE_CUENTA`).
  *
  * Catálogo -> detalle -> agregar al carrito con cantidad -> /carrito ->
- * editar cantidad -> /checkout -> completar datos -> confirmar ->
- * confirmación -> verificar la orden creada directamente en la DB (Prisma,
- * no HTTP: más simple y no depende de que exista una segunda pantalla que
- * muestre el detalle de la orden al cliente).
+ * editar cantidad -> /checkout (redirige a login) -> login -> vuelve a
+ * /checkout con el carrito intacto -> confirmar (ya NO pide email, sale de
+ * la cuenta) -> confirmación -> verificar la orden en la DB, con
+ * `cuentaClienteId` puesto.
  *
  * Requiere el backend real corriendo aparte (ver playwright.config.js y
  * e2e/README.md) contra la base de datos de desarrollo real — no hay mocks
  * ni base de datos de test separada.
  */
-
-test.describe("Flujo feliz — checkout de invitado", () => {
+test.describe("Flujo feliz — checkout autenticado", () => {
   // El modal de campaña es `fixed inset-0` e intercepta el primer click de
   // cualquier página. Se neutraliza el contexto comercial para que estos
   // specs no dependan de si hay una campaña prendida en la base de dev.
@@ -33,19 +38,17 @@ test.describe("Flujo feliz — checkout de invitado", () => {
   });
 
   let producto;
-  let dniTest;
+  let cuentaInfo;
 
   test.beforeEach(async ({ page }) => {
     producto = await crearProductoDeTest({
       nombre: "E2E-TEST-Producto Flujo Feliz",
       precio: "2500",
     });
-    // Generado ANTES del checkout (no recién al leer la orden de vuelta),
-    // así el cleanup de abajo puede encontrar al cliente/orden por este dni
-    // aunque el test falle a mitad de camino, entre el submit y la lectura
-    // final de la DB — sin esto, una falla ahí dejaría el Cliente/Orden
-    // huérfanos hasta el próximo `limpiarTodoRastroDeTest()`.
-    dniTest = crearDniDeTest();
+    cuentaInfo = await crearCuentaClienteDeTest({
+      nombre: NOMBRE_CLIENTE_TEST,
+      telefono: "1122334455",
+    });
 
     // Carrito vive en localStorage — arrancar cada test sin residuo de una
     // corrida anterior en el mismo browser/contexto.
@@ -54,129 +57,103 @@ test.describe("Flujo feliz — checkout de invitado", () => {
   });
 
   test.afterEach(async () => {
-    // Busca por dni en vez de depender de una variable seteada a mitad del
-    // test: así el cleanup corre igual aunque la aserción que hubiera
-    // guardado el id explícitamente nunca se llegue a ejecutar.
-    const clienteEnDb = await prisma.cliente.findUnique({ where: { dni: dniTest } }).catch(() => null);
-    if (clienteEnDb) {
-      const ordenEnDb = await prisma.orden.findFirst({ where: { clienteId: clienteEnDb.id } }).catch(() => null);
-      if (ordenEnDb) {
-        await borrarOrdenDeTest(ordenEnDb.id, clienteEnDb.id);
-      } else {
-        await prisma.cliente.delete({ where: { id: clienteEnDb.id } }).catch(() => {});
-      }
+    const ordenEnDb = await prisma.orden
+      .findFirst({ where: { cuentaClienteId: cuentaInfo.cuenta.id } })
+      .catch(() => null);
+    if (ordenEnDb) {
+      await borrarOrdenDeTest(ordenEnDb.id, ordenEnDb.clienteId ?? undefined);
     }
-
+    await borrarCuentaClienteDeTest(cuentaInfo.cuenta.id);
     if (producto?.id) {
       await borrarProductoDeTest(producto.id);
     }
   });
 
-  test("catálogo -> detalle -> carrito -> checkout -> confirmación, con orden verificada en DB", async ({
+  test("catálogo -> detalle -> carrito -> login -> checkout -> confirmación, orden con cuenta verificada en DB", async ({
     page,
   }) => {
-    // 1. Colección: buscar el producto de test por nombre (search es texto
-    // libre contra `nombre`, ver Coleccion.jsx/FiltrosCatalogo.jsx) y navegar
-    // a su detalle. Usar el buscador evita depender de en qué posición del
-    // grid cae la card entre productos reales de dev.
-    await page.goto("/coleccion");
-    await page
-      .getByPlaceholder(/buscar/i)
-      .fill("E2E-TEST-Producto Flujo Feliz");
+    await test.step("agregar el producto al carrito desde el catálogo", async () => {
+      await page.goto("/coleccion");
+      await page.getByPlaceholder(/buscar/i).fill("E2E-TEST-Producto Flujo Feliz");
+      // El input de búsqueda debouncea 350ms antes de escribir a la URL y
+      // recién ahí dispara el refetch — esperar a que la URL refleje el
+      // filtro evita clickear el link justo en medio de ese re-render.
+      await expect(page).toHaveURL(/search=E2E-TEST-Producto/);
 
-    // El input de búsqueda debouncea 350ms antes de escribir a la URL (ver
-    // Coleccion.jsx's DEBOUNCE_SEARCH_MS) y recién ahí dispara el refetch que
-    // vuelve a renderizar el grid de resultados. Esperar a que la URL refleje
-    // el filtro evita clickear el link justo en medio de ese re-render (el
-    // nodo del link puede desmontarse/remontarse al llegar la respuesta).
-    await expect(page).toHaveURL(/search=E2E-TEST-Producto/);
+      const linkProducto = page.getByRole("link", { name: /E2E-TEST-Producto Flujo Feliz/i });
+      await expect(linkProducto).toBeVisible();
+      await linkProducto.click();
 
-    const linkProducto = page.getByRole("link", { name: /E2E-TEST-Producto Flujo Feliz/i });
-    await expect(linkProducto).toBeVisible();
-    await linkProducto.click();
+      // `(-|$)`: las URLs de producto son `/producto/{id}-{slug}`. El `$`
+      // anclado al id importa: sin él, `/producto/52` matchearía también
+      // `/producto/5289`.
+      await expect(page).toHaveURL(new RegExp(`/producto/${producto.id}(-|$)`));
+      await page.getByRole("button", { name: "Aumentar cantidad" }).click();
+      await page.getByRole("button", { name: /agregar al carrito/i }).click();
+      await expect(page.getByRole("button", { name: /agregado/i })).toBeVisible();
 
-    // `(-|$)`: las URLs de producto son `/producto/{id}-{slug}` desde el
-    // 24/08/2026 (`feat(seo): usar URLs con slug en los links de producto`).
-    // El `$` anclado al id venía fallando desde entonces. El borde importa:
-    // sin él, `/producto/52` matchearía también `/producto/5289`.
-    await expect(page).toHaveURL(new RegExp(`/producto/${producto.id}(-|$)`));
-    await expect(page.getByRole("heading", { name: "E2E-TEST-Producto Flujo Feliz" })).toBeVisible();
+      await page.goto("/carrito");
+      const linea = page.getByRole("listitem").filter({ hasText: "E2E-TEST-Producto Flujo Feliz" });
+      await expect(linea).toBeVisible();
+      await linea.getByRole("button", { name: "Aumentar cantidad" }).click();
+      await expect(page.getByTestId("carrito-total")).toHaveText("$ 7.500"); // 2500 x 3
 
-    // 2. Detalle: subir la cantidad a 2 con el SelectorCantidad y agregar al
-    // carrito.
-    await page.getByRole("button", { name: "Aumentar cantidad" }).click();
-    await page.getByRole("button", { name: /agregar al carrito/i }).click();
-    await expect(page.getByRole("button", { name: /agregado/i })).toBeVisible();
-
-    // 3. /carrito: la línea aparece con cantidad 2 y precio correcto.
-    await page.goto("/carrito");
-    const linea = page.getByRole("listitem").filter({ hasText: "E2E-TEST-Producto Flujo Feliz" });
-    await expect(linea).toBeVisible();
-    await expect(linea.getByText("$ 2.500")).toBeVisible(); // precio unitario
-    await expect(linea.getByText("$ 5.000")).toBeVisible(); // subtotal (2 x 2500)
-
-    const totalAntes = page.getByTestId("carrito-total");
-    await expect(totalAntes).toHaveText("$ 5.000");
-
-    // Editar la cantidad a 3 vía SelectorCantidad y verificar que el total
-    // se actualiza (2500 x 3 = 7500).
-    await linea.getByRole("button", { name: "Aumentar cantidad" }).click();
-    await expect(linea.getByText("$ 7.500")).toBeVisible();
-    await expect(page.getByTestId("carrito-total")).toHaveText("$ 7.500");
-
-    // 4. CTA "Continuar" — debe ser un <Link> real y habilitado (no
-    // aria-disabled), ver Carrito.jsx. Un carrito sano con un único producto
-    // válido nunca cae en la rama <button disabled>. Dice "Continuar" y no
-    // "Confirmar pedido" a propósito: acá todavía no se compra nada, y ese
-    // copy es del botón del checkout, que sí crea la orden.
-    const ctaContinuar = page.getByRole("link", { name: "Continuar" });
-    await expect(ctaContinuar).toBeVisible();
-    await ctaContinuar.click();
-
-    await expect(page).toHaveURL(/\/checkout$/);
-
-    // 5. Completar el formulario de checkout con datos marcados como test.
-    await page.getByLabel("DNI").fill(dniTest);
-    await page.getByLabel("Nombre").fill(NOMBRE_CLIENTE_TEST);
-    await page.getByLabel("Teléfono").fill("1122334455");
-    await page.getByLabel("Email").fill("flujo-feliz-e2e@example.com");
-
-    // 6. Submit — un solo click. El botón se deshabilita mientras está en
-    // vuelo (`enviando`), así que un segundo click deliberado sería un no-op
-    // por el propio `disabled`; no hace falta (ni conviene) simular un
-    // double-click acá, alcanza con esperar la navegación resultante.
-    await page.getByRole("button", { name: "Confirmar pedido" }).click();
-
-    // 7. Confirmación.
-    await expect(page).toHaveURL(/\/checkout\/confirmacion$/);
-    await expect(page.getByText("¡Pedido confirmado!")).toBeVisible();
-    await expect(page.getByText(/Orden #\d+ recibida/)).toBeVisible();
-    await expect(page.getByText(/3 × E2E-TEST-Producto Flujo Feliz/)).toBeVisible();
-
-    // 8. Verificación directa en la DB — no tautológica: se relee la orden
-    // recién creada desde Prisma (no desde lo que la UI acaba de mostrar) y
-    // se comparan sus campos contra los valores esperados de punta a punta.
-    const clienteEnDb = await prisma.cliente.findUnique({ where: { dni: dniTest } });
-    expect(clienteEnDb).not.toBeNull();
-    expect(clienteEnDb.nombre).toBe(NOMBRE_CLIENTE_TEST);
-    expect(clienteEnDb.telefono).toBe("1122334455");
-
-    const ordenEnDb = await prisma.orden.findFirst({
-      where: { clienteId: clienteEnDb.id },
-      include: { items: true },
-      orderBy: { createdAt: "desc" },
+      await page.getByRole("link", { name: "Continuar" }).click();
     });
-    expect(ordenEnDb).not.toBeNull();
 
-    expect(ordenEnDb.items).toHaveLength(1);
-    const item = ordenEnDb.items[0];
-    expect(item.productId).toBe(producto.id);
-    expect(item.nombreProducto).toBe("E2E-TEST-Producto Flujo Feliz");
-    // Se compara numéricamente y no como string exacto: la columna es
-    // `Decimal(10, 0)`, pero cómo el driver mssql serializa ese Decimal a
-    // string no es una garantía del proyecto. Lo que importa para la
-    // integridad del snapshot es el VALOR.
-    expect(parseFloat(item.precioUnitario.toString())).toBe(2500);
-    expect(item.cantidad).toBe(3);
+    await test.step("sin sesión, /checkout redirige a /cuenta/entrar con volverA", async () => {
+      // Este es el comportamiento NUEVO que ningún otro spec afirma
+      // explícitamente: el guard es incondicional, así que llegar a
+      // /checkout sin sesión SIEMPRE cae acá, nunca al formulario.
+      await expect(page).toHaveURL(`/cuenta/entrar?volverA=${encodeURIComponent("/checkout")}`);
+    });
+
+    await test.step("login -> vuelve a /checkout con el carrito intacto", async () => {
+      await iniciarSesionCliente(page, {
+        email: cuentaInfo.cuenta.email,
+        password: cuentaInfo.password,
+        tokenDispositivo: cuentaInfo.tokenDispositivo,
+      });
+      // `iniciarSesionCliente` navega de entrada a `/cuenta/entrar` PELADO
+      // (sin el `volverA` que el guard había puesto en la URL), así que el
+      // login exitoso cae en el destino por defecto de Entrar.jsx (`/cuenta`),
+      // no de vuelta en `/checkout`. Se vuelve a navegar a mano: el carrito
+      // sigue en localStorage y el login no lo toca.
+      await page.goto("/checkout");
+      await expect(page).toHaveURL(/\/checkout$/);
+      await expect(page.getByText(/E2E-TEST-Producto Flujo Feliz/)).toBeVisible();
+    });
+
+    await test.step("el formulario ya NO pide email (viene de la cuenta) y confirma el pedido", async () => {
+      await expect(page.getByLabel("Email")).toHaveCount(0);
+      await expect(page.getByText(cuentaInfo.cuenta.email)).toBeVisible();
+
+      await page.getByRole("button", { name: "Confirmar pedido" }).click();
+
+      await expect(page).toHaveURL(/\/checkout\/confirmacion$/);
+      await expect(page.getByText("¡Pedido confirmado!")).toBeVisible();
+      await expect(page.getByText(/Orden #\d+ recibida/)).toBeVisible();
+      await expect(page.getByText(/3 × E2E-TEST-Producto Flujo Feliz/)).toBeVisible();
+    });
+
+    await test.step("verificación directa en la DB: la orden tiene cuentaClienteId, y el contacto es el de la cuenta", async () => {
+      const ordenEnDb = await prisma.orden.findFirst({
+        where: { cuentaClienteId: cuentaInfo.cuenta.id },
+        include: { items: true, cliente: true },
+        orderBy: { createdAt: "desc" },
+      });
+      expect(ordenEnDb).not.toBeNull();
+      expect(ordenEnDb.cuentaClienteId).toBe(cuentaInfo.cuenta.id);
+
+      expect(ordenEnDb.items).toHaveLength(1);
+      const item = ordenEnDb.items[0];
+      expect(item.productId).toBe(producto.id);
+      // Se compara numéricamente y no como string exacto: la columna es
+      // `Decimal(10, 0)`, y cómo el driver mssql serializa ese Decimal a
+      // string no es una garantía del proyecto. Lo que importa acá es el
+      // VALOR.
+      expect(parseFloat(item.precioUnitario.toString())).toBe(2500);
+      expect(item.cantidad).toBe(3);
+    });
   });
 });
