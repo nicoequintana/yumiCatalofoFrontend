@@ -96,15 +96,41 @@ describe("usePerfilCliente — falla de red o 503", () => {
     expect(result.current.error).toBe("No pudimos verificar tu sesión.");
   });
 
-  it("un 503 VERIFICACION_NO_DISPONIBLE también deja error, no sesión ausente", async () => {
+  it("un 503 VERIFICACION_NO_DISPONIBLE deja error, no sesión ausente, con el texto del backend", async () => {
+    // El cuerpo es el REAL: `errorHandler.js` emite `{error, codigo}` en todo
+    // error, y `verificacionNoDisponible()` arma ese mensaje exacto —
+    // terminado en ", reintentá.", que NO es el genérico de este módulo. Esa
+    // diferencia es a propósito: con el texto genérico acá, el test pasaría
+    // igual si la rama que hace eco del `error` del backend desapareciera.
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
         respuesta(503, {
-          error: "No pudimos verificar tu sesión.",
+          error: "No pudimos verificar tu sesión, reintentá.",
           codigo: "VERIFICACION_NO_DISPONIBLE",
         }),
       ),
+    );
+
+    const { result } = renderHook(() => usePerfilCliente());
+    await waitFor(() => expect(result.current.resuelto).toBe(true));
+
+    expect(result.current.perfil).toBeNull();
+    expect(result.current.error).toBe("No pudimos verificar tu sesión, reintentá.");
+  });
+
+  it("un 502 con cuerpo ilegible cae al mensaje genérico, no a un error vacío", async () => {
+    // El 502/504 de nginx con el backend caído trae HTML: `parsearCuerpo`
+    // devuelve `null` y no hay ningún `error` del que hacer eco. Es la rama
+    // `?? MENSAJE_ERROR`, y necesita su propio caso: el del 503 de arriba
+    // nunca la toca.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        status: 502,
+        ok: false,
+        text: () => Promise.resolve("<html>502 Bad Gateway</html>"),
+      }),
     );
 
     const { result } = renderHook(() => usePerfilCliente());

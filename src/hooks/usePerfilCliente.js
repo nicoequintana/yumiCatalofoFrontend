@@ -6,11 +6,17 @@ const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/ap
 
 /**
  * El perfil de la cuenta de cliente, cacheado a nivel de módulo — mismo patrón
- * que `useContextoComercial.js` (un fetch por carga de página, compartido entre
- * todos los consumidores), pero SIN keyear por token: acá no hay token que
- * leer, la sesión vive en una cookie `httpOnly` que el frontend no puede
- * inspeccionar. Por eso tampoco se mira `exp`: la autoridad sobre "¿hay
- * sesión?" es siempre `GET /api/cuenta`.
+ * de listeners que `useContextoComercial.js`, pero SIN keyear por token: acá no
+ * hay token que leer, la sesión vive en una cookie `httpOnly` que el frontend
+ * no puede inspeccionar. Por eso tampoco se mira `exp`: la autoridad sobre
+ * "¿hay sesión?" es siempre `GET /api/cuenta`.
+ *
+ * DIFERENCIA con `useContextoComercial`, que cachea para toda la carga de
+ * página: acá la deduplicación es **por tanda de montajes**, no por página.
+ * `promesaEnVuelo` se suelta al terminar la request, así que un montaje
+ * POSTERIOR revalida contra el backend. Es a propósito y es lo que hace que
+ * `invalidarPerfil()` funcione sin disparar nada por su cuenta: una campaña de
+ * temporada puede quedar vieja hasta un F5, una sesión vencida no.
  *
  * `RequireAuthCliente` es el único consumidor que decide navegación a partir de
  * esto; `MiCuenta.jsx` y `Checkout.jsx` lo leen para mostrar datos.
