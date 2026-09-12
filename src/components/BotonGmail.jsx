@@ -89,9 +89,19 @@ function BotonGmail({ onCredential, onNoDisponible }) {
         });
 
         if (contenedorRef.current) {
+          // Google dibuja SU botón dentro de un iframe: no se puede restilar
+          // por CSS. Estos son los únicos parámetros que la API expone
+          // (`GsiButtonConfiguration`), y son lo más cerca que se llega del
+          // pill de ancho completo del diseño. `width` acepta hasta 400px; el
+          // contenedor de la pantalla mide 384.
           window.google.accounts.id.renderButton(contenedorRef.current, {
             type: "standard",
+            theme: "outline",
+            size: "large",
+            shape: "pill",
+            logo_alignment: "center",
             text: "signin_with",
+            width: "384",
             locale: "es",
           });
         }

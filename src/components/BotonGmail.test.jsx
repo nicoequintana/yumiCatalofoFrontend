@@ -67,7 +67,12 @@ describe("BotonGmail — con Client ID", () => {
     expect(renderButton).toHaveBeenCalledTimes(1);
     expect(renderButton.mock.calls[0][1]).toMatchObject({
       type: "standard",
+      theme: "outline",
+      size: "large",
+      shape: "pill",
+      logo_alignment: "center",
       text: "signin_with",
+      width: "384",
       locale: "es",
     });
   });
