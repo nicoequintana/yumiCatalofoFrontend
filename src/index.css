@@ -107,6 +107,59 @@
      contrato de dos puntas que `navbar-height`/`topbar-admin`
      (tailwind.config.js). */
   --alto-cinta-ambiente: 0px;
+
+  /* Sistema tipográfico responsive. Mismo mecanismo que los colores de
+     arriba: `tailwind.config.js` solo referencia estas variables con
+     `var(--fs-x)`/`var(--lh-x)`, así que un `fontSize` nuevo sin su par acá
+     no emite ningún tamaño — se cae al heredado, sin error ni warning.
+
+     El peso NO es una custom property: es fijo por token y va directo en
+     `tailwind.config.js`, como el resto de la escala.
+
+     Valores de MOBILE. Los seis tokens que cambian en escritorio (≥1024px)
+     se redefinen más abajo, en `@media (min-width: 1024px)`. */
+  --fs-display-xl: 32px;
+  --lh-display-xl: 1.12;
+  --fs-display-lg: 28px;
+  --lh-display-lg: 1.15;
+  --fs-headline-lg: 24px;
+  --lh-headline-lg: 1.2;
+  --fs-headline-md: 20px;
+  --lh-headline-md: 1.25;
+  --fs-headline-sm: 17px;
+  --lh-headline-sm: 1.35;
+  --fs-body-lg: 16px;
+  --lh-body-lg: 1.5;
+  /* `body-md` NO BAJA de 16px en mobile: ver el comentario extenso en
+     `tailwind.config.js` sobre el zoom de iOS en los campos de formulario. */
+  --fs-body-md: 16px;
+  --lh-body-md: 1.55;
+  /* `label-lg` con interlineado 1.0: la tabla lo pide así para que el texto
+     de un botón se centre con flex, no con interlínea. */
+  --fs-label-lg: 16px;
+  --lh-label-lg: 1;
+  --fs-body-sm: 14px;
+  --lh-body-sm: 1.45;
+  --fs-label-sm: 12px;
+  --lh-label-sm: 1.35;
+  --fs-label-md: 14px;
+  --lh-label-md: 1.45;
+}
+
+/* Desktop (≥1024px, el mismo corte que ya usan `Catalogo.jsx` y
+   `NoEncontrado.jsx` para alternar tipografía): solo los tokens que la tabla
+   define con un tamaño de escritorio distinto del de mobile. El resto
+   (`body-md`, `label-lg`, `body-sm`, `label-sm`, `label-md`) no tiene entrada
+   acá a propósito — se quedan en el valor de mobile de arriba. */
+@media (min-width: 1024px) {
+  :root, .paleta-clara {
+    --fs-display-xl: 52px;
+    --fs-display-lg: 44px;
+    --fs-headline-lg: 34px;
+    --fs-headline-md: 26px;
+    --fs-headline-sm: 20px;
+    --fs-body-lg: 18px;
+  }
 }
 
 /* `:has()` ya es un requisito del proyecto (tabla apilada, más abajo). Donde

@@ -91,62 +91,47 @@ export default {
       },
       // Sin serifas en todo el sitio, a propósito: "Libre Caslon Text" (la
       // serif de titulares del mockup original) se sacó por completo — los
-      // seis tokens de headline/display quedan en la misma sans que el body.
+      // tokens de headline/display quedan en la misma sans que el body.
       fontFamily: {
         "headline-md": ["Plus Jakarta Sans", "sans-serif"],
-        "headline-lg-mobile": ["Plus Jakarta Sans", "sans-serif"],
+        "headline-sm": ["Plus Jakarta Sans", "sans-serif"],
         "label-sm": ["Plus Jakarta Sans", "sans-serif"],
         "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
         "label-md": ["Plus Jakarta Sans", "sans-serif"],
         "label-lg": ["Plus Jakarta Sans", "sans-serif"],
         "display-lg": ["Plus Jakarta Sans", "sans-serif"],
         "display-xl": ["Plus Jakarta Sans", "sans-serif"],
-        "display-xl-mobile": ["Plus Jakarta Sans", "sans-serif"],
         "body-lg": ["Plus Jakarta Sans", "sans-serif"],
         "body-md": ["Plus Jakarta Sans", "sans-serif"],
+        "body-sm": ["Plus Jakarta Sans", "sans-serif"],
       },
+      // Sistema tipográfico responsive (guía tipográfica del 12/09/2026): el
+      // TAMAÑO de cada token vive en una custom property de `index.css`
+      // (`--fs-<token>`, `--lh-<token>`) y acá solo se referencia con `var()`
+      // — Tailwind no puede alternar un `fontSize` por media query, así que el
+      // cambio entre mobile y escritorio (corte a 1024px) lo hace la media
+      // query de `index.css` redefiniendo la custom property, sin tocar esta
+      // lista ni ningún call site. Mismo patrón que ya usan los colores del
+      // proyecto: valores en `index.css`, referencia acá.
+      //
+      // El PESO sí es fijo por token y vive acá, no en una variable: la tabla
+      // no lo hace responsive.
+      //
+      // `display-xl-mobile` y `headline-lg-mobile` (y sus `font-*-mobile`
+      // pareados) se dieron de baja: existían solo para simular a mano lo que
+      // ahora hace la media query. `headline-sm` y `body-sm` son nuevos: el
+      // panel admin y `SlideCampania.jsx` ya los usaban en el markup sin que
+      // tuvieran CSS detrás (ver `PENDIENTES_SIN_DEFINIR` en
+      // `src/tokens.test.js`, ahora vacío).
       fontSize: {
-        // Escala bajada un peldaño el 12/09/2026, a pedido: los títulos y las
-        // etiquetas se leían grandes en pantallas angostas. Bajaron TODOS menos
-        // `body-md`, que se queda en 16px — ver el comentario sobre él.
-        //
-        // `headline-lg` y `headline-lg-mobile` se mueven SIEMPRE JUNTOS: son el
-        // par de un mismo título. Bajar solo el de escritorio deja el título más
-        // grande en el teléfono que en la compu, que es al revés de lo que hace
-        // el resto de la escala.
-        "headline-md": ["20px", { lineHeight: "1.3", fontWeight: "600" }],
-        "headline-lg-mobile": ["23px", { lineHeight: "1.2", fontWeight: "600" }],
-        "label-sm": ["11px", { lineHeight: "1.2", letterSpacing: "0.08em", fontWeight: "500" }],
-        "headline-lg": ["26px", { lineHeight: "1.2", fontWeight: "600" }],
-        "label-md": ["13px", { lineHeight: "1.2", letterSpacing: "0.05em", fontWeight: "600" }],
-        // El peldaño que faltaba entre `label-md` y `body-md`: sin él, un título
-        // se resolvía más LIVIANO que el subtítulo de 13/600 que lleva debajo, y
-        // no había forma de que dominara a su propio subtítulo.
-        //
-        // Queda 1px por DEBAJO de `body-md` y eso es correcto: lo que lo hace
-        // leer como título no es el tamaño sino el peso (600 contra 400).
-        // `body-md` no puede bajar con el resto de la escala (ver su comentario),
-        // así que la jerarquía de este par la sostiene el peso.
-        //
-        // `text-label-lg` ya se escribía en el markup (`CartelCampania.jsx`, y
-        // desde el rediseño también `MiCuenta.jsx`) sin que el token existiera:
-        // Tailwind no emite CSS para un token que no está y la clase queda de
-        // adorno, sin error ni warning. El guard vive en `src/tokens.test.js`.
-        "label-lg": ["15px", { lineHeight: "1.4", letterSpacing: "0.01em", fontWeight: "600" }],
-        "display-lg": ["48px", { lineHeight: "1.1", fontWeight: "700" }],
-        // Hero headline. Split into a desktop and a mobile token (instead of a
-        // single fluid `clamp()`) to match the `headline-lg` / `headline-lg-mobile`
-        // pair already in this file: `fontSize` tokens carry weight and tracking
-        // too, and those differ between the two sizes — a 72px headline needs
-        // tighter tracking than a 44px one to read as one block.
-        "display-xl": ["72px", { lineHeight: "1.05", letterSpacing: "-0.03em", fontWeight: "700" }],
-        "display-xl-mobile": [
-          "44px",
-          { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700" },
-        ],
-        "body-lg": ["17px", { lineHeight: "1.6", fontWeight: "400" }],
+        "display-xl": ["var(--fs-display-xl)", { lineHeight: "var(--lh-display-xl)", letterSpacing: "-0.03em", fontWeight: "800" }],
+        "display-lg": ["var(--fs-display-lg)", { lineHeight: "var(--lh-display-lg)", fontWeight: "700" }],
+        "headline-lg": ["var(--fs-headline-lg)", { lineHeight: "var(--lh-headline-lg)", fontWeight: "700" }],
+        "headline-md": ["var(--fs-headline-md)", { lineHeight: "var(--lh-headline-md)", fontWeight: "600" }],
+        "headline-sm": ["var(--fs-headline-sm)", { lineHeight: "var(--lh-headline-sm)", fontWeight: "600" }],
+        "body-lg": ["var(--fs-body-lg)", { lineHeight: "var(--lh-body-lg)", fontWeight: "400" }],
         // ┌──────────────────────────────────────────────────────────────────┐
-        // │ `body-md` NO BAJA DE 16px. No es una preferencia estética.       │
+        // │ `body-md` NO BAJA DE 16px, ni en mobile ni en desktop.           │
         // └──────────────────────────────────────────────────────────────────┘
         //
         // Es el tamaño de los CONTROLES DE FORMULARIO: lo consumen
@@ -157,14 +142,20 @@ export default {
         // mitad de un checkout. Se ve como un bug del sitio y no hay forma de
         // desactivarlo desde CSS (el `maximum-scale` del viewport lo ignora iOS
         // desde hace años, y usarlo rompe el zoom manual de quien lo necesita).
-        //
-        // Cuando el 12/09/2026 se bajó un peldaño el resto de la escala, este
-        // token se dejó donde estaba por ese motivo. Si algún día hay que
-        // bajarlo igual, primero hay que darle a los controles de formulario un
-        // tamaño propio de 16px — no alcanza con una regla base en `index.css`,
-        // porque una utilidad de Tailwind en el `class` le gana por
-        // especificidad a cualquier selector de elemento.
-        "body-md": ["16px", { lineHeight: "1.6", fontWeight: "400" }],
+        // Por eso `--fs-body-md` no tiene entrada en la media query de
+        // `index.css`: se queda en 16px en los dos anchos.
+        "body-md": ["var(--fs-body-md)", { lineHeight: "var(--lh-body-md)", fontWeight: "400" }],
+        // CTA/Botones. `lineHeight: 1.0` porque la tabla lo pide "centrado":
+        // el texto se centra con flex en el markup del botón, no con
+        // interlineado. No cambia en escritorio, mismo criterio que `body-md`.
+        "label-lg": ["var(--fs-label-lg)", { lineHeight: "var(--lh-label-lg)", letterSpacing: "0.01em", fontWeight: "600" }],
+        "body-sm": ["var(--fs-body-sm)", { lineHeight: "var(--lh-body-sm)", fontWeight: "400" }],
+        "label-sm": ["var(--fs-label-sm)", { lineHeight: "var(--lh-label-sm)", letterSpacing: "0.08em", fontWeight: "600" }],
+        // Perdió su rol de botón (ver `label-lg`): queda como variante de Body
+        // Small a 14px/500. El tracking de 0.05em se conserva de la escala
+        // anterior; la tabla no dice nada sobre letterSpacing y tocarlo no es
+        // parte de esta migración.
+        "label-md": ["var(--fs-label-md)", { lineHeight: "var(--lh-label-md)", letterSpacing: "0.05em", fontWeight: "500" }],
       },
       boxShadow: {
         // Promoted from a raw CSS class (catalogo.html L103: `.ambient-shadow`) and
