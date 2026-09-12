@@ -51,6 +51,9 @@ export default {
         "moss-green": "rgb(var(--color-moss-green) / <alpha-value>)",
         "golden-sand": "rgb(var(--color-golden-sand) / <alpha-value>)",
         "cream-base": "rgb(var(--color-cream-base) / <alpha-value>)",
+        // Teal de marca (el del logo). Ver el comentario en `index.css`: es
+        // fijo, no cambia con el tema del admin.
+        "brand-teal": "rgb(var(--color-brand-teal) / <alpha-value>)",
       },
       borderRadius: {
         DEFAULT: "0.25rem",

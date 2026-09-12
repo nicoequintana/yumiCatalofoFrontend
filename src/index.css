@@ -5,7 +5,7 @@
 /* `.paleta-clara` comparte el bloque de `:root` A PROPOSITO: es la unica forma
    de forzar la paleta del catalogo dentro del panel sin escribir los 34 tokens
    una cuarta vez. El proyecto ya sostiene tres copias sincronizadas a mano
-   (`:root`, `[data-tema-admin="oscuro"]` y `tailwind.config.js`); una cuarta,
+   (`:root`, el bloque oscuro del admin y `tailwind.config.js`); una cuarta,
    ademas parcial, se desincronizaria sin que nada falle.
 
    Funciona por herencia: un elemento con esta clase adentro de un `<html>` en
@@ -85,6 +85,18 @@
   --color-moss-green: 96 108 56; /* #606c38 */
   --color-golden-sand: 233 196 106; /* #e9c46a */
   --color-cream-base: 255 248 245; /* #fff8f5 */
+  /* Teal de marca. Hasta ahora este color vivía SOLO como píxel del logo (ver
+     el comentario de `.logo-yima` más abajo): "un píxel, no un token". Se lo
+     promueve para que las pantallas de cuenta puedan usarlo sin hardcodearlo.
+
+     NO se declara en el tema oscuro del admin A PROPÓSITO. Es un color de
+     MARCA, fijo: no debe cambiar entre claro y oscuro. Al no overridearlo,
+     hereda de `:root`, que es exactamente lo que se busca — no es una copia
+     que falte, y completarla cambiaría el color en pantalla.
+
+     Contraste: blanco sobre este teal da 6.14:1 y este teal sobre
+     `background` da 5.85:1. Los dos pasan WCAG AA. */
+  --color-brand-teal: 26 106 128; /* #1a6a80 */
 
   /* Alto de la cinta "Ambiente de testing" (CintaAmbiente.jsx). Vale 0 salvo
      que la cinta exista en el DOM: así las barras sticky (Navbar, la barra
