@@ -25,10 +25,20 @@ function restaurarLocation() {
 }
 
 function respuesta(status, body) {
+  // Single-shot A PROPÓSITO: un `Response` real deja leer el cuerpo UNA sola
+  // vez. Con un helper que devolvía una promesa nueva en cada llamada, una
+  // regresión que volviera a leer el cuerpo —el defecto que tenía la rama del
+  // reintento— pasaba la suite en verde y recién explotaba contra el backend
+  // real. Acá falla en el test, que es donde tiene que fallar.
+  let leido = false;
   return {
     status,
     ok: status >= 200 && status < 300,
-    text: () => Promise.resolve(body === undefined ? "" : JSON.stringify(body)),
+    text: () => {
+      if (leido) throw new TypeError("body stream already read");
+      leido = true;
+      return Promise.resolve(body === undefined ? "" : JSON.stringify(body));
+    },
   };
 }
 
@@ -60,6 +70,26 @@ describe("pedirCliente — camino feliz", () => {
 
     expect(body).toEqual({ ok: true });
     expect(fetchMock.mock.calls[0][1]).toMatchObject({ credentials: "include" });
+  });
+
+  it("NO deja que el call site pise credentials", async () => {
+    // `credentials` se fuerza DESPUÉS del spread de options. Si alguien
+    // reordenara a `{ credentials: "include", ...options }`, la cookie de
+    // sesión dejaría de viajar y TODA request autenticada respondería 401 —
+    // sin que ningún otro test se entere. Este es el que se entera.
+    const fetchMock = mockFetchSecuencia([respuesta(200, { ok: true })]);
+
+    await pedirCliente("http://api.test/api/cuenta", { credentials: "omit" });
+
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ credentials: "include" });
+  });
+
+  it("devuelve null cuando el cuerpo viene vacío (el 204 de POST /cuenta/salir)", async () => {
+    mockFetchSecuencia([respuesta(204)]);
+
+    const body = await pedirCliente("http://api.test/api/cuenta/salir", { method: "POST" });
+
+    expect(body).toBeNull();
   });
 });
 

@@ -92,7 +92,9 @@ function resolver({ res, body }) {
  * @param {string} url URL absoluta del endpoint.
  * @param {object} [options] opciones de fetch; `credentials` se ignora.
  * @returns {Promise<any>} el cuerpo parseado (`null` si vino vacío, p. ej. un 204).
- * @throws {Error} con `.status` y, si el backend los mandó, `.codigo` y `.motivo`.
+ * @throws {Error} con `.status` cuando la respuesta LLEGÓ (un timeout de
+ *   `fetchConTimeout` o una caída de red rechazan sin `.status`), y con
+ *   `.codigo`/`.motivo` si además el backend los mandó.
  */
 export async function pedirCliente(url, options = {}) {
   const primera = await pedirUnaVez(url, options);
