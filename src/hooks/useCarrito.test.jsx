@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import useCarrito, { STORAGE_KEY } from "./useCarrito.js";
+import useCarrito, { STORAGE_KEY, storageDisponible } from "./useCarrito.js";
 
 // Fake de Storage para los tests que necesitan un localStorage FUNCIONAL
 // (lectura inicial con basura, evento `storage` de otra pestaña). El global
@@ -433,5 +433,48 @@ describe("useCarrito — sincronización entre pestañas (evento storage)", () =
     // Sin instancias montadas no hay a quién notificar; el estado del último
     // render queda como estaba (el próximo mount relee storage igual).
     expect(result.current.carrito).toEqual([]);
+  });
+});
+
+// Nombres propios (Sonda) para no chocar con `localStorageOriginal` /
+// `instalarStorage` / `restaurarStorage` ya declarados arriba en este mismo
+// archivo — el brief de la tarea reusaba esos nombres, pero son const/function
+// de módulo y no se pueden redeclarar.
+const localStorageOriginalSonda = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+
+function instalarStorageSonda({ falla = false } = {}) {
+  const datos = new Map();
+  const falso = {
+    getItem: (clave) => (datos.has(clave) ? datos.get(clave) : null),
+    setItem: (clave, valor) => {
+      if (falla) throw new Error("SecurityError: storage bloqueado");
+      datos.set(clave, valor);
+    },
+    removeItem: (clave) => datos.delete(clave),
+  };
+  Object.defineProperty(globalThis, "localStorage", { value: falso, configurable: true, writable: true });
+}
+
+function restaurarStorageSonda() {
+  if (localStorageOriginalSonda) {
+    Object.defineProperty(globalThis, "localStorage", localStorageOriginalSonda);
+  } else {
+    delete globalThis.localStorage;
+  }
+}
+
+describe("storageDisponible", () => {
+  afterEach(() => {
+    restaurarStorageSonda();
+  });
+
+  it("true cuando localStorage anda: escribe y borra una clave de sonda", () => {
+    instalarStorageSonda();
+    expect(storageDisponible()).toBe(true);
+  });
+
+  it("false cuando localStorage lanza al escribir (storage bloqueado)", () => {
+    instalarStorageSonda({ falla: true });
+    expect(storageDisponible()).toBe(false);
   });
 });

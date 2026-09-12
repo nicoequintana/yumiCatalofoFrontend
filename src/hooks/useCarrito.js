@@ -3,6 +3,27 @@ import { useEffect, useState } from "react";
 export const STORAGE_KEY = "yumi-carrito";
 const listeners = new Set();
 
+/**
+ * ¿Se puede escribir en localStorage AHORA? No cachea: un storage bloqueado
+ * puede desbloquearse entre un chequeo y el siguiente (el usuario cambia el
+ * permiso del sitio sin recargar), así que cada llamado prueba de nuevo.
+ *
+ * Se prueba con un ESCRIBE+BORRA real, no con `typeof localStorage`: un
+ * storage "bloqueado por política" (Chrome, "bloquear todas las cookies")
+ * existe como objeto pero lanza `SecurityError` recién al usarlo — la
+ * detección tiene que ejercitarlo, no solo verificar que exista.
+ */
+export function storageDisponible() {
+  try {
+    const clave = "__yumi_sonda__";
+    localStorage.setItem(clave, "1");
+    localStorage.removeItem(clave);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Una línea corrupta en storage (cantidad null/"abc"/negativa, id inválido —
 // posible por una versión vieja del shape o una edición manual) produciría
 // `cantidadTotal: NaN` en el badge del Navbar. Se filtra al leer: solo
