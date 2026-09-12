@@ -3,11 +3,12 @@ import BotonVolver from "../../components/BotonVolver.jsx";
 import CampoPassword from "../../components/CampoPassword.jsx";
 import usePerfilCliente from "../../hooks/usePerfilCliente.js";
 import { cambiarPassword } from "../../api/cuenta.js";
-
-const CLASES_CAMPO =
-  "rounded-2xl border border-outline-variant bg-surface-container-lowest py-3.5 pl-11 text-body-md text-on-surface focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/40";
-
-const CLASES_ETIQUETA = "text-label-sm uppercase tracking-wide text-on-surface-variant mb-1.5 block";
+import {
+  claseBotonPrimario,
+  claseCampoPassword,
+  claseEtiquetaSuelta,
+  clasePagina,
+} from "./clasesCuenta.js";
 
 function Seguridad() {
   const { perfil } = usePerfilCliente();
@@ -52,12 +53,12 @@ function Seguridad() {
   if (!perfil) return null;
 
   return (
-    <div className="mx-auto flex max-w-sm flex-col gap-6 px-margin-mobile py-16 md:px-margin-desktop">
+    <div className={clasePagina}>
       <BotonVolver fallback="/cuenta" destinoFijo etiqueta="Volver a mi cuenta" />
 
       <header className="flex flex-col gap-1.5">
         <h1 className="font-display-lg text-headline-lg text-on-background">Seguridad y acceso</h1>
-        <p className="text-body-md text-on-surface-variant">
+        <p className="font-body-md text-body-md text-on-surface-variant">
           Contraseña y datos de ingreso a tu cuenta.
         </p>
       </header>
@@ -69,43 +70,45 @@ function Seguridad() {
             onChange={setActual}
             etiqueta="Contraseña actual"
             etiquetaVisible
-            etiquetaClassName={CLASES_ETIQUETA}
+            etiquetaClassName={claseEtiquetaSuelta}
             autoComplete="current-password"
             required
             icono="lock"
-            className={CLASES_CAMPO}
+            className={claseCampoPassword}
           />
           <CampoPassword
             value={nueva}
             onChange={setNueva}
             etiqueta="Contraseña nueva"
             etiquetaVisible
-            etiquetaClassName={CLASES_ETIQUETA}
+            etiquetaClassName={claseEtiquetaSuelta}
             autoComplete="new-password"
             required
             icono="lock_reset"
-            className={CLASES_CAMPO}
+            className={claseCampoPassword}
           />
           {error ? (
-            <p role="alert" className="text-body-md text-error">
+            <p role="alert" className="font-body-md text-body-md text-error">
               {error}
             </p>
           ) : null}
           {actualizada ? (
-            <p className="text-body-md text-on-surface">Contraseña actualizada.</p>
+            <p role="status" className="font-body-md text-body-md text-on-surface">
+              Contraseña actualizada.
+            </p>
           ) : null}
           <button
             type="submit"
             disabled={cargando}
-            className="min-h-11 rounded-2xl bg-primary px-4 py-3.5 text-label-md text-on-primary disabled:opacity-50"
+            className={claseBotonPrimario}
           >
             {cargando ? "Guardando..." : "Guardar contraseña"}
           </button>
         </form>
       ) : (
         <div className="flex flex-col gap-2 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
-          <p className="text-body-md text-on-surface">Entrás a tu cuenta con Google.</p>
-          <p className="text-body-md text-on-surface-variant">
+          <p className="font-body-md text-body-md text-on-surface">Entrás a tu cuenta con Google.</p>
+          <p className="font-body-md text-body-md text-on-surface-variant">
             No tenés contraseña que cambiar. Si querés una, usá “¿Olvidaste tu contraseña?” en la
             pantalla de ingreso.
           </p>

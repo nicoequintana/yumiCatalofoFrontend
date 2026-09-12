@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import usePerfilCliente, { invalidarPerfil } from "../../hooks/usePerfilCliente.js";
 import useWhatsapp from "../../hooks/useWhatsapp.js";
 import { salirCuenta } from "../../api/cuenta.js";
+import { clasePaginaDensa } from "./clasesCuenta.js";
 
 /**
  * Iniciales para el avatar. Recibe el MISMO valor que se pinta como nombre
@@ -27,6 +28,16 @@ function iniciales(nombre) {
     .map((palabra) => palabra[0].toUpperCase())
     .join("");
 }
+
+/**
+ * El botón destructivo. Es la misma caja que `claseBotonPrimario` con el color
+ * del error, y se escribe entero a propósito: derivarlo con un `.replace()`
+ * sobre el string de clases es justo la clase de truco que Tailwind no puede
+ * ver —el escaneo del contenido no ejecuta JS— y que dejaría el botón sin CSS.
+ * Vive acá y no en `clasesCuenta.js` porque es de esta pantalla nada más.
+ */
+const CLASES_BOTON_SALIR =
+  "font-label-md text-label-md min-h-11 rounded-2xl bg-error px-4 py-3.5 text-on-error";
 
 const CLASES_FILA =
   "flex items-center justify-between gap-3 p-4 hover:bg-surface-container-low active:bg-surface-container";
@@ -96,7 +107,7 @@ function MiCuenta() {
   const nombreVisible = perfil.apodo || perfil.nombre;
 
   return (
-    <div className="mx-auto flex max-w-sm flex-col gap-4 px-margin-mobile py-16 md:px-margin-desktop">
+    <div className={clasePaginaDensa}>
       <header className="flex flex-col gap-1">
         <h1 className="font-display-lg text-headline-lg text-on-background">Mi cuenta</h1>
         <p className="font-body-md text-body-md text-on-surface-variant">
@@ -109,7 +120,7 @@ function MiCuenta() {
           <span
             data-testid="avatar-iniciales"
             aria-hidden="true"
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand-teal text-headline-md text-white"
+            className="font-headline-md text-headline-md flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand-teal text-white"
           >
             {iniciales(nombreVisible)}
           </span>
@@ -212,7 +223,7 @@ function MiCuenta() {
             <button
               type="button"
               onClick={handleCerrarSesion}
-              className="font-label-md text-label-md min-h-11 rounded-2xl bg-error px-4 py-3.5 text-on-error"
+              className={CLASES_BOTON_SALIR}
             >
               Confirmar cierre de sesión
             </button>

@@ -64,6 +64,20 @@ describe("Seguridad — cambiar contraseña", () => {
     });
   });
 
+  it("la confirmación se ANUNCIA con role=status, igual que el error con role=alert", async () => {
+    const user = userEvent.setup();
+    cuentaApi.cambiarPassword.mockResolvedValue({ ok: true });
+
+    renderSeguridad(PERFIL_LOCAL);
+    await user.type(screen.getByLabelText("Contraseña actual"), "vieja123");
+    await user.type(screen.getByLabelText("Contraseña nueva"), "nueva456");
+    await user.click(screen.getByRole("button", { name: "Guardar contraseña" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Contraseña actualizada."),
+    );
+  });
+
   it("una respuesta 409 (cambió por otro lado) muestra el mensaje del backend, sin romper la pantalla", async () => {
     const user = userEvent.setup();
     cuentaApi.cambiarPassword.mockRejectedValue(

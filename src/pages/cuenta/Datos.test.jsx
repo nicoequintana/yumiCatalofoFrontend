@@ -118,6 +118,17 @@ describe("Datos — edición del perfil", () => {
     expect(perfilCliente.refrescarPerfil).not.toHaveBeenCalled();
   });
 
+  it("los avisos se ANUNCIAN: el de éxito con role=status, el error con role=alert", async () => {
+    // El error ya llevaba `role="alert"`; el de éxito era un `<p>` pelado, así
+    // que un lector de pantalla no decía nada y la persona se quedaba sin
+    // saber si el guardado salió.
+    const user = userEvent.setup();
+    renderDatos(PERFIL);
+
+    await user.click(screen.getByRole("button", { name: "Guardar datos" }));
+    expect(screen.getByRole("status")).toHaveTextContent("No hay cambios para guardar.");
+  });
+
   it("con apodo null y sin tocar nada, NO manda apodo", () => {
     renderDatos({ ...PERFIL, apodo: null });
     expect(screen.getByLabelText("Apodo")).toHaveValue("");

@@ -2,11 +2,12 @@ import { useState } from "react";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import usePerfilCliente, { sincronizarPerfil } from "../../hooks/usePerfilCliente.js";
 import { actualizarPerfil } from "../../api/cuenta.js";
-
-const CLASES_CAMPO =
-  "w-full rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 py-3.5 text-body-md text-on-surface focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/40";
-
-const CLASES_ETIQUETA = "text-label-sm uppercase tracking-wide text-on-surface-variant";
+import {
+  claseBotonPrimario,
+  claseCampoSinIcono,
+  claseEtiqueta,
+  clasePagina,
+} from "./clasesCuenta.js";
 
 /**
  * Arma el cuerpo del PUT con los campos que REALMENTE cambiaron.
@@ -69,19 +70,19 @@ function Datos() {
   if (!perfil) return null;
 
   return (
-    <div className="mx-auto flex max-w-sm flex-col gap-6 px-margin-mobile py-16 md:px-margin-desktop">
+    <div className={clasePagina}>
       <BotonVolver fallback="/cuenta" destinoFijo etiqueta="Volver a mi cuenta" />
 
       <header className="flex flex-col gap-1.5">
         <h1 className="font-display-lg text-headline-lg text-on-background">Mis datos</h1>
-        <p className="text-body-md text-on-surface-variant">
+        <p className="font-body-md text-body-md text-on-surface-variant">
           Cómo te llamamos y cómo te contactamos por tus pedidos.
         </p>
       </header>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="datos-nombre" className={CLASES_ETIQUETA}>
+          <label htmlFor="datos-nombre" className={claseEtiqueta}>
             Nombre
           </label>
           <input
@@ -91,12 +92,12 @@ function Datos() {
             required
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
-            className={CLASES_CAMPO}
+            className={claseCampoSinIcono}
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="datos-telefono" className={CLASES_ETIQUETA}>
+          <label htmlFor="datos-telefono" className={claseEtiqueta}>
             Teléfono
           </label>
           <input
@@ -106,12 +107,12 @@ function Datos() {
             required
             value={telefono}
             onChange={(e) => setTelefono(e.target.value)}
-            className={CLASES_CAMPO}
+            className={claseCampoSinIcono}
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="datos-apodo" className={CLASES_ETIQUETA}>
+          <label htmlFor="datos-apodo" className={claseEtiqueta}>
             Apodo
           </label>
           <input
@@ -119,24 +120,28 @@ function Datos() {
             type="text"
             value={apodo}
             onChange={(e) => setApodo(e.target.value)}
-            className={CLASES_CAMPO}
+            className={claseCampoSinIcono}
           />
-          <p className="text-label-md text-on-surface-variant">
+          <p className="font-label-md text-label-md text-on-surface-variant">
             Opcional. Si lo cargás, es el nombre que ves en tu cuenta. Dejalo vacío para borrarlo.
           </p>
         </div>
 
         {error ? (
-          <p role="alert" className="text-body-md text-error">
+          <p role="alert" className="font-body-md text-body-md text-error">
             {error}
           </p>
         ) : null}
-        {aviso ? <p className="text-body-md text-on-surface">{aviso}</p> : null}
+        {aviso ? (
+          <p role="status" className="font-body-md text-body-md text-on-surface">
+            {aviso}
+          </p>
+        ) : null}
 
         <button
           type="submit"
           disabled={cargando}
-          className="min-h-11 rounded-2xl bg-primary px-4 py-3.5 text-label-md text-on-primary disabled:opacity-50"
+          className={claseBotonPrimario}
         >
           {cargando ? "Guardando..." : "Guardar datos"}
         </button>

@@ -6,6 +6,14 @@ import PuertaWhatsApp from "../../components/PuertaWhatsApp.jsx";
 import useCarrito, { storageDisponible } from "../../hooks/useCarrito.js";
 import { invalidarPerfil } from "../../hooks/usePerfilCliente.js";
 import { loginCuenta, loginGoogle } from "../../api/cuenta.js";
+import {
+  claseBotonPrimario,
+  claseCampoConIcono,
+  claseCampoPassword,
+  claseEtiqueta,
+  claseEtiquetaSuelta,
+  clasePagina,
+} from "./clasesCuenta.js";
 
 const DESTINO_POR_DEFECTO = "/cuenta";
 const FALLOS_ANTES_DE_PUERTA = 3;
@@ -87,16 +95,16 @@ function Entrar() {
   const avisoStorage = !storageDisponible() && carrito.length > 0;
 
   return (
-    <div className="mx-auto flex max-w-sm flex-col gap-6 px-margin-mobile py-16 md:px-margin-desktop">
+    <div className={clasePagina}>
       <header className="flex flex-col gap-1.5">
         <h1 className="font-display-lg text-headline-lg text-on-background">Iniciá sesión</h1>
-        <p className="text-body-md text-on-surface-variant">
+        <p className="font-body-md text-body-md text-on-surface-variant">
           Ingresá a tu cuenta para continuar con tus compras y pedidos.
         </p>
       </header>
 
       {avisoStorage ? (
-        <p className="rounded-lg bg-error-container px-4 py-3 text-body-md text-on-error-container">
+        <p className="font-body-md text-body-md rounded-lg bg-error-container px-4 py-3 text-on-error-container">
           Tu navegador está bloqueando el guardado. Si iniciás sesión ahora podés perder el
           carrito.
         </p>
@@ -106,7 +114,7 @@ function Entrar() {
         <div className="flex flex-col gap-1.5">
           <label
             htmlFor="entrar-email"
-            className="text-label-sm uppercase tracking-wide text-on-surface-variant"
+            className={claseEtiqueta}
           >
             Email
           </label>
@@ -125,7 +133,7 @@ function Entrar() {
               placeholder="tu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-2xl border border-outline-variant bg-surface-container-lowest py-3.5 pl-11 pr-4 text-body-md text-on-surface focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/40"
+              className={claseCampoConIcono}
             />
           </div>
         </div>
@@ -135,11 +143,11 @@ function Entrar() {
           onChange={setPassword}
           etiqueta="Contraseña"
           etiquetaVisible
-          etiquetaClassName="text-label-sm uppercase tracking-wide text-on-surface-variant mb-1.5 block"
+          etiquetaClassName={claseEtiquetaSuelta}
           autoComplete="current-password"
           required
           icono="lock"
-          className="rounded-2xl border border-outline-variant bg-surface-container-lowest py-3.5 pl-11 text-body-md text-on-surface focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/40"
+          className={claseCampoPassword}
         />
 
         {/* Sube desde el pie: el lugar donde se busca es al fallar la
@@ -147,21 +155,21 @@ function Entrar() {
         <div className="flex justify-end">
           <Link
             to="/cuenta/olvide"
-            className="text-label-md text-on-surface-variant underline underline-offset-4 hover:text-primary"
+            className="font-label-md text-label-md text-on-surface-variant underline underline-offset-4 hover:text-primary"
           >
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
 
         {error ? (
-          <p role="alert" className="text-body-md text-error">
+          <p role="alert" className="font-body-md text-body-md text-error">
             {error}
           </p>
         ) : null}
 
         {mostrarPuerta ? (
           <div className="flex flex-col gap-2 rounded-2xl bg-surface-container-lowest p-4">
-            <p className="text-body-md text-on-surface">
+            <p className="font-body-md text-body-md text-on-surface">
               Si olvidaste tu contraseña, podés recuperarla.
             </p>
             <PuertaWhatsApp />
@@ -171,7 +179,7 @@ function Entrar() {
         <button
           type="submit"
           disabled={cargando}
-          className="min-h-11 rounded-2xl bg-primary px-4 py-3.5 text-label-md text-on-primary disabled:opacity-50"
+          className={claseBotonPrimario}
         >
           {cargando ? "Ingresando..." : "Iniciar sesión"}
         </button>
@@ -184,7 +192,7 @@ function Entrar() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3" role="separator" aria-label="o continuar con">
             <span className="h-px flex-1 bg-outline-variant" />
-            <span aria-hidden="true" className="text-label-md text-on-surface-variant">
+            <span aria-hidden="true" className="font-label-md text-label-md text-on-surface-variant">
               o continuar con
             </span>
             <span className="h-px flex-1 bg-outline-variant" />
@@ -196,7 +204,7 @@ function Entrar() {
         </div>
       ) : null}
 
-      <p className="text-center text-body-md text-on-surface-variant">
+      <p className="font-body-md text-body-md text-center text-on-surface-variant">
         ¿No tenés cuenta?{" "}
         <Link to="/cuenta/registro" className="font-semibold text-primary underline underline-offset-4">
           Registrate
