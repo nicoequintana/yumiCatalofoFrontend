@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 
 const SRC_GIS = "https://accounts.google.com/gsi/client";
 const TIMEOUT_MS = 5000;
@@ -66,11 +65,7 @@ function BotonGmail({ onCredential, onNoDisponible }) {
     let activo = true;
     const timer = setTimeout(() => {
       if (!activo) return;
-      // `flushSync`: sin esto, con fake timers en el test el commit queda
-      // pendiente del scheduler de React (que usa MessageChannel, no
-      // mockeado) y `container` sigue mostrando el <div> viejo aunque el
-      // estado ya cambió.
-      flushSync(() => setDisponible(false));
+      setDisponible(false);
       onNoDisponible?.();
     }, TIMEOUT_MS);
 
@@ -96,7 +91,7 @@ function BotonGmail({ onCredential, onNoDisponible }) {
       .catch(() => {
         clearTimeout(timer);
         if (!activo) return;
-        flushSync(() => setDisponible(false));
+        setDisponible(false);
         onNoDisponible?.();
       });
 

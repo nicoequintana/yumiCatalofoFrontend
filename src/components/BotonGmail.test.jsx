@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import BotonGmail from "./BotonGmail.jsx";
 
@@ -85,9 +85,23 @@ describe("BotonGmail — con Client ID", () => {
       <BotonGmail onCredential={() => {}} onNoDisponible={onNoDisponible} />,
     );
 
-    await vi.advanceTimersByTimeAsync(5000);
+    // `act`: el `setState` que dispara el `setTimeout` necesita comitear
+    // antes del assert (mismo patrón que CarruselCampanias.test.jsx).
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
 
     expect(onNoDisponible).toHaveBeenCalledTimes(1);
     expect(container).toBeEmptyDOMElement();
+
+    // La promesa de `cargarScriptGis` sigue pendiente (nunca se disparó
+    // "load" ni "error"): sin asentarla acá, `promesaScript` queda cacheada
+    // a nivel de módulo y un test agregado después de este reusaría esa
+    // promesa muerta en lugar de pedir un <script> nuevo. Que hoy sea el
+    // último test del archivo no es garantía de nada.
+    const script = document.querySelector(`script[src="${SRC_GIS}"]`);
+    await act(async () => {
+      script?.dispatchEvent(new Event("error"));
+    });
   });
 });
