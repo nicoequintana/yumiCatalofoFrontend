@@ -11,6 +11,7 @@ import {
   claseBotonPrimario,
   claseCampoConIcono,
   claseCampoPassword,
+  claseEncabezado,
   claseEtiqueta,
   claseEtiquetaSuelta,
   clasePagina,
@@ -108,13 +109,16 @@ function Entrar() {
         {/* Ícono decorativo, solo en escritorio: la tarjeta lo pide, la
             versión mobile (sin tarjeta) no lo necesita. */}
         <span
+          data-testid="icono-entrar-decorativo"
           aria-hidden="true"
           className="mx-auto hidden h-14 w-14 items-center justify-center rounded-full bg-brand-teal text-white lg:flex"
         >
-          <span className="material-symbols-outlined">person</span>
+          <span aria-hidden="true" className="material-symbols-outlined">
+            person
+          </span>
         </span>
 
-        <header className="flex flex-col gap-1.5 lg:text-center">
+        <header className={claseEncabezado}>
           <h1 className="font-display-lg text-headline-lg text-on-background">Iniciá sesión</h1>
           <p className="font-body-md text-body-md text-on-surface-variant">
             Ingresá a tu cuenta para continuar con tus compras y pedidos.

@@ -190,11 +190,16 @@ describe("MiCuenta — markup del layout de escritorio", () => {
     );
   });
 
-  it("el botón de Cerrar sesión queda DENTRO de la tarjeta de perfil", () => {
+  it("el botón de Cerrar sesión es el último hijo del contenedor de la página", () => {
+    // En escritorio el botón queda bajo la tarjeta de perfil (misma columna,
+    // fila siguiente). Pero en mobile la grilla es una sola columna: lo que
+    // importa ahí no es de qué tarjeta "es dueño" sino su posición en el DOM.
+    // Es la única acción destructiva de la pantalla, y tiene que seguir
+    // siendo el último bloque, no el segundo arriba de "Mis pedidos".
     renderMiCuenta(PERFIL_LOCAL);
     const boton = screen.getByRole("button", { name: "Cerrar sesión" });
-    const tarjeta = screen.getByTestId("tarjeta-perfil");
-    expect(tarjeta.contains(boton)).toBe(true);
+    const grilla = screen.getByTestId("grilla-mi-cuenta");
+    expect(grilla.lastElementChild.contains(boton)).toBe(true);
   });
 
   it("cada fila de Configuración gana su propio marco de tarjeta en escritorio", () => {
@@ -221,5 +226,44 @@ describe("MiCuenta — markup del layout de escritorio", () => {
   it("el avatar crece en escritorio", () => {
     renderMiCuenta(PERFIL_LOCAL);
     expect(screen.getByTestId("avatar-iniciales")).toHaveClass("lg:h-24", "lg:w-24");
+  });
+
+  it('el título "Mis pedidos" crece en escritorio sin agrandarse en mobile', () => {
+    // El token pasó a `headline-sm` en escritorio (lo pedía la spec), pero SIN
+    // el prefijo `lg:` el banner también crecía en mobile: 1px de tamaño y
+    // ~7px de caja de línea de más, sin que nadie lo hubiera pedido.
+    renderMiCuenta(PERFIL_LOCAL);
+    const titulo = screen.getByText("Mis pedidos");
+    expect(titulo).toHaveClass(
+      "font-label-lg",
+      "text-label-lg",
+      "lg:font-headline-sm",
+      "lg:text-headline-sm",
+    );
+  });
+
+  it("la tarjeta de perfil y el botón de salir comparten la columna 1 de la grilla", () => {
+    renderMiCuenta(PERFIL_LOCAL);
+    expect(screen.getByTestId("tarjeta-perfil")).toHaveClass(
+      "lg:col-start-1",
+      "lg:row-start-1",
+    );
+    const boton = screen.getByRole("button", { name: "Cerrar sesión" });
+    expect(boton.parentElement).toHaveClass(
+      "order-last",
+      "lg:order-none",
+      "lg:col-start-1",
+      "lg:row-start-2",
+    );
+  });
+
+  it("pedidos y Configuración comparten la columna 3 de la grilla", () => {
+    renderMiCuenta(PERFIL_LOCAL);
+    expect(screen.getByRole("link", { name: /Mis pedidos/ })).toHaveClass(
+      "lg:col-start-3",
+      "lg:row-start-1",
+    );
+    const configuracion = screen.getByText("Configuración").closest("section");
+    expect(configuracion).toHaveClass("lg:col-start-3", "lg:row-start-2");
   });
 });

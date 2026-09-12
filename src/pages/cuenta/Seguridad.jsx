@@ -6,6 +6,7 @@ import { cambiarPassword } from "../../api/cuenta.js";
 import {
   claseBotonPrimario,
   claseCampoPassword,
+  claseEncabezado,
   claseEtiquetaSuelta,
   clasePagina,
   claseTarjetaEscritorio,
@@ -61,7 +62,7 @@ function Seguridad() {
           cuatro pantallas de cuenta comparten un solo sistema, y "Volver a mi
           cuenta" queda AFUERA de ella, igual que "Volver a la tienda". */}
       <div className={claseTarjetaEscritorio}>
-        <header className="flex flex-col gap-1.5 lg:text-center">
+        <header className={claseEncabezado}>
           <h1 className="font-display-lg text-headline-lg text-on-background">Seguridad y acceso</h1>
           <p className="font-body-md text-body-md text-on-surface-variant">
             Contraseña y datos de ingreso a tu cuenta.

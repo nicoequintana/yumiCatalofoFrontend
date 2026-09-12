@@ -112,3 +112,11 @@ export const clasePaginaDensa = `${PAGINA_COMUN} gap-4 lg:max-w-container-max`;
  */
 export const claseTarjetaEscritorio =
   "flex flex-col gap-6 lg:rounded-3xl lg:border lg:border-outline-variant lg:bg-surface-container-lowest lg:p-12 lg:shadow-sm";
+
+/**
+ * El encabezado (`h1` + `p`) de `Entrar`, `Seguridad` y `Datos`. Idéntico en
+ * los tres byte a byte, y `lg:text-center` es una clase más que se sumó al
+ * pasar a la tarjeta centrada de escritorio: sin extraerla, es una tercera
+ * cosa que acordarse de tocar en tres archivos si vuelve a cambiar.
+ */
+export const claseEncabezado = "flex flex-col gap-1.5 lg:text-center";

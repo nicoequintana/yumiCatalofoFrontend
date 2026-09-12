@@ -300,4 +300,11 @@ describe("Entrar — markup del layout de escritorio", () => {
     const boton = screen.getByRole("button", { name: "Iniciar sesión" });
     expect(boton.querySelector('[aria-hidden="true"]')).toHaveTextContent("arrow_forward");
   });
+
+  it("el ícono decorativo de la tarjeta está oculto en mobile", () => {
+    // La tarjeta centrada es solo de escritorio: el ícono que dibuja tiene
+    // que quedar oculto por debajo de `lg`, no solo mostrarse más grande ahí.
+    renderEntrar();
+    expect(screen.getByTestId("icono-entrar-decorativo")).toHaveClass("hidden", "lg:flex");
+  });
 });

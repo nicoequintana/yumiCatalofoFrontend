@@ -153,18 +153,22 @@ function MiCuenta() {
         </p>
       </header>
 
-      {/* En mobile, columna única (mismo orden de siempre). En escritorio,
-          grilla de 5: la tarjeta de perfil ocupa 2, pedidos+configuración
-          ocupan 3. `items-start` es obligatorio: sin él las dos columnas se
-          estiran a la altura de la más alta y la tarjeta de perfil queda con
-          un hueco vacío abajo. */}
+      {/* En mobile, columna única en orden de lectura, con "Cerrar sesión" al
+          pie (`order-last`): es la única acción destructiva de la pantalla y
+          no puede quedar arriba de "Mis pedidos"/"Configuración". En
+          escritorio, grilla de 5 con posiciones EXPLÍCITAS (no basta con el
+          orden del DOM): la tarjeta de perfil y el botón de salir comparten
+          la columna 1 (filas 1 y 2), pedidos y configuración comparten la
+          columna 3 (filas 1 y 2). `items-start` es obligatorio: sin él las
+          columnas se estiran a la altura de la más alta y quedan huecos
+          vacíos. */}
       <div
         data-testid="grilla-mi-cuenta"
         className="flex flex-col gap-4 lg:grid lg:grid-cols-5 lg:items-start lg:gap-6"
       >
         <section
           data-testid="tarjeta-perfil"
-          className="flex flex-col gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 lg:col-span-2"
+          className="flex flex-col gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 lg:col-span-2 lg:col-start-1 lg:row-start-1"
         >
           <div className="flex items-center gap-3.5">
             <span
@@ -195,106 +199,111 @@ function MiCuenta() {
               etiquetaAccion="Editar"
             />
           </div>
+        </section>
 
-          {/* "Cerrar sesión" vive ADENTRO de la tarjeta de perfil, como botón
-              de ancho completo al pie. Se conserva la confirmación de dos
-              pasos con sus textos literales: cambia dónde vive el botón, no
-              cómo se comporta. */}
-          <div className="flex flex-col gap-3 pt-2">
-            {confirmandoSalida ? (
-              <>
-                <p className="font-body-md text-body-md text-on-surface-variant">
-                  Vas a cerrar sesión en todos tus dispositivos.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleCerrarSesion}
-                  className={CLASES_BOTON_SALIR}
-                >
-                  Confirmar cierre de sesión
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmandoSalida(false)}
-                  className="font-label-lg text-label-lg min-h-11 text-on-surface-variant"
-                >
-                  Cancelar
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirmandoSalida(true)}
-                className="font-label-lg text-label-lg flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-surface-container-lowest px-4 py-3.5 text-primary"
-              >
-                <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-                  logout
-                </span>
-                Cerrar sesión
-              </button>
-            )}
+        <Link
+          to="/cuenta/pedidos"
+          className="flex items-center justify-between gap-3 rounded-2xl bg-brand-teal p-4 text-white lg:col-span-3 lg:col-start-3 lg:row-start-1 lg:p-6"
+        >
+          <span className="flex items-center gap-3.5">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15">
+              <span aria-hidden="true" className="material-symbols-outlined">
+                inventory_2
+              </span>
+            </span>
+            <span className="flex flex-col text-left">
+              <span className="font-label-lg text-label-lg lg:font-headline-sm lg:text-headline-sm">
+                Mis pedidos
+              </span>
+              <span className="font-label-md text-label-md text-white/80">Ver historial</span>
+            </span>
+          </span>
+          <span
+            aria-hidden="true"
+            className="material-symbols-outlined text-[18px] lg:flex lg:h-8 lg:w-8 lg:items-center lg:justify-center lg:rounded-full lg:bg-white/10"
+          >
+            chevron_right
+          </span>
+        </Link>
+
+        <section className="flex flex-col gap-2 lg:col-span-3 lg:col-start-3 lg:row-start-2">
+          <h2 className="font-label-md text-label-md px-1 uppercase tracking-wide text-on-surface-variant">
+            Configuración
+          </h2>
+          <div
+            data-testid="lista-configuracion"
+            className="divide-y divide-outline-variant overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest lg:grid lg:grid-cols-2 lg:gap-4 lg:divide-y-0 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent"
+          >
+            <FilaAcceso
+              to="/favoritos"
+              icono="favorite"
+              titulo="Mis favoritos"
+              subtitulo="Los productos que guardaste"
+            />
+            <FilaAcceso
+              to="/cuenta/seguridad"
+              icono="shield"
+              titulo="Seguridad y acceso"
+              subtitulo="Contraseña y datos de ingreso"
+            />
+            {/* Un `null` no renderiza ningún nodo, así que `divide-y` (que
+                separa con `> * + *`) no deja ningún borde huérfano cuando
+                falta el número: la lista se cierra sola en la fila
+                anterior. */}
+            {urlWhatsapp ? (
+              <FilaAcceso
+                href={urlWhatsapp}
+                icono="chat"
+                titulo="Ayuda y soporte"
+                subtitulo="Escribinos por WhatsApp"
+                chevron="open_in_new"
+              />
+            ) : null}
           </div>
         </section>
 
-        <div className="flex flex-col gap-4 lg:col-span-3">
-          <Link
-            to="/cuenta/pedidos"
-            className="flex items-center justify-between gap-3 rounded-2xl bg-brand-teal p-4 text-white lg:p-6"
-          >
-            <span className="flex items-center gap-3.5">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15">
-                <span aria-hidden="true" className="material-symbols-outlined">
-                  inventory_2
-                </span>
-              </span>
-              <span className="flex flex-col text-left">
-                <span className="font-headline-sm text-headline-sm">Mis pedidos</span>
-                <span className="font-label-md text-label-md text-white/80">Ver historial</span>
-              </span>
-            </span>
-            <span
-              aria-hidden="true"
-              className="material-symbols-outlined text-[18px] lg:flex lg:h-8 lg:w-8 lg:items-center lg:justify-center lg:rounded-full lg:bg-white/10"
+        {/* "Cerrar sesión" ya no vive adentro de la tarjeta de perfil: en un
+            teléfono la página es una sola columna, y ahí adentro quedaba
+            segundo bloque visible, arriba de "Mis pedidos" y "Configuración"
+            — la única acción destructiva de la pantalla. `order-last` la
+            manda al pie en mobile; en escritorio la grilla la ubica bajo la
+            tarjeta de perfil (misma columna, fila siguiente) y `lg:order-none`
+            deja que la posición la decida la grilla, no el orden del DOM. Se
+            conserva la confirmación de dos pasos con sus textos literales:
+            cambia dónde vive el botón, no cómo se comporta. */}
+        <div className="order-last flex flex-col gap-3 lg:order-none lg:col-span-2 lg:col-start-1 lg:row-start-2 lg:mt-0">
+          {confirmandoSalida ? (
+            <>
+              <p className="font-body-md text-body-md text-on-surface-variant">
+                Vas a cerrar sesión en todos tus dispositivos.
+              </p>
+              <button
+                type="button"
+                onClick={handleCerrarSesion}
+                className={CLASES_BOTON_SALIR}
+              >
+                Confirmar cierre de sesión
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmandoSalida(false)}
+                className="font-label-lg text-label-lg min-h-11 text-on-surface-variant"
+              >
+                Cancelar
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmandoSalida(true)}
+              className="font-label-lg text-label-lg flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-surface-container-lowest px-4 py-3.5 text-primary"
             >
-              chevron_right
-            </span>
-          </Link>
-
-          <section className="flex flex-col gap-2">
-            <h2 className="font-label-md text-label-md px-1 uppercase tracking-wide text-on-surface-variant">
-              Configuración
-            </h2>
-            <div
-              data-testid="lista-configuracion"
-              className="divide-y divide-outline-variant overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest lg:grid lg:grid-cols-2 lg:gap-4 lg:divide-y-0 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent"
-            >
-              <FilaAcceso
-                to="/favoritos"
-                icono="favorite"
-                titulo="Mis favoritos"
-                subtitulo="Los productos que guardaste"
-              />
-              <FilaAcceso
-                to="/cuenta/seguridad"
-                icono="shield"
-                titulo="Seguridad y acceso"
-                subtitulo="Contraseña y datos de ingreso"
-              />
-              {/* Un `null` no renderiza ningún nodo, así que `divide-y` (que
-                  separa con `> * + *`) no deja ningún borde huérfano cuando
-                  falta el número: la lista se cierra sola en la fila
-                  anterior. */}
-              {urlWhatsapp ? (
-                <FilaAcceso
-                  href={urlWhatsapp}
-                  icono="chat"
-                  titulo="Ayuda y soporte"
-                  subtitulo="Escribinos por WhatsApp"
-                  chevron="open_in_new"
-                />
-              ) : null}
-            </div>
-          </section>
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                logout
+              </span>
+              Cerrar sesión
+            </button>
+          )}
         </div>
       </div>
     </div>

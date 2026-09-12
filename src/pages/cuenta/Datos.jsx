@@ -5,6 +5,7 @@ import { actualizarPerfil } from "../../api/cuenta.js";
 import {
   claseBotonPrimario,
   claseCampoSinIcono,
+  claseEncabezado,
   claseEtiqueta,
   clasePagina,
   claseTarjetaEscritorio,
@@ -75,7 +76,7 @@ function Datos() {
       <BotonVolver fallback="/cuenta" destinoFijo etiqueta="Volver a mi cuenta" />
 
       <div className={claseTarjetaEscritorio}>
-        <header className="flex flex-col gap-1.5 lg:text-center">
+        <header className={claseEncabezado}>
           <h1 className="font-display-lg text-headline-lg text-on-background">Mis datos</h1>
           <p className="font-body-md text-body-md text-on-surface-variant">
             Cómo te llamamos y cómo te contactamos por tus pedidos.

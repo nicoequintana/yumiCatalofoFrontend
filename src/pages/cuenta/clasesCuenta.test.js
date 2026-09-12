@@ -7,6 +7,7 @@ import {
   claseCampoConIcono,
   claseCampoPassword,
   claseCampoSinIcono,
+  claseEncabezado,
   claseEtiqueta,
   claseEtiquetaSuelta,
   clasePagina,
@@ -45,6 +46,16 @@ describe("las pantallas de cuenta no vuelven a duplicar las clases", () => {
 
   it.each(PANTALLAS)("%s no escribe el contenedor de página a mano", (archivo) => {
     expect(fuente(archivo)).not.toMatch(/mx-auto flex max-w-sm flex-col/);
+  });
+
+  it.each(PANTALLAS)("%s no escribe la tarjeta a mano", (archivo) => {
+    expect(fuente(archivo)).not.toMatch(
+      /lg:rounded-3xl lg:border lg:border-outline-variant lg:bg-surface-container-lowest lg:p-12 lg:shadow-sm/,
+    );
+  });
+
+  it.each(PANTALLAS)("%s no escribe el encabezado a mano", (archivo) => {
+    expect(fuente(archivo)).not.toMatch(/flex flex-col gap-1\.5 lg:text-center/);
   });
 });
 
@@ -85,10 +96,12 @@ describe("convenciones del proyecto", () => {
     claseCampoConIcono,
     claseCampoPassword,
     claseCampoSinIcono,
+    claseEncabezado,
     claseEtiqueta,
     claseEtiquetaSuelta,
     clasePagina,
     clasePaginaDensa,
+    claseTarjetaEscritorio,
   };
 
   it.each(Object.entries(todas))("%s no lleva ningún hex literal", (_nombre, clases) => {
@@ -125,13 +138,21 @@ describe("clases de escritorio (lg)", () => {
     expect(clasePaginaDensa).toContain("lg:max-w-container-max");
   });
 
-  it("la tarjeta de escritorio lleva borde, fondo y padding, y ninguno actúa antes de lg", () => {
+  it("la tarjeta de escritorio lleva borde, fondo, padding y sombra, y ninguno actúa antes de lg", () => {
     expect(claseTarjetaEscritorio).toContain("lg:rounded-3xl");
     expect(claseTarjetaEscritorio).toContain("lg:border");
     expect(claseTarjetaEscritorio).toContain("lg:bg-surface-container-lowest");
     expect(claseTarjetaEscritorio).toContain("lg:p-12");
+    expect(claseTarjetaEscritorio).toContain("lg:shadow-sm");
     // Ninguna clase de tarjeta sin el prefijo `lg:`: en mobile no hay tarjeta.
+    // Cubre las CINCO clases, no solo `rounded-3xl`: un guard que solo mira
+    // una de cinco deja pasar sin aviso a las otras cuatro si alguna pierde
+    // el prefijo.
     expect(claseTarjetaEscritorio).not.toMatch(/(?<!lg:)\brounded-3xl\b/);
+    expect(claseTarjetaEscritorio).not.toMatch(/(?<!lg:)\bborder\b/);
+    expect(claseTarjetaEscritorio).not.toMatch(/(?<!lg:)bg-surface-container-lowest\b/);
+    expect(claseTarjetaEscritorio).not.toMatch(/(?<!lg:)\bp-12\b/);
+    expect(claseTarjetaEscritorio).not.toMatch(/(?<!lg:)\bshadow-sm\b/);
   });
 
   it("el fondo del campo baja un tono en escritorio para no perderse dentro de la tarjeta blanca", () => {
