@@ -65,7 +65,11 @@ describe("Entrar — campos y wording", () => {
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Contraseña")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Iniciar sesión" })).toBeInTheDocument();
-    expect(screen.getByText("Iniciá con Google")).toBeInTheDocument();
+    expect(screen.getByText("[BotonGmail]")).toBeInTheDocument();
+    // El par positivo del test de "Google no disponible": sin este assert,
+    // aquel pasaria por vacio: `queryByRole` devuelve null igual si el
+    // separador NUNCA existio.
+    expect(screen.getByRole("separator")).toBeInTheDocument();
   });
 });
 
@@ -206,7 +210,7 @@ describe("Entrar — orden de las dos vías de entrada", () => {
     // en que los encontró la query: un assert por índice de `getAllBy...` se
     // rompe en cuanto alguien agrega un nodo en el medio.
     const campoEmail = screen.getByLabelText("Email");
-    const google = screen.getByText("Iniciá con Google");
+    const google = screen.getByText("[BotonGmail]");
     const posicion = campoEmail.compareDocumentPosition(google);
 
     expect(posicion & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -233,7 +237,10 @@ describe("Entrar — Google no disponible", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByText("Iniciá con Google")).not.toBeInTheDocument();
+    // El separador es lo único que queda del bloque cuando el botón devuelve
+    // null: si sobrevive, quedó una línea divisoria separando el formulario de
+    // la nada.
+    expect(screen.queryByRole("separator")).not.toBeInTheDocument();
     // El formulario sigue entero: sin Google, entrar por email es la única
     // vía que queda y no puede irse con él.
     expect(screen.getByLabelText("Email")).toBeInTheDocument();

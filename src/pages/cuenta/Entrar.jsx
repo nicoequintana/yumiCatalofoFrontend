@@ -146,12 +146,17 @@ function Entrar() {
           rótulo y botón— desaparece si Google no se puede dibujar. */}
       {googleDisponible ? (
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
+          {/* Sin rótulo propio encima: Google localiza SU botón al idioma del
+              navegador ("Acceder con Google") y no deja restilarlo, así que
+              cualquier texto nuestro al lado es el mismo mensaje dos veces. El
+              separador ya avisa que empieza otra opción. */}
+          <div className="flex items-center gap-3" role="separator" aria-label="o">
             <span className="h-px flex-1 bg-outline-variant" />
-            <span className="text-label-md text-on-surface-variant">o</span>
+            <span aria-hidden="true" className="text-label-md text-on-surface-variant">
+              o
+            </span>
             <span className="h-px flex-1 bg-outline-variant" />
           </div>
-          <span className="text-label-md text-on-surface-variant">Iniciá con Google</span>
           <BotonGmail
             onCredential={handleCredencialGoogle}
             onNoDisponible={() => setGoogleDisponible(false)}
