@@ -71,6 +71,7 @@ const Restablecer = lazy(() => import("./pages/cuenta/Restablecer.jsx"));
 const CambiarEmail = lazy(() => import("./pages/cuenta/CambiarEmail.jsx"));
 const ConfirmarEmail = lazy(() => import("./pages/cuenta/ConfirmarEmail.jsx"));
 const MiCuenta = lazy(() => import("./pages/cuenta/MiCuenta.jsx"));
+const Seguridad = lazy(() => import("./pages/cuenta/Seguridad.jsx"));
 const MisPedidos = lazy(() => import("./pages/cuenta/MisPedidos.jsx"));
 const PedidoDetalle = lazy(() => import("./pages/cuenta/PedidoDetalle.jsx"));
 
@@ -130,6 +131,7 @@ function App() {
           <Route path="/cuenta" element={<MiCuenta />} />
           <Route path="/cuenta/completar" element={<Completar />} />
           <Route path="/cuenta/email" element={<CambiarEmail />} />
+          <Route path="/cuenta/seguridad" element={<Seguridad />} />
           <Route path="/cuenta/pedidos" element={<MisPedidos />} />
           <Route path="/cuenta/pedidos/:id" element={<PedidoDetalle />} />
           <Route path="/checkout" element={<Checkout />} />
