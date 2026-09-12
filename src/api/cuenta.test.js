@@ -112,6 +112,27 @@ describe("api/cuenta.js — un endpoint por función", () => {
     expect(options.method).toBe("GET");
   });
 
+  it("registrarCuenta manda el apodo cuando viene", async () => {
+    await registrarCuenta({
+      email: "a@gmail.com", password: "x", nombre: "A", telefono: "1", dni: "111", apodo: "Tito",
+    });
+    expect(JSON.parse(ultimaLlamada()[1].body).apodo).toBe("Tito");
+  });
+
+  it("registrarCuenta NO manda la clave apodo cuando no viene", async () => {
+    // `JSON.stringify` descarta las claves `undefined`: el alta sin apodo viaja
+    // igual que antes de que el campo existiera.
+    await registrarCuenta({ email: "a@gmail.com", password: "x", nombre: "A", telefono: "1", dni: "111" });
+    expect(JSON.parse(ultimaLlamada()[1].body)).not.toHaveProperty("apodo");
+  });
+
+  it("actualizarPerfil manda apodo vacio para BORRARLO", async () => {
+    // El backend trata `""` como "borralo" SOLO para apodo (queda null, 200).
+    // Para nombre/telefono/dni el mismo `""` es un 400: son obligatorios.
+    await actualizarPerfil({ apodo: "" });
+    expect(JSON.parse(ultimaLlamada()[1].body)).toEqual({ apodo: "" });
+  });
+
   it("actualizarPerfil hace PUT a la base con los tres campos opcionales", async () => {
     await actualizarPerfil({ nombre: "A", telefono: undefined, dni: undefined });
     const [url, options] = ultimaLlamada();

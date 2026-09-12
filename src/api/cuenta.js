@@ -43,12 +43,16 @@ function put(ruta, body) {
 /**
  * Alta de cuenta. Responde SIEMPRE 200 con `{mensaje}`, exista o no el email:
  * el backend no delata si la dirección ya estaba registrada (enumeración).
- * @param {{email: string, password: string, nombre: string, telefono: string, dni: string}} datos
+ * `apodo` es OPCIONAL y es el único que lo es: sin él el alta viaja igual que
+ * antes de que el campo existiera, porque `JSON.stringify` descarta las claves
+ * `undefined`.
+ *
+ * @param {{email: string, password: string, nombre: string, telefono: string, dni: string, apodo?: string}} datos
  * @returns {Promise<{mensaje: string}>}
  * @throws {Error} con `.status` (p. ej. 400 de validación, 503 `CAPACIDAD`).
  */
-export function registrarCuenta({ email, password, nombre, telefono, dni }) {
-  return post("/registro", { email, password, nombre, telefono, dni });
+export function registrarCuenta({ email, password, nombre, telefono, dni, apodo }) {
+  return post("/registro", { email, password, nombre, telefono, dni, apodo });
 }
 
 /**
@@ -137,20 +141,25 @@ export function getPerfil() {
 }
 
 /**
- * Actualiza el perfil. Los tres campos son OPCIONALES y el backend solo toca
+ * Actualiza el perfil. Todos los campos son OPCIONALES y el backend solo toca
  * los que vienen (`req.body?.nombre !== undefined`).
  *
  * `JSON.stringify` descarta las claves `undefined`, así que pasar
  * `{nombre: "A", telefono: undefined}` manda únicamente `nombre` y deja el
- * teléfono como estaba. Mandar `""` NO es lo mismo: eso es "vacialo", y el
- * backend lo rechaza como campo obligatorio.
+ * teléfono como estaba.
  *
- * @param {{nombre?: string, telefono?: string, dni?: string}} datos
+ * Mandar `""` es otra cosa —"vacialo"— y el backend lo trata DISTINTO según el
+ * campo: para `nombre`, `telefono` y `dni` es un 400, porque son obligatorios;
+ * para `apodo` es la forma de BORRARLO, y responde 200 con `apodo: null`. Es la
+ * única asimetría de esta función y es deliberada: un dato opcional que no se
+ * puede sacar es una trampa para quien se arrepiente de haberlo puesto.
+ *
+ * @param {{nombre?: string, telefono?: string, dni?: string, apodo?: string}} datos
  * @returns {Promise<object>} el perfil ya actualizado, con la misma forma que `getPerfil`.
  * @throws {Error} 400 de validación con el mensaje del backend.
  */
-export function actualizarPerfil({ nombre, telefono, dni }) {
-  return put("", { nombre, telefono, dni });
+export function actualizarPerfil({ nombre, telefono, dni, apodo }) {
+  return put("", { nombre, telefono, dni, apodo });
 }
 
 /**
