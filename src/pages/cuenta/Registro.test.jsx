@@ -95,3 +95,43 @@ describe("Registro — error", () => {
     expect(screen.queryByText("Revisá tu casilla")).not.toBeInTheDocument();
   });
 });
+
+describe("Registro — apodo opcional", () => {
+  it("tiene el campo, marcado como opcional en el label visible", () => {
+    // El "(opcional)" va en el label, no en un placeholder ni en un asterisco:
+    // mismo criterio que "Notas (opcional)" del checkout. Un campo que no se
+    // sabe si es obligatorio hasta apretar Registrarme es una trampa.
+    renderRegistro();
+    const campo = screen.getByLabelText("Apodo (opcional)");
+    expect(campo).toBeInTheDocument();
+    expect(campo).not.toBeRequired();
+  });
+
+  it("lo manda cuando se completa", async () => {
+    const user = userEvent.setup();
+    cuentaApi.registrarCuenta.mockResolvedValue({ mensaje: "Te mandamos un mail." });
+
+    renderRegistro();
+    await completarFormulario(user);
+    await user.type(screen.getByLabelText("Apodo (opcional)"), "Tito");
+    await user.click(screen.getByRole("button", { name: "Registrarme" }));
+
+    await screen.findByText("Revisá tu casilla");
+    expect(cuentaApi.registrarCuenta.mock.calls[0][0].apodo).toBe("Tito");
+  });
+
+  it("vacio NO viaja como cadena vacia: el alta no lo lleva", async () => {
+    // `""` significa "borralo" para el backend, y en un ALTA eso no tiene
+    // sentido: no hay nada que borrar. Se manda `undefined`, que
+    // `JSON.stringify` descarta, y la cuenta nace sin apodo.
+    const user = userEvent.setup();
+    cuentaApi.registrarCuenta.mockResolvedValue({ mensaje: "Te mandamos un mail." });
+
+    renderRegistro();
+    await completarFormulario(user);
+    await user.click(screen.getByRole("button", { name: "Registrarme" }));
+
+    await screen.findByText("Revisá tu casilla");
+    expect(cuentaApi.registrarCuenta.mock.calls[0][0].apodo).toBeUndefined();
+  });
+});

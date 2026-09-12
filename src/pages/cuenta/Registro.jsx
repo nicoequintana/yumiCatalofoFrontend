@@ -11,6 +11,7 @@ function Registro() {
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [dni, setDni] = useState("");
+  const [apodo, setApodo] = useState("");
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [enviado, setEnviado] = useState(false);
@@ -22,7 +23,17 @@ function Registro() {
     setError(null);
     setCargando(true);
     try {
-      await registrarCuenta({ email, password, nombre, telefono, dni });
+      // El apodo vacio viaja como `undefined`, NO como `""`: para el backend
+      // `""` significa "borralo", y en un alta no hay nada que borrar.
+      // `JSON.stringify` descarta la clave y la cuenta nace sin apodo.
+      await registrarCuenta({
+        email,
+        password,
+        nombre,
+        telefono,
+        dni,
+        apodo: apodo.trim() || undefined,
+      });
       // La respuesta es SIEMPRE la misma (spec, decisión 4: cierra la
       // enumeración por registro), así que esta pantalla no ramifica sobre
       // el cuerpo — solo sobre si la request tiró un error de red/servidor.
@@ -138,6 +149,18 @@ function Registro() {
             required
             value={dni}
             onChange={(e) => setDni(e.target.value)}
+            className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-md text-on-surface"
+          />
+        </label>
+        {/* El unico campo opcional del alta, y lo dice el label: un campo que
+            no se sabe si es obligatorio hasta apretar Registrarme es una
+            trampa. Mismo criterio que "Notas (opcional)" del checkout. */}
+        <label className="flex flex-col gap-1">
+          <span className="text-label-md text-on-surface-variant">Apodo (opcional)</span>
+          <input
+            type="text"
+            value={apodo}
+            onChange={(e) => setApodo(e.target.value)}
             className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-md text-on-surface"
           />
         </label>
