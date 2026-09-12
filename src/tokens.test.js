@@ -85,6 +85,21 @@ describe("tokens tipográficos", () => {
   const usados = tokensTipograficosUsados();
   const { fontSize, fontFamily } = configTailwind.theme.extend;
 
+  // Un escaneo sin piso convierte "no encontré nada" en "está todo bien": si
+  // `archivosDeMarkup` se queda con una lista vacía (filtro de extensión roto,
+  // `src/` movido, el directorio equivocado), los DOS guards de arriba
+  // comparan contra `[]`, no encuentran faltantes y quedan en verde sin haber
+  // mirado un solo archivo — el mismo modo de falla que estos guards existen
+  // para prevenir, ahora DENTRO del guard. Verificado: cambiar el filtro de
+  // `archivosDeMarkup` de `.js|.jsx` a algo que no matchee ningún archivo hace
+  // pasar los 13 tests de este archivo igual. Los pisos son holgados (hoy son
+  // ~203 archivos y 11 tokens) pero no triviales.
+  it("el escaneo de markup no está vacío: hay piso de archivos y de tokens usados", () => {
+    const archivos = archivosDeMarkup(`${raiz}/src`);
+    expect(archivos.length).toBeGreaterThan(150);
+    expect(usados.size).toBeGreaterThan(8);
+  });
+
   it("todo token usado en el markup está definido en fontSize", () => {
     const faltantes = [...usados]
       .filter(([token]) => !PENDIENTES_SIN_DEFINIR.has(token) && !(token in fontSize))
@@ -192,16 +207,32 @@ describe("sistema tipográfico responsive", () => {
     expect(faltantes).toEqual([]);
   });
 
-  it("los tokens de la tabla que cambian en desktop redefinen --fs dentro de @media (min-width: 1024px)", () => {
+  function bloqueMediaDesktop() {
     const inicioMedia = indexCss.search(/@media \(min-width: 1024px\) \{\s*:root, \.paleta-clara \{/);
     expect(inicioMedia).toBeGreaterThan(-1);
     const finMedia = indexCss.indexOf("\n  }", inicioMedia);
-    const bloqueMedia = indexCss.slice(inicioMedia, finMedia);
+    return indexCss.slice(inicioMedia, finMedia);
+  }
+
+  it("los tokens de la tabla que cambian en desktop redefinen --fs dentro de @media (min-width: 1024px)", () => {
+    const bloqueMedia = bloqueMediaDesktop();
 
     const faltantes = TOKENS_QUE_CAMBIAN_EN_DESKTOP.filter(
       (token) => !new RegExp(`--fs-${token}:\\s*[\\d.]+px;`).test(bloqueMedia),
     );
     expect(faltantes).toEqual([]);
+  });
+
+  it("`body-md` NO se redefine dentro de la media query de escritorio", () => {
+    // `pxDesdeCss` (más arriba) lee la PRIMERA coincidencia de `--fs-<token>`
+    // en TODO el archivo, o sea siempre la de `:root`. Un `--fs-body-md: 14px`
+    // agregado dentro del bloque de 1024px pasaría el guard de "body-md no
+    // baja de 16px" sin que nada chille, porque ese guard nunca mira la media
+    // query. Es el invariante de mayor apuesta del archivo (el zoom de iOS en
+    // los inputs), así que este test mira el bloque de la media query
+    // directamente, no el valor resuelto.
+    const bloqueMedia = bloqueMediaDesktop();
+    expect(bloqueMedia).not.toMatch(/--fs-body-md:/);
   });
 
   it("cada fontSize de la escala referencia su custom property con var(), no un valor fijo", () => {
@@ -220,16 +251,37 @@ describe("piso de 11px: nada por debajo, ni badges ni legales", () => {
   // ningún token de la escala y no lo agarra el guard de arriba: hay que
   // barrer el markup literal.
   const PISO_PX = 11;
-  const CLASE_TEXTO_ARBITRARIA = /text-\[(\d{1,2})px\]/g;
+  const PX_POR_REM = 16;
+  // Cubre `text-[10px]`, `text-[10.5px]` (decimales) y `text-[0.625rem]`
+  // (rem, convertido a px con base 16) — el regex viejo (`\d{1,2}px` sin
+  // punto ni unidad `rem`) dejaba pasar las dos últimas formas sin marcar
+  // nada: hoy no hay ninguna en el repo, así que es cobertura faltante, no
+  // un agujero abierto.
+  const CLASE_TEXTO_ARBITRARIA = /text-\[([\d.]+)(px|rem)\]/g;
 
-  it("ningún `text-[Npx]` en src/ pisa los 11px", () => {
+  function violacionesDePiso(contenido) {
+    const violaciones = [];
+    for (const [, valor, unidad] of contenido.matchAll(CLASE_TEXTO_ARBITRARIA)) {
+      const px = unidad === "rem" ? Number.parseFloat(valor) * PX_POR_REM : Number.parseFloat(valor);
+      if (px < PISO_PX) violaciones.push(`text-[${valor}${unidad}]`);
+    }
+    return violaciones;
+  }
+
+  it("detecta decimales y `rem`, no solo enteros en `px`", () => {
+    // El patrón anterior (`\d{1,2}px`) no matcheaba ninguno de estos tres:
+    // ni el punto decimal ni la unidad `rem` estaban contemplados.
+    expect(violacionesDePiso("text-[10.5px]")).toEqual(["text-[10.5px]"]);
+    expect(violacionesDePiso("text-[0.625rem]")).toEqual(["text-[0.625rem]"]); // 0.625rem = 10px
+    expect(violacionesDePiso("text-[0.6875rem]")).toEqual([]); // 0.6875rem = 11px, en el piso
+  });
+
+  it("ningún `text-[Npx]`/`text-[Nrem]` en src/ pisa los 11px", () => {
     const violaciones = [];
     for (const ruta of archivosDeMarkup(`${raiz}/src`)) {
       const contenido = readFileSync(ruta, "utf8");
-      for (const [, valor] of contenido.matchAll(CLASE_TEXTO_ARBITRARIA)) {
-        if (Number.parseInt(valor, 10) < PISO_PX) {
-          violaciones.push(`${ruta.slice(raiz.length + 1).replaceAll("\\", "/")} (text-[${valor}px])`);
-        }
+      for (const violacion of violacionesDePiso(contenido)) {
+        violaciones.push(`${ruta.slice(raiz.length + 1).replaceAll("\\", "/")} (${violacion})`);
       }
     }
     expect(violaciones).toEqual([]);
