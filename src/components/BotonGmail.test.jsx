@@ -38,6 +38,16 @@ describe("BotonGmail — sin VITE_GOOGLE_CLIENT_ID", () => {
     const { container } = render(<BotonGmail onCredential={() => {}} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("avisa por onNoDisponible, igual que cuando el script no carga", () => {
+    // Un build sin la variable es el modo de falla MAS probable de los dos, y
+    // era el unico que no avisaba: quien envuelve al boton con un rotulo se
+    // quedaba con el rotulo solo, señalando un boton que no existe.
+    vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "");
+    const onNoDisponible = vi.fn();
+    render(<BotonGmail onCredential={() => {}} onNoDisponible={onNoDisponible} />);
+    expect(onNoDisponible).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("BotonGmail — con Client ID", () => {

@@ -60,7 +60,15 @@ function BotonGmail({ onCredential, onNoDisponible }) {
   const [disponible, setDisponible] = useState(Boolean(clientId));
 
   useEffect(() => {
-    if (!clientId) return;
+    // Un build SIN la variable es el modo de falla mas probable de los dos, y
+    // era el unico que salia en silencio: el componente renderizaba `null` sin
+    // avisar, y quien lo envuelve con un rotulo se quedaba con el rotulo solo,
+    // señalando un boton que no existe. El aviso va en un efecto, no en el
+    // render, porque el padre reacciona con un `setState`.
+    if (!clientId) {
+      onNoDisponible?.();
+      return;
+    }
 
     let activo = true;
     const timer = setTimeout(() => {
