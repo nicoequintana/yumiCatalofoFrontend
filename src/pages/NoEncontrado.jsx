@@ -29,7 +29,7 @@ function NoEncontrado() {
         <span className="material-symbols-outlined mb-4 text-[48px] text-on-surface-variant">
           search_off
         </span>
-        <h1 className="font-headline-lg text-headline-lg-mobile lg:text-headline-lg mb-3 text-on-background">
+        <h1 className="font-headline-lg text-headline-lg mb-3 text-on-background">
           No encontramos esta página
         </h1>
         <p className="font-body-md text-body-md mb-8 max-w-prose text-on-surface-variant">
@@ -44,7 +44,7 @@ function NoEncontrado() {
           // una página vacía, así que puede crecer los 2px que faltan sin
           // apretar nada; `inline-flex` es lo que hace que un `<a>` respete la
           // altura mínima, que en `display:inline` se ignora.
-          className="font-label-md text-label-md inline-flex min-h-11 items-center rounded-full bg-primary px-6 py-3 uppercase tracking-wide text-on-primary"
+          className="font-label-lg text-label-lg inline-flex min-h-11 items-center rounded-full bg-primary px-6 py-3 uppercase tracking-wide text-on-primary"
         >
           Ver todos los productos
         </Link>

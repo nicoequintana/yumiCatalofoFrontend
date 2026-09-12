@@ -188,7 +188,7 @@ function FichaProducto({
               07/09/2026 en `/productos/nuevo`. Las clases no cambian, así que
               en pantalla se ve idéntico: lo que se corrige es la semántica. */}
           <TituloProducto
-            className={`font-display-lg text-headline-lg-mobile mb-2 ${
+            className={`font-display-lg text-headline-lg mb-2 ${
               compacto ? "" : "md:text-display-lg"
             } ${nombreVacio ? "italic text-outline" : "text-on-background"}`}
           >

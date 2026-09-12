@@ -223,7 +223,7 @@ function Catalogo() {
 
               <h1
                 style={revelado(80)}
-                className="mt-6 font-display-xl-mobile text-display-xl-mobile text-on-surface motion-safe:animate-fadeIn lg:mt-8 lg:font-display-xl lg:text-display-xl"
+                className="mt-6 font-display-xl text-display-xl text-on-surface motion-safe:animate-fadeIn lg:mt-8"
               >
                 Descubrí cosas que te hacen la vida{" "}
                 {/* El acento va en un <span> DENTRO del h1: el nombre accesible
@@ -252,7 +252,7 @@ function Catalogo() {
               <Link
                 to="/coleccion"
                 style={revelado(240)}
-                className="group mt-8 flex min-h-11 w-full items-center justify-center gap-3 rounded-lg bg-inverse-surface px-8 py-4 font-label-md text-label-md text-background transition-colors motion-safe:animate-fadeIn hover:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-max lg:mt-10"
+                className="group mt-8 flex min-h-11 w-full items-center justify-center gap-3 rounded-lg bg-inverse-surface px-8 py-4 font-label-lg text-label-lg text-background transition-colors motion-safe:animate-fadeIn hover:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-max lg:mt-10"
               >
                 Ver productos
                 <span
