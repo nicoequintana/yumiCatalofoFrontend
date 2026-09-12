@@ -225,7 +225,7 @@ export default function SlideCampania({ slide, interactivo = true }) {
             Lo que NO se hace es achicar la tipografía hasta que entre — a 12 px
             sobre una foto el copy deja de leerse, y el problema vuelve con un
             texto un poco más largo. */}
-        <p className="font-headline-sm text-headline-sm line-clamp-2 md:font-headline-lg md:text-headline-lg md:line-clamp-none">
+        <p className="font-headline-sm text-headline-sm line-clamp-2 lg:font-headline-lg lg:text-headline-lg md:line-clamp-none">
           {slide.titulo}
         </p>
         {slide.texto ? (

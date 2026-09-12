@@ -189,7 +189,7 @@ function FichaProducto({
               en pantalla se ve idéntico: lo que se corrige es la semántica. */}
           <TituloProducto
             className={`font-display-lg text-headline-lg mb-2 ${
-              compacto ? "" : "md:text-display-lg"
+              compacto ? "" : "lg:text-display-lg"
             } ${nombreVacio ? "italic text-outline" : "text-on-background"}`}
           >
             {nombreMostrado}
