@@ -34,6 +34,9 @@ import { useId, useState } from "react";
  * @param {string} [etiquetaClassName] reemplaza el estilo del `<label>` visible
  * @param {string} [contenedorClassName] clases del envoltorio
  * @param {boolean} [etiquetaVisible] renderiza un `<label>` arriba en vez de `sr-only`
+ * @param {string} [icono] ligature de Material Symbols a dibujar DENTRO del
+ *   campo, a la izquierda. Quien lo use debe reservar el hueco con `pl-*` en
+ *   `className`, igual que `pr-12` reserva el del ojito.
  */
 
 /**
@@ -62,6 +65,7 @@ function CampoPassword({
   etiquetaClassName,
   contenedorClassName = "",
   etiquetaVisible = false,
+  icono,
 }) {
   const [visible, setVisible] = useState(false);
   const id = useId();
@@ -83,6 +87,14 @@ function CampoPassword({
       </label>
 
       <div className="relative">
+        {icono ? (
+          <span
+            aria-hidden="true"
+            className="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
+          >
+            {icono}
+          </span>
+        ) : null}
         <input
           id={id}
           // El `type` es lo único que cambia al revelar. No se reemplaza el

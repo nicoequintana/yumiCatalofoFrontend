@@ -117,4 +117,29 @@ describe("CampoPassword", () => {
     expect(screen.getByLabelText("Nueva")).toHaveAttribute("type", "text");
     expect(screen.getByLabelText("Otra")).toHaveAttribute("type", "password");
   });
+
+  it("sin prop `icono` no dibuja ningún ícono a la izquierda", () => {
+    const { container } = render(
+      <CampoPassword value="" onChange={vi.fn()} etiqueta="Clave" autoComplete="current-password" />,
+    );
+    // El ojito de la derecha SÍ es un material-symbols; el de la izquierda no
+    // debe existir. Por eso se cuenta, no se busca presencia.
+    expect(container.querySelectorAll(".material-symbols-outlined")).toHaveLength(1);
+  });
+
+  it("con `icono` dibuja el ligature pedido, oculto para lectores de pantalla", () => {
+    const { container } = render(
+      <CampoPassword
+        value=""
+        onChange={vi.fn()}
+        etiqueta="Clave"
+        autoComplete="current-password"
+        icono="lock"
+      />,
+    );
+    const iconos = [...container.querySelectorAll(".material-symbols-outlined")];
+    const candado = iconos.find((n) => n.textContent === "lock");
+    expect(candado).toBeTruthy();
+    expect(candado).toHaveAttribute("aria-hidden", "true");
+  });
 });

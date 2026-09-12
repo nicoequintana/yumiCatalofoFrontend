@@ -88,7 +88,12 @@ function Entrar() {
 
   return (
     <div className="mx-auto flex max-w-sm flex-col gap-6 px-margin-mobile py-16 md:px-margin-desktop">
-      <h1 className="font-display-lg text-headline-lg text-on-background">Iniciá sesión</h1>
+      <header className="flex flex-col gap-1.5">
+        <h1 className="font-display-lg text-headline-lg text-on-background">Iniciá sesión</h1>
+        <p className="text-body-md text-on-surface-variant">
+          Ingresá a tu cuenta para continuar con tus compras y pedidos.
+        </p>
+      </header>
 
       {avisoStorage ? (
         <p className="rounded-lg bg-error-container px-4 py-3 text-body-md text-on-error-container">
@@ -98,62 +103,89 @@ function Entrar() {
       ) : null}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1">
-          <span className="text-label-md text-on-surface-variant">Email</span>
-          <input
-            type="email"
-            autoComplete="username"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-md text-on-surface"
-          />
-        </label>
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="entrar-email"
+            className="text-label-sm uppercase tracking-wide text-on-surface-variant"
+          >
+            Email
+          </label>
+          <div className="relative">
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant"
+            >
+              mail
+            </span>
+            <input
+              id="entrar-email"
+              type="email"
+              autoComplete="username"
+              required
+              placeholder="tu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-2xl border border-outline-variant bg-surface-container-lowest py-3.5 pl-11 pr-4 text-body-md text-on-surface focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/40"
+            />
+          </div>
+        </div>
+
         <CampoPassword
           value={password}
           onChange={setPassword}
           etiqueta="Contraseña"
           etiquetaVisible
-          etiquetaClassName="text-label-md text-on-surface-variant mb-1 block"
+          etiquetaClassName="text-label-sm uppercase tracking-wide text-on-surface-variant mb-1.5 block"
           autoComplete="current-password"
           required
-          className="rounded border border-outline-variant bg-surface-container-lowest py-2 pl-3 text-body-md text-on-surface"
+          icono="lock"
+          className="rounded-2xl border border-outline-variant bg-surface-container-lowest py-3.5 pl-11 text-body-md text-on-surface focus:border-brand-teal focus:outline-none focus:ring-2 focus:ring-brand-teal/40"
         />
+
+        {/* Sube desde el pie: el lugar donde se busca es al fallar la
+            contraseña, no después de haber leído toda la pantalla. */}
+        <div className="flex justify-end">
+          <Link
+            to="/cuenta/olvide"
+            className="text-label-md text-on-surface-variant underline underline-offset-4 hover:text-primary"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
+
         {error ? (
           <p role="alert" className="text-body-md text-error">
             {error}
           </p>
         ) : null}
+
         {mostrarPuerta ? (
-          <div className="flex flex-col gap-2 rounded-lg bg-surface-container-lowest p-4">
+          <div className="flex flex-col gap-2 rounded-2xl bg-surface-container-lowest p-4">
             <p className="text-body-md text-on-surface">
               Si olvidaste tu contraseña, podés recuperarla.
             </p>
             <PuertaWhatsApp />
           </div>
         ) : null}
+
         <button
           type="submit"
           disabled={cargando}
-          className="min-h-11 rounded bg-primary px-4 py-2 text-label-md text-on-primary disabled:opacity-50"
+          className="min-h-11 rounded-2xl bg-primary px-4 py-3.5 text-label-md text-on-primary disabled:opacity-50"
         >
           {cargando ? "Ingresando..." : "Iniciar sesión"}
         </button>
       </form>
 
       {/* Debajo del formulario y detrás de un separador: entrar con email es la
-          vía principal, Google es la alternativa. El bloque entero —separador,
-          rótulo y botón— desaparece si Google no se puede dibujar. */}
+          vía principal, Google es la alternativa. El bloque entero —separador
+          y botón— desaparece si Google no se puede dibujar. */}
       {googleDisponible ? (
         <div className="flex flex-col gap-3">
-          {/* Sin rótulo propio encima: Google localiza SU botón al idioma del
-              navegador ("Acceder con Google") y no deja restilarlo, así que
-              cualquier texto nuestro al lado es el mismo mensaje dos veces. El
-              separador ya avisa que empieza otra opción. */}
-          <div className="flex items-center gap-3" role="separator" aria-label="o">
+          <div className="flex items-center gap-3" role="separator" aria-label="o continuar con">
             <span className="h-px flex-1 bg-outline-variant" />
             <span aria-hidden="true" className="text-label-md text-on-surface-variant">
-              o
+              o continuar con
             </span>
             <span className="h-px flex-1 bg-outline-variant" />
           </div>
@@ -164,14 +196,12 @@ function Entrar() {
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-2 text-body-md text-on-surface-variant">
-        <Link to="/cuenta/registro" className="text-primary underline">
-          ¿No tenés cuenta? Registrate
+      <p className="text-center text-body-md text-on-surface-variant">
+        ¿No tenés cuenta?{" "}
+        <Link to="/cuenta/registro" className="font-semibold text-primary underline underline-offset-4">
+          Registrate
         </Link>
-        <Link to="/cuenta/olvide" className="text-primary underline">
-          ¿Olvidaste tu contraseña?
-        </Link>
-      </div>
+      </p>
     </div>
   );
 }

@@ -215,6 +215,15 @@ describe("Entrar — orden de las dos vías de entrada", () => {
 
     expect(posicion & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it('"¿Olvidaste tu contraseña?" está DENTRO del form y antes del submit', () => {
+    renderEntrar();
+    const link = screen.getByRole("link", { name: "¿Olvidaste tu contraseña?" });
+    const submit = screen.getByRole("button", { name: "Iniciar sesión" });
+
+    expect(link.closest("form")).toBe(submit.closest("form"));
+    expect(link.compareDocumentPosition(submit) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });
 
 describe("Entrar — Google no disponible", () => {
