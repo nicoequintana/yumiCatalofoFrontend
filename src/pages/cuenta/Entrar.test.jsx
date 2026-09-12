@@ -60,12 +60,12 @@ afterEach(() => {
 });
 
 describe("Entrar — campos y wording", () => {
-  it("tiene los labels Email y Contraseña, y el botón dice Iniciar sesión con Gmail junto al botón de Google", () => {
+  it("tiene los labels Email y Contraseña, el botón Iniciar sesión y el bloque de Google", () => {
     renderEntrar();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Contraseña")).toBeInTheDocument();
-    expect(screen.getByText("Iniciar sesión con Gmail")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Iniciar sesión" })).toBeInTheDocument();
+    expect(screen.getByText("Iniciá con Google")).toBeInTheDocument();
   });
 });
 
@@ -195,5 +195,47 @@ describe("Entrar — carrito y storage bloqueado", () => {
     expect(
       await screen.findByText(/Tu navegador está bloqueando el guardado/),
     ).toBeInTheDocument();
+  });
+});
+
+describe("Entrar — orden de las dos vías de entrada", () => {
+  it("el formulario de email va ARRIBA del bloque de Google", () => {
+    renderEntrar();
+
+    // `compareDocumentPosition` compara posición REAL en el DOM, no el orden
+    // en que los encontró la query: un assert por índice de `getAllBy...` se
+    // rompe en cuanto alguien agrega un nodo en el medio.
+    const campoEmail = screen.getByLabelText("Email");
+    const google = screen.getByText("Iniciá con Google");
+    const posicion = campoEmail.compareDocumentPosition(google);
+
+    expect(posicion & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+describe("Entrar — Google no disponible", () => {
+  it("sin botón de Google no queda el rótulo huérfano", async () => {
+    // `BotonGmail` devuelve null y avisa por `onNoDisponible` cuando falta
+    // VITE_GOOGLE_CLIENT_ID o el script de Google no carga a tiempo. Sin
+    // escuchar ese aviso, el rótulo quedaba señalando un botón inexistente.
+    vi.resetModules();
+    vi.doMock("../../components/BotonGmail.jsx", () => ({
+      default: ({ onNoDisponible }) => {
+        onNoDisponible?.();
+        return null;
+      },
+    }));
+    const { default: EntrarSinGoogle } = await import("./Entrar.jsx");
+
+    render(
+      <MemoryRouter initialEntries={["/cuenta/entrar"]}>
+        <EntrarSinGoogle />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText("Iniciá con Google")).not.toBeInTheDocument();
+    // El formulario sigue entero: sin Google, entrar por email es la única
+    // vía que queda y no puede irse con él.
+    expect(screen.getByLabelText("Email")).toBeInTheDocument();
   });
 });

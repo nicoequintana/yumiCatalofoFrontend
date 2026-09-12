@@ -27,6 +27,10 @@ function Entrar() {
   const [error, setError] = useState(null);
   const [fallosSeguidos, setFallosSeguidos] = useState(0);
   const [cargando, setCargando] = useState(false);
+  // `BotonGmail` devuelve null y avisa por acá cuando falta VITE_GOOGLE_CLIENT_ID
+  // o el script de Google no carga a tiempo. Sin escuchar el aviso, el rótulo
+  // y el separador quedaban señalando un botón que no existe.
+  const [googleDisponible, setGoogleDisponible] = useState(true);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { carrito } = useCarrito();
@@ -93,11 +97,6 @@ function Entrar() {
         </p>
       ) : null}
 
-      <div className="flex flex-col gap-2">
-        <span className="text-label-md text-on-surface-variant">Iniciar sesión con Gmail</span>
-        <BotonGmail onCredential={handleCredencialGoogle} />
-      </div>
-
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1">
           <span className="text-label-md text-on-surface-variant">Email</span>
@@ -141,6 +140,24 @@ function Entrar() {
           {cargando ? "Ingresando..." : "Iniciar sesión"}
         </button>
       </form>
+
+      {/* Debajo del formulario y detrás de un separador: entrar con email es la
+          vía principal, Google es la alternativa. El bloque entero —separador,
+          rótulo y botón— desaparece si Google no se puede dibujar. */}
+      {googleDisponible ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <span className="h-px flex-1 bg-outline-variant" />
+            <span className="text-label-md text-on-surface-variant">o</span>
+            <span className="h-px flex-1 bg-outline-variant" />
+          </div>
+          <span className="text-label-md text-on-surface-variant">Iniciá con Google</span>
+          <BotonGmail
+            onCredential={handleCredencialGoogle}
+            onNoDisponible={() => setGoogleDisponible(false)}
+          />
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2 text-body-md text-on-surface-variant">
         <Link to="/cuenta/registro" className="text-primary underline">
