@@ -264,6 +264,14 @@ describe("MiCuenta — markup del layout de escritorio", () => {
     );
   });
 
+  // 13/09/2026: "Ayuda y soporte" quedaba sola en la segunda fila y más baja
+  // que "Mis favoritos"/"Seguridad y acceso", cuyo subtítulo corta en dos
+  // renglones. `auto-rows-fr` iguala el alto de todas las filas de la grilla.
+  it("las tarjetas de Configuración tienen todas el mismo alto en escritorio", () => {
+    renderMiCuenta(PERFIL_LOCAL);
+    expect(screen.getByTestId("lista-configuracion")).toHaveClass("lg:auto-rows-fr");
+  });
+
   it("el avatar crece en escritorio", () => {
     renderMiCuenta(PERFIL_LOCAL);
     expect(screen.getByTestId("avatar-iniciales")).toHaveClass("lg:h-24", "lg:w-24");
