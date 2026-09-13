@@ -1,29 +1,26 @@
 /**
- * Paleta de degradés para los círculos de categoría, asignada de forma
- * DETERMINÍSTICA por slug — presentación pura, no es un dato del negocio: no
- * viaja por la API, no suma migración, y el mismo slug siempre cae en el
- * mismo color entre una carga y otra. Tonos tomados de la familia de tokens
- * del público (T1, `.tema-publico` en `index.css`): primary/secondary/tertiary
- * y sus containers, en pares claros→oscuros para el degradé radial.
+ * Familias de la paleta pastel de los círculos de categoría — cada nombre
+ * referencia tres custom properties en canales bajo `.tema-publico`
+ * (`index.css`): `--circulo-<familia>-claro` y `-profundo` (las dos paradas
+ * del degradé radial) e `-icono` (un tono oscuro de la MISMA familia, nunca
+ * blanco sobre un color saturado — así es el disco del mockup aprobado).
  *
- * Los mismos 5 pares están documentados como custom properties en
- * `index.css` bajo `.tema-publico` (`--color-circulo-categoria-N-from/to`) —
- * un test en `tokens.test.js` los mantiene sincronizados con este array. No
- * se LEEN desde ahí en runtime porque `colorParaSlug` tiene que devolver un
- * triple "R G B" literal para el `style` inline del degradé radial (no hay
- * clase Tailwind posible para un color elegido en runtime por slug).
+ * **Los valores numéricos viven SOLO en `index.css`.** Este archivo no
+ * duplica ni un canal: `colorParaSlug` devuelve el NOMBRE de la familia, y el
+ * componente arma `rgb(var(--circulo-<familia>-<canal>))`. Antes (primera
+ * versión de T13) este módulo tenía un array de pares `{ from, to }` con RGB
+ * literal — la review lo marcó como una segunda copia de `index.css` que
+ * podía desincronizarse en silencio, y pidió una sola fuente de verdad.
+ *
+ * `colorParaSlug` hashea el string (suma de código de carácter, `%
+ * paleta.length`) para elegir la familia de forma DETERMINÍSTICA — el mismo
+ * slug siempre cae en la misma familia entre una carga y otra.
  */
-export const PALETA_CATEGORIA = [
-  { from: "20 72 85", to: "0 49 60" }, // primary-container → primary
-  { from: "254 121 73", to: "167 58 12" }, // secondary-container → secondary
-  { from: "0 77 32", to: "0 52 19" }, // tertiary-container → tertiary
-  { from: "135 182 197", to: "20 72 85" }, // on-primary-container → primary-container
-  { from: "104 29 0", to: "167 58 12" }, // on-secondary-container → secondary
-];
+export const FAMILIAS_CATEGORIA = ["arena", "terracota", "salvia", "teal", "cielo", "lila", "rosa"];
 
 export function colorParaSlug(slug) {
   const suma = String(slug)
     .split("")
     .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return PALETA_CATEGORIA[suma % PALETA_CATEGORIA.length];
+  return FAMILIAS_CATEGORIA[suma % FAMILIAS_CATEGORIA.length];
 }

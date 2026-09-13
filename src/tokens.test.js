@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import configTailwind from "../tailwind.config.js";
-import { PALETA_CATEGORIA } from "./utils/paletaCategoria.js";
+import { FAMILIAS_CATEGORIA } from "./utils/paletaCategoria.js";
 
 const archivoActual = fileURLToPath(import.meta.url);
 const dirSrc = dirname(archivoActual);
@@ -128,35 +128,107 @@ describe("paleta pública (.tema-publico)", () => {
 });
 
 /**
- * Paleta de los círculos de categoría (T13): `utils/paletaCategoria.js` no
- * lee estas custom properties en runtime (necesita devolver un triple
- * "R G B" literal para el degradé radial inline, no una clase Tailwind), así
- * que quedan documentadas acá aparte — y este guard es lo único que evita que
- * las dos copias diverjan en silencio si alguien cambia una sin la otra.
+ * Paleta pastel de los círculos de categoría (T13, corregida tras review de
+ * la primera versión). `utils/paletaCategoria.js` solo elige el NOMBRE de la
+ * familia por slug — los tres canales de cada familia (`claro`, `profundo`,
+ * `icono`) viven ÚNICAMENTE acá, en `.tema-publico`, como fuente única de
+ * verdad: el componente arma `rgb(var(--circulo-<familia>-<canal>))`.
+ *
+ * El mockup aprobado dibuja el ícono en un tono OSCURO de la misma familia
+ * sobre un disco pastel — nunca un ícono blanco sobre un color saturado
+ * (eso fue justo lo que la review de la primera versión de T13 rechazó, y
+ * además no llegaba a 3:1 en algunas familias). Este guard prueba la relación
+ * real, no que "existan tres canales": el CONTRASTE del ícono contra las DOS
+ * paradas del degradé (`claro` y `profundo`) tiene que llegar al piso WCAG
+ * 1.4.11 (Non-text Contrast) de 3:1 — es un ícono solo, sin texto, mismo
+ * criterio que ya usa la isla flotante (`docs/reglas/catalogo-publico.md`,
+ * "Qué hace que la isla se lea como VIDRIO").
  */
-describe("paleta de círculos de categoría (T13)", () => {
+describe("paleta pastel de círculos de categoría (T13)", () => {
   const bloquePublico = () => {
     const inicio = indexCss.search(/\.tema-publico\s*\{/);
     const fin = indexCss.indexOf("\n}", inicio);
     return indexCss.slice(inicio, fin);
   };
 
-  it("los 5 pares se declaran en .tema-publico, en canales", () => {
+  const CANALES = ["claro", "profundo", "icono"];
+
+  function valorCanal(bloque, familia, canal) {
+    const match = bloque.match(
+      new RegExp(`--circulo-${familia}-${canal}:\\s*(\\d{1,3}) (\\d{1,3}) (\\d{1,3});`),
+    );
+    return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null;
+  }
+
+  it("hay entre 6 y 8 familias, cada una con sus 3 canales en .tema-publico, en canales (no hex)", () => {
+    expect(FAMILIAS_CATEGORIA.length).toBeGreaterThanOrEqual(6);
+    expect(FAMILIAS_CATEGORIA.length).toBeLessThanOrEqual(8);
+
     const bloque = bloquePublico();
-    for (let i = 1; i <= 5; i += 1) {
-      expect(bloque).toMatch(new RegExp(`--color-circulo-categoria-${i}-from:\\s*\\d{1,3} \\d{1,3} \\d{1,3};`));
-      expect(bloque).toMatch(new RegExp(`--color-circulo-categoria-${i}-to:\\s*\\d{1,3} \\d{1,3} \\d{1,3};`));
-    }
+    FAMILIAS_CATEGORIA.forEach((familia) => {
+      CANALES.forEach((canal) => {
+        expect(valorCanal(bloque, familia, canal)).not.toBeNull();
+      });
+    });
   });
 
-  it("los valores de index.css coinciden con PALETA_CATEGORIA del JS", () => {
+  // Luminancia relativa y contraste — misma fórmula WCAG 2.x que ya se usó a
+  // mano para la isla flotante (ver "Qué hace que la isla se lea como
+  // VIDRIO", `docs/reglas/catalogo-publico.md`), ahora como helper de test en
+  // vez de una cuenta hecha una sola vez y pegada en un comentario.
+  function luminanciaRelativa([r, g, b]) {
+    const canal = (c) => {
+      const s = c / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+  }
+
+  function contraste(rgbA, rgbB) {
+    const lA = luminanciaRelativa(rgbA);
+    const lB = luminanciaRelativa(rgbB);
+    const [claro, oscuro] = lA > lB ? [lA, lB] : [lB, lA];
+    return (claro + 0.05) / (oscuro + 0.05);
+  }
+
+  const PISO_CONTRASTE_ICONO = 3; // WCAG 1.4.11, non-text contrast
+
+  it("el ícono de CADA familia llega a 3:1 contra las DOS paradas del degradé (WCAG 1.4.11)", () => {
     const bloque = bloquePublico();
-    PALETA_CATEGORIA.forEach((par, indice) => {
-      const numero = indice + 1;
-      expect(bloque).toMatch(
-        new RegExp(`--color-circulo-categoria-${numero}-from:\\s*${par.from};`),
-      );
-      expect(bloque).toMatch(new RegExp(`--color-circulo-categoria-${numero}-to:\\s*${par.to};`));
+    const insuficientes = [];
+
+    FAMILIAS_CATEGORIA.forEach((familia) => {
+      const claro = valorCanal(bloque, familia, "claro");
+      const profundo = valorCanal(bloque, familia, "profundo");
+      const icono = valorCanal(bloque, familia, "icono");
+      if (!claro || !profundo || !icono) return; // ya lo marca el test anterior
+
+      const contrasteClaro = contraste(icono, claro);
+      const contrasteProfundo = contraste(icono, profundo);
+
+      if (contrasteClaro < PISO_CONTRASTE_ICONO) {
+        insuficientes.push(`${familia} icono/claro: ${contrasteClaro.toFixed(2)}`);
+      }
+      if (contrasteProfundo < PISO_CONTRASTE_ICONO) {
+        insuficientes.push(`${familia} icono/profundo: ${contrasteProfundo.toFixed(2)}`);
+      }
+    });
+
+    expect(insuficientes).toEqual([]);
+  });
+
+  it("ninguna familia usa blanco/negro puro de ícono: es un tono oscuro DE LA MISMA familia, no un color ajeno", () => {
+    // Guard de intención, no solo de contraste: un ícono blanco sobre pastel
+    // pasaría el test de arriba (contraste altísimo) y sería exactamente el
+    // look que la review rechazó (ícono blanco sobre saturado, acá sería
+    // blanco sobre pastel — mismo error de fondo, tono ajeno a la familia).
+    const bloque = bloquePublico();
+    FAMILIAS_CATEGORIA.forEach((familia) => {
+      const icono = valorCanal(bloque, familia, "icono");
+      if (!icono) return;
+      const [r, g, b] = icono;
+      const esBlancoONegroPuro = (r === 255 && g === 255 && b === 255) || (r === 0 && g === 0 && b === 0);
+      expect(esBlancoONegroPuro).toBe(false);
     });
   });
 });

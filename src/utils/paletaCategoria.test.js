@@ -1,18 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { PALETA_CATEGORIA, colorParaSlug } from "./paletaCategoria.js";
+import { FAMILIAS_CATEGORIA, colorParaSlug } from "./paletaCategoria.js";
 
 describe("colorParaSlug", () => {
-  it("el mismo slug siempre da el mismo color", () => {
+  it("el mismo slug siempre da la misma familia", () => {
     expect(colorParaSlug("cocina")).toEqual(colorParaSlug("cocina"));
   });
 
-  it("devuelve un par from/to en canales, no en hex", () => {
-    const color = colorParaSlug("hogar");
-    expect(color.from).toMatch(/^\d{1,3} \d{1,3} \d{1,3}$/);
-    expect(color.to).toMatch(/^\d{1,3} \d{1,3} \d{1,3}$/);
+  it("devuelve el nombre de una familia definida en la paleta", () => {
+    expect(FAMILIAS_CATEGORIA).toContain(colorParaSlug("hogar"));
   });
 
-  it("dos slugs distintos pueden (no necesariamente) caer en colores distintos, pero la paleta tiene más de un color", () => {
-    expect(PALETA_CATEGORIA.length).toBeGreaterThan(3);
+  it("hay más de una familia en la paleta (6 a 8 matices, como el mockup)", () => {
+    expect(FAMILIAS_CATEGORIA.length).toBeGreaterThanOrEqual(6);
+    expect(FAMILIAS_CATEGORIA.length).toBeLessThanOrEqual(8);
+  });
+
+  it("NO devuelve un triple de canales — los valores viven solo en index.css", () => {
+    // Regresión: la versión anterior devolvía { from, to } con RGB literal.
+    // Duplicar los números acá es exactamente lo que la review de T13 pidió
+    // eliminar — el componente arma `rgb(var(--circulo-<familia>-<canal>))`.
+    expect(typeof colorParaSlug("hogar")).toBe("string");
   });
 });

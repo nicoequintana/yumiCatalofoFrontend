@@ -24,11 +24,25 @@ const ICONO_GENERICO = "category";
  * (ver "El círculo muestra la foto", `docs/reglas/catalogo-publico.md`) con un
  * argumento nuevo, no el mismo que se refutó el 05/09.** Cada círculo muestra
  * `Categoria.icono` (Material Symbols, se elige en el panel) sobre un degradé
- * de una paleta fija elegido de forma DETERMINÍSTICA por slug
+ * PASTEL de una familia elegida de forma DETERMINÍSTICA por slug
  * (`utils/paletaCategoria.js`) — presentación pura, no viaja por la API. Sin
  * ícono cargado cae al mismo `ICONO_GENERICO` de siempre: no hay nada que
  * elegir por categoría en ese caso, así que una categoría recién creada nunca
  * rompe la fila.
+ *
+ * **El ícono va en un tono OSCURO de la MISMA familia que el fondo, nunca
+ * blanco sobre un color saturado.** Es el look del mockup aprobado (disco
+ * pastel + ícono oscuro del mismo matiz) y además es lo que sostiene el
+ * contraste: `tokens.test.js` prueba WCAG 1.4.11 (3:1) para las dos paradas
+ * del degradé de cada familia.
+ *
+ * **El anillo es un doble `box-shadow`, no un `border`**: una separación fina
+ * del color de superficie y después el aro de color — mismo mecanismo que el
+ * mockup (`0 0 0 2px var(--surface), 0 0 0 3.5px var(--outline-var)`), para
+ * que el aro se lea flotando sobre el fondo de la sección en vez de pegado al
+ * borde del disco. `destacadaEnHome` sigue decidiendo el color del aro
+ * (`primary` destacada, `outline-variant` el resto) — mismo criterio de
+ * siempre, solo cambió CÓMO se pinta.
  *
  * La última tarjeta cortada al borde derecho es la señal de "hay más": no hace
  * falta ningún texto que lo diga.
@@ -43,9 +57,10 @@ const ICONO_GENERICO = "category";
 /** UN círculo. */
 function CirculoCategoria({ categoria }) {
   // Determinístico por slug (no por id ni nombre crudo): dos categorías con
-  // el mismo nombre en ambientes distintos caen en el mismo color, y es la
+  // el mismo nombre en ambientes distintos caen en la misma familia, y es la
   // misma clave que ya identifica la categoría en la URL.
-  const color = colorParaSlug(rutaCategoria(categoria) ?? categoria.nombre);
+  const familia = colorParaSlug(rutaCategoria(categoria) ?? categoria.nombre);
+  const colorAnillo = categoria.destacadaEnHome ? "var(--color-primary)" : "var(--color-outline-variant)";
 
   return (
     <Link
@@ -55,13 +70,18 @@ function CirculoCategoria({ categoria }) {
       <span
         data-testid="fondo-circulo"
         style={{
-          background: `radial-gradient(circle at 30% 30%, rgb(${color.from}), rgb(${color.to}))`,
+          background: `radial-gradient(120% 90% at 30% 20%, rgb(var(--circulo-${familia}-claro)), rgb(var(--circulo-${familia}-profundo)))`,
+          // Doble aro: separación de superficie + color, igual que el mockup —
+          // NUNCA un `border` pegado al disco.
+          boxShadow: `0 0 0 2px rgb(var(--color-surface)), 0 0 0 3.5px rgb(${colorAnillo})`,
         }}
-        className={`relative flex h-14 w-14 items-center justify-center rounded-full border shadow-ambient md:h-16 md:w-16 ${
-          categoria.destacadaEnHome ? "border-primary" : "border-outline-variant"
-        }`}
+        className="relative flex h-14 w-14 items-center justify-center rounded-full md:h-16 md:w-16"
       >
-        <span aria-hidden="true" className="material-symbols-outlined text-[28px] text-on-primary md:text-[32px]">
+        <span
+          aria-hidden="true"
+          className="material-symbols-outlined text-[28px] md:text-[32px]"
+          style={{ color: `rgb(var(--circulo-${familia}-icono))` }}
+        >
           {categoria.icono || ICONO_GENERICO}
         </span>
       </span>

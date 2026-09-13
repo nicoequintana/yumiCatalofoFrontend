@@ -50,8 +50,14 @@ describe("CirculosCategoria", () => {
   it("dos categorías distintas pueden tener colores de fondo distintos", () => {
     categoriasMock.mockReturnValue({
       categorias: [
+        // "Hogar" y "Tecnología" hashean a la MISMA familia con la paleta de
+        // 7 matices (verificado aparte) — este par sí cae en familias
+        // distintas (terracota / salvia). No es una garantía matemática (dos
+        // slugs pueden hashear a la misma familia), pero con estos dos
+        // nombres concretos difieren; si un cambio de paleta o de hash los
+        // junta, el test avisa.
         { id: 3, nombre: "Hogar", icono: "restaurant", destacadaEnHome: false },
-        { id: 7, nombre: "Tecnología", icono: "devices", destacadaEnHome: false },
+        { id: 5, nombre: "Mascotas", icono: "pets", destacadaEnHome: false },
       ],
       resuelto: true,
     });
@@ -60,13 +66,10 @@ describe("CirculosCategoria", () => {
     const fondos = [...container.querySelectorAll("[data-testid='fondo-circulo']")].map((el) =>
       el.getAttribute("style"),
     );
-    // No es una garantía matemática (dos slugs pueden hashear al mismo color),
-    // pero con estos dos nombres concretos caen en pares distintos — si un
-    // cambio de paleta o de hash los junta, el test avisa.
     expect(new Set(fondos).size).toBeGreaterThan(1);
   });
 
-  it("el borde es primary cuando la categoría está destacada, y outline-variant cuando no", () => {
+  it("el aro es primary cuando la categoría está destacada, y outline-variant cuando no", () => {
     categoriasMock.mockReturnValue({
       categorias: [
         { id: 3, nombre: "Hogar", icono: "restaurant", destacadaEnHome: true },
@@ -75,10 +78,16 @@ describe("CirculosCategoria", () => {
       resuelto: true,
     });
 
-    const { container } = render(<CirculosCategoria />, { wrapper: MemoryRouter });
-    const fondos = [...container.querySelectorAll("[data-testid='fondo-circulo']")];
-    expect(fondos[0].className).toMatch(/border-primary/);
-    expect(fondos[1].className).toMatch(/border-outline-variant/);
+    render(<CirculosCategoria />, { wrapper: MemoryRouter });
+
+    // Por NOMBRE ACCESIBLE, no por índice del array — así el orden en que
+    // `useCategoriasHome` devuelve las categorías no puede hacer que este
+    // test compare el círculo equivocado.
+    const fondoDe = (nombre) =>
+      screen.getByRole("link", { name: new RegExp(nombre) }).querySelector("[data-testid='fondo-circulo']");
+
+    expect(fondoDe("Hogar").getAttribute("style")).toMatch(/--color-primary/);
+    expect(fondoDe("Mascotas").getAttribute("style")).toMatch(/--color-outline-variant/);
   });
 
   it("cada círculo linkea a su categoría", () => {

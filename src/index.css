@@ -291,24 +291,40 @@
   --font-label: "Outfit", sans-serif;
   --font-body: "DM Sans", sans-serif;
 
-  /* Paleta de los círculos de categoría de la home (T13) — 5 pares from/to
-     en canales para el degradé radial, tomados de la familia de arriba
-     (primary/secondary/tertiary y sus containers). `utils/paletaCategoria.js`
-     elige el par por slug de forma determinística y NO lee estas variables
-     en runtime (necesita devolver un triple "R G B" literal para el `style`
-     inline, no hay clase Tailwind posible para un color elegido por slug) —
-     estas custom properties documentan los mismos valores acá, y un test en
-     `tokens.test.js` los mantiene sincronizados con el array. */
-  --color-circulo-categoria-1-from: 20 72 85; /* primary-container */
-  --color-circulo-categoria-1-to: 0 49 60; /* primary */
-  --color-circulo-categoria-2-from: 254 121 73; /* secondary-container */
-  --color-circulo-categoria-2-to: 167 58 12; /* secondary */
-  --color-circulo-categoria-3-from: 0 77 32; /* tertiary-container */
-  --color-circulo-categoria-3-to: 0 52 19; /* tertiary */
-  --color-circulo-categoria-4-from: 135 182 197; /* on-primary-container */
-  --color-circulo-categoria-4-to: 20 72 85; /* primary-container */
-  --color-circulo-categoria-5-from: 104 29 0; /* on-secondary-container */
-  --color-circulo-categoria-5-to: 167 58 12; /* secondary */
+  /* Paleta PASTEL de los círculos de categoría de la home (T13, corregida
+     tras review). El mockup aprobado dibuja el disco como un degradé pastel
+     suave (misma fórmula que `.foto` del style guide: hsl(H 42% 94%) →
+     hsl(H 26% 80%)) con el ÍCONO en un tono OSCURO de la MISMA familia
+     (hsl(H 32% 28%)) — nunca un ícono blanco sobre un color saturado. Estos
+     valores son la conversión a canales RGB de esa fórmula para 7 matices
+     (arena/terracota/salvia/teal/cielo/lila/rosa), y son la ÚNICA copia:
+     `utils/paletaCategoria.js` sólo elige el NOMBRE de la familia por slug,
+     nunca un canal — el componente arma
+     `rgb(var(--circulo-<familia>-<canal>))`. `tokens.test.js` prueba que el
+     contraste ícono↔claro e ícono↔profundo llegue a 3:1 (WCAG 1.4.11) en
+     las 7 familias — hoy el mínimo medido es 4.94:1 (salvia, contra el
+     tono profundo). */
+  --circulo-arena-claro: 246 241 233;
+  --circulo-arena-profundo: 217 208 191;
+  --circulo-arena-icono: 94 77 49;
+  --circulo-terracota-claro: 246 237 233;
+  --circulo-terracota-profundo: 217 198 191;
+  --circulo-terracota-icono: 94 61 49;
+  --circulo-salvia-claro: 238 246 233;
+  --circulo-salvia-profundo: 200 217 191;
+  --circulo-salvia-icono: 64 94 49;
+  --circulo-teal-claro: 233 244 246;
+  --circulo-teal-profundo: 191 213 217;
+  --circulo-teal-icono: 49 87 94;
+  --circulo-cielo-claro: 233 241 246;
+  --circulo-cielo-profundo: 191 206 217;
+  --circulo-cielo-icono: 49 75 94;
+  --circulo-lila-claro: 240 233 246;
+  --circulo-lila-profundo: 204 191 217;
+  --circulo-lila-icono: 71 49 94;
+  --circulo-rosa-claro: 246 233 238;
+  --circulo-rosa-profundo: 217 191 200;
+  --circulo-rosa-icono: 94 49 64;
 }
 
 body {
