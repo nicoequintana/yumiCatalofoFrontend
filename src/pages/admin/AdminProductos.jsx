@@ -22,6 +22,7 @@ import {
   updateVisibilidadMasiva,
 } from "../../api/products.js";
 import { getCategorias } from "../../api/categorias.js";
+import { actualizarConfiguracionHome, getConfiguracionHome } from "../../api/config.js";
 import { formatPrecio } from "../../utils/formato.js";
 import useDialogo from "../../hooks/useDialogo.js";
 import { MIN_DESTACADOS } from "../../hooks/useDestacados.js";
@@ -263,6 +264,16 @@ function AdminProductos() {
   const [actualizandoVisibilidadId, setActualizandoVisibilidadId] = useState(null);
   const [actualizandoDestacadoId, setActualizandoDestacadoId] = useState(null);
 
+  /**
+   * Producto ícono de la home (T5/T7). `null` significa "ninguno elegido
+   * TODAVÍA CONOCIDO" — antes de que resuelva el efecto de abajo, o si el
+   * elegido está oculto/sin stock (ver el comentario de `getConfiguracionHome`
+   * en `api/config.js`): esta pantalla no tiene forma de distinguir esos dos
+   * casos sin una vista admin del endpoint, que T5 confirmó que no existe.
+   */
+  const [productoIconoId, setProductoIconoId] = useState(null);
+  const [actualizandoIconoId, setActualizandoIconoId] = useState(null);
+
   // Ids tildados con los checkbox. Es un `Set` y no un array porque la
   // pregunta que se le hace en cada fila del render es "¿está este id?".
   const [accionMasivaEnCurso, setAccionMasivaEnCurso] = useState(false);
@@ -445,6 +456,30 @@ function AdminProductos() {
     };
   }, []);
 
+  // Se pide una sola vez, al montar — igual que categorías/etiquetas.
+  // `getConfiguracionHome` es el GET PÚBLICO (T5): degrada a `null` si el
+  // producto elegido está oculto o sin stock, así que esta carga inicial
+  // puede no reflejar un ícono elegido que hoy no se ve en el catálogo. No
+  // hay una vista admin del endpoint (T5 la buscó y no existe); elegir de
+  // nuevo desde esta misma tabla corrige el estado porque `handleElegirIcono`
+  // sí usa la respuesta del PUT, que no degrada.
+  useEffect(() => {
+    let activo = true;
+
+    (async () => {
+      try {
+        const { productoIcono } = await getConfiguracionHome();
+        if (activo) setProductoIconoId(productoIcono?.id ?? null);
+      } catch {
+        if (activo) setProductoIconoId(null);
+      }
+    })();
+
+    return () => {
+      activo = false;
+    };
+  }, []);
+
   // Los contadores se piden aparte del listado: son globales, así que no
   // dependen de `pagina` ni de `busqueda`. Un fallo acá deja `resumen` en
   // `null` (las tarjetas muestran `—`) y NO toca `error`: la tabla es lo que
@@ -574,6 +609,25 @@ function AdminProductos() {
       setError(err.message ?? "No se pudo actualizar el destacado del producto.");
     } finally {
       setActualizandoDestacadoId(null);
+    }
+  }
+
+  /**
+   * Elige `id` como producto ícono de la home. Es un botón de acción, no un
+   * switch por fila: `PUT /config/home` (T5) ya reemplaza el valor entero
+   * -singleton-, así que esta pantalla no calcula ningún "desmarcar antes de
+   * marcar" — se limita a reflejar lo que el backend confirma.
+   */
+  async function handleElegirIcono(id) {
+    setError(null);
+    setActualizandoIconoId(id);
+    try {
+      const { productoIcono } = await actualizarConfiguracionHome(id);
+      setProductoIconoId(productoIcono?.id ?? null);
+    } catch (err) {
+      setError(err.message ?? "No se pudo elegir el producto ícono.");
+    } finally {
+      setActualizandoIconoId(null);
     }
   }
 
@@ -993,6 +1047,12 @@ function AdminProductos() {
                   <ThOrdenable etiqueta="Fotos" asc="fotos-asc" desc="fotos-desc" orden={orden} onOrden={cambiarOrden} secundaria claseExtra={claseNumero} />
                   <ThOrdenable etiqueta="Catálogo" asc="visible-asc" desc="visible-desc" orden={orden} onOrden={cambiarOrden} />
                   <ThOrdenable etiqueta="Destacado" asc="destacado-asc" desc="destacado-desc" orden={orden} onOrden={cambiarOrden} />
+                  {/* Sin `ThOrdenable`: no hay un `orden=` que el backend
+                      entienda para esto (no es una columna propia del
+                      producto, es el singleton de `ConfiguracionHome`). */}
+                  <th role="columnheader" className="px-2 py-2 font-label-sm uppercase tracking-wide text-on-surface-variant xl:px-3 xl:py-3 xl:tracking-widest">
+                    Ícono home
+                  </th>
                 </tr>
               </thead>
               <tbody role="rowgroup">
@@ -1150,6 +1210,27 @@ function AdminProductos() {
                           />
                         </button>
                         {actualizandoDestacadoId === producto.id ? (
+                          <Spinner className="h-3.5 w-3.5 text-on-surface-variant" />
+                        ) : null}
+                      </div>
+                    </td>
+                    <td role="cell" data-label="Ícono home" className="px-2 py-2 xl:px-3 xl:py-3">
+                      <div className="flex items-center gap-2">
+                        {producto.id === productoIconoId ? (
+                          <span className="font-label-sm text-label-sm text-on-surface-variant">
+                            Es el ícono de la home
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleElegirIcono(producto.id)}
+                            disabled={actualizandoIconoId === producto.id}
+                            className="whitespace-nowrap rounded-lg border border-outline px-3 py-1.5 font-label-md text-on-surface transition-colors hover:bg-surface-container disabled:opacity-50"
+                          >
+                            Usar como ícono de la home
+                          </button>
+                        )}
+                        {actualizandoIconoId === producto.id ? (
                           <Spinner className="h-3.5 w-3.5 text-on-surface-variant" />
                         ) : null}
                       </div>

@@ -77,3 +77,56 @@ export async function putConfigContacto(campos) {
 
   return body;
 }
+
+/**
+ * `GET /config/home` — PÚBLICO, sin auth (T5). Alimenta la sección "Producto
+ * ícono" de la home pública (T14).
+ *
+ * **Degrada a `productoIcono: null`** cuando nadie eligió producto, el
+ * producto elegido fue borrado, o dejó de estar publicado/con stock — igual
+ * que `getConfigContacto` frente a `getConfigContactoAdmin`, este endpoint NO
+ * tiene una vista admin separada (confirmado en T5: ni siquiera con token
+ * admin destapa un producto oculto). `AdminProductos.jsx` usa esta misma
+ * llamada para pintar la selección inicial y por eso puede no reflejar un
+ * ícono elegido que hoy está oculto — ver la ficha de T7 para el detalle.
+ *
+ * @returns {Promise<{productoIcono: Object|null}>}
+ */
+export async function getConfiguracionHome() {
+  const res = await fetchConTimeout(`${BASE}/config/home`);
+  const body = parsearCuerpo(await res.text());
+
+  if (!res.ok) {
+    throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
+  }
+
+  return body;
+}
+
+/**
+ * `PUT /config/home` — requiere sesión admin (T5). Singleton: elegir un
+ * `productoIconoId` reemplaza al anterior automáticamente, no hace falta
+ * "desmarcar" nada antes.
+ *
+ * A diferencia del `GET` público, esta respuesta NO degrada a `null` por
+ * producto oculto/sin stock: trae el detalle recién guardado tal cual, así
+ * que es la fuente correcta para reflejar en el panel el producto elegido
+ * (`AdminProductos.jsx` la usa para actualizar el estado después de elegir).
+ *
+ * @param {number|null} productoIconoId
+ * @returns {Promise<{productoIcono: Object|null}>}
+ */
+export async function actualizarConfiguracionHome(productoIconoId) {
+  const res = await fetchAutenticado(`${BASE}/config/home`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productoIconoId }),
+  });
+  const body = parsearCuerpo(await res.text());
+
+  if (!res.ok) {
+    throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
+  }
+
+  return body;
+}
