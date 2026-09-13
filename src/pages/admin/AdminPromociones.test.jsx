@@ -296,3 +296,56 @@ describe("AdminPromociones — área táctil", () => {
     expect(cerrar.className).toContain("before:w-11");
   });
 });
+
+describe("AdminPromociones — switch de home", () => {
+  const PROMO_HOME = {
+    id: 3,
+    nombre: "Promo Verano",
+    cantidadProductos: 2,
+    activa: true,
+    programada: false,
+    destacadaEnHome: false,
+  };
+
+  it("el switch refleja destacadaEnHome y llama a destacarPromocionEnHome al togglear", async () => {
+    const user = userEvent.setup();
+    promocionesApi.getPromociones.mockResolvedValue([PROMO_HOME]);
+    promocionesApi.destacarPromocionEnHome.mockResolvedValue({
+      ...PROMO_HOME,
+      destacadaEnHome: true,
+    });
+    renderPagina();
+    await screen.findByText("Promo Verano");
+
+    const switchHome = screen.getByRole("switch", { name: /destacar.*home/i });
+    expect(switchHome).toHaveAttribute("aria-checked", "false");
+
+    await user.click(switchHome);
+
+    expect(promocionesApi.destacarPromocionEnHome).toHaveBeenCalledWith(3, true);
+  });
+
+  it("avisa que activar desmarca la promoción destacada anterior", async () => {
+    promocionesApi.getPromociones.mockResolvedValue([PROMO_HOME]);
+    renderPagina();
+    await screen.findByText("Promo Verano");
+
+    expect(
+      screen.getByText(/desmarca la promoción destacada anterior/i),
+    ).toBeInTheDocument();
+  });
+
+  it("un fallo al togglear muestra el mensaje del backend", async () => {
+    const user = userEvent.setup();
+    promocionesApi.getPromociones.mockResolvedValue([PROMO_HOME]);
+    promocionesApi.destacarPromocionEnHome.mockRejectedValue(
+      new Error("No se pudo destacar la promoción."),
+    );
+    renderPagina();
+    await screen.findByText("Promo Verano");
+
+    await user.click(screen.getByRole("switch", { name: /destacar.*home/i }));
+
+    expect(await screen.findByText("No se pudo destacar la promoción.")).toBeInTheDocument();
+  });
+});

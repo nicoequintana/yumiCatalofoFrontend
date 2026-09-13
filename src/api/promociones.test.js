@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   actualizarPromocion,
+  destacarPromocionEnHome,
   guardarArtePromocion,
   quitarArtePromocion,
 } from "./promociones.js";
@@ -86,6 +87,27 @@ describe("actualizarPromocion", () => {
 
     await expect(actualizarPromocion(3, { bannerEnHome: true })).rejects.toThrow(
       "Un banner activo necesita un título.",
+    );
+  });
+});
+
+describe("destacarPromocionEnHome", () => {
+  it("hace PATCH a /:id/home con el booleano", async () => {
+    mockRespuesta({ id: 3, destacadaEnHome: true });
+
+    await destacarPromocionEnHome(3, true);
+
+    const [url, opciones] = fetchAutenticado.mock.calls[0];
+    expect(url).toBe(`${BASE}/promociones/3/home`);
+    expect(opciones.method).toBe("PATCH");
+    expect(JSON.parse(opciones.body)).toEqual({ destacadaEnHome: true });
+  });
+
+  it("propaga el mensaje del backend cuando falla", async () => {
+    mockRespuesta({ error: "No se pudo destacar la promoción." }, false);
+
+    await expect(destacarPromocionEnHome(3, true)).rejects.toThrow(
+      "No se pudo destacar la promoción.",
     );
   });
 });

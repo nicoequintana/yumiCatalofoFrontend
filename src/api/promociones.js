@@ -89,6 +89,19 @@ export async function eliminarPromocion(id) {
 }
 
 /**
+ * Marca (o desmarca) esta promoción como la destacada de la sección
+ * "Promos activas" de la home. El backend apaga a la anterior sola —
+ * acá no hay lógica de exclusividad que replicar.
+ */
+export async function destacarPromocionEnHome(id, destacadaEnHome) {
+  return pedir(`${BASE}/promociones/${id}/home`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ destacadaEnHome }),
+  });
+}
+
+/**
  * El listado comercial: cada producto con sus vistas, ventas, conversión,
  * costo, coeficiente, precio y en qué promociones participa.
  *

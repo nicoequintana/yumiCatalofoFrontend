@@ -14,6 +14,7 @@ import {
   actualizarPromocion,
   crearPromocion,
   cambiarEstadoItem,
+  destacarPromocionEnHome,
   eliminarPromocion,
   getConflictos,
   getListadoComercial,
@@ -376,6 +377,17 @@ export default function AdminPromociones() {
     });
   }
 
+  /**
+   * El switch de "Destacar en home" (T6). El backend apaga sola a la
+   * promoción destacada anterior en la MISMA transacción del `PATCH` — acá no
+   * hay ninguna lógica de exclusividad que replicar, solo el refresco de
+   * `conGuardado` (mismo patrón que `alternarActiva`) para que la anterior se
+   * vea desmarcada en la tabla sin recargar la página a mano.
+   */
+  async function handleToggleHome(promocion) {
+    await conGuardado(() => destacarPromocionEnHome(promocion.id, !promocion.destacadaEnHome));
+  }
+
   async function eliminar(id) {
     const ok = await conGuardado(() => eliminarPromocion(id));
     if (ok) {
@@ -500,6 +512,9 @@ export default function AdminPromociones() {
                 />
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-outline-variant bg-surface-container-lowest">
+                  <p className="font-body-sm text-body-sm border-b border-outline-variant px-4 py-3 text-on-surface-variant">
+                    Activar &quot;Destacar en home&quot; desmarca la promoción destacada anterior.
+                  </p>
                   <table role="table" className="w-full">
                     <thead role="rowgroup">
                       <tr
@@ -583,7 +598,24 @@ export default function AdminPromociones() {
                                 </button>
                               </span>
                             ) : (
-                              <span className="flex justify-end gap-2">
+                              <span className="flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  role="switch"
+                                  aria-checked={promocion.destacadaEnHome}
+                                  aria-label={`Destacar ${promocion.nombre} en la home`}
+                                  onClick={() => handleToggleHome(promocion)}
+                                  disabled={guardando}
+                                  className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${AREA_TACTIL_ICONO} ${
+                                    promocion.destacadaEnHome ? "bg-secondary" : "bg-outline-variant"
+                                  }`}
+                                >
+                                  <span
+                                    className={`inline-block size-4 transform rounded-full bg-surface-container-lowest shadow transition-transform ${
+                                      promocion.destacadaEnHome ? "translate-x-6" : "translate-x-1"
+                                    }`}
+                                  />
+                                </button>
                                 <button
                                   type="button"
                                   disabled={guardando}
