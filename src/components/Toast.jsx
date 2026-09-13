@@ -34,7 +34,14 @@ function Toast({ mensaje, tipo = "info", foto = null, accion = null, onCerrar })
       // ni warning — mismo modo de falla silenciosa que el resto de esta
       // familia de bugs (ver "Diseño, tokens y tema"). Mismo patrón que ya
       // usan `FiltrosCatalogo.jsx` y `EditorTabs.jsx`.
-      className="fixed inset-x-4 top-[calc(var(--alto-cinta-ambiente)_+_theme(spacing.navbar-height)_+_0.75rem)] z-[60] flex justify-center md:inset-x-auto md:top-auto md:bottom-6 md:right-6 md:justify-end"
+      //
+      // ⚠️ Fix round 1: en desktop el toast va ABAJO-CENTRO, NO abajo-derecha.
+      // `BotonWhatsapp.jsx` (variante `fab`) ya ocupa exactamente `md:bottom-6
+      // md:right-6` — la esquina inferior derecha de escritorio es SUYA. Con
+      // `inset-x-4` + `justify-center` sin override en `md:` alcanza para
+      // centrar en las dos anchuras: no hace falta `md:inset-x-auto` ni
+      // `md:justify-end`, que son justo lo que empujaba el toast a la derecha.
+      className="fixed inset-x-4 top-[calc(var(--alto-cinta-ambiente)_+_theme(spacing.navbar-height)_+_0.75rem)] z-[60] flex justify-center md:top-auto md:bottom-6"
     >
       <div
         className={`flex items-center gap-3 rounded-lg border px-4 py-3 shadow-ambient ${ESTILOS_TIPO[tipo]}`}

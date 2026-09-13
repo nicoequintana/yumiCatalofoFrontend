@@ -1,21 +1,41 @@
 import useCarrito from "../hooks/useCarrito.js";
 import { useToast } from "../context/useToast.js";
 
+const TEXTO_ESTADO = {
+  disponible: "Agregar",
+  sinStock: "Sin stock",
+  tope: "Máximo en el carrito",
+};
+
+const ICONO_ESTADO = {
+  disponible: "add_shopping_cart",
+  sinStock: "block",
+  tope: "check",
+};
+
 /**
  * Botón "Agregar" — HERMANO del `<Link>` de la tarjeta, nunca su hijo (mismo
  * motivo que `BotonFavorito`: un `<button>` dentro de un `<a>` es HTML
  * inválido y rompe el nombre accesible del enlace). Suma 1 unidad con
  * `useCarrito().agregar`. `useCarrito` NO valida stock — el tope lo aplica
  * este botón contra `producto.stock`.
+ *
+ * Un solo estado derivado (`estado`) decide texto, ícono y `disabled` — nunca
+ * tres ternarios repitiendo la misma condición. `GET /products` (público)
+ * filtra SIEMPRE `stock > 0` (ver `docs/reglas/productos.md`), así que un
+ * `producto.stock` ausente o no numérico no debería pasar por acá en un uso
+ * normal; si igual llega (objeto armado a mano, dato incompleto), se trata
+ * como `sinStock` — la alternativa (dejar agregar sin tope real) vendería
+ * stock que no se puede confirmar.
  */
 function BotonAgregar({ producto, className = "" }) {
   const { carrito, agregar } = useCarrito();
   const { mostrarToast } = useToast();
 
   const enCarrito = carrito.find((linea) => linea.productId === producto.id)?.cantidad ?? 0;
-  const sinStock = producto.stock === 0;
-  const topeAlcanzado = !sinStock && producto.stock > 0 && enCarrito >= producto.stock;
-  const deshabilitado = sinStock || topeAlcanzado;
+  const stockDisponible = Number.isInteger(producto.stock) ? producto.stock : 0;
+  const estado = stockDisponible <= 0 ? "sinStock" : enCarrito >= stockDisponible ? "tope" : "disponible";
+  const deshabilitado = estado !== "disponible";
 
   function handleClick(evento) {
     evento.preventDefault();
@@ -27,8 +47,6 @@ function BotonAgregar({ producto, className = "" }) {
       accion: { texto: "Ver carrito", to: "/carrito" },
     });
   }
-
-  const texto = sinStock ? "Sin stock" : topeAlcanzado ? "Máximo en el carrito" : "Agregar";
 
   return (
     <button
@@ -44,9 +62,9 @@ function BotonAgregar({ producto, className = "" }) {
       className={`flex h-9 items-center justify-center gap-1.5 rounded-full bg-surface-container-high font-label-md text-label-md text-primary transition-colors enabled:hover:bg-primary enabled:hover:text-on-primary disabled:cursor-not-allowed disabled:bg-surface-container disabled:text-outline md:h-11 ${className}`}
     >
       <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-        {sinStock ? "block" : topeAlcanzado ? "check" : "add_shopping_cart"}
+        {ICONO_ESTADO[estado]}
       </span>
-      {texto}
+      {TEXTO_ESTADO[estado]}
     </button>
   );
 }

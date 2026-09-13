@@ -138,4 +138,23 @@ describe("ToastContext", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
+
+  it("en desktop queda centrado ABAJO, no abajo-a-la-derecha (ahí vive el FAB de WhatsApp)", async () => {
+    // Fix round 1 (gap confirmado por el controller): `BotonWhatsapp.jsx`
+    // (variante `fab`) usa `md:bottom-6 md:right-6` en escritorio. El toast
+    // usaba EXACTAMENTE la misma esquina y los dos se superponían. jsdom no
+    // aplica `@media`, así que esto se afirma sobre las clases (mismo criterio
+    // que `tablaApilada.js`/`FiltrosCatalogo.test.jsx`), no sobre posición
+    // renderizada.
+    const { getByRole } = renderConProvider("Toast de prueba");
+    getByRole("button", { name: "Disparar" }).click();
+    const contenedor = await screen.findByRole("status");
+
+    expect(contenedor.className).toContain("md:bottom-6");
+    expect(contenedor.className).not.toContain("md:right-6");
+    expect(contenedor.className).not.toContain("md:justify-end");
+    // `justify-center` sin prefijo `md:` alcanza para las dos anchuras: no se
+    // pisa con un `md:justify-end` que ya no existe.
+    expect(contenedor.className).toContain("justify-center");
+  });
 });

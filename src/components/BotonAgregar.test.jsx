@@ -60,6 +60,30 @@ describe("BotonAgregar", () => {
     expect(screen.getByRole("button", { name: /máximo en el carrito/i })).toBeDisabled();
   });
 
+  it.each([
+    ["undefined", undefined],
+    ["null", null],
+  ])(
+    "sin stock confiable (%s), se deshabilita como 'Sin stock' en vez de permitir agregar sin tope",
+    (_etiqueta, valorStock) => {
+      // Fix round 1 (gap confirmado por el controller): `GET /products`
+      // público SIEMPRE manda `stock` (filtra `stock > 0` — ver
+      // docs/reglas/productos.md), pero este botón no puede asumir que TODO
+      // dato que reciba pasó por ese contrato. Antes del fix, `stock`
+      // ausente/no numérico dejaba `sinStock`/`topeAlcanzado` los dos en
+      // `false` y el botón agregaba SIN TOPE — vendería stock que no se
+      // puede confirmar. Ahora un stock no entero cuenta como 0.
+      render(
+        <MemoryRouter>
+          <ToastProvider>
+            <BotonAgregar producto={producto({ stock: valorStock })} />
+          </ToastProvider>
+        </MemoryRouter>,
+      );
+      expect(screen.getByRole("button", { name: /sin stock/i })).toBeDisabled();
+    },
+  );
+
   it("es HERMANO del <Link> que lo acompaña, no su hijo", () => {
     // Ruling del controller (task-9-brief.md): el arreglo del plan original
     // metía BotonAgregar DENTRO del <a> y afirmaba closest("a") === null, que
