@@ -40,6 +40,20 @@ describe("AdminSidebar", () => {
     }
   });
 
+  it("suma Contacto al acordeón de Configuración", () => {
+    renderSidebar();
+
+    for (const boton of screen.getAllByRole("button", { name: /configuración/i })) {
+      fireEvent.click(boton);
+    }
+
+    const enlaces = screen.getAllByRole("link", { name: /^contacto$/i });
+    expect(enlaces).toHaveLength(2);
+    for (const enlace of enlaces) {
+      expect(enlace).toHaveAttribute("href", "/catalogo/admin/configuracion/contacto");
+    }
+  });
+
   it("mantiene el resto de las entradas de navegación, sueltas y bajo Analítica", () => {
     renderSidebar();
 

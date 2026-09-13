@@ -1,21 +1,38 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PuertaWhatsApp from "./PuertaWhatsApp.jsx";
-import * as configApi from "../api/config.js";
 
-vi.mock("../api/config.js");
+const getConfigContactoMock = vi.fn();
+
+vi.mock("../api/config.js", () => ({
+  getConfigContacto: (...args) => getConfigContactoMock(...args),
+}));
+
+const { reiniciarConfigContacto } = await import("../hooks/useConfigContacto.js");
+
+function mockNumero(numero, resto = {}) {
+  getConfigContactoMock.mockResolvedValue({
+    whatsapp: { numero, dentroDeHorario: true, textoHorario: null, ...resto },
+    email: null,
+    instagram: null,
+    facebook: null,
+    tiktok: null,
+    direccion: null,
+  });
+}
+
+beforeEach(() => {
+  reiniciarConfigContacto();
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
+  reiniciarConfigContacto();
 });
 
 describe("PuertaWhatsApp", () => {
   it("renderiza un link a wa.me con el texto por defecto", async () => {
-    configApi.getWhatsappConfig.mockResolvedValue({
-      numero: "5491122334455",
-      dentroDeHorario: true,
-      textoHorario: null,
-    });
+    mockNumero("5491122334455");
 
     render(<PuertaWhatsApp />);
 
@@ -26,7 +43,7 @@ describe("PuertaWhatsApp", () => {
   });
 
   it("acepta un texto propio", async () => {
-    configApi.getWhatsappConfig.mockResolvedValue({ numero: "5491122334455" });
+    mockNumero("5491122334455");
 
     render(<PuertaWhatsApp texto="Escribinos si no te llegó el código" />);
 
@@ -36,16 +53,16 @@ describe("PuertaWhatsApp", () => {
   });
 
   it("sin número configurado no renderiza nada", async () => {
-    configApi.getWhatsappConfig.mockResolvedValue({ numero: null });
+    mockNumero(null);
 
     render(<PuertaWhatsApp />);
 
-    await waitFor(() => expect(configApi.getWhatsappConfig).toHaveBeenCalled());
+    await waitFor(() => expect(getConfigContactoMock).toHaveBeenCalled());
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
   it("extiende su área táctil a 44 de alto sin crecer de tamaño visible", async () => {
-    configApi.getWhatsappConfig.mockResolvedValue({ numero: "5491122334455" });
+    mockNumero("5491122334455");
 
     render(<PuertaWhatsApp />);
 

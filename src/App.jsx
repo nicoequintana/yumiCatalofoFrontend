@@ -32,6 +32,7 @@ const AdminSaludCatalogo = lazy(() => import("./pages/admin/AdminSaludCatalogo.j
 const AdminCategorias = lazy(() => import("./pages/admin/AdminCategorias.jsx"));
 const AdminEtiquetas = lazy(() => import("./pages/admin/AdminEtiquetas.jsx"));
 const AdminAnuncios = lazy(() => import("./pages/admin/AdminAnuncios.jsx"));
+const AdminContacto = lazy(() => import("./pages/admin/AdminContacto.jsx"));
 const AdminMetricas = lazy(() => import("./pages/admin/AdminMetricas.jsx"));
 const AdminUsuarios = lazy(() => import("./pages/admin/AdminUsuarios.jsx"));
 const AdminOrdenes = lazy(() => import("./pages/admin/AdminOrdenes.jsx"));
@@ -239,6 +240,7 @@ function App() {
           <Route path="/catalogo/admin/configuracion/categorias" element={<AdminCategorias />} />
           <Route path="/catalogo/admin/configuracion/etiquetas" element={<AdminEtiquetas />} />
           <Route path="/catalogo/admin/configuracion/anuncios" element={<AdminAnuncios />} />
+          <Route path="/catalogo/admin/configuracion/contacto" element={<AdminContacto />} />
           <Route path="/catalogo/admin/configuracion/usuarios" element={<AdminUsuarios />} />
           {/* Catch-all DEL PANEL. Sin esto, una URL del admin mal tipeada
               —`/catalogo/admin/categorias`, que parece la de Categorías pero

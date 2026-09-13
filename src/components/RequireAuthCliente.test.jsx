@@ -4,14 +4,15 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigationType } from "rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import RequireAuthCliente from "./RequireAuthCliente.jsx";
 import usePerfilCliente, { invalidarPerfil, refrescarPerfil } from "../hooks/usePerfilCliente.js";
-import { getWhatsappConfig } from "../api/config.js";
+import { getConfigContacto } from "../api/config.js";
+import { reiniciarConfigContacto } from "../hooks/useConfigContacto.js";
 
 // Mismo patrón que `RequireAuth.test.jsx`: el módulo entero se mockea. Acá es
 // además la única forma de fabricar los cuatro estados del hook sin tocar la
 // red — el hook real hace `fetch` al montarse.
 vi.mock("../hooks/usePerfilCliente.js");
-// `PuertaWhatsApp` (la salida humana de la pantalla de error) pide
-// `GET /api/config/whatsapp` al montarse.
+// `PuertaWhatsApp` (la salida humana de la pantalla de error) consume
+// `useConfigContacto`, que pide `GET /api/config/contacto` al montarse.
 vi.mock("../api/config.js");
 
 const PERFIL_COMPLETO = {
@@ -59,7 +60,15 @@ function renderConGuard(ruta, estado) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getWhatsappConfig).mockResolvedValue({ numero: "5491122334455" });
+  reiniciarConfigContacto();
+  vi.mocked(getConfigContacto).mockResolvedValue({
+    whatsapp: { numero: "5491122334455", dentroDeHorario: true, textoHorario: null },
+    email: null,
+    instagram: null,
+    facebook: null,
+    tiktok: null,
+    direccion: null,
+  });
 });
 
 describe("RequireAuthCliente", () => {

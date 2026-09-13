@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { getWhatsappConfig } from "../api/config.js";
+import useConfigContacto from "./useConfigContacto.js";
 
 const MAX_FAVORITOS_EN_MENSAJE = 5;
 
@@ -33,36 +32,19 @@ function mensajeFavoritos(nombres) {
  *   { tipo: "producto", producto: { nombre } }
  *   { tipo: "favoritos", productos: [{ nombre }, ...] }
  *
- * Fetches `GET /api/config/whatsapp` once on mount (public, no auth). All
- * dynamic text (product name, current URL, favorite names) is run through
- * `encodeURIComponent` before being embedded in the `wa.me` URL — required,
- * since product names are free text entered by admins and could otherwise
- * break the URL or inject unexpected query params.
+ * DEJÓ DE PEDIR SU PROPIA CONFIG (`GET /config/whatsapp`) EL 13/09/2026: ahora
+ * consume `useConfigContacto`, el mismo cache module-level que alimenta el
+ * pie del catálogo (`GET /config/contacto`, que ya incluye `whatsapp` con el
+ * horario resuelto). Antes cada instancia de este hook —y había varias por
+ * página, uno por FAB montado— disparaba su PROPIO fetch sin deduplicar; con
+ * el pie sumando un consumidor más, eso hubiera sido una request de más por
+ * carga. La forma que devuelve el hook (`{url, cargando, dentroDeHorario,
+ * textoHorario}`) no cambió: `BotonWhatsapp`, `PuertaWhatsApp` y `MiCuenta`
+ * siguen andando sin tocarlos.
  */
 function useWhatsapp(contexto) {
-  const [config, setConfig] = useState(null);
-  const [cargando, setCargando] = useState(true);
-
-  useEffect(() => {
-    let activo = true;
-
-    getWhatsappConfig()
-      .then((data) => {
-        if (!activo) return;
-        setConfig(data);
-      })
-      .catch(() => {
-        // Soft feature — if config fails to load, the FAB simply doesn't
-        // render a usable link (numero stays null) instead of crashing.
-      })
-      .finally(() => {
-        if (activo) setCargando(false);
-      });
-
-    return () => {
-      activo = false;
-    };
-  }, []);
+  const { contacto, resuelto } = useConfigContacto();
+  const config = contacto?.whatsapp;
 
   let mensaje = mensajeHome();
   if (contexto?.tipo === "producto" && contexto.producto) {
@@ -76,7 +58,7 @@ function useWhatsapp(contexto) {
 
   return {
     url,
-    cargando,
+    cargando: !resuelto,
     dentroDeHorario: config?.dentroDeHorario ?? null,
     textoHorario: config?.textoHorario ?? null,
   };

@@ -1,28 +1,46 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import useWhatsapp from "./useWhatsapp.js";
 
-function mockFetchConfig(config) {
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: true,
-    text: async () => JSON.stringify(config),
+const getConfigContactoMock = vi.fn();
+
+vi.mock("../api/config.js", () => ({
+  getConfigContacto: (...args) => getConfigContactoMock(...args),
+}));
+
+const { default: useWhatsapp } = await import("./useWhatsapp.js");
+const { reiniciarConfigContacto } = await import("./useConfigContacto.js");
+
+function mockConfig(whatsapp) {
+  getConfigContactoMock.mockResolvedValue({
+    whatsapp,
+    email: null,
+    instagram: null,
+    facebook: null,
+    tiktok: null,
+    direccion: null,
   });
 }
 
-const CONFIG_BASE = { numero: "5491122334455", dentroDeHorario: true, textoHorario: "Te respondemos ahora" };
+const WHATSAPP_BASE = {
+  numero: "5491122334455",
+  dentroDeHorario: true,
+  textoHorario: "Te respondemos ahora",
+};
 
 describe("useWhatsapp", () => {
   beforeEach(() => {
     vi.stubGlobal("location", { ...window.location, href: "http://localhost/producto/7" });
+    reiniciarConfigContacto();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    reiniciarConfigContacto();
   });
 
   it("builds a generic wa.me URL for home context", async () => {
-    mockFetchConfig(CONFIG_BASE);
+    mockConfig(WHATSAPP_BASE);
 
     const { result } = renderHook(() => useWhatsapp({ tipo: "home" }));
 
@@ -34,7 +52,7 @@ describe("useWhatsapp", () => {
   });
 
   it("includes the encoded product name and current URL for producto context", async () => {
-    mockFetchConfig(CONFIG_BASE);
+    mockConfig(WHATSAPP_BASE);
 
     const producto = { nombre: "Reloj & Cadena \"Especial\"" };
     const { result } = renderHook(() => useWhatsapp({ tipo: "producto", producto }));
@@ -49,7 +67,7 @@ describe("useWhatsapp", () => {
   });
 
   it("concatenates favorite product names for favoritos context", async () => {
-    mockFetchConfig(CONFIG_BASE);
+    mockConfig(WHATSAPP_BASE);
 
     const productos = [{ nombre: "Producto Uno" }, { nombre: "Producto Dos" }];
     const { result } = renderHook(() => useWhatsapp({ tipo: "favoritos", productos }));
@@ -62,7 +80,7 @@ describe("useWhatsapp", () => {
   });
 
   it("truncates a long favorites list and appends a 'y X más' suffix", async () => {
-    mockFetchConfig(CONFIG_BASE);
+    mockConfig(WHATSAPP_BASE);
 
     const productos = Array.from({ length: 8 }, (_, i) => ({ nombre: `Producto ${i + 1}` }));
     const { result } = renderHook(() => useWhatsapp({ tipo: "favoritos", productos }));
@@ -75,7 +93,7 @@ describe("useWhatsapp", () => {
   });
 
   it("does not build a url when the config fetch fails", async () => {
-    global.fetch = vi.fn().mockRejectedValue(new Error("network error"));
+    getConfigContactoMock.mockRejectedValue(new Error("network error"));
 
     const { result } = renderHook(() => useWhatsapp({ tipo: "home" }));
 

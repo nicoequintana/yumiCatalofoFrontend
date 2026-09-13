@@ -5,11 +5,23 @@ import FichaProducto from "./FichaProducto.jsx";
 import useCarrito from "../hooks/useCarrito.js";
 import { ToastProvider } from "../context/ToastContext.jsx";
 import * as configApi from "../api/config.js";
+import { reiniciarConfigContacto } from "../hooks/useConfigContacto.js";
 
 // El botón de WhatsApp NO se mockea: su renderizado es condicional (no existe
 // si no hay número configurado) y el preview tiene que respetar esa condición.
 // Se mockea la config que consume, para poder ejercitar ambas ramas.
 vi.mock("../api/config.js");
+
+function mockNumero(numero, resto = {}) {
+  configApi.getConfigContacto.mockResolvedValue({
+    whatsapp: { numero, dentroDeHorario: true, textoHorario: null, ...resto },
+    email: null,
+    instagram: null,
+    facebook: null,
+    tiktok: null,
+    direccion: null,
+  });
+}
 
 const PRODUCTO_BASE = {
   id: 1,
@@ -44,11 +56,8 @@ function renderFicha(producto = PRODUCTO_BASE, props = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  configApi.getWhatsappConfig.mockResolvedValue({
-    numero: "5491100000000",
-    dentroDeHorario: true,
-    textoHorario: null,
-  });
+  reiniciarConfigContacto();
+  mockNumero("5491100000000");
 });
 
 describe("FichaProducto — renderizado base", () => {
@@ -159,7 +168,8 @@ describe("FichaProducto — modo preview", () => {
   it("en modoPreview NO muestra el CTA de WhatsApp si no hay número configurado", async () => {
     // `BotonWhatsapp` devuelve null sin número. Si el preview lo dibujara
     // igual, le prometería al admin un botón que el cliente nunca ve.
-    configApi.getWhatsappConfig.mockResolvedValue({ numero: null, dentroDeHorario: false });
+    reiniciarConfigContacto();
+    mockNumero(null, { dentroDeHorario: false });
 
     renderFicha(PRODUCTO_BASE, { modoPreview: true });
 

@@ -2,19 +2,34 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import BotonWhatsapp from "./BotonWhatsapp.jsx";
+import { reiniciarConfigContacto } from "../hooks/useConfigContacto.js";
 
-const CONFIG = { numero: "5491122334455", dentroDeHorario: true, textoHorario: "Te respondemos ahora" };
+// `useWhatsapp` ya no pide `GET /config/whatsapp` por su cuenta (13/09/2026):
+// consume `useConfigContacto`, que pide `GET /config/contacto` — la forma
+// anidada bajo `whatsapp`. `reiniciarConfigContacto()` limpia el cache
+// module-level entre tests: sin esto, el primer fetch resuelto en este mismo
+// archivo quedaría cacheado para los tests siguientes.
+const CONTACTO = {
+  whatsapp: { numero: "5491122334455", dentroDeHorario: true, textoHorario: "Te respondemos ahora" },
+  email: null,
+  instagram: null,
+  facebook: null,
+  tiktok: null,
+  direccion: null,
+};
 
 describe("BotonWhatsapp", () => {
   beforeEach(() => {
+    reiniciarConfigContacto();
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify(CONFIG),
+      text: async () => JSON.stringify(CONTACTO),
     });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    reiniciarConfigContacto();
   });
 
   it("renders a wa.me link once config loads, showing the hours label", async () => {
@@ -59,10 +74,15 @@ describe("BotonWhatsapp", () => {
  */
 describe("BotonWhatsapp — área táctil de la variante inline", () => {
   beforeEach(() => {
+    reiniciarConfigContacto();
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify(CONFIG),
+      text: async () => JSON.stringify(CONTACTO),
     });
+  });
+
+  afterEach(() => {
+    reiniciarConfigContacto();
   });
 
   it("extiende su área a 44 de alto sin crecer de tamaño visible", async () => {

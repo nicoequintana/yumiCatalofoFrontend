@@ -37,7 +37,7 @@ function NoEncontradoAdmin() {
       <p className="font-body-md text-body-md text-on-surface-variant">
         La dirección <code className="break-all text-on-surface">{pathname}</code> no corresponde a
         ninguna sección del panel. Puede estar mal escrita, o la sección puede haber cambiado de
-        lugar — Categorías, Etiquetas, Anuncios y Usuarios viven dentro de Configuración.
+        lugar — Categorías, Etiquetas, Anuncios, Contacto y Usuarios viven dentro de Configuración.
       </p>
       <Link
         to="/catalogo/admin/productos"
