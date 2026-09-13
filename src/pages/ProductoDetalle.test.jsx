@@ -320,6 +320,51 @@ describe("ProductoDetalle — CTA sticky mobile", () => {
 
     global.IntersectionObserver.mockRestore();
   });
+
+  // 13/09/2026: el centinela es un div de alto 0 justo antes del footer. Con
+  // el viewport como raíz, al seguir bajando hacia el footer el centinela salía
+  // por ARRIBA, `isIntersecting` volvía a `false` y la barra reaparecía encima
+  // del footer. Y un scroll que salta el centinela de una (fling, `scrollTo`)
+  // no dispara nada: pasa de "abajo" a "arriba" sin cruzar un umbral.
+  //
+  // La raíz se estira hacia ARRIBA sin límite práctico (`rootMargin` superior):
+  // el centinela "intersecta" desde que su borde sube por el pie del viewport
+  // y sigue así mientras esté por encima. Un único umbral, que cualquier
+  // scroll tiene que cruzar. Medido en navegador: con la raíz sin margen, un
+  // `scrollTo` al fondo dejaba la barra visible sobre el footer.
+  it("observa con la raíz estirada hacia arriba: oculta en el footer, visible al volver a subir", async () => {
+    const instancias = [];
+    vi.spyOn(global, "IntersectionObserver").mockImplementation(function (callback, opciones) {
+      this.callback = callback;
+      this.opciones = opciones;
+      this.observe = vi.fn();
+      this.disconnect = vi.fn();
+      instancias.push(this);
+    });
+
+    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_BASE });
+    renderPagina();
+    await screen.findAllByText(PRODUCTO_BASE.nombre);
+    await waitFor(() => expect(instancias.length).toBeGreaterThan(0));
+
+    const [arriba, derecha, abajo, izquierda] = instancias[0].opciones.rootMargin.split(" ");
+    expect(parseInt(arriba, 10)).toBeGreaterThanOrEqual(100000);
+    expect([derecha, abajo, izquierda]).toEqual(["0px", "0px", "0px"]);
+
+    // Centinela por encima del pie del viewport (en pantalla o ya pasado).
+    instancias[0].callback([{ isIntersecting: true }]);
+    await waitFor(() => {
+      expect(screen.getByTestId("cta-sticky-mobile").className).toContain("translate-y-full");
+    });
+
+    // Volvió a subir: el centinela quedó por debajo del viewport.
+    instancias[0].callback([{ isIntersecting: false }]);
+    await waitFor(() => {
+      expect(screen.getByTestId("cta-sticky-mobile").className).toContain("translate-y-0");
+    });
+
+    global.IntersectionObserver.mockRestore();
+  });
 });
 
 describe("ProductoDetalle — producto no disponible", () => {

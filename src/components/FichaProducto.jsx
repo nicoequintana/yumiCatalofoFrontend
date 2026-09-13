@@ -94,13 +94,26 @@ function FichaProducto({
   // Hides the mobile sticky CTA once the end of the content scrolls into
   // view — no point covering "también te puede interesar" with a floating
   // bar. Never runs in preview mode, where there is no sticky CTA at all.
+  //
+  // Oculta = centinela en pantalla O ya POR ENCIMA de ella (13/09/2026). Con el
+  // viewport pelado como raíz, al seguir bajando hacia el footer el centinela
+  // (alto 0, justo antes del footer) salía por arriba, `isIntersecting` volvía
+  // a `false` y la barra reaparecía tapando el footer. Y un scroll que lo salta
+  // de una (fling, `scrollTo`) no dispara nada, porque no cruza ningún umbral:
+  // medido en navegador, un `scrollTo` al fondo dejaba la barra visible.
+  //
+  // `rootMargin` estira la raíz hacia ARRIBA sin límite práctico: el centinela
+  // intersecta desde que sube por el pie del viewport y mientras siga encima.
+  // Queda UN solo umbral —el pie de la pantalla—, que todo scroll cruza.
   useEffect(() => {
     if (modoPreview) return;
 
     const nodo = finalContenidoRef.current;
     if (!nodo || typeof IntersectionObserver === "undefined") return;
 
-    const observer = new IntersectionObserver(([entry]) => setCercaDelFinal(entry.isIntersecting));
+    const observer = new IntersectionObserver(([entry]) => setCercaDelFinal(entry.isIntersecting), {
+      rootMargin: "100000px 0px 0px 0px",
+    });
     observer.observe(nodo);
 
     return () => observer.disconnect();
