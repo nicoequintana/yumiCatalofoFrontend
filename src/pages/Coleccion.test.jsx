@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { ToastProvider } from "../context/ToastContext.jsx";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import Coleccion from "./Coleccion.jsx";
 import * as productsApi from "../api/products.js";
@@ -70,10 +71,12 @@ function renderPagina(ruta = "/coleccion") {
   return render(
     <StrictMode>
       <MemoryRouter initialEntries={[ruta]}>
-        <Routes>
-          <Route path="/coleccion" element={<Coleccion />} />
-          <Route path="/coleccion/categoria/:slugCategoria" element={<Coleccion />} />
-        </Routes>
+        <ToastProvider>
+          <Routes>
+            <Route path="/coleccion" element={<Coleccion />} />
+            <Route path="/coleccion/categoria/:slugCategoria" element={<Coleccion />} />
+          </Routes>
+        </ToastProvider>
       </MemoryRouter>
     </StrictMode>,
   );
@@ -196,10 +199,12 @@ describe("Coleccion - filtros y grid", () => {
     render(
       <StrictMode>
         <MemoryRouter initialEntries={["/coleccion/categoria/relojes"]}>
-          <Routes>
-            <Route path="/coleccion" element={<ConBotonAtras />} />
-            <Route path="/coleccion/categoria/:slugCategoria" element={<ConBotonAtras />} />
-          </Routes>
+          <ToastProvider>
+            <Routes>
+              <Route path="/coleccion" element={<ConBotonAtras />} />
+              <Route path="/coleccion/categoria/:slugCategoria" element={<ConBotonAtras />} />
+            </Routes>
+          </ToastProvider>
         </MemoryRouter>
       </StrictMode>,
     );
@@ -286,7 +291,9 @@ describe("Coleccion - filtros y grid", () => {
     render(
       <StrictMode>
         <MemoryRouter initialEntries={["/coleccion"]}>
-          <AppConNavegacion />
+          <ToastProvider>
+            <AppConNavegacion />
+          </ToastProvider>
         </MemoryRouter>
       </StrictMode>,
     );
@@ -421,10 +428,12 @@ describe("Coleccion - filtros y grid", () => {
     render(
       <StrictMode>
         <MemoryRouter initialEntries={["/coleccion"]}>
-          <Routes>
-            <Route path="/" element={<h1>Home editorial</h1>} />
-            <Route path="/coleccion" element={<Coleccion />} />
-          </Routes>
+          <ToastProvider>
+            <Routes>
+              <Route path="/" element={<h1>Home editorial</h1>} />
+              <Route path="/coleccion" element={<Coleccion />} />
+            </Routes>
+          </ToastProvider>
         </MemoryRouter>
       </StrictMode>,
     );
@@ -979,10 +988,12 @@ describe("Coleccion - volver atrás conserva los filtros", () => {
     render(
       <StrictMode>
         <MemoryRouter initialEntries={["/coleccion"]}>
-          <Routes>
-            <Route path="/coleccion" element={<PaginaColeccion />} />
-            <Route path="/producto/:idSlug" element={<PaginaFicha />} />
-          </Routes>
+          <ToastProvider>
+            <Routes>
+              <Route path="/coleccion" element={<PaginaColeccion />} />
+              <Route path="/producto/:idSlug" element={<PaginaFicha />} />
+            </Routes>
+          </ToastProvider>
         </MemoryRouter>
       </StrictMode>,
     );

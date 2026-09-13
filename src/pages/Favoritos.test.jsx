@@ -1,5 +1,6 @@
 import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { ToastProvider } from "../context/ToastContext.jsx";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Favoritos from "./Favoritos.jsx";
 import useFavoritos from "../hooks/useFavoritos.js";
@@ -13,7 +14,9 @@ vi.mock("../components/BotonWhatsapp.jsx", () => ({ default: () => null }));
 function renderFavoritos() {
   return render(
     <MemoryRouter>
-      <Favoritos />
+      <ToastProvider>
+        <Favoritos />
+      </ToastProvider>
     </MemoryRouter>,
   );
 }

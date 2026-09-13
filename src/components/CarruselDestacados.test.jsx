@@ -1,12 +1,23 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { ToastProvider } from "../context/ToastContext.jsx";
 import CarruselDestacados from "./CarruselDestacados.jsx";
+
+// Sin prefijo "use": oxlint (`rules-of-hooks`) trata como Hook a cualquier
+// identificador que empiece así — mismo criterio que `BotonAgregar.test.jsx`.
+const agregarMock = vi.fn();
+vi.mock("../hooks/useCarrito.js", () => ({
+  default: () => ({ carrito: [], agregar: agregarMock, cantidadTotal: 0 }),
+}));
 
 function renderComponente(productos) {
   return render(
     <MemoryRouter>
-      <CarruselDestacados productos={productos} />
+      <ToastProvider>
+        <CarruselDestacados productos={productos} />
+      </ToastProvider>
     </MemoryRouter>,
   );
 }
@@ -158,8 +169,10 @@ describe("CarruselDestacados — pausa y arrastre", () => {
     }
     render(
       <MemoryRouter initialEntries={["/"]}>
-        <CarruselDestacados productos={productos} />
-        <Espia />
+        <ToastProvider>
+          <CarruselDestacados productos={productos} />
+          <Espia />
+        </ToastProvider>
       </MemoryRouter>,
     );
     return () => rutaActual;
@@ -208,6 +221,51 @@ describe("CarruselDestacados — pausa y arrastre", () => {
     fireEvent.click(tarjeta);
 
     expect(rutaAhora()).toBe("/producto/1-set-de-cafe");
+  });
+
+  it("un tap limpio en Agregar dentro del carrusel suma al carrito, sin cancelarlo un drag previo", async () => {
+    agregarMock.mockClear();
+    renderComponente(cuatroDestacados().map((p) => ({ ...p, stock: 10 })));
+
+    // `userEvent.click` dispara pointerdown/pointerup sobre el botón, que
+    // burbujean hasta la pista: es el mismo recorrido que un tap real.
+    await userEvent.click(screen.getAllByRole("button", { name: "Agregar" })[0]);
+
+    expect(agregarMock).toHaveBeenCalledWith(1, 1);
+  });
+
+  it("un arrastre real sobre la tarjeta cancela el click de Agregar, igual que cancela la navegación", () => {
+    agregarMock.mockClear();
+    renderComponente(cuatroDestacados().map((p) => ({ ...p, stock: 10 })));
+    const pista = obtenerPista();
+    const boton = screen.getAllByRole("button", { name: "Agregar" })[0];
+
+    fireEvent.pointerDown(pista, { button: 0, pointerId: 1, clientX: 300 });
+    fireEvent.pointerMove(pista, { pointerId: 1, clientX: 200 });
+    fireEvent.pointerUp(pista, { pointerId: 1, clientX: 200 });
+    fireEvent.click(boton);
+
+    // Soltar el dedo sobre "Agregar" después de girar el carrusel no puede
+    // meter un producto al carrito que nadie pidió.
+    expect(agregarMock).not.toHaveBeenCalled();
+  });
+
+  it("el botón Agregar del clon decorativo queda fuera de asistencia y del tabulado (inert)", () => {
+    renderComponente(cuatroDestacados().map((p) => ({ ...p, stock: 10 })));
+
+    // Sin `hidden: true`, Testing Library omite el subárbol `aria-hidden`.
+    expect(screen.getAllByRole("button", { name: "Agregar" })).toHaveLength(4);
+
+    // En el DOM están los 8. jsdom no implementa `inert` (gotcha de
+    // testing.md), así que se afirma el atributo: los 4 de más viven bajo un
+    // envoltorio inerte, y los 4 accesibles no.
+    const enElDom = screen.getAllByRole("button", { name: "Agregar", hidden: true });
+    expect(enElDom).toHaveLength(8);
+    const inertes = enElDom.filter((b) => b.closest("[inert]"));
+    expect(inertes).toHaveLength(4);
+    for (const boton of screen.getAllByRole("button", { name: "Agregar" })) {
+      expect(boton.closest("[inert]")).toBeNull();
+    }
   });
 
   it("el envoltorio de la tarjeta es el que pausa, no la banda que lo contiene", () => {

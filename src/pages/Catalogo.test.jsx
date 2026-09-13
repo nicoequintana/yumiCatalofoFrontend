@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { ToastProvider } from "../context/ToastContext.jsx";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import Catalogo from "./Catalogo.jsx";
 import Coleccion from "./Coleccion.jsx";
@@ -30,7 +31,9 @@ function renderPagina() {
   return render(
     <StrictMode>
       <MemoryRouter initialEntries={["/"]}>
-        <Catalogo />
+        <ToastProvider>
+          <Catalogo />
+        </ToastProvider>
       </MemoryRouter>
     </StrictMode>,
   );
@@ -151,10 +154,12 @@ describe("Catalogo - home editorial", () => {
     render(
       <StrictMode>
         <MemoryRouter initialEntries={["/"]}>
-          <Routes>
-            <Route path="/" element={<Catalogo />} />
-            <Route path="/coleccion" element={<Coleccion />} />
-          </Routes>
+          <ToastProvider>
+            <Routes>
+              <Route path="/" element={<Catalogo />} />
+              <Route path="/coleccion" element={<Coleccion />} />
+            </Routes>
+          </ToastProvider>
         </MemoryRouter>
       </StrictMode>,
     );

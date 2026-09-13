@@ -1,7 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
+import { ToastProvider } from "../context/ToastContext.jsx";
 import RielOfertas from "./RielOfertas.jsx";
+
+/** `ProductCard` monta `BotonAgregar`, que necesita el `ToastProvider` (en la app lo pone `main.jsx`). */
+function Proveedores({ children }) {
+  return (
+    <MemoryRouter>
+      <ToastProvider>{children}</ToastProvider>
+    </MemoryRouter>
+  );
+}
 
 /**
  * `RielOfertas` es PRESENTACIONAL desde el 07/09/2026: recibe las ofertas por
@@ -12,7 +22,7 @@ import RielOfertas from "./RielOfertas.jsx";
 describe("RielOfertas", () => {
   it("sin ofertas y sin error, no renderiza nada", () => {
     const { container } = render(<RielOfertas productos={[]} error={null} />, {
-      wrapper: MemoryRouter,
+      wrapper: Proveedores,
     });
 
     expect(container).toBeEmptyDOMElement();
@@ -21,7 +31,7 @@ describe("RielOfertas", () => {
   it("sin props tampoco renderiza nada", () => {
     // Los defaults importan: la página monta este componente en el mismo
     // render en que las ofertas todavía no llegaron.
-    const { container } = render(<RielOfertas />, { wrapper: MemoryRouter });
+    const { container } = render(<RielOfertas />, { wrapper: Proveedores });
 
     expect(container).toBeEmptyDOMElement();
   });
@@ -29,7 +39,7 @@ describe("RielOfertas", () => {
   it("con error muestra EstadoVacio con cloud_off y el mensaje compartido", () => {
     render(
       <RielOfertas productos={[]} error="Revisá tu conexión e intentá de nuevo." />,
-      { wrapper: MemoryRouter },
+      { wrapper: Proveedores },
     );
 
     expect(screen.getByText("cloud_off")).toBeInTheDocument();
@@ -43,7 +53,7 @@ describe("RielOfertas", () => {
       { id: 2, nombre: "Lámpara LED", precio: "2000", fotos: [], etiqueta: null, categoria: null },
     ];
 
-    render(<RielOfertas productos={productos} error={null} />, { wrapper: MemoryRouter });
+    render(<RielOfertas productos={productos} error={null} />, { wrapper: Proveedores });
 
     expect(screen.getByText("Ofertas de la semana")).toBeInTheDocument();
     expect(screen.getByText("Reloj Clásico")).toBeInTheDocument();
