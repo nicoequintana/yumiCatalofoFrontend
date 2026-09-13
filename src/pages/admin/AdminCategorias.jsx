@@ -5,6 +5,7 @@ import EstadoErrorCarga from "../../components/admin/EstadoErrorCarga.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 import { AREA_TACTIL_ANCHA, AREA_TACTIL_ICONO } from "../../utils/areaTactil.js";
+import { ICONOS_CATEGORIA } from "../../constants/iconosCategoria.js";
 import {
   createCategoria,
   deleteCategoria,
@@ -51,10 +52,15 @@ function AdminCategorias() {
   const [reintento, setReintento] = useState(0);
 
   const [nombreNuevo, setNombreNuevo] = useState("");
+  // El ícono va en `Categoria.icono` (Material Symbols): ver
+  // `constants/iconosCategoria.js` para la historia de por qué el selector
+  // se sacó y volvió.
+  const [iconoNuevo, setIconoNuevo] = useState(null);
   const [creando, setCreando] = useState(false);
 
   const [editandoId, setEditandoId] = useState(null);
   const [nombreEditado, setNombreEditado] = useState("");
+  const [iconoEditado, setIconoEditado] = useState(null);
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   const [confirmandoId, setConfirmandoId] = useState(null);
@@ -129,8 +135,9 @@ function AdminCategorias() {
     setError(null);
     setCreando(true);
     try {
-      await createCategoria(nombre);
+      await createCategoria(nombre, iconoNuevo);
       setNombreNuevo("");
+      setIconoNuevo(null);
       await cargarCategorias();
     } catch (err) {
       setError(err.message ?? "No se pudo crear la categoría.");
@@ -143,6 +150,7 @@ function AdminCategorias() {
     setConfirmandoId(null);
     setEditandoId(categoria.id);
     setNombreEditado(categoria.nombre);
+    setIconoEditado(categoria.icono ?? null);
   }
 
   async function handleGuardarEdicion(id) {
@@ -152,7 +160,13 @@ function AdminCategorias() {
     setError(null);
     setGuardandoEdicion(true);
     try {
-      await updateCategoria(id, nombre);
+      // `icono` viaja SIEMPRE, aunque esta edición sólo haya tocado el
+      // nombre: sin selector tocado, `iconoEditado` sigue siendo el que
+      // trajo `iniciarEdicion`, así que esto REAFIRMA el vigente, no lo
+      // omite. (El backend ya preserva un `icono` ausente del body — ver
+      // `parsearIcono` — pero mandarlo explícito evita depender de esa
+      // segunda red de contención.)
+      await updateCategoria(id, nombre, iconoEditado);
       setEditandoId(null);
       await cargarCategorias();
     } catch (err) {
@@ -270,6 +284,28 @@ function AdminCategorias() {
             Agregar
           </button>
         </div>
+
+        {/* Ícono + color en los círculos de la home (spec del rediseño,
+            §3): el `aria-label` desambigua de la fila que se edite, mismo
+            motivo que el campo de nombre de acá arriba. */}
+        <label className="flex flex-col gap-1 sm:max-w-xs">
+          <span className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+            Ícono
+          </span>
+          <select
+            value={iconoNuevo ?? ""}
+            onChange={(e) => setIconoNuevo(e.target.value || null)}
+            aria-label="Ícono de la nueva categoría"
+            className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
+          >
+            <option value="">Sin ícono</option>
+            {ICONOS_CATEGORIA.map((icono) => (
+              <option key={icono} value={icono}>
+                {icono}
+              </option>
+            ))}
+          </select>
+        </label>
       </form>
 
       {error ? (
@@ -356,18 +392,37 @@ function AdminCategorias() {
                     className="font-body-md text-body-md px-4 py-3 text-on-surface"
                   >
                     {editandoId === categoria.id ? (
-                      // El campo de renombrar tampoco tenía nombre accesible.
-                      // No lo contó la auditoría del 07/09/2026 porque sólo se
-                      // renderiza en modo edición, pero es el mismo defecto que
-                      // el campo de alta: lleva el nombre de la categoría para
-                      // que se distinga de los demás campos de la tabla.
-                      <input
-                        type="text"
-                        value={nombreEditado}
-                        onChange={(e) => setNombreEditado(e.target.value)}
-                        aria-label={`Nombre de ${categoria.nombre}`}
-                        className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
-                      />
+                      <div className="flex flex-col gap-2">
+                        {/* El campo de renombrar tampoco tenía nombre accesible.
+                            No lo contó la auditoría del 07/09/2026 porque sólo se
+                            renderiza en modo edición, pero es el mismo defecto que
+                            el campo de alta: lleva el nombre de la categoría para
+                            que se distinga de los demás campos de la tabla. */}
+                        <input
+                          type="text"
+                          value={nombreEditado}
+                          onChange={(e) => setNombreEditado(e.target.value)}
+                          aria-label={`Nombre de ${categoria.nombre}`}
+                          className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
+                        />
+                        {/* `aria-label` con el nombre ORIGINAL de la fila
+                            (`categoria.nombre`, no `nombreEditado`): no cambia
+                            mientras se edita, así que el selector no pierde su
+                            nombre accesible a mitad de un renombrado. */}
+                        <select
+                          value={iconoEditado ?? ""}
+                          onChange={(e) => setIconoEditado(e.target.value || null)}
+                          aria-label={`Ícono de ${categoria.nombre}`}
+                          className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
+                        >
+                          <option value="">Sin ícono</option>
+                          {ICONOS_CATEGORIA.map((icono) => (
+                            <option key={icono} value={icono}>
+                              {icono}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     ) : (
                       categoria.nombre
                     )}

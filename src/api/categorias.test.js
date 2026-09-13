@@ -41,16 +41,32 @@ describe("getCategorias", () => {
 });
 
 describe("createCategoria", () => {
-  it("usa fetchAutenticado y hace POST con el nombre", async () => {
+  it("usa fetchAutenticado y hace POST con el nombre y el ícono explícito", async () => {
     mockFetchAutenticadoOnce({ id: 5, nombre: "Velas", cantidadProductos: 0 });
 
-    await createCategoria("Velas");
+    await createCategoria("Velas", null);
 
     expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/categorias`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ nombre: "Velas", icono: null }),
     });
+  });
+
+  // El tercer argumento ya NO tiene default: se quitó a propósito (spec
+  // `docs/superpowers/specs/2026-09-13-rediseno-home-publica-design.md`, §3),
+  // para que cada llamador decida en vez de heredar un `null` silencioso. Sin
+  // él, el body ni siquiera lleva la clave — que es justo lo que hace SEGURO
+  // omitirlo por accidente: el backend (`parsearIcono`) preserva el ícono
+  // vigente cuando la clave no viene, así que un llamador que se olvida ya no
+  // borra nada, sólo dejó de decidir.
+  it("sin tercer argumento, el body no lleva la clave icono (el backend la preserva)", async () => {
+    mockFetchAutenticadoOnce({ id: 5, nombre: "Velas", cantidadProductos: 0 });
+
+    await createCategoria("Velas");
+
+    const [, opciones] = fetchAutenticado.mock.calls[0];
+    expect(JSON.parse(opciones.body)).not.toHaveProperty("icono");
   });
 
   it("manda el ícono elegido", async () => {
@@ -73,10 +89,10 @@ describe("createCategoria", () => {
 });
 
 describe("updateCategoria", () => {
-  it("usa fetchAutenticado y hace PUT al id indicado", async () => {
+  it("usa fetchAutenticado y hace PUT al id indicado, con el ícono explícito", async () => {
     mockFetchAutenticadoOnce({ id: 1, nombre: "Aromas", cantidadProductos: 0 });
 
-    await updateCategoria(1, "Aromas");
+    await updateCategoria(1, "Aromas", null);
 
     expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/categorias/1`, {
       method: "PUT",
@@ -85,11 +101,36 @@ describe("updateCategoria", () => {
     });
   });
 
+  // El backend YA distingue "la clave no vino" (preserva) de "vino en null"
+  // (borra) — ver `categorias.controller.js` (`parsearIcono`). Acá se afirma
+  // la mitad del frontend: sin tercer argumento, el body no fuerza ningún
+  // valor.
+  it("updateCategoria manda el icono explícito, incluso null", async () => {
+    mockFetchAutenticadoOnce({ id: 1, nombre: "Cocina", cantidadProductos: 0 });
+
+    await updateCategoria(1, "Cocina", null);
+
+    expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/categorias/1`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre: "Cocina", icono: null }),
+    });
+  });
+
+  it("sin tercer argumento, el body no lleva la clave icono (el backend la preserva)", async () => {
+    mockFetchAutenticadoOnce({ id: 1, nombre: "Aromas", cantidadProductos: 0 });
+
+    await updateCategoria(1, "Aromas");
+
+    const [, opciones] = fetchAutenticado.mock.calls[0];
+    expect(JSON.parse(opciones.body)).not.toHaveProperty("icono");
+  });
+
   // `PUT /categorias/:id` es FULL-REPLACE del lado del backend: un `icono`
-  // ausente en el body se escribe como `null` y borra el que ya tenía. Este
-  // test es el que afirma que un llamador que SÍ tiene un ícono vigente lo
-  // manda, no que lo omite.
-  it("manda el ícono vigente para no borrarlo en un PUT full-replace", async () => {
+  // ausente en el body preserva el vigente (ver el fix de `parsearIcono`),
+  // pero un llamador que SÍ tiene un ícono vigente lo tiene que mandar de
+  // todos modos si lo que quiere es afirmarlo, no sólo no tocarlo.
+  it("manda el ícono vigente para reafirmarlo en un PUT full-replace", async () => {
     mockFetchAutenticadoOnce({ id: 1, nombre: "Aromas", cantidadProductos: 0, icono: "spa" });
 
     await updateCategoria(1, "Aromas", "spa");

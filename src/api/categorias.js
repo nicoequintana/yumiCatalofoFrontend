@@ -69,8 +69,16 @@ export async function getCategorias() {
   return pedir(`${BASE}/categorias`);
 }
 
-/** Requiere sesión admin. @returns {Promise<Object>} the newly created category */
-export async function createCategoria(nombre, icono = null) {
+/**
+ * Requiere sesión admin. @returns {Promise<Object>} the newly created category
+ *
+ * `icono` es POSICIONAL y SIN default a propósito (spec
+ * `docs/superpowers/specs/2026-09-13-rediseno-home-publica-design.md`, §3):
+ * un default silencioso escondía la decisión en vez de forzarla. Omitirlo es
+ * seguro igual — el backend (`parsearIcono`) trata la clave ausente como "no
+ * tocar" en un `PUT`, y en un alta simplemente no hay nada previo que tocar.
+ */
+export async function createCategoria(nombre, icono) {
   return pedirAutenticado(`${BASE}/categorias`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -81,12 +89,13 @@ export async function createCategoria(nombre, icono = null) {
 /**
  * Requiere sesión admin. @returns {Promise<Object>} the updated category
  *
- * `PUT /categorias/:id` es FULL-REPLACE del lado del backend: un `icono`
- * ausente en el body se escribe como `null` y borra el que la categoría ya
- * tenía. Por eso acá `icono` viaja SIEMPRE (con `null` explícito si no hay
- * uno vigente) — el llamador nunca puede omitirlo para "no tocarlo".
+ * `PUT /categorias/:id` es FULL-REPLACE, pero el backend (`parsearIcono`,
+ * fix del 13/09/2026) ya distingue "la clave no vino" (preserva el ícono
+ * vigente) de "vino en `null`" (lo borra). `icono` sigue sin default acá a
+ * propósito, mismo motivo que `createCategoria`: fuerza a cada llamador a
+ * decidir en vez de heredar un `null` silencioso que antes SÍ borraba.
  */
-export async function updateCategoria(id, nombre, icono = null) {
+export async function updateCategoria(id, nombre, icono) {
   return pedirAutenticado(`${BASE}/categorias/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

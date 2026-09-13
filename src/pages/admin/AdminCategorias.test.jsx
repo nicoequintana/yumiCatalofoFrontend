@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -39,47 +39,66 @@ describe("AdminCategorias", () => {
     expect(await screen.findByText("Todavía no hay categorías")).toBeInTheDocument();
   });
 
-  // El ícono por categoría se retiró (29/09/2026): la foto lo reemplaza en
-  // los círculos de la home y un selector que ya no se muestra en ningún
-  // lado es una opción del panel que no hace nada. Estos dos tests son el
-  // guard de que no vuelva a colarse en el formulario ni en los payloads.
-  it("no muestra el selector de ícono", async () => {
-    categoriasApi.getCategorias.mockResolvedValue([
-      { id: 1, nombre: "Iluminación", cantidadProductos: 4 },
-    ]);
+  // El selector de ícono se sacó el 06/09/2026 (revert `9e2ce61`: los
+  // círculos de la home pasaron a mostrar la foto) y volvió el 13/09/2026,
+  // cuando el mockup aprobado del rediseño de la home
+  // (`docs/superpowers/specs/2026-09-13-rediseno-home-publica-design.md`,
+  // §3 "Círculos de categoría") decidió ícono + color en vez de foto — esa
+  // decisión SUPERSEDE al revert de 09/06. Los tres tests que afirmaban su
+  // ausencia se reemplazan por estos.
+  it("ofrece un selector de ícono con una lista cerrada de Material Symbols", async () => {
+    categoriasApi.getCategorias.mockResolvedValue([]);
 
     renderPagina();
-    await screen.findByText("Iluminación");
+    await screen.findByText("Todavía no hay categorías");
 
-    expect(screen.queryByText(/Ícono de la categoría/i)).not.toBeInTheDocument();
+    const selector = screen.getByLabelText(/ícono de la nueva categoría/i);
+    expect(within(selector).getAllByRole("option").length).toBeGreaterThan(1);
   });
 
-  it("al crear, no manda ningún ícono", async () => {
+  it("al crear con un ícono elegido, lo manda a createCategoria", async () => {
     const usuario = userEvent.setup();
     categoriasApi.getCategorias.mockResolvedValueOnce([]);
     categoriasApi.createCategoria.mockResolvedValue({ id: 6, nombre: "Deco", cantidadProductos: 0 });
     categoriasApi.getCategorias.mockResolvedValueOnce([
-      { id: 6, nombre: "Deco", cantidadProductos: 0 },
+      { id: 6, nombre: "Deco", cantidadProductos: 0, icono: "yard" },
     ]);
 
     renderPagina();
     await screen.findByText("Todavía no hay categorías");
 
     await usuario.type(screen.getByPlaceholderText("Nombre de la nueva categoría"), "Deco");
+    await usuario.selectOptions(screen.getByLabelText(/ícono de la nueva categoría/i), "yard");
     await usuario.click(screen.getByRole("button", { name: /Agregar/i }));
 
-    expect(categoriasApi.createCategoria).toHaveBeenCalledWith("Deco");
+    expect(categoriasApi.createCategoria).toHaveBeenCalledWith("Deco", "yard");
   });
 
-  it("al renombrar, no manda ningún ícono", async () => {
+  it("al crear sin elegir ícono, manda null explícito (no lo omite)", async () => {
+    const usuario = userEvent.setup();
+    categoriasApi.getCategorias.mockResolvedValueOnce([]);
+    categoriasApi.createCategoria.mockResolvedValue({ id: 7, nombre: "Aromas", cantidadProductos: 0 });
+    categoriasApi.getCategorias.mockResolvedValueOnce([]);
+
+    renderPagina();
+    await screen.findByText("Todavía no hay categorías");
+
+    await usuario.type(screen.getByPlaceholderText("Nombre de la nueva categoría"), "Aromas");
+    await usuario.click(screen.getByRole("button", { name: /Agregar/i }));
+
+    expect(categoriasApi.createCategoria).toHaveBeenCalledWith("Aromas", null);
+  });
+
+  it("al renombrar sin tocar el selector, preserva el ícono vigente", async () => {
     const usuario = userEvent.setup();
     categoriasApi.getCategorias.mockResolvedValue([
-      { id: 1, nombre: "Iluminación", cantidadProductos: 4 },
+      { id: 1, nombre: "Iluminación", cantidadProductos: 4, icono: "restaurant" },
     ]);
     categoriasApi.updateCategoria.mockResolvedValue({
       id: 1,
       nombre: "Luces",
       cantidadProductos: 4,
+      icono: "restaurant",
     });
 
     renderPagina();
@@ -91,7 +110,29 @@ describe("AdminCategorias", () => {
     await usuario.type(input, "Luces");
     await usuario.click(screen.getByRole("button", { name: /Guardar/i }));
 
-    expect(categoriasApi.updateCategoria).toHaveBeenCalledWith(1, "Luces");
+    expect(categoriasApi.updateCategoria).toHaveBeenCalledWith(1, "Luces", "restaurant");
+  });
+
+  it("al renombrar, eligiendo otro ícono en el selector, lo manda", async () => {
+    const usuario = userEvent.setup();
+    categoriasApi.getCategorias.mockResolvedValue([
+      { id: 1, nombre: "Iluminación", cantidadProductos: 4, icono: "restaurant" },
+    ]);
+    categoriasApi.updateCategoria.mockResolvedValue({
+      id: 1,
+      nombre: "Iluminación",
+      cantidadProductos: 4,
+      icono: "spa",
+    });
+
+    renderPagina();
+    await screen.findByText("Iluminación");
+
+    await usuario.click(screen.getByRole("button", { name: /Renombrar Iluminación/i }));
+    await usuario.selectOptions(screen.getByLabelText(/ícono de Iluminación/i), "spa");
+    await usuario.click(screen.getByRole("button", { name: /Guardar/i }));
+
+    expect(categoriasApi.updateCategoria).toHaveBeenCalledWith(1, "Iluminación", "spa");
   });
 
   it("la tabla está apilable: cada celda declara su columna o su tipo", async () => {
