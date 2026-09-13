@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { getConfiguracionHome, actualizarConfiguracionHome } from "./config.js";
+import { getConfiguracionHome, getConfiguracionHomeAdmin, actualizarConfiguracionHome } from "./config.js";
 import { fetchAutenticado } from "./authClient.js";
 
 vi.mock("./authClient.js");
@@ -51,6 +51,40 @@ describe("getConfiguracionHome", () => {
     mockFetchOnce({ error: "Ocurrió un error." }, false);
 
     await expect(getConfiguracionHome()).rejects.toThrow("Ocurrió un error.");
+  });
+});
+
+/**
+ * `getConfiguracionHomeAdmin` — revisión de T7.
+ *
+ * `getConfiguracionHome` (público) degrada `productoIcono` a `null` cuando el
+ * producto elegido está oculto/sin stock, así que el panel no puede usarlo
+ * para saber CUÁL es la elección vigente. Esta variante autenticada pide el
+ * MISMO endpoint pero con el token admin, que el backend usa para sumar
+ * `productoIconoId` sin degradar (mismo criterio que `getConfigContactoAdmin`).
+ */
+describe("getConfiguracionHomeAdmin", () => {
+  it("usa fetchAutenticado contra GET /config/home", async () => {
+    mockFetchAutenticadoOnce({ productoIcono: null, productoIconoId: null });
+
+    const resultado = await getConfiguracionHomeAdmin();
+
+    expect(fetchAutenticado).toHaveBeenCalledWith(`${BASE}/config/home`);
+    expect(resultado).toEqual({ productoIcono: null, productoIconoId: null });
+  });
+
+  it("trae productoIconoId aunque productoIcono venga degradado a null", async () => {
+    mockFetchAutenticadoOnce({ productoIcono: null, productoIconoId: 9 });
+
+    const resultado = await getConfiguracionHomeAdmin();
+
+    expect(resultado).toEqual({ productoIcono: null, productoIconoId: 9 });
+  });
+
+  it("lanza Error con el mensaje del backend ante un error", async () => {
+    mockFetchAutenticadoOnce({ error: "Ocurrió un error." }, false);
+
+    await expect(getConfiguracionHomeAdmin()).rejects.toThrow("Ocurrió un error.");
   });
 });
 

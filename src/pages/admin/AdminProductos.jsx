@@ -22,7 +22,7 @@ import {
   updateVisibilidadMasiva,
 } from "../../api/products.js";
 import { getCategorias } from "../../api/categorias.js";
-import { actualizarConfiguracionHome, getConfiguracionHome } from "../../api/config.js";
+import { actualizarConfiguracionHome, getConfiguracionHomeAdmin } from "../../api/config.js";
 import { formatPrecio } from "../../utils/formato.js";
 import useDialogo from "../../hooks/useDialogo.js";
 import { MIN_DESTACADOS } from "../../hooks/useDestacados.js";
@@ -106,6 +106,26 @@ const ORDENES = [
  */
 function valorResumen(numero) {
   return typeof numero === "number" ? String(numero) : "—";
+}
+
+/**
+ * Si el producto ícono elegido (id crudo, admin-only) no se ve HOY en la
+ * home pública.
+ *
+ * `productoIcono` es la forma pública, la misma que degrada a `null` en
+ * `GET /config/home` cuando el elegido está oculto/sin stock/borrado — pero
+ * también viaja SIN degradar en la respuesta de `PUT /config/home` (T5: "el
+ * admin tiene que ver la verdad de lo que acaba de guardar"), así que ahí
+ * puede venir un objeto con `visibleEnCatalogo: false` o `stock: 0`. Esta
+ * función cubre las dos formas con el mismo criterio: nada elegido → no
+ * aplica; degradado a `null` → oculto (borrado, sin stock, o no publicado,
+ * no hay forma de distinguir cuál desde acá); objeto presente → mirar sus
+ * propios campos.
+ */
+function calcularIconoOculto(idElegido, productoIcono) {
+  if (idElegido == null) return false;
+  if (!productoIcono) return true;
+  return productoIcono.visibleEnCatalogo === false || productoIcono.stock === 0;
 }
 
 /** Cuántos productos están cargados pero fuera del catálogo público. */
@@ -265,13 +285,26 @@ function AdminProductos() {
   const [actualizandoDestacadoId, setActualizandoDestacadoId] = useState(null);
 
   /**
-   * Producto ícono de la home (T5/T7). `null` significa "ninguno elegido
-   * TODAVÍA CONOCIDO" — antes de que resuelva el efecto de abajo, o si el
-   * elegido está oculto/sin stock (ver el comentario de `getConfiguracionHome`
-   * en `api/config.js`): esta pantalla no tiene forma de distinguir esos dos
-   * casos sin una vista admin del endpoint, que T5 confirmó que no existe.
+   * Producto ícono de la home (T5/T7, con la revisión que sigue).
+   *
+   * `productoIconoId` es el id CRUDO (`getConfiguracionHomeAdmin`, clave
+   * admin-only del backend): `null` es "nadie eligió nada TODAVÍA CONOCIDO"
+   * (antes de que resuelva el efecto de abajo, o de verdad sin elegir).
+   *
+   * `productoIconoOculto` distingue el caso que el GET público no puede
+   * contarle al panel: el producto elegido existe pero no se ve hoy en la
+   * home (oculto, sin stock, o recién elegido así). Antes de esta revisión la
+   * pantalla usaba el GET público (`getConfiguracionHome`), que degrada a
+   * `productoIcono: null` en ese caso — y esta tabla lo leía como "nadie
+   * eligió nada", ocultando que la base seguía apuntando a un producto real.
+   *
+   * `errorIconoCarga` es un estado DISTINTO de "nadie eligió nada": mismo
+   * criterio del resto del admin (`docs/reglas/admin-panel.md`) de no
+   * confundir "falló la carga" con "no hay nada".
    */
   const [productoIconoId, setProductoIconoId] = useState(null);
+  const [productoIconoOculto, setProductoIconoOculto] = useState(false);
+  const [errorIconoCarga, setErrorIconoCarga] = useState(false);
   const [actualizandoIconoId, setActualizandoIconoId] = useState(null);
 
   // Ids tildados con los checkbox. Es un `Set` y no un array porque la
@@ -457,21 +490,30 @@ function AdminProductos() {
   }, []);
 
   // Se pide una sola vez, al montar — igual que categorías/etiquetas.
-  // `getConfiguracionHome` es el GET PÚBLICO (T5): degrada a `null` si el
-  // producto elegido está oculto o sin stock, así que esta carga inicial
-  // puede no reflejar un ícono elegido que hoy no se ve en el catálogo. No
-  // hay una vista admin del endpoint (T5 la buscó y no existe); elegir de
-  // nuevo desde esta misma tabla corrige el estado porque `handleElegirIcono`
-  // sí usa la respuesta del PUT, que no degrada.
+  // `getConfiguracionHomeAdmin` (revisión de T7) pide el MISMO `GET
+  // /config/home` que la home pública, pero autenticado: el backend le suma
+  // la clave admin-only `productoIconoId`, el id CRUDO sin el degradado por
+  // oculto/sin stock que sí aplica a `productoIcono`. Sin esto, un ícono
+  // elegido pero oculto se leería en esta tabla como "nadie eligió nada".
+  //
+  // Un fallo de la carga es un estado PROPIO (`errorIconoCarga`), no se
+  // conflacia con "nadie eligió nada": mismo criterio de cualquier otra
+  // pantalla del admin.
   useEffect(() => {
     let activo = true;
 
     (async () => {
       try {
-        const { productoIcono } = await getConfiguracionHome();
-        if (activo) setProductoIconoId(productoIcono?.id ?? null);
+        const { productoIcono, productoIconoId: idElegido } = await getConfiguracionHomeAdmin();
+        if (!activo) return;
+        setProductoIconoId(idElegido ?? null);
+        setProductoIconoOculto(calcularIconoOculto(idElegido, productoIcono));
+        setErrorIconoCarga(false);
       } catch {
-        if (activo) setProductoIconoId(null);
+        if (!activo) return;
+        setProductoIconoId(null);
+        setProductoIconoOculto(false);
+        setErrorIconoCarga(true);
       }
     })();
 
@@ -623,7 +665,12 @@ function AdminProductos() {
     setActualizandoIconoId(id);
     try {
       const { productoIcono } = await actualizarConfiguracionHome(id);
-      setProductoIconoId(productoIcono?.id ?? null);
+      const idElegido = productoIcono?.id ?? null;
+      setProductoIconoId(idElegido);
+      // El `PUT` NO degrada por oculto/sin stock (T5): si vino un objeto, sus
+      // propios campos dicen si el producto recién elegido se ve o no.
+      setProductoIconoOculto(calcularIconoOculto(idElegido, productoIcono));
+      setErrorIconoCarga(false);
     } catch (err) {
       setError(err.message ?? "No se pudo elegir el producto ícono.");
     } finally {
@@ -849,6 +896,18 @@ function AdminProductos() {
       {error ? (
         <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
           {error}
+        </p>
+      ) : null}
+
+      {/* Estado PROPIO, distinto de "nadie eligió nada": sin esto un fallo de
+          `getConfiguracionHomeAdmin` dejaría todas las filas con el botón de
+          acción, indistinguible de una base sin ícono elegido todavía. Elegir
+          un ícono nuevo desde la tabla sigue funcionando aunque esta carga
+          haya fallado — por eso NO reemplaza la tabla como `errorCarga`. */}
+      {errorIconoCarga ? (
+        <p className="font-body-md text-body-md mb-6 rounded-lg bg-error-container px-4 py-3 text-on-error-container">
+          No se pudo cargar el producto ícono actual de la home. Elegir uno nuevo desde la tabla sigue
+          funcionando.
         </p>
       ) : null}
 
@@ -1219,6 +1278,17 @@ function AdminProductos() {
                         {producto.id === productoIconoId ? (
                           <span className="font-label-sm text-label-sm text-on-surface-variant">
                             Es el ícono de la home
+                            {/* El elegido puede no verse HOY en la home
+                                pública (oculto, sin stock) sin dejar de ser
+                                el elegido — el `PUT` no vuelve a exigir
+                                publicado/con stock (T5). Sin este aviso, la
+                                fila afirmaría lo mismo que un ícono vigente y
+                                visible. */}
+                            {productoIconoOculto ? (
+                              <span className="block font-body-md text-[11px] text-secondary">
+                                No se ve hoy en la home (oculto o sin stock)
+                              </span>
+                            ) : null}
                           </span>
                         ) : (
                           <button

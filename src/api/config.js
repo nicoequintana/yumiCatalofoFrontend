@@ -82,18 +82,39 @@ export async function putConfigContacto(campos) {
  * `GET /config/home` — PÚBLICO, sin auth (T5). Alimenta la sección "Producto
  * ícono" de la home pública (T14).
  *
- * **Degrada a `productoIcono: null`** cuando nadie eligió producto, el
- * producto elegido fue borrado, o dejó de estar publicado/con stock — igual
- * que `getConfigContacto` frente a `getConfigContactoAdmin`, este endpoint NO
- * tiene una vista admin separada (confirmado en T5: ni siquiera con token
- * admin destapa un producto oculto). `AdminProductos.jsx` usa esta misma
- * llamada para pintar la selección inicial y por eso puede no reflejar un
- * ícono elegido que hoy está oculto — ver la ficha de T7 para el detalle.
+ * **`productoIcono` degrada a `null`** cuando nadie eligió producto, el
+ * producto elegido fue borrado, o dejó de estar publicado/con stock — nunca
+ * cambia con el token (nunca filtra costeo, y nunca destapa un producto
+ * oculto al anónimo). Para la selección vigente SIN ese degradado — lo que
+ * necesita el panel — ver `getConfiguracionHomeAdmin`.
  *
  * @returns {Promise<{productoIcono: Object|null}>}
  */
 export async function getConfiguracionHome() {
   const res = await fetchConTimeout(`${BASE}/config/home`);
+  const body = parsearCuerpo(await res.text());
+
+  if (!res.ok) {
+    throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
+  }
+
+  return body;
+}
+
+/**
+ * Mismo endpoint que `getConfiguracionHome`, pero AUTENTICADO — mismo
+ * criterio que `getConfigContactoAdmin` frente a `getConfigContacto`.
+ *
+ * El backend (revisión de T7) le suma al token admin la clave ADITIVA
+ * `productoIconoId`: el id CRUDO de `ConfiguracionHome`, SIN el degradado de
+ * `productoIcono` por oculto/sin stock/borrado. `AdminProductos.jsx` la usa
+ * para marcar la fila elegida — el `GET` público por sí solo no alcanza: un
+ * ícono elegido pero oculto se leería como "nadie eligió nada".
+ *
+ * @returns {Promise<{productoIcono: Object|null, productoIconoId: number|null}>}
+ */
+export async function getConfiguracionHomeAdmin() {
+  const res = await fetchAutenticado(`${BASE}/config/home`);
   const body = parsearCuerpo(await res.text());
 
   if (!res.ok) {
