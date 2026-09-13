@@ -1,14 +1,13 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCategoriasHome } from "../hooks/useCategoriasNavbar.js";
 import { rutaCategoria } from "../utils/slug.js";
+import { colorParaSlug } from "../utils/paletaCategoria.js";
 
 /**
- * El ícono cuando la categoría no tiene foto propia, o la tuvo y dejó de
- * resolver. Es UNO SOLO para todas las categorías sin foto — a diferencia del
- * selector de íconos que existía antes, acá no hay nada que elegir por
- * categoría, así que vive en una constante con nombre en vez de repetirse en
- * cada rama que cae a él.
+ * El ícono cuando la categoría no tiene `icono` propio cargado en el panel.
+ * Es UNO SOLO para todas las categorías sin ícono: no hay nada que elegir por
+ * categoría en ese caso, así que vive en una constante con nombre en vez de
+ * repetirse en cada rama que cae a él.
  */
 const ICONO_GENERICO = "category";
 
@@ -21,12 +20,15 @@ const ICONO_GENERICO = "category";
  * de entrada desde la home — una de ellas, Tecnología, es la cuarta más grande
  * del catálogo.
  *
- * **Foto, no ícono.** Cada círculo muestra la foto de la categoría
- * (`imagenUrl`), CENTRADA y dibujada más grande que el disco, así lo desborda:
- * el producto se despega del círculo en vez de quedar recortado contra él. Sin
- * foto —o si la que tenía dejó de resolver— cae al mismo `ICONO_GENERICO` para
- * todas: no hay ícono por categoría que cargar, así que una categoría recién
- * creada nunca rompe la fila.
+ * **Ícono sobre color, no foto — y esto REVIERTE la decisión del 06/09/2026
+ * (ver "El círculo muestra la foto", `docs/reglas/catalogo-publico.md`) con un
+ * argumento nuevo, no el mismo que se refutó el 05/09.** Cada círculo muestra
+ * `Categoria.icono` (Material Symbols, se elige en el panel) sobre un degradé
+ * de una paleta fija elegido de forma DETERMINÍSTICA por slug
+ * (`utils/paletaCategoria.js`) — presentación pura, no viaja por la API. Sin
+ * ícono cargado cae al mismo `ICONO_GENERICO` de siempre: no hay nada que
+ * elegir por categoría en ese caso, así que una categoría recién creada nunca
+ * rompe la fila.
  *
  * La última tarjeta cortada al borde derecho es la señal de "hay más": no hace
  * falta ningún texto que lo diga.
@@ -38,72 +40,30 @@ const ICONO_GENERICO = "category";
  * atajo antes de él.
  */
 
-/**
- * UN círculo. Necesita su propio estado de "la foto se rompió": con el
- * `useState` en el componente padre, el error de una categoría marcaría rota
- * la foto de todas — cada círculo tiene su Cloudinary propio y puede fallar
- * solo.
- */
+/** UN círculo. */
 function CirculoCategoria({ categoria }) {
-  // Una foto que ya no está en Cloudinary sólo se descubre en runtime — mismo
-  // patrón que `SlideCampania`: sin el `onError` quedaría el ícono roto del
-  // navegador en vez de caer al genérico.
-  const [fotoRota, setFotoRota] = useState(false);
-  const hayFoto = Boolean(categoria.imagenUrl) && !fotoRota;
+  // Determinístico por slug (no por id ni nombre crudo): dos categorías con
+  // el mismo nombre en ambientes distintos caen en el mismo color, y es la
+  // misma clave que ya identifica la categoría en la URL.
+  const color = colorParaSlug(rutaCategoria(categoria) ?? categoria.nombre);
 
   return (
     <Link
       to={rutaCategoria(categoria)}
       className="flex w-16 flex-col items-center gap-1.5 text-center md:w-20"
     >
-      {/* SIN `overflow-hidden`, y eso es el efecto entero: la foto se dibuja
-          más grande que el círculo y lo desborda por los cuatro lados, así el
-          producto sale del disco en vez de quedar recortado contra él.
-
-          ⚠️ DEPENDE DE QUE LAS FOTOS SEAN RECORTES CON FONDO TRANSPARENTE.
-          Las ocho actuales son PNG de 224×224 con alfa 0 en las cuatro
-          esquinas —verificado—, así que lo único que asoma es la silueta. Una
-          foto con fondo opaco cargada desde el panel mostraría un RECTÁNGULO
-          saliendo del círculo. No hay forma de validarlo al subir (el alfa de
-          las esquinas no dice nada del resto), así que es un acuerdo sobre el
-          material, no una garantía del código. */}
       <span
-        className={`relative flex h-14 w-14 items-center justify-center rounded-full border bg-surface-container-lowest shadow-ambient md:h-16 md:w-16 ${
+        data-testid="fondo-circulo"
+        style={{
+          background: `radial-gradient(circle at 30% 30%, rgb(${color.from}), rgb(${color.to}))`,
+        }}
+        className={`relative flex h-14 w-14 items-center justify-center rounded-full border shadow-ambient md:h-16 md:w-16 ${
           categoria.destacadaEnHome ? "border-primary" : "border-outline-variant"
         }`}
       >
-        {hayFoto ? (
-          // `object-contain` y no `object-cover`: `cover` recorta la foto para
-          // llenar la caja, que es justo lo contrario de lo que se busca acá —
-          // queremos la silueta ENTERA, más grande que el disco.
-          //
-          // 116 % CENTRADO sobre el círculo: el -8 % es la mitad del excedente
-          // (116 - 100), así que la foto sobresale lo mismo por los cuatro
-          // lados y su centro sigue siendo el del disco. El tamaño es lo único
-          // que produce el efecto; desplazarla sería descentrarla.
-          //
-          // ⚠️ `max-w-none` NO ES OPCIONAL — sin él la foto se ve CORRIDA A LA
-          // IZQUIERDA. El Preflight de Tailwind trae `img { max-width: 100% }`,
-          // que clampea este `w-[116%]` al ancho del disco; el alto NO se
-          // clampea porque el reset no declara `max-height`. Queda una caja
-          // alta y angosta, y `object-contain` ajusta
-          // la silueta al lado menor y aparece corrida hacia la izquierda,
-          // dejando una franja muerta a la derecha. Ningún test lo atrapa —
-          // jsdom no aplica el reset — y en pantalla se lee como "el PNG está
-          // mal centrado", que manda a corregir el archivo equivocado.
-          <img
-            src={categoria.imagenUrl}
-            alt=""
-            onError={() => setFotoRota(true)}
-            className="absolute -left-[8%] -top-[8%] h-[116%] w-[116%] max-w-none object-contain drop-shadow-[0_3px_4px_rgb(26_26_26_/_0.22)]"
-          />
-        ) : (
-          /* Sin foto —o rota—, el ícono genérico. Ídem para todas: no hay
-             nada que elegir por categoría. */
-          <span aria-hidden="true" className="material-symbols-outlined text-[24px] text-primary">
-            {ICONO_GENERICO}
-          </span>
-        )}
+        <span aria-hidden="true" className="material-symbols-outlined text-[28px] text-on-primary md:text-[32px]">
+          {categoria.icono || ICONO_GENERICO}
+        </span>
       </span>
       <span className="font-label-sm text-label-sm leading-tight text-on-surface-variant">
         {categoria.nombre}

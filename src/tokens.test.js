@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import configTailwind from "../tailwind.config.js";
+import { PALETA_CATEGORIA } from "./utils/paletaCategoria.js";
 
 const archivoActual = fileURLToPath(import.meta.url);
 const dirSrc = dirname(archivoActual);
@@ -123,6 +124,40 @@ describe("paleta pública (.tema-publico)", () => {
     expect(fontFamilySection).toMatch(/var\(--font-display\)/);
     expect(fontFamilySection).toMatch(/var\(--font-label\)/);
     expect(fontFamilySection).toMatch(/var\(--font-body\)/);
+  });
+});
+
+/**
+ * Paleta de los círculos de categoría (T13): `utils/paletaCategoria.js` no
+ * lee estas custom properties en runtime (necesita devolver un triple
+ * "R G B" literal para el degradé radial inline, no una clase Tailwind), así
+ * que quedan documentadas acá aparte — y este guard es lo único que evita que
+ * las dos copias diverjan en silencio si alguien cambia una sin la otra.
+ */
+describe("paleta de círculos de categoría (T13)", () => {
+  const bloquePublico = () => {
+    const inicio = indexCss.search(/\.tema-publico\s*\{/);
+    const fin = indexCss.indexOf("\n}", inicio);
+    return indexCss.slice(inicio, fin);
+  };
+
+  it("los 5 pares se declaran en .tema-publico, en canales", () => {
+    const bloque = bloquePublico();
+    for (let i = 1; i <= 5; i += 1) {
+      expect(bloque).toMatch(new RegExp(`--color-circulo-categoria-${i}-from:\\s*\\d{1,3} \\d{1,3} \\d{1,3};`));
+      expect(bloque).toMatch(new RegExp(`--color-circulo-categoria-${i}-to:\\s*\\d{1,3} \\d{1,3} \\d{1,3};`));
+    }
+  });
+
+  it("los valores de index.css coinciden con PALETA_CATEGORIA del JS", () => {
+    const bloque = bloquePublico();
+    PALETA_CATEGORIA.forEach((par, indice) => {
+      const numero = indice + 1;
+      expect(bloque).toMatch(
+        new RegExp(`--color-circulo-categoria-${numero}-from:\\s*${par.from};`),
+      );
+      expect(bloque).toMatch(new RegExp(`--color-circulo-categoria-${numero}-to:\\s*${par.to};`));
+    });
   });
 });
 
