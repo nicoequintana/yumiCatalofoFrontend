@@ -224,6 +224,46 @@ describe("BuscadorSugerencias", () => {
     });
   });
 
+  describe("variante", () => {
+    it("por defecto el panel de sugerencias mide lo mismo que el campo", async () => {
+      getProducts.mockResolvedValue({ data: [producto()], total: 1 });
+      renderBuscador();
+      await userEvent.type(screen.getByRole("searchbox", { name: "Buscar en el catálogo" }), "lampara");
+      const listbox = await screen.findByRole("listbox");
+
+      expect(listbox).toHaveClass("inset-x-0");
+      expect(listbox).not.toHaveClass("w-[380px]");
+    });
+
+    it('variante="header": panel propio de 380px alineado a la derecha del campo', async () => {
+      getProducts.mockResolvedValue({ data: [producto()], total: 1 });
+      render(
+        <MemoryRouter>
+          <BuscadorSugerencias variante="header" />
+        </MemoryRouter>,
+      );
+      await userEvent.type(screen.getByRole("searchbox", { name: "Buscar en el catálogo" }), "lampara");
+      const listbox = await screen.findByRole("listbox");
+
+      expect(listbox).toHaveClass("right-0", "w-[380px]");
+      expect(listbox).not.toHaveClass("inset-x-0");
+    });
+  });
+
+  it("al desmontarse con el dropdown abierto, quita el listener de click afuera", async () => {
+    getProducts.mockResolvedValue({ data: [producto()], total: 1 });
+    const quitar = vi.spyOn(document, "removeEventListener");
+    const { unmount } = renderBuscador();
+    await userEvent.type(screen.getByRole("searchbox", { name: "Buscar en el catálogo" }), "lampara");
+    await screen.findByRole("listbox");
+    quitar.mockClear();
+
+    unmount();
+
+    expect(quitar).toHaveBeenCalledWith("pointerdown", expect.any(Function));
+    quitar.mockRestore();
+  });
+
   it("el input usa 16px para evitar el zoom de iOS en Safari", () => {
     renderBuscador();
     const input = screen.getByRole("searchbox", { name: "Buscar en el catálogo" });

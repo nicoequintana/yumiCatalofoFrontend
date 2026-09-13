@@ -94,7 +94,7 @@ function BotonWhatsapp({ contexto, productId, className = "", variant = "fab" })
           `.wa__etiqueta` del mockup del rediseño; el punto verde es el mismo
           verde de marca del botón, no un token. */}
       {textoHorario ? (
-        <span className="font-body-sm hidden whitespace-nowrap rounded-full bg-surface-container-lowest px-3 py-2 text-[12px] font-medium leading-none text-on-surface shadow-[0_8px_24px_-4px_rgb(20_72_85_/_0.14)] md:inline-block">
+        <span className="font-body-sm hidden whitespace-nowrap rounded-full bg-surface-container-lowest px-3 py-2 text-[12px] font-medium leading-none text-on-surface shadow-sombra-2 md:inline-block">
           <span aria-hidden="true" className="mr-1.5 inline-block h-[7px] w-[7px] rounded-full bg-[#25D366] align-[1px]" />
           {textoHorario}
         </span>
@@ -105,7 +105,7 @@ function BotonWhatsapp({ contexto, productId, className = "", variant = "fab" })
         rel="noopener noreferrer"
         onClick={handleClick}
         aria-label="Contactar por WhatsApp"
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_8px_24px_-4px_rgb(20_72_85_/_0.3)] transition-transform hover:scale-105"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-sombra-flotante transition-transform hover:scale-105"
       >
         <svg viewBox="0 0 32 32" width="28" height="28" fill="currentColor" aria-hidden="true">
           <path d="M16.004 3C9.377 3 4 8.373 4 15c0 2.36.685 4.56 1.867 6.41L4 29l7.79-1.826A11.94 11.94 0 0 0 16.004 27C22.63 27 28 21.627 28 15S22.63 3 16.004 3Zm0 21.818a9.77 9.77 0 0 1-4.98-1.363l-.357-.212-4.62 1.084 1.11-4.5-.234-.368A9.78 9.78 0 0 1 5.2 15c0-5.965 4.85-10.818 10.804-10.818S26.8 9.035 26.8 15 21.958 24.818 16.004 24.818Zm5.61-7.32c-.307-.154-1.818-.898-2.1-1.001-.282-.103-.487-.154-.692.154-.205.308-.794 1.001-.973 1.207-.179.205-.358.23-.665.077-.307-.154-1.296-.478-2.469-1.523-.913-.814-1.53-1.82-1.709-2.128-.179-.308-.019-.474.135-.627.138-.138.307-.358.46-.538.154-.179.205-.307.307-.512.103-.205.052-.384-.026-.538-.077-.154-.692-1.67-.949-2.287-.25-.6-.505-.52-.692-.53l-.59-.01c-.205 0-.538.077-.82.384-.282.308-1.076 1.052-1.076 2.566s1.102 2.977 1.256 3.183c.154.205 2.17 3.313 5.257 4.646.735.317 1.308.507 1.755.649.737.234 1.408.201 1.938.122.591-.088 1.818-.744 2.074-1.462.256-.718.256-1.334.18-1.462-.077-.128-.282-.205-.59-.359Z" />

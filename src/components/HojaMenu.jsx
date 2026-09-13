@@ -112,7 +112,7 @@ export default function HojaMenu({ abierta, onCerrar }) {
         aria-label="Menú"
         tabIndex={-1}
         style={{ top: `${topeHoja}px` }}
-        className="fixed inset-x-0 bottom-0 z-40 overflow-y-auto bg-background shadow-[0_-6px_20px_-2px_rgb(20_72_85_/_0.12)] px-margin-mobile pb-[calc(6rem+env(safe-area-inset-bottom))] pt-3 outline-none md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 overflow-y-auto bg-background shadow-sombra-3 px-margin-mobile pb-[calc(6rem+env(safe-area-inset-bottom))] pt-3 outline-none md:hidden"
       >
         {/* El agarre: la señal de que esto se puede arrastrar hacia abajo. Es
             decorativo — cerrar se hace con el botón, con Escape o tocando el

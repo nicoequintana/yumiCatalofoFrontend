@@ -20,6 +20,9 @@ const CLASE_TITULO_COLUMNA =
   "font-label-sm text-label-sm mb-3 block font-bold uppercase tracking-[0.12em] text-on-surface-variant";
 const CLASE_LINK_COLUMNA =
   "font-body-md text-body-md text-on-surface transition-colors hover:text-primary";
+/** Tarjeta de WhatsApp y de mail de la banda de contacto (`.btn-contacto` del mockup). */
+const CLASE_TARJETA_CONTACTO =
+  "flex flex-1 items-center gap-3 rounded-2xl bg-surface-container-lowest py-2.5 pl-2.5 pr-4 shadow-sombra-1 transition-shadow hover:shadow-sombra-2 md:pr-6";
 const CLASE_LINK_SUB = "font-body-sm text-body-sm text-on-surface-variant transition-colors hover:text-primary";
 
 /** Instagram/Facebook/TikTok, cada uno visible solo si hay URL configurada. */
@@ -201,7 +204,7 @@ function BandaContacto({ contacto }) {
           // el del botón de la ficha, y en la ficha quedaban dos links
           // homónimos (ambiguo para un lector de pantalla).
           aria-label="Escribinos por WhatsApp"
-          className="flex flex-1 items-center gap-3 rounded-2xl bg-surface-container-lowest py-2.5 pl-2.5 pr-4 shadow-[0_2px_8px_-2px_rgb(20_72_85_/_0.06),0_0_0_1px_rgb(20_72_85_/_0.05)] transition-shadow hover:shadow-[0_8px_24px_-4px_rgb(20_72_85_/_0.14)] md:pr-6"
+          className={CLASE_TARJETA_CONTACTO}
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-[#25D366] text-white">
             {ICONO_WHATSAPP}
@@ -215,8 +218,11 @@ function BandaContacto({ contacto }) {
       {tieneEmail ? (
         <a
           href={`mailto:${contacto.email}`}
-          className="flex flex-1 items-center gap-3 rounded-2xl bg-surface-container-lowest py-2.5 pl-2.5 pr-4 shadow-[0_2px_8px_-2px_rgb(20_72_85_/_0.06),0_0_0_1px_rgb(20_72_85_/_0.05)] transition-shadow hover:shadow-[0_8px_24px_-4px_rgb(20_72_85_/_0.14)] md:pr-6"
+          className={CLASE_TARJETA_CONTACTO}
         >
+          {/* Blanco (`on-primary`) y no `on-primary-container` (#87b6c5) a
+              propósito: es el ícono blanco del mockup, y sobre #144855 da
+              10,06:1 contra 4,56:1 del par semántico. */}
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-primary-container text-on-primary">
             <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
               mail

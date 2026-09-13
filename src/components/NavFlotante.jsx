@@ -113,6 +113,10 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
              la luz pegando en el borde. Es lo que le da espesor — sin él la
              pastilla se ve como un recorte plano y no como una lámina.
 
+          Por eso la sombra de esta píldora sigue ARBITRARIA y no usa los
+          `sombra-*` de `tailwind.config.js`: el canto claro `inset` es
+          parte del efecto (punto 3) y ningún nivel de elevación lo trae.
+
           `border-background/30` acompaña: con el fondo tan transparente, el
           borde es buena parte de lo que define la superficie.
 

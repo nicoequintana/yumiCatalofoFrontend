@@ -15,9 +15,24 @@ const MAX_SUGERENCIAS = 5;
 const MENSAJE_ERROR_CARGA = "Revisá tu conexión e intentá de nuevo.";
 
 /**
+ * Posición y ancho del panel de sugerencias, por variante. `default` cuelga
+ * del campo con su mismo ancho (T15, arriba de la home en mobile). `header`
+ * es el del mockup (`.buscador--header .sugerencias`): en la barra de
+ * escritorio el campo mide 195–300px y con ese ancho al nombre del producto
+ * le quedaban 40–60px, así que el panel tiene 380px propios, alineado al
+ * borde DERECHO del campo (crece hacia la izquierda, sobre la navegación, y
+ * no se sale de la pantalla), con tope en el viewport por las dudas.
+ */
+const CLASE_PANEL_POR_VARIANTE = {
+  default: "inset-x-0",
+  header: "left-auto right-0 w-[380px] max-w-[calc(100vw_-_2rem)]",
+};
+
+/**
  * Buscador con sugerencias en vivo, montado en dos lugares con distinto ancho
  * (T12: Navbar de escritorio; T15: arriba de la home en mobile) — por eso
- * `className` es la única prop y el componente no asume ningún ancho propio.
+ * `className` no asume ningún ancho propio del campo. `variante` ("default" |
+ * "header") decide solo el panel de sugerencias: ver `CLASE_PANEL_POR_VARIANTE`.
  *
  * **Reusa el ÚNICO contrato de búsqueda que existe**: `getProducts({ search,
  * pageSize })`, el mismo `GET /products?search=&pageSize=` que ya consume
@@ -45,7 +60,7 @@ const MENSAJE_ERROR_CARGA = "Revisá tu conexión e intentá de nuevo.";
  *   vaciara la lista haría que un backend caído se leyera como "no hay
  *   productos", que es mentira.
  */
-function BuscadorSugerencias({ className = "" }) {
+function BuscadorSugerencias({ className = "", variante = "default" }) {
   const [termino, setTermino] = useState("");
   const [resultados, setResultados] = useState([]);
   const [total, setTotal] = useState(0);
@@ -147,7 +162,7 @@ function BuscadorSugerencias({ className = "" }) {
         <div
           role="listbox"
           aria-label="Sugerencias de búsqueda"
-          className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 rounded-2xl bg-surface-container-lowest p-1.5 shadow-ambient"
+          className={`absolute ${CLASE_PANEL_POR_VARIANTE[variante] ?? CLASE_PANEL_POR_VARIANTE.default} top-[calc(100%+0.5rem)] z-30 rounded-2xl bg-surface-container-lowest p-1.5 shadow-ambient`}
         >
           {error ? (
             <p className="font-body-md text-body-md p-3 text-on-surface-variant">{MENSAJE_ERROR_CARGA}</p>

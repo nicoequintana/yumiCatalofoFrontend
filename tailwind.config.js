@@ -169,6 +169,17 @@ export default {
         // an inline `style` (home.html L141, detalle-producto.html L150) into a
         // real Tailwind token so it's usable as `shadow-ambient`.
         ambient: "0px 10px 30px rgba(26, 26, 26, 0.05)",
+        // Niveles de elevación del catálogo público (rediseño del 13/09/2026,
+        // `--sombra-*` del mockup aprobado). Tintados con el teal de
+        // `primary-container` (20 72 85) y en rgba literal: un `boxShadow` no
+        // compone con `<alpha-value>`, así que no hay token de color que usar.
+        "sombra-1": "0 2px 8px -2px rgba(20, 72, 85, 0.06), 0 0 0 1px rgba(20, 72, 85, 0.04)",
+        "sombra-2": "0 8px 24px -4px rgba(20, 72, 85, 0.14)",
+        // Hacia ARRIBA: superficies que suben desde el borde inferior (HojaMenu).
+        "sombra-3": "0 -6px 20px -2px rgba(20, 72, 85, 0.08)",
+        // Botón flotante de WhatsApp: más densa que `sombra-2` porque flota
+        // sobre contenido que scrollea (`.wa a` del mockup).
+        "sombra-flotante": "0 8px 24px -4px rgba(20, 72, 85, 0.3)",
       },
       keyframes: {
         fadeIn: {

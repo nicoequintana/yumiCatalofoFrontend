@@ -273,7 +273,28 @@ function Navbar() {
                 `justify-between` del contenedor padre. `min-w-0` deja que la
                 columna `1fr` del grid achique al buscador en vez de desbordar. */}
             <div className="flex min-w-0 items-center gap-1 md:justify-end">
-              {/* DECISIÓN: la lupa NO marca `/coleccion` como activa, aunque
+              {/* T12 del rediseño (13/09/2026): el buscador con sugerencias
+                  entra ACÁ, antes de favoritos, como en el mockup aprobado.
+                  Desde `lg` y NO desde `md`: medido en Chromium, a 768px la
+                  columna derecha del grid (`1fr`, con `margin-desktop` de 64px
+                  por lado y la navegación al centro) le dejaba 67px al campo —
+                  inutilizable—; a 1024px le deja ~195 y a 1280 llega a sus
+                  300. `flex-1 min-w-0 max-w-[300px]` y no un ancho fijo, para
+                  que se achique con la columna en vez de desbordar.
+                  `variante="header"`: el campo es angosto, así que el panel de
+                  sugerencias lleva su propio ancho (380px, alineado a la
+                  derecha). */}
+              <div
+                data-testid="buscador-header"
+                className="hidden min-w-0 lg:block lg:max-w-[300px] lg:flex-1"
+              >
+                <BuscadorSugerencias variante="header" />
+              </div>
+
+              {/* Solo por debajo de `lg`: desde ahí la reemplaza el buscador
+                  de arriba. Mismo destino y mismo nombre accesible.
+
+                  DECISIÓN: la lupa NO marca `/coleccion` como activa, aunque
                   lleve ahí. Antes del reparto del 05/09/2026, la ranura de
                   Buscar de la isla SÍ lo hacía (`aria-current="page"` +
                   cápsula cuando `pathname` empezaba con `/coleccion`) — esa
@@ -283,28 +304,6 @@ function Navbar() {
                   "Productos" de más arriba (`pathname.startsWith("/coleccion")`).
                   Agregarle `aria-current` acá duplicaría esa señal en dos
                   controles con roles distintos por la misma ruta. */}
-              {/* T12 del rediseño (13/09/2026): el buscador con sugerencias
-                  entra ACÁ, antes de favoritos, como en el mockup aprobado.
-                  Desde `lg` y NO desde `md`: medido en Chromium, a 768px la
-                  columna derecha del grid (`1fr`, con `margin-desktop` de 64px
-                  por lado y la navegación al centro) le dejaba 67px al campo —
-                  inutilizable—; a 1024px le deja ~195 y a 1280 llega a sus
-                  300. `flex-1 min-w-0 max-w-[300px]` y no un ancho fijo, para
-                  que se achique con la columna en vez de desbordar.
-
-                  No choca con el comentario de más abajo sobre "dos buscadores
-                  compitiendo": este NO escribe en la URL ni en el estado de
-                  `FiltrosCatalogo` — sugiere y, con Enter o "ver todos", navega
-                  a `/coleccion?search=`, que es el mismo punto de entrada. */}
-              <div
-                data-testid="buscador-header"
-                className="hidden min-w-0 lg:block lg:max-w-[300px] lg:flex-1"
-              >
-                <BuscadorSugerencias />
-              </div>
-
-              {/* Solo por debajo de `lg`: desde ahí la reemplaza el buscador
-                  de arriba. Mismo destino y mismo nombre accesible. */}
               <Link to="/coleccion" aria-label="Buscar productos" className={`${claseAccion} lg:hidden`}>
                 <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
                   search

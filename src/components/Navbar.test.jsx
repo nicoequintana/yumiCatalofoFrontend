@@ -14,6 +14,19 @@ vi.mock("../hooks/useCategoriasNavbar.js", () => ({
   default: (...args) => categoriasNavbarMock(...args),
 }));
 
+// Solo lo usa el buscador con sugerencias del header; el resto del módulo
+// queda real.
+vi.mock("../api/products.js", async () => {
+  const actual = await vi.importActual("../api/products.js");
+  return {
+    ...actual,
+    getProducts: vi.fn(async () => ({
+      data: [{ id: 1, nombre: "Lámpara Moon", precio: "1000", fotos: [] }],
+      total: 1,
+    })),
+  };
+});
+
 const SIN_SESION = { perfil: null, resuelto: true, error: null };
 const perfilClienteMock = vi.fn(() => SIN_SESION);
 vi.mock("../hooks/usePerfilCliente.js", () => ({
@@ -246,6 +259,15 @@ describe("Navbar - buscador con sugerencias en escritorio", () => {
     const lupa = screen.getByRole("link", { name: "Buscar productos" });
     expect(lupa).toHaveAttribute("href", "/coleccion");
     expect(lupa).toHaveClass("lg:hidden");
+  });
+
+  it("el buscador del header usa la variante de panel propio (380px a la derecha)", async () => {
+    renderNavbar();
+
+    await userEvent.type(screen.getByRole("searchbox", { name: "Buscar en el catálogo" }), "lampara");
+    const listbox = await screen.findByRole("listbox", { name: "Sugerencias de búsqueda" });
+
+    expect(listbox).toHaveClass("right-0", "w-[380px]");
   });
 
   it("no monta el buscador en rutas de admin", () => {
