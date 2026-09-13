@@ -14,6 +14,12 @@ vi.mock("../hooks/useCategoriasNavbar.js", () => ({
   default: (...args) => categoriasNavbarMock(...args),
 }));
 
+const SIN_SESION = { perfil: null, resuelto: true, error: null };
+const perfilClienteMock = vi.fn(() => SIN_SESION);
+vi.mock("../hooks/usePerfilCliente.js", () => ({
+  default: (...args) => perfilClienteMock(...args),
+}));
+
 function renderNavbar(ruta = "/") {
   return render(
     <MemoryRouter initialEntries={[ruta]}>
@@ -73,6 +79,66 @@ describe("Navbar - badge de carrito", () => {
     renderNavbar("/catalogo/admin");
 
     expect(screen.queryByRole("link", { name: /ver favoritos/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("Navbar - acceso a la cuenta", () => {
+  beforeEach(() => {
+    perfilClienteMock.mockImplementation(() => SIN_SESION);
+  });
+
+  it("el link de cuenta va a la derecha del carrito, como última acción", () => {
+    renderNavbar();
+
+    const carrito = screen.getByRole("link", { name: "Ver carrito" });
+    const cuenta = screen.getByRole("link", { name: "Ir a mi cuenta" });
+
+    expect(cuenta.parentElement).toBe(carrito.parentElement);
+    expect(cuenta.parentElement.lastElementChild).toBe(cuenta);
+  });
+
+  it("sin sesión muestra el ícono de persona y ningún avatar", () => {
+    renderNavbar();
+
+    const cuenta = screen.getByRole("link", { name: "Ir a mi cuenta" });
+    expect(cuenta).toHaveTextContent("person");
+    expect(screen.queryByTestId("avatar-navbar")).not.toBeInTheDocument();
+  });
+
+  it("con sesión muestra el avatar con las iniciales del apodo, igual que Mi cuenta", () => {
+    perfilClienteMock.mockImplementation(() => ({
+      perfil: { nombre: "Nicolás Quintana", apodo: "Tito Gómez" },
+      resuelto: true,
+      error: null,
+    }));
+    renderNavbar();
+
+    const cuenta = screen.getByRole("link", { name: "Ir a mi cuenta" });
+    expect(within(cuenta).getByTestId("avatar-navbar")).toHaveTextContent("TG");
+    expect(cuenta).not.toHaveTextContent("person");
+  });
+
+  it("con sesión y sin apodo usa las iniciales del nombre", () => {
+    perfilClienteMock.mockImplementation(() => ({
+      perfil: { nombre: "Nicolás Quintana", apodo: null },
+      resuelto: true,
+      error: null,
+    }));
+    renderNavbar();
+
+    expect(screen.getByTestId("avatar-navbar")).toHaveTextContent("NQ");
+  });
+
+  it("con sesión pero sin nombre todavía (perfil incompleto) cae al ícono de persona", () => {
+    perfilClienteMock.mockImplementation(() => ({
+      perfil: { nombre: null, apodo: null },
+      resuelto: true,
+      error: null,
+    }));
+    renderNavbar();
+
+    expect(screen.queryByTestId("avatar-navbar")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ir a mi cuenta" })).toHaveTextContent("person");
   });
 });
 

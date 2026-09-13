@@ -4,31 +4,8 @@ import BotonVolver from "../../components/BotonVolver.jsx";
 import usePerfilCliente, { invalidarPerfil } from "../../hooks/usePerfilCliente.js";
 import useWhatsapp from "../../hooks/useWhatsapp.js";
 import { salirCuenta } from "../../api/cuenta.js";
+import { iniciales } from "../../utils/iniciales.js";
 import { clasePaginaDensa } from "./clasesCuenta.js";
-
-/**
- * Iniciales para el avatar. Recibe el MISMO valor que se pinta como nombre
- * grande — no `perfil.nombre` por su cuenta: si las dos cosas salieran de
- * fuentes distintas, alguien con apodo vería "NQ" al lado de "Tito".
- *
- * El `filter(Boolean)` no es defensa de más: un nombre que queda VACÍO al
- * recortarlo es alcanzable. `cuentaLogin.controller.js` guarda el nombre que
- * manda Google con un check `!== ""` y **sin `trim()`**, así que `" "` entra
- * tal cual; después `!perfil.nombre` con `" "` da `false`, y ese nombre pasa
- * tanto el guard de `RequireAuthCliente` como el `faltaNombre` de
- * `Completar.jsx`. Sin filtrar, `" ".split(/\s+/)` devuelve `[""]` y
- * `undefined.toUpperCase()` tira en render: la pantalla entera en blanco por
- * un espacio. Degrada a un avatar sin letras, que es feo pero se ve.
- */
-function iniciales(nombre) {
-  return (nombre ?? "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((palabra) => palabra[0].toUpperCase())
-    .join("");
-}
 
 /**
  * El botón destructivo. Es la misma caja que `claseBotonPrimario` con el color

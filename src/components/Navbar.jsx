@@ -3,6 +3,8 @@ import { Link, useLocation } from "react-router-dom";
 import useCarrito from "../hooks/useCarrito.js";
 import useCategoriasNavbar from "../hooks/useCategoriasNavbar.js";
 import useContextoComercial from "../hooks/useContextoComercial.js";
+import usePerfilCliente from "../hooks/usePerfilCliente.js";
+import { iniciales } from "../utils/iniciales.js";
 import LogoYima from "./LogoYima.jsx";
 import PanelCategorias from "./PanelCategorias.jsx";
 import { AREA_TACTIL_ANCHA, AREA_TACTIL_ICONO } from "../utils/areaTactil.js";
@@ -39,8 +41,8 @@ const DESTINOS = [{ to: "/", texto: "Inicio", esActivo: (pathname) => pathname =
  *
  * **El ícono de cuenta lleva siempre a `/cuenta`**, con sesión o sin ella: el
  * guard `RequireAuthCliente` manda al login cuando hace falta y vuelve al
- * destino. Decidir acá qué mostrar obligaría al Navbar a consultar el perfil en
- * cada pantalla del sitio para un link que el guard ya resuelve solo.
+ * destino. El Navbar lee el perfil SOLO para pintar el avatar de iniciales; el
+ * destino del link no depende de eso.
  *
  * **La lupa navega a `/coleccion`, no abre un input acá.** El buscador real es
  * el de `FiltrosCatalogo`, que además escribe el término en la URL; un segundo
@@ -65,6 +67,13 @@ function Navbar() {
   // sin este freno la request salía igual porque el hook se invoca antes del
   // guard `esAdmin` de más abajo (las reglas de hooks no dejan condicionarlo).
   const { categorias } = useCategoriasNavbar({ activo: !esAdmin });
+
+  // Solo para pintar el avatar: la navegación la sigue decidiendo el guard
+  // `RequireAuthCliente`. El Navbar monta una vez por carga de página, así que
+  // es UNA request a `GET /api/cuenta` (401 para el anónimo, estado normal), y
+  // el cache del hook comparte la respuesta con el guard y `MiCuenta`.
+  const { perfil } = usePerfilCliente();
+  const inicialesCuenta = perfil ? iniciales(perfil.apodo || perfil.nombre) : "";
 
   // El Doodle sale del contexto comercial, que se pide una sola vez por carga
   // de página y lo comparten todos los consumidores. Cuál de los dos aplica lo
@@ -272,12 +281,6 @@ function Navbar() {
                 </span>
               </Link>
 
-              <Link to="/cuenta" aria-label="Ir a mi cuenta" className={claseAccion}>
-                <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
-                  person
-                </span>
-              </Link>
-
               <Link to="/favoritos" aria-label="Ver favoritos" className={claseAccion}>
                 <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
                   favorite
@@ -293,6 +296,26 @@ function Navbar() {
                     {cantidadTotal}
                   </span>
                 ) : null}
+              </Link>
+
+              {/* Última acción, a la derecha del carrito. Con sesión muestra el
+                  mismo avatar de iniciales que `MiCuenta.jsx` (misma fuente:
+                  `apodo || nombre`); sin sesión, o con un perfil que todavía
+                  no completó el nombre, el ícono de persona. */}
+              <Link to="/cuenta" aria-label="Ir a mi cuenta" className={claseAccion}>
+                {inicialesCuenta ? (
+                  <span
+                    data-testid="avatar-navbar"
+                    aria-hidden="true"
+                    className="font-label-md text-label-md flex h-8 w-8 items-center justify-center rounded-full bg-brand-teal text-white"
+                  >
+                    {inicialesCuenta}
+                  </span>
+                ) : (
+                  <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
+                    person
+                  </span>
+                )}
               </Link>
             </div>
           </>
