@@ -102,16 +102,20 @@ describe("NavFlotante", () => {
   // que rige en `Navbar.jsx` porque ahí arriba hay texto.
   //
   // Compuesto contra blanco (el peor caso: el blur difumina el fondo pero no
-  // lo aclara), con el crema encima:
-  //   /70 → 6,04:1   /60 → 4,31:1   /55 → 3,65:1   /50 → 3,15:1   /45 → 2,74:1
-  // Verificado en Chromium con la fórmula de luminancia real, no a ojo.
+  // lo aclara), con el crema encima. Con la paleta de `.tema-publico` (T1 del
+  // rediseño del 13/09/2026: `inverse-surface` #31302c, crema #fdf9f2) el
+  // piso SUBIÓ de `/50` a `/55`, porque el gris nuevo es más claro que el
+  // #1d1b1a de antes:
+  //   /70 → 4,85:1   /60 → 3,62:1   /55 → 3,16:1   /50 → 2,77:1 ← se rompe
+  // (con la paleta vieja era /55 → 3,65:1 y /50 → 3,15:1).
+  // Calculado con la fórmula de luminancia relativa de WCAG, no a ojo.
   it("el alfa del vidrio no baja del piso de 3:1", () => {
     const { container } = montar();
     const pastilla = container.querySelector(".vidrio-isla");
 
     const alfa = pastilla.className.match(/bg-inverse-surface\/(\d+)/)?.[1];
     expect(alfa).toBeDefined();
-    expect(Number(alfa)).toBeGreaterThanOrEqual(50);
+    expect(Number(alfa)).toBeGreaterThanOrEqual(55);
   });
 
   it("es vidrio: lleva desenfoque y un canto visible", () => {

@@ -45,7 +45,7 @@ import useDialogo from "../hooks/useDialogo.js";
  */
 
 const CLASE_FILA =
-  "flex min-h-12 items-center gap-3 border-b border-outline-variant py-3 font-body-lg text-body-lg text-on-surface";
+  "flex min-h-12 items-center gap-3 border-b border-surface-container-high px-1 py-3 font-label-lg text-label-lg text-primary";
 
 export default function HojaMenu({ abierta, onCerrar }) {
   const { pathname } = useLocation();
@@ -99,7 +99,7 @@ export default function HojaMenu({ abierta, onCerrar }) {
           `fixed` y les rompe el posicionamiento. Ya está documentado en
           `Navbar.jsx` y en `VeloModal.jsx`; acá aplica igual. */}
       <div
-        className="fixed inset-0 z-40 bg-inverse-surface opacity-20 md:hidden"
+        className="fixed inset-0 z-40 bg-on-surface/45 md:hidden"
         onClick={onCerrar}
         aria-hidden="true"
       />
@@ -112,7 +112,7 @@ export default function HojaMenu({ abierta, onCerrar }) {
         aria-label="Menú"
         tabIndex={-1}
         style={{ top: `${topeHoja}px` }}
-        className="fixed inset-x-0 bottom-0 z-40 overflow-y-auto border-t border-outline-variant bg-background px-margin-mobile pb-[calc(6rem+env(safe-area-inset-bottom))] pt-3 outline-none md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 overflow-y-auto bg-background shadow-[0_-6px_20px_-2px_rgb(20_72_85_/_0.12)] px-margin-mobile pb-[calc(6rem+env(safe-area-inset-bottom))] pt-3 outline-none md:hidden"
       >
         {/* El agarre: la señal de que esto se puede arrastrar hacia abajo. Es
             decorativo — cerrar se hace con el botón, con Escape o tocando el
@@ -137,7 +137,7 @@ export default function HojaMenu({ abierta, onCerrar }) {
           Buscar
         </Link>
 
-        <p className="font-label-sm text-label-sm mt-5 px-3 uppercase text-on-surface-variant">
+        <p className="font-label-sm text-label-sm mt-5 px-3 uppercase tracking-[0.12em] text-on-surface-variant">
           Productos
         </p>
         <PanelCategorias categorias={categorias} onNavegar={onCerrar} />
@@ -158,7 +158,7 @@ export default function HojaMenu({ abierta, onCerrar }) {
           </span>
           Carrito
           {cantidadTotal > 0 ? (
-            <span className="font-label-sm text-label-sm ml-auto flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-inverse-surface px-1.5 text-background">
+            <span className="font-label-sm ml-auto flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-secondary px-1.5 text-[11px] font-bold tracking-normal text-on-secondary">
               {cantidadTotal}
             </span>
           ) : null}

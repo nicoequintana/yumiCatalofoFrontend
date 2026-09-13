@@ -6,6 +6,7 @@ import useContextoComercial from "../hooks/useContextoComercial.js";
 import usePerfilCliente from "../hooks/usePerfilCliente.js";
 import { iniciales } from "../utils/iniciales.js";
 import LogoYima from "./LogoYima.jsx";
+import BuscadorSugerencias from "./BuscadorSugerencias.jsx";
 import PanelCategorias from "./PanelCategorias.jsx";
 import { AREA_TACTIL_ANCHA, AREA_TACTIL_ICONO } from "../utils/areaTactil.js";
 
@@ -44,11 +45,13 @@ const DESTINOS = [{ to: "/", texto: "Inicio", esActivo: (pathname) => pathname =
  * destino. El Navbar lee el perfil SOLO para pintar el avatar de iniciales; el
  * destino del link no depende de eso.
  *
- * **La lupa navega a `/coleccion`, no abre un input acá.** El buscador real es
- * el de `FiltrosCatalogo`, que además escribe el término en la URL; un segundo
- * campo en el header serían dos buscadores compitiendo por el mismo estado. Su
- * `aria-label` es "Buscar productos" y no "Buscar" justamente para no colisionar
- * con el nombre accesible de ese input.
+ * **La lupa (por debajo de `lg`) navega a `/coleccion`, no abre un input acá.** El
+ * buscador que filtra es el de `FiltrosCatalogo`, que escribe el término en la
+ * URL. En `lg+` la lupa la reemplaza `BuscadorSugerencias` (rediseño del
+ * 13/09/2026), que NO compite por ese estado: solo sugiere y navega a
+ * `/coleccion?search=`. Los tres nombres accesibles son distintos a propósito
+ * —"Buscar productos" (lupa), "Buscar en el catálogo" (sugerencias), "Buscar"
+ * (`FiltrosCatalogo`)— para no volver ambiguo ningún `getByRole`.
  *
  * **Todo lo público cae bajo el mismo guard `esAdmin`** — navegación y acciones
  * — porque `/catalogo/admin/login` se renderiza dentro de este mismo `Layout`.
@@ -119,7 +122,7 @@ function Navbar() {
   }, [categoriasAbiertas]);
 
   const claseAccion =
-    "relative inline-flex h-11 w-11 items-center justify-center rounded-full text-on-surface transition-colors hover:bg-surface-container-high";
+    "relative inline-flex h-11 w-11 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary";
 
   // Fondo TRANSLÚCIDO + `backdrop-blur`: la barra queda pegada al tope y el
   // contenido pasa desenfocado por detrás en vez de chocar contra un bloque
@@ -201,7 +204,7 @@ function Navbar() {
         {esAdmin ? null : (
           <>
             <nav aria-label="Navegación principal" className="hidden md:flex md:justify-center">
-              <ul className="flex items-center gap-10">
+              <ul className="flex items-center gap-1">
                 {DESTINOS.map((destino) => {
                   const activo = destino.esActivo(pathname);
                   return (
@@ -210,17 +213,17 @@ function Navbar() {
                         to={destino.to}
                         aria-current={activo ? "page" : undefined}
                         // Área táctil: 42×33 medidos el 07/09/2026 con
-                        // `elementFromPoint`. Pseudo-elemento y no `min-h-11`
-                        // porque el subrayado de activo es el `border-b` del
-                        // propio link: al crecer la caja se despegaría del
-                        // texto. `before:w-11` porque acá tampoco alcanzaba el
-                        // ANCHO —42 contra 44—, y el `gap-10` del `ul` deja
-                        // sitio de sobra para los 1,5px que sobresalen de cada
-                        // lado.
-                        className={`inline-block border-b-2 pb-1 font-body-md text-body-md font-medium transition-colors ${AREA_TACTIL_ICONO} ${
+                        // `elementFromPoint`, antes de la píldora. Sigue con
+                        // pseudo-elemento y no `min-h-11`: el header tiene
+                        // alto fijo y la píldora de activo (rediseño del
+                        // 13/09/2026, mockup `.nav`) es el fondo del propio
+                        // link — estirar la caja agrandaría la píldora.
+                        // `before:w-11` quedó de la medición vieja; con el
+                        // `px-3` el link ya sobra de ancho, así que no invade.
+                        className={`inline-flex items-center rounded-[10px] px-3 py-[7px] font-label-md text-label-md transition-colors ${AREA_TACTIL_ICONO} ${
                           activo
-                            ? "border-on-surface text-on-surface"
-                            : "border-transparent text-on-surface-variant hover:text-on-surface"
+                            ? "bg-surface-container-high font-bold text-primary"
+                            : "font-semibold text-on-surface-variant hover:text-primary"
                         }`}
                       >
                         {destino.texto}
@@ -241,14 +244,19 @@ function Navbar() {
                     // `before:w-full` copia el ancho propio: un ancho fijo
                     // taparía el borde del panel de categorías que se abre
                     // justo debajo.
-                    className={`inline-flex items-center gap-1 border-b-2 pb-1 font-body-md text-body-md font-medium transition-colors ${AREA_TACTIL_ANCHA} ${
+                    className={`inline-flex items-center gap-0.5 rounded-[10px] py-[7px] pl-3 pr-2 font-label-md text-label-md transition-colors ${AREA_TACTIL_ANCHA} ${
                       pathname.startsWith("/coleccion") || categoriasAbiertas
-                        ? "border-on-surface text-on-surface"
-                        : "border-transparent text-on-surface-variant hover:text-on-surface"
+                        ? "bg-surface-container-high font-bold text-primary"
+                        : "font-semibold text-on-surface-variant hover:text-primary"
                     }`}
                   >
                     Productos
-                    <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                    <span
+                      aria-hidden="true"
+                      className={`material-symbols-outlined text-[18px] transition-transform ${
+                        categoriasAbiertas ? "rotate-180" : ""
+                      }`}
+                    >
                       expand_more
                     </span>
                   </button>
@@ -260,11 +268,11 @@ function Navbar() {
                 y el carrito se ven también por debajo de `md` — la isla
                 flotante (`NavFlotante`) se quedó con un solo control, la
                 hamburguesa, y estas tres acciones necesitaban un camino que no
-                dependiera de abrirla. `md:justify-end` y `md:gap-2` son los
-                únicos ajustes propios de escritorio: en mobile alcanza con el
-                `gap-1` y la posición la resuelve el `justify-between` del
-                contenedor padre. */}
-            <div className="flex items-center gap-1 md:justify-end md:gap-2">
+                dependiera de abrirla. `md:justify-end` es el único ajuste
+                propio de escritorio: la posición en mobile la resuelve el
+                `justify-between` del contenedor padre. `min-w-0` deja que la
+                columna `1fr` del grid achique al buscador en vez de desbordar. */}
+            <div className="flex min-w-0 items-center gap-1 md:justify-end">
               {/* DECISIÓN: la lupa NO marca `/coleccion` como activa, aunque
                   lleve ahí. Antes del reparto del 05/09/2026, la ranura de
                   Buscar de la isla SÍ lo hacía (`aria-current="page"` +
@@ -275,7 +283,29 @@ function Navbar() {
                   "Productos" de más arriba (`pathname.startsWith("/coleccion")`).
                   Agregarle `aria-current` acá duplicaría esa señal en dos
                   controles con roles distintos por la misma ruta. */}
-              <Link to="/coleccion" aria-label="Buscar productos" className={claseAccion}>
+              {/* T12 del rediseño (13/09/2026): el buscador con sugerencias
+                  entra ACÁ, antes de favoritos, como en el mockup aprobado.
+                  Desde `lg` y NO desde `md`: medido en Chromium, a 768px la
+                  columna derecha del grid (`1fr`, con `margin-desktop` de 64px
+                  por lado y la navegación al centro) le dejaba 67px al campo —
+                  inutilizable—; a 1024px le deja ~195 y a 1280 llega a sus
+                  300. `flex-1 min-w-0 max-w-[300px]` y no un ancho fijo, para
+                  que se achique con la columna en vez de desbordar.
+
+                  No choca con el comentario de más abajo sobre "dos buscadores
+                  compitiendo": este NO escribe en la URL ni en el estado de
+                  `FiltrosCatalogo` — sugiere y, con Enter o "ver todos", navega
+                  a `/coleccion?search=`, que es el mismo punto de entrada. */}
+              <div
+                data-testid="buscador-header"
+                className="hidden min-w-0 lg:block lg:max-w-[300px] lg:flex-1"
+              >
+                <BuscadorSugerencias />
+              </div>
+
+              {/* Solo por debajo de `lg`: desde ahí la reemplaza el buscador
+                  de arriba. Mismo destino y mismo nombre accesible. */}
+              <Link to="/coleccion" aria-label="Buscar productos" className={`${claseAccion} lg:hidden`}>
                 <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
                   search
                 </span>
@@ -292,7 +322,7 @@ function Navbar() {
                   shopping_bag
                 </span>
                 {cantidadTotal > 0 ? (
-                  <span className="font-label-sm text-label-sm absolute right-1 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-inverse-surface px-1 text-background">
+                  <span className="font-label-sm absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-secondary px-1 text-[11px] font-bold leading-none tracking-normal text-on-secondary">
                     {cantidadTotal}
                   </span>
                 ) : null}
@@ -307,7 +337,7 @@ function Navbar() {
                   <span
                     data-testid="avatar-navbar"
                     aria-hidden="true"
-                    className="font-label-md text-label-md flex h-8 w-8 items-center justify-center rounded-full bg-brand-teal text-white"
+                    className="font-label-md text-label-md flex h-8 w-8 items-center justify-center rounded-full bg-primary text-on-primary"
                   >
                     {inicialesCuenta}
                   </span>

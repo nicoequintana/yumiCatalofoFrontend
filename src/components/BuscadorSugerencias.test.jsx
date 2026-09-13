@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -168,17 +168,74 @@ describe("BuscadorSugerencias", () => {
     expect(screen.queryByText("Resultado viejo")).not.toBeInTheDocument();
   });
 
+  describe("cierre al salir del componente", () => {
+    function renderConVecino() {
+      return render(
+        <MemoryRouter>
+          <BuscadorSugerencias />
+          <button type="button">Afuera</button>
+        </MemoryRouter>,
+      );
+    }
+
+    it("un click fuera cierra las sugerencias", async () => {
+      getProducts.mockResolvedValue({ data: [producto()], total: 1 });
+      renderConVecino();
+      await userEvent.type(screen.getByRole("searchbox", { name: "Buscar en el catálogo" }), "lampara");
+      await screen.findByRole("listbox");
+
+      await userEvent.click(screen.getByRole("button", { name: "Afuera" }));
+
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    });
+
+    it("un click DENTRO de las sugerencias no las cierra antes de tiempo", async () => {
+      getProducts.mockResolvedValue({ data: [producto({ nombre: "Lámpara Moon" })], total: 1 });
+      renderConVecino();
+      await userEvent.type(screen.getByRole("searchbox", { name: "Buscar en el catálogo" }), "lampara");
+      const listbox = await screen.findByRole("listbox");
+
+      await userEvent.pointer({ keys: "[MouseLeft>]", target: listbox });
+
+      expect(screen.getByRole("listbox")).toBeInTheDocument();
+    });
+
+    it("cuando el foco sale del componente, se cierran", async () => {
+      getProducts.mockResolvedValue({ data: [producto()], total: 1 });
+      renderConVecino();
+      await userEvent.type(screen.getByRole("searchbox", { name: "Buscar en el catálogo" }), "lampara");
+      await screen.findByRole("listbox");
+
+      act(() => screen.getByRole("button", { name: "Afuera" }).focus());
+
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    });
+
+    it("tabular del input a una sugerencia NO las cierra", async () => {
+      getProducts.mockResolvedValue({ data: [producto({ nombre: "Lámpara Moon" })], total: 1 });
+      renderConVecino();
+      await userEvent.type(screen.getByRole("searchbox", { name: "Buscar en el catálogo" }), "lampara");
+      await screen.findByRole("listbox");
+
+      await userEvent.tab();
+
+      expect(screen.getByRole("option", { name: /lámpara moon/i })).toHaveFocus();
+      expect(screen.getByRole("listbox")).toBeInTheDocument();
+    });
+  });
+
   it("el input usa 16px para evitar el zoom de iOS en Safari", () => {
     renderBuscador();
     const input = screen.getByRole("searchbox", { name: "Buscar en el catálogo" });
     expect(input.className).toContain("text-[16px]");
   });
 
+  // Desde T12 el Navbar ya monta este buscador adentro (escritorio), así que
+  // alcanza con renderizar el Navbar solo: los dos conviven en el mismo árbol.
   it("su nombre accesible NO colisiona con 'Buscar productos' del Navbar", () => {
     render(
       <MemoryRouter>
         <Navbar />
-        <BuscadorSugerencias />
       </MemoryRouter>,
     );
 

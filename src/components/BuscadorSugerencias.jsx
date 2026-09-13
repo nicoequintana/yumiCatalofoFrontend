@@ -54,6 +54,7 @@ function BuscadorSugerencias({ className = "" }) {
   const navigate = useNavigate();
   const debounceRef = useRef(null);
   const pedidoIdRef = useRef(0);
+  const contenedorRef = useRef(null);
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
@@ -86,6 +87,29 @@ function BuscadorSugerencias({ className = "" }) {
     return () => clearTimeout(debounceRef.current);
   }, [termino]);
 
+  // Click/toque FUERA cierra. Se escucha `pointerdown` (mouse, touch y lápiz
+  // en un solo evento) y solo mientras el dropdown está abierto.
+  useEffect(() => {
+    if (!abierto) return undefined;
+    const alPresionar = (evento) => {
+      if (contenedorRef.current?.contains(evento.target)) return;
+      setAbierto(false);
+    };
+    document.addEventListener("pointerdown", alPresionar);
+    return () => document.removeEventListener("pointerdown", alPresionar);
+  }, [abierto]);
+
+  // El foco que SALE cierra, pero solo cuando se sabe adónde fue
+  // (`relatedTarget` presente y fuera del componente: Tab hacia otro
+  // control). Con `relatedTarget` nulo NO se cierra: Safari no enfoca un link
+  // al hacerle click, así que un `blur` sin destino llega ANTES del click en
+  // una sugerencia y cerrar ahí desmontaría el link que se estaba tocando. El
+  // click afuera ya lo cubre `pointerdown`.
+  function alPerderFoco(evento) {
+    const destino = evento.relatedTarget;
+    if (destino && !evento.currentTarget.contains(destino)) setAbierto(false);
+  }
+
   const limpio = termino.trim();
   const hrefTodos = `/coleccion?search=${encodeURIComponent(limpio)}`;
 
@@ -96,7 +120,7 @@ function BuscadorSugerencias({ className = "" }) {
   }
 
   return (
-    <div className={`relative ${className}`}>
+    <div ref={contenedorRef} onBlur={alPerderFoco} className={`relative ${className}`}>
       <label className="flex h-11 items-center gap-2 rounded-full bg-surface-container-low px-4 focus-within:bg-surface-container-lowest focus-within:shadow-ambient">
         <span aria-hidden="true" className="material-symbols-outlined text-[20px] text-on-surface-variant">
           search

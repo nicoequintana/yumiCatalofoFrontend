@@ -17,9 +17,9 @@ import { registrarEvento } from "../api/products.js";
 const TAGLINE_MARCA = "Objetos para la casa elegidos uno por uno.";
 
 const CLASE_TITULO_COLUMNA =
-  "font-label-sm text-label-sm mb-3 block uppercase tracking-[0.15em] text-on-surface-variant";
+  "font-label-sm text-label-sm mb-3 block font-bold uppercase tracking-[0.12em] text-on-surface-variant";
 const CLASE_LINK_COLUMNA =
-  "font-body-md text-body-md text-on-surface transition-colors hover:text-primary hover:underline hover:underline-offset-4";
+  "font-body-md text-body-md text-on-surface transition-colors hover:text-primary";
 const CLASE_LINK_SUB = "font-body-sm text-body-sm text-on-surface-variant transition-colors hover:text-primary";
 
 /** Instagram/Facebook/TikTok, cada uno visible solo si hay URL configurada. */
@@ -67,7 +67,7 @@ function RedesSociales({ contacto }) {
           target="_blank"
           rel="noopener noreferrer"
           aria-label={red.nombre}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant text-on-surface transition-colors hover:border-primary hover:text-primary"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface transition-colors hover:border-primary hover:text-primary"
         >
           {red.icono}
         </a>
@@ -107,7 +107,7 @@ function ListaTienda({ categorias }) {
           // Dos columnas en todos los anchos para que ocho categorías no armen
           // un listado largo; tres no entran en el ancho de la columna Tienda
           // ("Cuidado personal" cortaba). En mobile va dentro del desplegable.
-          <ul className="ml-3 grid grid-cols-2 gap-x-6 gap-y-2 border-l border-outline-variant pl-3">
+          <ul className="grid grid-cols-2 gap-x-[18px] gap-y-1.5 border-l-2 border-surface-container-highest pl-3">
             {categorias.map(({ categoria, ruta }) => (
               <li key={categoria.id}>
                 <Link to={ruta} className={CLASE_LINK_SUB}>
@@ -180,9 +180,12 @@ function BandaContacto({ contacto }) {
   }
 
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-stretch md:gap-4">
+    // El filete inferior va en la banda y no en un wrapper afuera: sin
+    // whatsapp ni mail la banda devuelve `null`, y un wrapper con borde
+    // dibujaría una línea suelta sin nada arriba.
+    <div className="flex flex-col gap-4 border-b border-surface-container-highest pb-6 md:flex-row md:items-stretch md:gap-4 md:pb-10">
       <div className="flex flex-col justify-center gap-1 md:flex-[1.2]">
-        <strong className="font-headline-sm text-headline-sm text-on-surface">¿Te ayudamos a elegir?</strong>
+        <strong className="font-headline-sm text-headline-sm font-bold text-primary">¿Te ayudamos a elegir?</strong>
         <span className="font-body-sm text-body-sm text-on-surface-variant">
           Respondemos consultas de productos, envíos y pedidos.
         </span>
@@ -198,30 +201,30 @@ function BandaContacto({ contacto }) {
           // el del botón de la ficha, y en la ficha quedaban dos links
           // homónimos (ambiguo para un lector de pantalla).
           aria-label="Escribinos por WhatsApp"
-          className="flex flex-1 items-center gap-3 rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 py-3 transition-colors hover:border-primary"
+          className="flex flex-1 items-center gap-3 rounded-2xl bg-surface-container-lowest py-2.5 pl-2.5 pr-4 shadow-[0_2px_8px_-2px_rgb(20_72_85_/_0.06),0_0_0_1px_rgb(20_72_85_/_0.05)] transition-shadow hover:shadow-[0_8px_24px_-4px_rgb(20_72_85_/_0.14)] md:pr-6"
         >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#25D366] text-white">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-[#25D366] text-white">
             {ICONO_WHATSAPP}
           </span>
           {/* Sin leyenda de horario: decisión del 13/09/2026, la tarjeta
               dice solo "WhatsApp". */}
-          <b className="font-label-lg text-label-lg text-on-surface">WhatsApp</b>
+          <b className="font-label-lg text-label-lg text-primary">WhatsApp</b>
         </a>
       ) : null}
 
       {tieneEmail ? (
         <a
           href={`mailto:${contacto.email}`}
-          className="flex flex-1 items-center gap-3 rounded-2xl border border-outline-variant bg-surface-container-lowest px-4 py-3 transition-colors hover:border-primary"
+          className="flex flex-1 items-center gap-3 rounded-2xl bg-surface-container-lowest py-2.5 pl-2.5 pr-4 shadow-[0_2px_8px_-2px_rgb(20_72_85_/_0.06),0_0_0_1px_rgb(20_72_85_/_0.05)] transition-shadow hover:shadow-[0_8px_24px_-4px_rgb(20_72_85_/_0.14)] md:pr-6"
         >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-teal text-white">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-primary-container text-on-primary">
             <span aria-hidden="true" className="material-symbols-outlined text-[22px]">
               mail
             </span>
           </span>
           {/* `break-all`: una dirección larga no tiene espacios donde cortar y
               desbordaría la tarjeta a 390px. */}
-          <b className="font-label-lg text-label-lg break-all text-on-surface">{contacto.email}</b>
+          <b className="font-label-lg text-label-lg break-all text-primary">{contacto.email}</b>
         </a>
       ) : null}
     </div>
@@ -291,7 +294,7 @@ function Footer() {
     .filter((c) => c.ruta);
 
   return (
-    <footer className="w-full border-t border-outline-variant bg-surface-container-lowest">
+    <footer className="w-full bg-surface-container-low">
       {/* El zócalo de la isla flotante vive en ESTE wrapper —el único hijo
           directo del `<footer>` que envuelve TODO el contenido real,
           barra legal incluida— y no como un `<div>` suelto después: la isla
@@ -305,7 +308,7 @@ function Footer() {
           MENOS ese padding tiene que coincidir con donde termina el
           contenido real — por eso la barra legal va ADENTRO de este mismo
           wrapper y no como hermano suelto después. */}
-      <div className="flex w-full flex-col gap-10 pb-24 pt-8 md:gap-8 md:pb-8">
+      <div className="flex w-full flex-col gap-6 pb-24 pt-8 md:gap-10 md:pb-8 md:pt-12">
         <div className="mx-auto w-full max-w-container-max px-margin-mobile md:px-margin-desktop">
           <BandaContacto contacto={contacto} />
         </div>
@@ -328,8 +331,8 @@ function Footer() {
 
         {/* Mobile: grupos plegables nativos (sin JS) + logo/redes al pie. */}
         <div className="mx-auto flex w-full max-w-container-max flex-col gap-5 px-margin-mobile md:hidden">
-          <details open className="border-t border-outline-variant pt-3">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-label-lg text-label-lg text-on-surface [&::-webkit-details-marker]:hidden">
+          <details open className="border-b border-surface-container-highest pb-3">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-label-sm text-label-sm font-bold uppercase tracking-[0.12em] text-on-surface-variant [&::-webkit-details-marker]:hidden">
               Tienda
               <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                 expand_more
@@ -340,8 +343,8 @@ function Footer() {
             </div>
           </details>
 
-          <details className="border-t border-outline-variant pt-3">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-label-lg text-label-lg text-on-surface [&::-webkit-details-marker]:hidden">
+          <details className="border-b border-surface-container-highest pb-3">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-label-sm text-label-sm font-bold uppercase tracking-[0.12em] text-on-surface-variant [&::-webkit-details-marker]:hidden">
               Mi cuenta
               <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                 expand_more
@@ -352,15 +355,15 @@ function Footer() {
             </div>
           </details>
 
-          <div className="flex items-center justify-between border-t border-outline-variant pt-4">
+          <div className="flex items-center justify-between pt-1">
             <LogoYima className="h-7" doodleUrl={doodleDelPie} />
             <RedesSociales contacto={contacto} />
           </div>
         </div>
 
-        <div className="border-t border-outline-variant pt-5">
-          <div className="mx-auto w-full max-w-container-max px-margin-mobile text-center md:px-margin-desktop md:text-left">
-            <span className="font-body-sm text-body-sm text-on-surface-variant">
+        <div className="mx-auto w-full max-w-container-max px-margin-mobile md:px-margin-desktop">
+          <div className="border-t border-surface-container-highest pt-4 text-center md:text-left">
+            <span className="font-body-sm text-[12px] text-on-surface-variant">
               © 2026 YIMA · Todos los derechos reservados
             </span>
           </div>

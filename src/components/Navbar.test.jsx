@@ -214,6 +214,47 @@ describe("Navbar - acciones también en móvil", () => {
   });
 });
 
+// T12 del rediseño: el buscador con sugerencias entra en la columna de
+// acciones, ANTES de favoritos, desde `lg`. La lupa sigue existiendo —mismo
+// destino, mismo nombre accesible— por debajo de `lg`. `lg` y no `md`: a
+// 768px la columna derecha del grid le dejaba 67px al buscador (medido en
+// Chromium el 13/09/2026), inutilizable.
+describe("Navbar - buscador con sugerencias en escritorio", () => {
+  it("el buscador con sugerencias aparece en escritorio", () => {
+    renderNavbar();
+
+    expect(screen.getByRole("searchbox", { name: "Buscar en el catálogo" })).toBeInTheDocument();
+  });
+
+  it("va en la columna de acciones, antes de favoritos, y se oculta por debajo de lg", () => {
+    renderNavbar();
+
+    const favoritos = screen.getByRole("link", { name: "Ver favoritos" });
+    const buscador = screen
+      .getByRole("searchbox", { name: "Buscar en el catálogo" })
+      .closest("[data-testid='buscador-header']");
+
+    expect(buscador).not.toBeNull();
+    expect(buscador.parentElement).toBe(favoritos.parentElement);
+    expect(buscador.compareDocumentPosition(favoritos) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(buscador).toHaveClass("hidden", "lg:block");
+  });
+
+  it("la lupa de mobile sigue existiendo, sigue yendo a /coleccion y se oculta en lg+", () => {
+    renderNavbar();
+
+    const lupa = screen.getByRole("link", { name: "Buscar productos" });
+    expect(lupa).toHaveAttribute("href", "/coleccion");
+    expect(lupa).toHaveClass("lg:hidden");
+  });
+
+  it("no monta el buscador en rutas de admin", () => {
+    renderNavbar("/catalogo/admin/login");
+
+    expect(screen.queryByRole("searchbox", { name: "Buscar en el catálogo" })).not.toBeInTheDocument();
+  });
+});
+
 describe("Navbar - logo", () => {
   it("el logo YIMA es un link a la home", () => {
     renderNavbar();

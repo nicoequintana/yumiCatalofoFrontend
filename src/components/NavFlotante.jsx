@@ -74,7 +74,7 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
           alfa — un hex adentro de la variable descartaría la clase entera sin
           avisar y la isla quedaría transparente.
 
-          El `/55` tiene un piso, pero NO es el mismo que el del header, y la
+          El alfa tiene un piso, pero NO es el mismo que el del header, y la
           diferencia es de norma, no de gusto: en `Navbar.jsx` lo que va sobre
           el vidrio es TEXTO, y ahí rige el 4,5:1 de WCAG 1.4.3. Acá lo único
           que va encima es el ícono de un control, o sea un elemento no
@@ -84,14 +84,17 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
 
           El blur difumina lo que pasa por detrás pero no lo ACLARA, así que el
           peor caso sigue siendo una foto clara pareja. Compuesto contra blanco,
-          con el crema (`#fff8f5`) encima:
+          con la paleta de `.tema-publico` (rediseño del 13/09/2026:
+          `inverse-surface` #31302c, crema #fdf9f2):
 
-            /70 → 6,04:1    /60 → 4,31:1    /55 → 3,65:1    /50 → 3,15:1
-            /45 → 2,74:1  ← ACÁ SE ROMPE
+            /70 → 4,85:1    /60 → 3,62:1    /55 → 3,16:1
+            /50 → 2,77:1  ← ACÁ SE ROMPE
 
-          **`/50` es el piso y está agotado: `/45` incumple.** No lo bajes.
-          Y no ajustes a ojo: la primera versión de esta tabla estaba mal
-          calculada y decía que `/60` pasaba AA cuando no llega.
+          **`/55` es el piso y está agotado: `/50` incumple.** Con la paleta
+          vieja (#1d1b1a, más oscuro) el piso era `/50` (3,15:1); el gris nuevo
+          es más claro y lo subió un escalón. No lo bajes, y no ajustes a ojo:
+          la primera versión de esta tabla estaba mal calculada y decía que
+          `/60` pasaba AA cuando no llega.
 
           **QUÉ HACE QUE ESTO SE LEA COMO VIDRIO Y NO COMO NIEBLA.** No es el
           alfa —ese ya está en el piso— sino tres cosas juntas, y sacar
@@ -118,7 +121,7 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
           alfa se aplicaría igual pero el desenfoque no, y quedaría una
           píldora semitransparente con el contenido NÍTIDO por detrás — peor
           que no haber intentado el efecto. Ahí el fondo pasa a opaco. */}
-      <div className="vidrio-isla flex items-center rounded-full border border-background/30 bg-inverse-surface/50 p-1.5 shadow-[inset_0_1px_0_0_rgb(255_248_245_/_0.3),0_8px_24px_-8px_rgb(29_27_26_/_0.55)] backdrop-blur-xl backdrop-saturate-150">
+      <div className="vidrio-isla flex items-center rounded-full border border-background/30 bg-inverse-surface/55 p-1.5 shadow-[inset_0_1px_0_0_rgb(253_249_242_/_0.3),0_8px_24px_-8px_rgb(28_28_24_/_0.55)] backdrop-blur-xl backdrop-saturate-150">
         <button
           type="button"
           aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
@@ -129,12 +132,12 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
         >
           {/* La sombra proyectada del ÍCONO es lo que permite que el vidrio
               sea tan transparente. Sin ella, la única defensa del ícono contra
-              lo que pasa por detrás es el alfa del fondo, y ahí `/50` es el
-              piso duro (3,15:1). Con la sombra, el ícono se recorta contra su
+              lo que pasa por detrás es el alfa del fondo, y ahí `/55` es el
+              piso duro (3,16:1). Con la sombra, el ícono se recorta contra su
               propio halo oscuro aunque cruce una foto clara: el contraste deja
               de depender solo de la pastilla.
 
-              No se declara como excusa para bajar de `/50` — el piso sigue
+              No se declara como excusa para bajar de `/55` — el piso sigue
               siendo el piso, y el alfa lo cumple por su cuenta. La sombra es
               el margen de seguridad para el caso real que ningún cálculo
               cubre: una foto de producto casi blanca justo debajo. */}
