@@ -3,7 +3,7 @@ import CargandoPagina from "../components/CargandoPagina.jsx";
 import CarruselCampanias from "../components/CarruselCampanias.jsx";
 import CarruselDestacados from "../components/CarruselDestacados.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
-import RielOfertas from "../components/RielOfertas.jsx";
+import PromosActivas from "../components/PromosActivas.jsx";
 import { useCategoriasHome } from "../hooks/useCategoriasNavbar.js";
 import useContextoComercial from "../hooks/useContextoComercial.js";
 import useDestacados from "../hooks/useDestacados.js";
@@ -102,7 +102,7 @@ function Catalogo() {
   // El mismo hook que consume `CirculosCategoria` puertas adentro. Llamarlo
   // DOS veces no cuesta una segunda request: cachea a nivel de módulo, con una
   // sola promesa en vuelo compartida por todos los montajes. Por eso este
-  // componente sigue pidiendo lo suyo mientras `RielOfertas` pasó a recibirlo
+  // componente sigue pidiendo lo suyo mientras `PromosActivas` pasó a recibirlo
   // por prop — su hook fetchea por instancia y ahí sí habría dos requests.
   const { resuelto: categoriasResueltas } = useCategoriasHome();
   const { productos: ofertas, error: errorOfertas, resuelto: ofertasResueltas } = useOfertas();
@@ -185,7 +185,9 @@ function Catalogo() {
 
       {/* Entre el mapa de categorías y los hallazgos: la oferta puntual antes
           de la vidriera general de destacados. */}
-      <RielOfertas productos={ofertas} error={errorOfertas} />
+      {/* T14: puente mínimo, modo "sin promo destacada" (el riel de ofertas
+          de siempre). T15 suma `usePromoDestacada` y el orden final. */}
+      <PromosActivas promoDestacada={null} ofertas={ofertas} errorOfertas={errorOfertas} />
 
       <CarruselDestacados productos={destacados} />
 

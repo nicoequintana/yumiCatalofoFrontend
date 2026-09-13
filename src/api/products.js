@@ -266,6 +266,19 @@ export async function getProducts({
 }
 
 /**
+ * `GET /products/mas-vendidos` (T3, público). No es un filtro de `GET
+ * /products`: el ranking (unidades en 90 días) lo arma el backend.
+ *
+ * @returns {Promise<{data: Array}>} sin `page`/`total` — no hay página 2.
+ *   `data` puede traer menos de lo pedido: el umbral de la sección lo aplica
+ *   `MasVendidos` (`MIN_MAS_VENDIDOS`).
+ */
+export async function getProductosMasVendidos({ pageSize } = {}) {
+  const query = pageSize !== undefined && pageSize !== null && pageSize !== "" ? `?pageSize=${pageSize}` : "";
+  return pedir(`${BASE}/products/mas-vendidos${query}`);
+}
+
+/**
  * TODAS las etiquetas creadas (tengan o no productos), para el filtro del
  * listado del admin y para la vitrina de una campaña. `Product.etiqueta` es
  * hoy una FK a una lista cerrada administrada desde Configuración ›

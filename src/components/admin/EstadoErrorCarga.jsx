@@ -16,7 +16,7 @@ import { MENSAJE_ERROR_CARGA } from "../../hooks/useOfertas.js";
  * sola casa.
  *
  * **El mensaje NO es un parámetro.** Es el copy compartido de
- * `MENSAJE_ERROR_CARGA` — el mismo que ya usan `AdminOrdenes` y `RielOfertas`—,
+ * `MENSAJE_ERROR_CARGA` — el mismo que ya usan `AdminOrdenes` y `PromosActivas`—,
  * justamente para que no vuelva a colarse el texto del sistema por esta puerta.
  * Lo que sí cambia por pantalla es el TÍTULO, que es lo que nombra qué no se
  * pudo traer.

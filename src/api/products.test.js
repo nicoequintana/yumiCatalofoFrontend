@@ -5,6 +5,7 @@ import {
   getProductById,
   getProducts,
   getProductsByIds,
+  getProductosMasVendidos,
   registrarFavorito,
 } from "./products.js";
 import { getToken } from "./authClient.js";
@@ -359,5 +360,30 @@ describe("getProductsByIds", () => {
     const params = new URLSearchParams(url.split("?")[1]);
     expect(params.get("admin")).toBe("1");
     expect(params.get("ids")).toBe("4");
+  });
+});
+
+/**
+ * `GET /products/mas-vendidos` (T3): no es un filtro de `GET /products`, es
+ * un endpoint propio con sobre `{ data }` sin paginación.
+ */
+describe("getProductosMasVendidos", () => {
+  beforeEach(() => {
+    mockFetchOnce({ data: [] });
+  });
+
+  it("sin opciones pega a /products/mas-vendidos sin querystring", async () => {
+    await getProductosMasVendidos();
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products/mas-vendidos`);
+  });
+
+  it("manda pageSize cuando se pide", async () => {
+    await getProductosMasVendidos({ pageSize: 8 });
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/products/mas-vendidos?pageSize=8`);
+  });
+
+  it("devuelve el sobre { data }", async () => {
+    mockFetchOnce({ data: [{ id: 1 }] });
+    await expect(getProductosMasVendidos()).resolves.toEqual({ data: [{ id: 1 }] });
   });
 });

@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   actualizarPromocion,
   destacarPromocionEnHome,
+  getPromocionDestacada,
   guardarArtePromocion,
   quitarArtePromocion,
 } from "./promociones.js";
@@ -109,5 +110,34 @@ describe("destacarPromocionEnHome", () => {
     await expect(destacarPromocionEnHome(3, true)).rejects.toThrow(
       "No se pudo destacar la promoción.",
     );
+  });
+});
+
+/**
+ * `GET /promociones/destacada` — la ÚNICA lectura pública de este módulo (T4).
+ * Va con `fetch` plano, sin JWT: la pide la home de cualquier visitante.
+ */
+describe("getPromocionDestacada", () => {
+  it("hace GET plano (sin auth) a /promociones/destacada y devuelve el cuerpo", async () => {
+    const promo = { id: 3, nombre: "Semana del Hogar", finVigencia: "2026-09-21T02:59:59.999Z", productos: [] };
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => JSON.stringify(promo) });
+
+    const resultado = await getPromocionDestacada();
+
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/promociones/destacada`);
+    expect(fetchAutenticado).not.toHaveBeenCalled();
+    expect(resultado).toEqual(promo);
+  });
+
+  it("devuelve null cuando no hay promo destacada vigente", async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => "null" });
+
+    await expect(getPromocionDestacada()).resolves.toBeNull();
+  });
+
+  it("propaga el error cuando el backend falla", async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, text: async () => JSON.stringify({ error: "Boom" }) });
+
+    await expect(getPromocionDestacada()).rejects.toThrow("Boom");
   });
 });

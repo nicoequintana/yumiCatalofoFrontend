@@ -5,7 +5,7 @@ import { getProducts } from "../api/products.js";
  * Los productos con descuento vigente que muestra la home.
  *
  * Fetch por instancia y NO patrón module-level: hay un solo consumidor
- * (`RielOfertas`, montado una vez en la home), así que el cache compartido de
+ * (`PromosActivas`, montado una vez en la home), así que el cache compartido de
  * `useContextoComercial` sería complejidad sin beneficio.
  *
  * ⚠️ **`error` existe y no es opcional.** Un `catch` que solo vacía la lista

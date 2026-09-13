@@ -1,16 +1,32 @@
 import { fetchAutenticado } from "./authClient.js";
 import { parsearCuerpo } from "./parseo.js";
-import { TIMEOUT_SUBIDA_MS } from "./http.js";
+import { TIMEOUT_SUBIDA_MS, fetchConTimeout } from "./http.js";
 
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api`;
 
 /**
- * ADMIN → Promociones. **Todo el módulo exige sesión**: no hay ninguna lectura
- * pública acá. Los descuentos que el catálogo necesita ya viajan resueltos en
- * `GET /products`, así que este módulo solo lo consume el panel.
+ * ADMIN → Promociones. Todo el módulo exige sesión SALVO
+ * `getPromocionDestacada`, la única lectura pública (la pide la home). Los
+ * descuentos del catálogo ya viajan resueltos en `GET /products`.
  */
 async function pedir(url, opciones, timeoutMs) {
   const res = await fetchAutenticado(url, opciones, timeoutMs);
+  const body = parsearCuerpo(await res.text());
+  if (!res.ok) {
+    throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");
+  }
+  return body;
+}
+
+/**
+ * `GET /promociones/destacada` — PÚBLICO, `fetch` plano sin JWT (T4).
+ *
+ * @returns {Promise<null | {id: number, nombre: string, finVigencia: string, productos: Array}>}
+ *   `null` sin promo destacada vigente. `finVigencia` es el instante ISO en
+ *   que termina: el reloj de la home solo cuenta hacia él, nunca lo recalcula.
+ */
+export async function getPromocionDestacada() {
+  const res = await fetchConTimeout(`${BASE}/promociones/destacada`);
   const body = parsearCuerpo(await res.text());
   if (!res.ok) {
     throw new Error(body?.error ?? "Ocurrió un error al comunicarse con el servidor.");

@@ -47,7 +47,7 @@ const VELOCIDAD_FIN_INERCIA_PX_S = 40;
  * empieza exactamente en la mitad del ancho scrolleable, así que al llegar
  * ahí se resta esa mitad y la vista queda idéntica: el rebobinado no se ve.
  * El duplicado es puramente visual: cada tarjeta clonada usa el mismo
- * `ProductCard` compartido con el resto del sitio (`RielOfertas.jsx`,
+ * `ProductCard` compartido con el resto del sitio (`PromosActivas.jsx`,
  * `/coleccion`, favoritos), envuelto en un DIV que lleva `aria-hidden="true"`
  * e `inert` — `ProductCard` no acepta una variante "decorativa" (solo recibe
  * `{ producto }`), así que sacar el clon del árbol de accesibilidad y del
