@@ -24,7 +24,7 @@
  * - **`min-h-11 min-w-11`** cuando el control puede crecer sin costo (un botón
  *   suelto, un campo de formulario). Va **ADEMÁS** del tamaño de la variante,
  *   nunca en lugar de él: el mínimo táctil es un PISO y la variante sigue
- *   decidiendo cuánto crece por encima (ver `SelectorCantidad.jsx`).
+ *   decidiendo cuánto crece por encima (ver `Paginador.jsx`).
  *
  * `content-['']` no es decorativo: sin él el pseudo-elemento no genera caja y
  * el área táctil sigue siendo la de antes, sin que nada falle y sin que ningún

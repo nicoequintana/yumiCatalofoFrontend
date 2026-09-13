@@ -585,7 +585,7 @@ const claseAccion =
 
 /**
  * `min-h-11` va ADEMÁS del `py-2`, nunca en lugar de él (mismo criterio que
- * `SelectorCantidad.jsx`): el mínimo táctil de 44px es un PISO. Medido en
+ * `utils/areaTactil.js`): el mínimo táctil de 44px es un PISO. Medido en
  * navegador el 07/09/2026 a 1280×800 con `elementFromPoint` —área EFECTIVA, no
  * la caja declarada—: «Apagar» 82×33 y «Editar» 75×33.
  *

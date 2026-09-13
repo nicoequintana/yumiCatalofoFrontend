@@ -65,7 +65,7 @@ const PORCENTAJE_INICIAL = 5;
  *
  * `min-h-11` va **ADEMÁS** del `py-*` de cada molde, nunca en lugar de él: el
  * mínimo táctil es un PISO y el padding sigue decidiendo cuánto crece por
- * encima (mismo criterio que `SelectorCantidad.jsx`). Se eligió agrandar y no
+ * encima (mismo criterio que `utils/areaTactil.js`). Se eligió agrandar y no
  * el pseudo-elemento de `utils/areaTactil.js` justamente por "Archivar" y
  * "Eliminar": van pegados con `gap-2` (8px), así que dos áreas postizas de 44
  * se pisarían; creciendo de verdad a 44 de alto no hay ningún conflicto

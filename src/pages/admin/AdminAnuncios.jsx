@@ -227,7 +227,7 @@ function AdminAnuncios() {
           </span>
         </div>
         {/* `min-h-11` (44px) es el PISO táctil, va además del `py-3` de la
-            variante y nunca en su lugar (ver `SelectorCantidad.jsx`); le gana
+            variante y nunca en su lugar (ver `utils/areaTactil.js`); le gana
             al `h-max`, que sólo evita que el botón se estire con el contador de
             caracteres del campo de al lado. Medido a 390px el 07/09/2026: 93x41
             de área efectiva. */}

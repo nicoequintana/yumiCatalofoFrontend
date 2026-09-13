@@ -135,7 +135,7 @@ describe("AdminLogin", () => {
  * la caja declarada—: **33 de alto** en los dos breakpoints (`py-2`).
  *
  * `min-h-11` va ADEMÁS del `py-2`, no en lugar de él (mismo criterio que
- * `SelectorCantidad.jsx`).
+ * `utils/areaTactil.js`).
  */
 describe("AdminLogin — área táctil", () => {
   it('el botón "Ingresar" declara el mínimo táctil de 44 de alto', () => {

@@ -136,7 +136,7 @@ export default function EditorCampaniaHeader({
 /**
  * `min-h-11` (44px) ADEMÁS del `px-5 py-3`, no en lugar de él: el mínimo
  * táctil de WCAG 2.5.8 es un PISO y el padding sigue decidiendo el aire
- * horizontal (mismo criterio que `SelectorCantidad.jsx`).
+ * horizontal (mismo criterio que `utils/areaTactil.js`).
  *
  * ⚠️ Esta pantalla se le escapó ENTERA a la auditoría del 07/09/2026: el
  * editor de campaña es una RUTA propia (`/catalogo/admin/campanias/nueva`), no

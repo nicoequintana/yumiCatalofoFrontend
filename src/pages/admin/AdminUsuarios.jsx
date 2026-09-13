@@ -214,7 +214,7 @@ function AdminUsuarios() {
           Puede eliminar
         </label>
         {/* `min-h-11` (44px) es el PISO táctil, va además del `py-3` de la
-            variante y nunca en su lugar (ver `SelectorCantidad.jsx`). Medido a
+            variante y nunca en su lugar (ver `utils/areaTactil.js`). Medido a
             390px el 07/09/2026: 93x42 de área efectiva. */}
         <button
           type="submit"

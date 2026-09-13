@@ -260,7 +260,7 @@ export default function SeccionCampania({
 /**
  * `min-h-11` (44px) va ADEMÁS del `py-2`, no en lugar de él: el mínimo táctil de
  * WCAG 2.5.8 es un PISO y el padding sigue decidiendo cuánto crece por encima
- * (mismo criterio que `SelectorCantidad.jsx`).
+ * (mismo criterio que `utils/areaTactil.js`).
  *
  * ⚠️ **Esta pantalla se le escapó al barrido de la auditoría táctil**: el editor
  * de campaña es una RUTA propia (`/catalogo/admin/campanias/:id/editar`) a la que

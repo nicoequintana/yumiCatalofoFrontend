@@ -17,7 +17,7 @@ import Spinner from "../../Spinner.jsx";
  *
  * Los tres botones llevan `min-h-11` (44px) ADEMÁS de su `py-3`, no en lugar de
  * él: el mínimo táctil de WCAG 2.5.8 es un PISO y el padding sigue decidiendo
- * el aire alrededor del texto (mismo criterio que `SelectorCantidad.jsx`).
+ * el aire alrededor del texto (mismo criterio que `utils/areaTactil.js`).
  * Medido en navegador el 07/09/2026 con `elementFromPoint` —área EFECTIVA, no
  * la caja declarada—: "Guardar" daba 93x42 sobre una caja de 119x41, porque
  * `text-label-md` son 14px con interlineado 1.2 (16,8) más 12+12 de padding =

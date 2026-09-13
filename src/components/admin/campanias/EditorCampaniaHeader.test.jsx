@@ -37,7 +37,7 @@ function montar(props = {}) {
  * medias.
  *
  * `min-h-11` va ADEMÁS del `py-3`, no en lugar de él: el mínimo táctil es un
- * PISO (mismo criterio que `SelectorCantidad.jsx`).
+ * PISO (mismo criterio que `utils/areaTactil.js`).
  */
 describe("EditorCampaniaHeader — área táctil", () => {
   it.each(["Guardar", "Duplicar", "Apagar"])(

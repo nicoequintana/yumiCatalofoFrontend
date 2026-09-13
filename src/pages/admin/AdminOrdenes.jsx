@@ -816,7 +816,7 @@ function FilaOrden({ orden, estadosOrden, guardandoEstado, abierto, onAlternarRe
             // `min-h-11 min-w-11` (44px) va ADEMÁS del `h-9`, nunca en lugar
             // de él: el mínimo táctil de WCAG 2.5.8 es un PISO y el `h-9` es lo
             // que iguala este botón con el resto de los controles de la fila
-            // (mismo criterio que `SelectorCantidad.jsx`). Medido en navegador
+            // (mismo criterio que `utils/areaTactil.js`). Medido en navegador
             // el 07/09/2026 con `elementFromPoint` —área EFECTIVA, no la caja
             // declarada—: 44×37 a 1280 y 174×37 a 390, donde la tabla apilada
             // le da el ancho de la tarjeta. O sea que en los DOS anchos lo

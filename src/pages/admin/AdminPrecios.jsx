@@ -181,7 +181,7 @@ function ChipEstado({ estado }) {
  *
  * `min-h-11` (44px) ADEMÁS del `py-1.5`, no en lugar de él: el mínimo táctil de
  * WCAG 2.5.8 es un PISO y el padding sigue decidiendo el aire alrededor del
- * texto (ver `utils/areaTactil.js` y `SelectorCantidad.jsx`). Medido en
+ * texto (ver `utils/areaTactil.js`). Medido en
  * navegador el 07/09/2026 con `elementFromPoint` —área EFECTIVA, no la caja
  * declarada—: el costo daba 93×34 a 390px y 93×35 a 1280px, el coeficiente
  * 93×34 y 81×35. El alto es lo que falla; el ancho ya sobra en los dos, así que

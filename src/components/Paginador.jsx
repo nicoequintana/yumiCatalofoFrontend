@@ -44,7 +44,7 @@ function construirRango(pagina, totalPaginas) {
 /**
  * `min-h-11 min-w-11` (44px) ADEMÁS del `h-10`, no en lugar de él: el mínimo
  * táctil de WCAG 2.5.8 es un PISO y la variante sigue decidiendo cuánto crece
- * por encima (mismo criterio que `SelectorCantidad.jsx`).
+ * por encima (mismo criterio que `utils/areaTactil.js`).
  *
  * Medido en navegador el 07/09/2026 sobre `/catalogo/admin/productos` con
  * `elementFromPoint` —el área EFECTIVA, no la caja declarada—: las flechas

@@ -258,7 +258,7 @@ function AdminCategorias() {
             className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none sm:max-w-sm"
           />
           {/* `min-h-11` (44px) es el PISO táctil, va además del `py-3` de la
-              variante y nunca en su lugar (ver `SelectorCantidad.jsx`). Medido
+              variante y nunca en su lugar (ver `utils/areaTactil.js`). Medido
               en navegador el 07/09/2026 a 390px con `elementFromPoint`: el CTA
               daba 93x42 de área efectiva, dos píxeles por debajo del mínimo. */}
           <button

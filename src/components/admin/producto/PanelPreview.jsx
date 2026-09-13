@@ -46,7 +46,7 @@ function PanelPreview({
             {/* `min-h-11` (44px) ADEMÁS del `py-1.5`, no en lugar de él: el
                 mínimo táctil de WCAG 2.5.8 es un PISO y el padding sigue
                 decidiendo el aire alrededor del texto (mismo criterio que
-                `SelectorCantidad.jsx`). Medido en navegador el 07/09/2026 a
+                `utils/areaTactil.js`). Medido en navegador el 07/09/2026 a
                 1280px con `elementFromPoint` —área EFECTIVA, no la caja
                 declarada—: 93x31 sobre una caja de 184x30, porque
                 `text-label-sm` son 12px con interlineado 1.2 (14,4) más 6+6

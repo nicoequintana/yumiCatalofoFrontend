@@ -92,7 +92,7 @@ describe("Paginador", () => {
  * crecer los 3-4px que faltan sin apretar nada.
  *
  * `min-h-11 min-w-11` va ADEMÁS del `h-10 min-w-10`, no en lugar de él (mismo
- * criterio que `SelectorCantidad.jsx`).
+ * criterio que `utils/areaTactil.js`).
  */
 describe("Paginador — área táctil", () => {
   it("todos los botones declaran el mínimo táctil de 44×44", () => {

@@ -199,7 +199,7 @@ export default function CalendarioComercial({
  * `min-h-11 min-w-11` (44px) va **ADEMÁS** del `p-2` / `px-4 py-2` de cada uno,
  * nunca en lugar de él: el mínimo táctil de WCAG 2.5.8 es un PISO y el padding
  * sigue decidiendo cuánto crece por encima (mismo criterio que
- * `SelectorCantidad.jsx`). Medido en navegador el 07/09/2026 a 1280×800 con
+ * `utils/areaTactil.js`). Medido en navegador el 07/09/2026 a 1280×800 con
  * `elementFromPoint` —área EFECTIVA, no la caja declarada—: las flechas daban
  * 39×39 y 38×39, y «Hoy» 70×36.
  *
