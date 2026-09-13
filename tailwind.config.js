@@ -91,19 +91,26 @@ export default {
       },
       // Sin serifas en todo el sitio, a propósito: "Libre Caslon Text" (la
       // serif de titulares del mockup original) se sacó por completo — los
-      // tokens de headline/display quedan en la misma sans que el body.
+      // tokens de headline/display quedan en la misma familia que el body.
+      //
+      // Cada token referencia una CUSTOM PROPERTY (`--font-display`,
+      // `--font-label`, `--font-body`), no un nombre fijo — mismo mecanismo
+      // que los colores de arriba. `:root, .paleta-clara` (`index.css`) las
+      // define en "Plus Jakarta Sans" (admin, sin cambios); `.tema-publico`
+      // las redefine en Outfit (títulos/etiquetas/precios) y DM Sans (texto
+      // corriente), solo fuera del panel.
       fontFamily: {
-        "headline-md": ["Plus Jakarta Sans", "sans-serif"],
-        "headline-sm": ["Plus Jakarta Sans", "sans-serif"],
-        "label-sm": ["Plus Jakarta Sans", "sans-serif"],
-        "headline-lg": ["Plus Jakarta Sans", "sans-serif"],
-        "label-md": ["Plus Jakarta Sans", "sans-serif"],
-        "label-lg": ["Plus Jakarta Sans", "sans-serif"],
-        "display-lg": ["Plus Jakarta Sans", "sans-serif"],
-        "display-xl": ["Plus Jakarta Sans", "sans-serif"],
-        "body-lg": ["Plus Jakarta Sans", "sans-serif"],
-        "body-md": ["Plus Jakarta Sans", "sans-serif"],
-        "body-sm": ["Plus Jakarta Sans", "sans-serif"],
+        "headline-md": ["var(--font-display)", "sans-serif"],
+        "headline-sm": ["var(--font-display)", "sans-serif"],
+        "label-sm": ["var(--font-label)", "sans-serif"],
+        "headline-lg": ["var(--font-display)", "sans-serif"],
+        "label-md": ["var(--font-label)", "sans-serif"],
+        "label-lg": ["var(--font-label)", "sans-serif"],
+        "display-lg": ["var(--font-display)", "sans-serif"],
+        "display-xl": ["var(--font-display)", "sans-serif"],
+        "body-lg": ["var(--font-body)", "sans-serif"],
+        "body-md": ["var(--font-body)", "sans-serif"],
+        "body-sm": ["var(--font-body)", "sans-serif"],
       },
       // Sistema tipográfico responsive (guía tipográfica del 12/09/2026): el
       // TAMAÑO de cada token vive en una custom property de `index.css`

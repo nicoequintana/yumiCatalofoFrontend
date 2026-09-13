@@ -35,6 +35,97 @@ describe("token brand-teal", () => {
   });
 });
 
+/**
+ * Corta un bloque CSS desde donde matchea `regexInicio` hasta el cierre de
+ * llave a nivel de raíz (`\n}`). Mismo mecanismo que ya usan a mano los tests
+ * de `:root, .paleta-clara` y `[data-tema-admin="oscuro"]` más abajo en este
+ * archivo — acá se nombra una vez para no repetir el `search`/`indexOf` en
+ * cada test nuevo.
+ */
+function extraerBloque(css, regexInicio) {
+  const inicio = css.search(regexInicio);
+  if (inicio === -1) return "";
+  const fin = css.indexOf("\n}", inicio);
+  return css.slice(inicio, fin === -1 ? undefined : fin);
+}
+
+// Los 30 tokens semánticos (los 34 del admin MENOS los 4 alias literales del
+// mockup viejo — terracotta-warm/moss-green/golden-sand/cream-base — que no
+// se redefinen en `.tema-publico`, ver más abajo).
+const TOKENS_SEMANTICOS = [
+  "background",
+  "on-background",
+  "surface",
+  "surface-container-lowest",
+  "surface-container-low",
+  "surface-container",
+  "surface-container-high",
+  "surface-container-highest",
+  "surface-variant",
+  "on-surface",
+  "on-surface-variant",
+  "outline",
+  "outline-variant",
+  "primary",
+  "on-primary",
+  "primary-container",
+  "on-primary-container",
+  "secondary",
+  "on-secondary",
+  "secondary-container",
+  "on-secondary-container",
+  "tertiary",
+  "on-tertiary",
+  "tertiary-container",
+  "on-tertiary-container",
+  "error",
+  "on-error",
+  "error-container",
+  "on-error-container",
+  "inverse-surface",
+];
+
+describe("paleta pública (.tema-publico)", () => {
+  it("define los 30 tokens semánticos en .tema-publico, en canales", () => {
+    const bloque = extraerBloque(indexCss, /\.tema-publico\s*\{/);
+    TOKENS_SEMANTICOS.forEach((token) => {
+      expect(bloque).toMatch(new RegExp(`--color-${token}:\\s*\\d{1,3} \\d{1,3} \\d{1,3};`));
+    });
+  });
+
+  it(".tema-publico NO redefine los 4 alias ni brand-teal (heredan del admin)", () => {
+    const bloque = extraerBloque(indexCss, /\.tema-publico\s*\{/);
+    ["terracotta-warm", "moss-green", "golden-sand", "cream-base", "brand-teal"].forEach((alias) => {
+      expect(bloque).not.toMatch(new RegExp(`--color-${alias}:`));
+    });
+  });
+
+  it("el primary público es 0 49 60, y el admin sigue en 157 62 29", () => {
+    expect(extraerBloque(indexCss, /^:root,\r?\n\.paleta-clara \{/m)).toMatch(/--color-primary:\s*157 62 29;/);
+    expect(extraerBloque(indexCss, /\.tema-publico\s*\{/)).toMatch(/--color-primary:\s*0 49 60;/);
+  });
+
+  it("las tres variables de fuente están en Outfit/DM Sans dentro de .tema-publico, y en Plus Jakarta Sans en :root", () => {
+    const publico = extraerBloque(indexCss, /\.tema-publico\s*\{/);
+    expect(publico).toMatch(/--font-display:\s*"Outfit"/);
+    expect(publico).toMatch(/--font-label:\s*"Outfit"/);
+    expect(publico).toMatch(/--font-body:\s*"DM Sans"/);
+    const admin = extraerBloque(indexCss, /^:root,\r?\n\.paleta-clara \{/m);
+    expect(admin).toMatch(/--font-display:\s*"Plus Jakarta Sans"/);
+  });
+
+  it("tailwind.config.js referencia var(--font-x) en los 11 tokens, nunca un nombre fijo", () => {
+    const fontFamilySection = tailwindConfig.slice(
+      tailwindConfig.indexOf("fontFamily:"),
+      tailwindConfig.indexOf("fontSize:"),
+    );
+    expect(fontFamilySection).not.toMatch(/"Plus Jakarta Sans"/);
+    expect(fontFamilySection).toMatch(/var\(--font-display\)/);
+    expect(fontFamilySection).toMatch(/var\(--font-label\)/);
+    expect(fontFamilySection).toMatch(/var\(--font-body\)/);
+  });
+});
+
 /*
  * Los tokens TIPOGRÁFICOS fallan igual de callados que los de color: una clase
  * `text-label-lg` sobre un token que nadie definió no emite CSS, no da warning

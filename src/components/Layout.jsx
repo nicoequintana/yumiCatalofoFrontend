@@ -16,6 +16,10 @@ import Footer from "./Footer.jsx";
 function Layout() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const { pathname } = useLocation();
+  // Mismo guard que `Navbar.jsx`/`Footer.jsx`: `/catalogo/admin/login`
+  // cuelga de este mismo `Layout` y por eso NO puede llevar `.tema-publico`
+  // — es la única ruta de admin que comparte el shell público.
+  const esAdmin = pathname.startsWith("/catalogo/admin");
 
   // Navegar cierra la hoja. Sin esto, tocar un destino cambia la página por
   // detrás de un menú que sigue tapándola.
@@ -24,7 +28,13 @@ function Layout() {
   }, [pathname]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div
+      className={
+        esAdmin
+          ? "flex min-h-screen flex-col bg-background"
+          : "tema-publico flex min-h-screen flex-col bg-background"
+      }
+    >
       {/* La cinta va ARRIBA del navbar y no es sticky: scrollea y se va, así el
           único elemento pegado al tope sigue siendo el header. Se esconde sola
           en rutas de admin (`/catalogo/admin/login` usa este mismo Layout). */}
