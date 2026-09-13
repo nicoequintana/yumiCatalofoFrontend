@@ -8,7 +8,13 @@ import { createContext, useContext } from "react";
  */
 export const ToastContext = createContext(null);
 
-/** @returns {{ mostrarToast: (mensaje: string, opciones?: { tipo?: "info"|"error"|"exito" }) => void }} */
+/**
+ * @returns {{ mostrarToast: (mensaje: string, opciones?: {
+ *   tipo?: "info"|"error"|"exito",
+ *   foto?: { url: string, alt: string } | null,
+ *   accion?: { texto: string, to: string } | null,
+ * }) => void }}
+ */
 export function useToast() {
   const context = useContext(ToastContext);
   if (!context) {

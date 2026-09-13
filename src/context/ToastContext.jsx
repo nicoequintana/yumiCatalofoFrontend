@@ -19,13 +19,13 @@ export function ToastProvider({ children }) {
   const idRef = useRef(0);
   const timeoutRef = useRef(null);
 
-  const mostrarToast = useCallback((mensaje, { tipo = "info" } = {}) => {
+  const mostrarToast = useCallback((mensaje, { tipo = "info", foto = null, accion = null } = {}) => {
     idRef.current += 1;
     const id = idRef.current;
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    setToast({ id, mensaje, tipo });
+    setToast({ id, mensaje, tipo, foto, accion });
     timeoutRef.current = setTimeout(() => {
       setToast((actual) => (actual?.id === id ? null : actual));
     }, DURACION_MS);
@@ -34,7 +34,15 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={{ mostrarToast }}>
       {children}
-      {toast ? <Toast mensaje={toast.mensaje} tipo={toast.tipo} onCerrar={() => setToast(null)} /> : null}
+      {toast ? (
+        <Toast
+          mensaje={toast.mensaje}
+          tipo={toast.tipo}
+          foto={toast.foto}
+          accion={toast.accion}
+          onCerrar={() => setToast(null)}
+        />
+      ) : null}
     </ToastContext.Provider>
   );
 }

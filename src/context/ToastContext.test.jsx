@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "./ToastContext.jsx";
 import { useToast } from "./useToast.js";
@@ -72,5 +73,69 @@ describe("ToastContext", () => {
     await waitFor(() => {
       expect(screen.queryByText("Cerrable")).not.toBeInTheDocument();
     });
+  });
+
+  it("con foto, el toast muestra la miniatura", () => {
+    function Disparador() {
+      const { mostrarToast } = useToast();
+      return (
+        <button
+          type="button"
+          onClick={() => mostrarToast("Agregado al carrito", { foto: { url: "http://x/1.jpg", alt: "Lámpara" } })}
+        >
+          ir
+        </button>
+      );
+    }
+    render(
+      <ToastProvider>
+        <Disparador />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "ir" }));
+    expect(screen.getByRole("img", { name: "Lámpara" })).toBeInTheDocument();
+  });
+
+  it("con acción, el toast muestra un link que navega", () => {
+    function Disparador() {
+      const { mostrarToast } = useToast();
+      return (
+        <button
+          type="button"
+          onClick={() => mostrarToast("Agregado al carrito", { accion: { texto: "Ver carrito", to: "/carrito" } })}
+        >
+          ir
+        </button>
+      );
+    }
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <Disparador />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "ir" }));
+    const link = screen.getByRole("link", { name: "Ver carrito" });
+    expect(link).toHaveAttribute("href", "/carrito");
+  });
+
+  it("sin foto ni acción, no rompe el toast simple (regresión)", () => {
+    function Disparador() {
+      const { mostrarToast } = useToast();
+      return (
+        <button type="button" onClick={() => mostrarToast("Guardado")}>
+          ir
+        </button>
+      );
+    }
+    render(
+      <ToastProvider>
+        <Disparador />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "ir" }));
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 });
