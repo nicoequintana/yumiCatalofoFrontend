@@ -13,11 +13,13 @@ import { AREA_TACTIL } from "../utils/areaTactil.js";
  * + `preventDefault()` se conservan igual: el corazón se superpone al enlace y
  * un click sobre él no tiene que navegar.
  *
- * `textoGuardar` is optional label text shown next to the icon (e.g.
- * "Guardar" in the ProductoDetalle hero's outline button) — omitted, it
- * stays the icon-only toggle used everywhere else (ProductCard, etc.).
+ * `circular` es la variante del bloque de compra de la ficha (13/09/2026): un
+ * círculo de 36px con borde y el corazón solo, del mismo alto que el selector
+ * y el botón de agregar compactos. Reemplazó a la píldora "Guardar"/"Guardado",
+ * que bajaba a un segundo renglón. Sin `circular` es el corazón suelto de
+ * `ProductCard`.
  */
-function BotonFavorito({ productoId, className = "", textoGuardar }) {
+function BotonFavorito({ productoId, className = "", circular = false }) {
   const { esFavorito, toggleFavorito } = useFavoritos();
   const favorito = esFavorito(productoId);
 
@@ -39,23 +41,21 @@ function BotonFavorito({ productoId, className = "", textoGuardar }) {
       // de ancho, el disco claro del corazón pasaba de 34 a 44px y se comía la
       // foto del producto. El pseudo-elemento crece el blanco de click y deja
       // el dibujo donde estaba.
-      className={`inline-flex items-center justify-center gap-2 text-on-surface-variant ${AREA_TACTIL} ${
-        // Con texto el ancho ya sobra: solo hace falta estirar el ALTO, y el
-        // pseudo copia el ancho del botón para no invadir lo que tenga al lado.
-        textoGuardar ? "h-10 px-3 before:w-full" : "p-1.5 before:w-11"
+      // Las dos variantes estiran el área a 44×44 con `before:w-11`: el
+      // círculo mide 36 y el corazón suelto 34, los dos más angostos que 44.
+      className={`inline-flex items-center justify-center text-on-surface-variant ${AREA_TACTIL} before:w-11 ${
+        circular
+          ? "h-9 w-9 rounded-full border border-outline-variant bg-surface-container-lowest transition-colors hover:bg-surface-container"
+          : "p-1.5"
       } ${className}`}
     >
       <span
-        className={`material-symbols-outlined text-[22px] ${favorito ? "text-error" : ""}`}
+        aria-hidden="true"
+        className={`material-symbols-outlined ${circular ? "text-[20px]" : "text-[22px]"} ${favorito ? "text-error" : ""}`}
         style={favorito ? { fontVariationSettings: "'FILL' 1" } : undefined}
       >
         favorite
       </span>
-      {textoGuardar ? (
-        <span className="font-label-md text-label-md uppercase tracking-wide">
-          {favorito ? "Guardado" : textoGuardar}
-        </span>
-      ) : null}
     </button>
   );
 }

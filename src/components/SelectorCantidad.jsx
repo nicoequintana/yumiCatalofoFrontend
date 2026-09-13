@@ -1,3 +1,5 @@
+import { AREA_TACTIL_ICONO } from "../utils/areaTactil.js";
+
 /**
  * Small +/− quantity stepper. Decrementing below `min` (defaults to 1, since
  * an active cart line can't display quantity 0 through this widget) is a
@@ -11,7 +13,7 @@
  * y el botón + queda deshabilitado. Sin `max` no hay tope — los llamadores
  * solo lo pasan cuando conocen el stock vivo; el widget no inventa límites.
  */
-function SelectorCantidad({ value, onChange, min = 1, max, compacto = false }) {
+function SelectorCantidad({ value, onChange, min = 1, max }) {
   const enMaximo = Number.isInteger(max) && value >= max;
 
   // Un botón deshabilitado sin motivo se lee como una app rota. El nombre
@@ -32,27 +34,35 @@ function SelectorCantidad({ value, onChange, min = 1, max, compacto = false }) {
     onChange(value + 1);
   }
 
-  // `min-h-11 min-w-11` (44px) además del tamaño de la variante, no en lugar
-  // de él: el mínimo táctil de WCAG es un PISO, y la variante sigue decidiendo
-  // cuánto crece por encima. Medido en navegador el 07/09/2026 a 390px sobre
-  // `/producto/21`, con `elementFromPoint` y no con la caja declarada: la
-  // variante normal daba 40x41 y la compacta de la barra fija 36x36, las dos
-  // por debajo de 44x44. El `h-*`/`w-*` de la variante se conserva porque es
-  // lo que iguala la altura del stepper con el campo de al lado.
-  const tamanoBoton = compacto ? "h-9 w-9 min-h-11 min-w-11" : "h-10 w-10 min-h-11 min-w-11";
+  // UNA sola forma (13/09/2026). Hubo una variante normal (`h-10`, `min-h-11`,
+  // `rounded-lg`) y una `compacto` para la barra fija de la ficha; al pasar la
+  // ficha entera a la compacta, el carrito también la tomó y la normal se borró.
+  //
+  // Se DIBUJA en 36x36 y el área táctil llega a 44x44 por pseudo-elemento
+  // (`AREA_TACTIL_ICONO`), mismo criterio que `BotonAgregarCarrito`, que va
+  // pegado al lado con el mismo alto. Los dos botones quedan a 36 + el valor de
+  // paso (más de 44), así que sus áreas no se pisan. Medido en navegador el
+  // 13/09/2026 sobre `/producto/21`: 44x44 efectivos en cada botón. El piso
+  // original era `min-h-11 min-w-11`: el 07/09/2026 la caja daba 40x41.
+  const claseBoton = `flex h-9 w-9 items-center justify-center text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-30 disabled:hover:bg-transparent ${AREA_TACTIL_ICONO}`;
 
   return (
-    <div className="inline-flex items-stretch overflow-hidden rounded-lg border border-outline-variant">
+    // SIN `overflow-hidden`: recortaría el pseudo-elemento y el área táctil
+    // volvería a 36. Las esquinas las redondea cada botón, y el `rounded-full`
+    // acompaña la forma del botón de agregar.
+    <div className="inline-flex items-stretch rounded-full border border-outline-variant">
       <button
         type="button"
         onClick={disminuir}
         aria-label="Disminuir cantidad"
         disabled={value <= min}
-        className={`flex items-center justify-center text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-30 disabled:hover:bg-transparent ${tamanoBoton}`}
+        className={`${claseBoton} rounded-l-full`}
       >
-        <span className="material-symbols-outlined text-[18px]">remove</span>
+        <span className="material-symbols-outlined text-[16px]">remove</span>
       </button>
-      <span className="flex min-w-[2.5rem] items-center justify-center border-x border-outline-variant font-body-md text-body-md text-on-surface">
+      {/* `min-w-8`: la barra fija de la ficha necesitaba estos px para entrar
+          en una línea a 390px (medido el 13/09/2026). */}
+      <span className="font-body-sm text-body-sm flex min-w-8 items-center justify-center border-x border-outline-variant text-on-surface">
         {value}
       </span>
       <button
@@ -61,9 +71,9 @@ function SelectorCantidad({ value, onChange, min = 1, max, compacto = false }) {
         aria-label={etiquetaAumentar}
         title={enMaximo ? etiquetaAumentar : undefined}
         disabled={enMaximo}
-        className={`flex items-center justify-center text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-30 disabled:hover:bg-transparent ${tamanoBoton}`}
+        className={`${claseBoton} rounded-r-full`}
       >
-        <span className="material-symbols-outlined text-[18px]">add</span>
+        <span className="material-symbols-outlined text-[16px]">add</span>
       </button>
     </div>
   );

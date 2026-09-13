@@ -235,8 +235,12 @@ function FichaProducto({
               se dibujaba siempre mientras que `BotonWhatsapp` no se renderiza
               si no hay número configurado. Reusando el componente, la
               condición, el copy y el ícono no pueden desincronizarse. */}
+          {/* Una sola fila (13/09/2026): selector y botón compactos, los mismos
+              de la barra fija, y el favorito como círculo. Antes eran tres
+              renglones —selector, "Agregar al carrito" y la píldora
+              "Guardar"— y el bloque se veía desproporcionado en mobile. */}
           <div
-            className={`mb-6 flex flex-wrap items-center gap-3 ${modoPreview ? "pointer-events-none" : ""}`}
+            className={`mb-6 flex flex-nowrap items-center gap-2 ${modoPreview ? "pointer-events-none" : ""}`}
             inert={modoPreview}
           >
             <BotonAgregarCarrito
@@ -245,11 +249,7 @@ function FichaProducto({
               cantidad={cantidad}
               onCantidadChange={setCantidad}
             />
-            <BotonFavorito
-              productoId={producto.id}
-              className="rounded-full border border-moss-green text-moss-green hover:bg-moss-green/10"
-              textoGuardar="Guardar"
-            />
+            <BotonFavorito productoId={producto.id} circular />
           </div>
 
           <div
@@ -491,7 +491,7 @@ function FichaProducto({
       {!modoPreview ? (
         <div
           data-testid="cta-sticky-mobile"
-          className={`fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-4 border-t border-outline-variant bg-surface-container-lowest px-margin-mobile py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] transition-transform duration-200 md:hidden ${
+          className={`fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-outline-variant bg-surface-container-lowest px-margin-mobile py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] transition-transform duration-200 md:hidden ${
             cercaDelFinal ? "translate-y-full" : "translate-y-0"
           }`}
           style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
@@ -502,7 +502,6 @@ function FichaProducto({
           />
           <BotonAgregarCarrito
             producto={producto}
-            compacto
             cantidad={cantidad}
             onCantidadChange={setCantidad}
           />

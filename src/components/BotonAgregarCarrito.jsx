@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import SelectorCantidad from "./SelectorCantidad.jsx";
 import useCarrito from "../hooks/useCarrito.js";
 import { registrarEvento } from "../api/products.js";
+import { AREA_TACTIL_ANCHA } from "../utils/areaTactil.js";
 
 /**
  * Price-panel CTA for the product detail page (Sprint 5 Task 2) — the first
@@ -18,11 +19,15 @@ import { registrarEvento } from "../api/products.js";
  *
  * Sin ellas el componente sigue siendo autónomo (una sola instancia en
  * pantalla no necesita coordinarse con nadie).
+ *
+ * UNA sola forma (13/09/2026): hubo una variante "normal" ("Agregar al
+ * carrito", `h-10`, con ícono) y una `compacto` para la barra fija. Cuando el
+ * bloque de compra de la ficha también pasó a la compacta, la normal quedó
+ * sin uso y se borró junto con la prop.
  */
 function BotonAgregarCarrito({
   producto,
   alineacion = "end",
-  compacto = false,
   cantidad: cantidadControlada,
   onCantidadChange,
 }) {
@@ -95,49 +100,38 @@ function BotonAgregarCarrito({
 
   return (
     <div
-      className={`flex flex-wrap items-center gap-3 ${alineacion === "start" ? "justify-start" : "justify-end"}`}
+      // NO puede partir la fila. Medido el 13/09/2026 a 390px, con `flex-wrap`
+      // el botón bajaba a un segundo renglón (grupo de 281px contra 252
+      // disponibles) y la barra fija de la ficha pasaba a 126px de alto.
+      className={`flex flex-nowrap items-center gap-2 ${
+        alineacion === "start" ? "justify-start" : "justify-end"
+      }`}
     >
       {deshabilitado ? null : (
-        <SelectorCantidad
-          value={cantidadEfectiva}
-          onChange={setCantidad}
-          max={disponible ?? undefined}
-          compacto={compacto}
-        />
+        <SelectorCantidad value={cantidadEfectiva} onChange={setCantidad} max={disponible ?? undefined} />
       )}
       <button
         type="button"
         onClick={handleClick}
         disabled={agregado || deshabilitado}
-        // `min-h-11` (44px) ADEMÁS del `h-*` de la variante, no en lugar de
-        // él: el mínimo táctil de WCAG es un PISO y la variante sigue
-        // decidiendo cuánto crece por encima. Medido en navegador el
-        // 07/09/2026 sobre `/producto/21` con `elementFromPoint` —el área
-        // EFECTIVA, no la caja declarada—: la variante normal daba 41 de alto
-        // y la compacta de la barra fija 36. El `h-*` se conserva porque es lo
-        // que iguala este CTA con el `SelectorCantidad` que va PEGADO al lado
-        // —que aplica el mismo piso—: si uno flotara a 44 y el otro se quedara
-        // en 40, la fila quedaría desalineada.
-        className={`font-label-lg text-label-lg inline-flex items-center gap-2 rounded-full bg-primary uppercase tracking-wide text-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70 ${
-          compacto ? "h-9 min-h-11 px-4" : "h-10 min-h-11 px-6"
-        }`}
+        // Muestra "Agregar", pero el nombre accesible dice qué hace (contiene
+        // el texto visible, WCAG 2.5.3). En los otros estados manda el texto.
+        aria-label={!agregado && !deshabilitado ? "Agregar al carrito" : undefined}
+        // Se DIBUJA en 36px (`h-9`) con `label-md`, sin `tracking-wide`: con
+        // 44px visibles y `label-lg` se veía enorme en la barra fija
+        // (13/09/2026). El área táctil llega a 44 por pseudo-elemento
+        // (`AREA_TACTIL_ANCHA`), igual que `SelectorCantidad`, que va pegado al
+        // lado con el mismo alto. Medido en navegador: 97x44 efectivos.
+        // `whitespace-nowrap` evita que "Máximo en carrito" parta el botón.
+        className={`font-label-md text-label-md inline-flex h-9 items-center whitespace-nowrap rounded-full bg-primary px-3 uppercase text-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70 ${AREA_TACTIL_ANCHA}`}
       >
-        {/* `aria-hidden`: sin esto el ligature del ícono entra en el nombre
-            accesible y un lector de pantalla anuncia "shopping_cart Agregar al carrito". Verificado
-            contra el árbol de accesibilidad real el 07/09/2026. Misma trampa
-            que documenta `BotonVolver.jsx`. */}
-        <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-          {deshabilitado ? "remove_shopping_cart" : agregado ? "check" : "shopping_cart"}
-        </span>
-        {sinStock
-          ? "Sin stock"
-          : sinMargen
-            ? "Máximo en carrito"
-            : agregado
-              ? "Agregado ✓"
-              : compacto
-                ? "Agregar"
-                : "Agregar al carrito"}
+        {/* Sin ícono en ningún estado: a 360px eran los 20px que faltaban para
+            que la barra fija entre en una línea, y "Agregado ✓" con ícono ya
+            desbordaba a 390px (medido el 13/09/2026). Al lado del precio el
+            texto solo alcanza. De paso desaparece la trampa del ligature del
+            ícono dentro del nombre accesible ("shopping_cart Agregar al
+            carrito", 07/09/2026). */}
+        {sinStock ? "Sin stock" : sinMargen ? "Máximo en carrito" : agregado ? "Agregado" : "Agregar"}
       </button>
     </div>
   );

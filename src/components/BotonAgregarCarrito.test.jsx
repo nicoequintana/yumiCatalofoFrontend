@@ -223,28 +223,83 @@ describe("BotonAgregarCarrito", () => {
 });
 
 /**
- * Área táctil (WCAG 2.5.8). Medido en navegador el 07/09/2026 sobre
- * `/producto/21` con `elementFromPoint` —el área EFECTIVA, no la caja
- * declarada—: la variante normal daba **41px de alto** (`h-10`) y la compacta
- * de la barra fija **36** (`h-9`), las dos por debajo de 44.
+ * Forma única del CTA (13/09/2026). Tenía dos variantes: la "normal" ("Agregar
+ * al carrito", `h-10`, `label-lg`, con ícono) y la "compacta" de la barra fija.
+ * Cuando el bloque de compra de la ficha pasó a la compacta, la normal quedó
+ * sin uso y se borró: queda una sola forma, sin prop.
  *
- * `min-h-11` va ADEMÁS del `h-*` de la variante, no en lugar de él: es el
- * mismo criterio que `SelectorCantidad.jsx`, que además es el control que va
- * PEGADO a este botón — si uno flotara a 44 y el otro se quedara en 40, la
- * fila quedaría desalineada.
+ * Medido en navegador el 13/09/2026 a 390px sobre `/producto/21`: con la
+ * variante normal y `flex-wrap`, el grupo selector (130) + gap (12) + botón
+ * (139) pedía 281px contra 252 disponibles, el botón bajaba de renglón y la
+ * barra fija medía 126px. Se dibuja en 36px y el área táctil llega a 44 por
+ * pseudo-elemento (`AREA_TACTIL_ANCHA`), no por `min-h-11`.
  */
-describe("BotonAgregarCarrito — área táctil", () => {
-  it.each([
-    ["normal", false],
-    ["compacta", true],
-  ])("el CTA declara el mínimo táctil de 44px en la variante %s", (_, compacto) => {
-    render(<BotonAgregarCarrito producto={PRODUCTO} compacto={compacto} />);
+describe("BotonAgregarCarrito — forma única compacta", () => {
+  it("la fila no permite que el botón baje de renglón", () => {
+    const { container } = render(<BotonAgregarCarrito producto={PRODUCTO} />);
+
+    const fila = container.firstElementChild;
+    expect(fila).toHaveClass("flex-nowrap", "gap-2");
+    expect(fila).not.toHaveClass("flex-wrap");
+  });
+
+  // A 360px el ícono eran los 20px que faltaban para la línea única: el CTA
+  // no lleva ícono en ningún estado.
+  it("el botón no lleva ícono, ni antes ni después de agregar", () => {
+    render(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     const boton = screen.getByRole("button", { name: /agregar/i });
+    expect(boton.querySelector(".material-symbols-outlined")).toBeNull();
 
-    expect(boton.className.split(" ")).toContain("min-h-11");
-    // El tamaño de la variante se conserva: el mínimo es un PISO, no un tamaño.
-    expect(boton.className.split(" ")).toContain(compacto ? "h-9" : "h-10");
+    fireEvent.click(boton);
+
+    const agregado = screen.getByRole("button", { name: /agregado/i });
+    expect(agregado).toHaveTextContent(/^Agregado$/);
+    expect(agregado.querySelector(".material-symbols-outlined")).toBeNull();
+  });
+
+  it("se dibuja en 36px y extiende el área táctil a 44 por pseudo-elemento", () => {
+    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+
+    const clases = screen.getByRole("button", { name: /agregar/i }).className.split(" ");
+    expect(clases).toContain("h-9");
+    expect(clases).toContain("text-label-md");
+    expect(clases).not.toContain("text-label-lg");
+    expect(clases).not.toContain("min-h-11");
+    expect(clases).toContain("before:h-11");
+    expect(clases).toContain("before:content-['']");
+    expect(clases).toContain("before:w-full");
+  });
+
+  // El texto visible es "Agregar", pero el nombre accesible sigue diciendo qué
+  // hace: "Agregar al carrito" (contiene el texto visible, WCAG 2.5.3). En
+  // "Agregado", "Sin stock" o "Máximo en carrito" manda el texto del estado.
+  it("muestra 'Agregar' y conserva el nombre accesible 'Agregar al carrito'", () => {
+    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+
+    const boton = screen.getByRole("button", { name: "Agregar al carrito" });
+    expect(boton).toHaveTextContent(/^Agregar$/);
+
+    fireEvent.click(boton);
+
+    expect(screen.getByRole("button", { name: "Agregado" })).toBeInTheDocument();
+  });
+
+  it("es angosto: poco padding, sin espaciado de letras y sin partir el texto", () => {
+    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+
+    const clases = screen.getByRole("button", { name: /agregar/i }).className.split(" ");
+    expect(clases).toContain("px-3");
+    expect(clases).toContain("whitespace-nowrap");
+    expect(clases).not.toContain("tracking-wide");
+  });
+
+  it("ya no acepta la variante: no hay texto largo ni forma grande", () => {
+    render(<BotonAgregarCarrito producto={PRODUCTO} compacto={false} />);
+
+    const boton = screen.getByRole("button", { name: "Agregar al carrito" });
+    expect(boton).toHaveTextContent(/^Agregar$/);
+    expect(boton.className.split(" ")).not.toContain("h-10");
   });
 });
 

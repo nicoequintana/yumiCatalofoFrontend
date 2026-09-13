@@ -100,24 +100,42 @@ describe("SelectorCantidad", () => {
     expect(screen.getByRole("button", { name: /disminuir/i })).toBeInTheDocument();
   });
 
-  // Medido en navegador el 07/09/2026, a 390px sobre `/producto/21`: los dos
-  // botones daban 40x41 de área efectiva (sondeada con `elementFromPoint`,
-  // no la caja declarada), contra el mínimo táctil de 44x44. La variante
-  // `compacto` de la barra fija estaba peor: 36x36.
+  // Forma única (13/09/2026): tenía una variante normal (`h-10`, `min-h-11`,
+  // `rounded-lg`) y la compacta de la ficha. Al pasar la ficha entera a la
+  // compacta, el carrito también la tomó y la normal se borró.
   //
-  // jsdom no hace layout, así que acá se afirma sobre la CLASE. La medición
-  // real es en navegador — el test protege que nadie devuelva el tamaño a un
-  // valor por debajo del mínimo sin darse cuenta.
-  it.each([
-    ["normal", false],
-    ["compacto", true],
-  ])("los botones declaran el mínimo táctil de 44px en la variante %s", (_, compacto) => {
-    render(<SelectorCantidad value={2} onChange={vi.fn()} compacto={compacto} />);
+  // Se DIBUJA en 36x36 y llega a 44x44 por pseudo-elemento (`AREA_TACTIL_ICONO`).
+  // Los dos botones quedan a 36 + el valor de paso (más de 44): las áreas no se
+  // pisan. Medido en navegador el 13/09/2026: 44x44 efectivos en cada botón.
+  it("los botones se dibujan en 36px y extienden el área táctil a 44 por pseudo-elemento", () => {
+    render(<SelectorCantidad value={2} onChange={vi.fn()} />);
 
     for (const nombre of [/aumentar/i, /disminuir/i]) {
-      const boton = screen.getByRole("button", { name: nombre });
-      expect(boton.className.split(" ")).toContain("min-h-11");
-      expect(boton.className.split(" ")).toContain("min-w-11");
+      const clases = screen.getByRole("button", { name: nombre }).className.split(" ");
+      expect(clases).toContain("h-9");
+      expect(clases).toContain("w-9");
+      expect(clases).not.toContain("min-h-11");
+      expect(clases).toContain("before:h-11");
+      expect(clases).toContain("before:w-11");
+      expect(clases).toContain("before:content-['']");
     }
+  });
+
+  // `overflow-hidden` recortaría el pseudo-elemento y el área táctil volvería
+  // a 36. Las esquinas las redondea cada botón.
+  it("el contenedor no recorta y va redondeado como el botón de agregar", () => {
+    render(<SelectorCantidad value={2} onChange={vi.fn()} />);
+
+    const contenedor = screen.getByRole("button", { name: /aumentar/i }).parentElement;
+    expect(contenedor).not.toHaveClass("overflow-hidden");
+    expect(contenedor).toHaveClass("rounded-full");
+    expect(screen.getByRole("button", { name: /disminuir/i })).toHaveClass("rounded-l-full");
+    expect(screen.getByRole("button", { name: /aumentar/i })).toHaveClass("rounded-r-full");
+  });
+
+  it("el valor usa el ancho y el texto chicos", () => {
+    render(<SelectorCantidad value={1} onChange={vi.fn()} />);
+
+    expect(screen.getByText("1")).toHaveClass("min-w-8", "text-body-sm");
   });
 });

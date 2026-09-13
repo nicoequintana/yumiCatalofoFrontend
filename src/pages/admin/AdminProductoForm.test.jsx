@@ -218,7 +218,9 @@ describe("AdminProductoForm — vista previa en vivo", () => {
     expect(within(preview).getByText("Sin stock")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Stock"), { target: { value: "5" } });
-    expect(within(preview).getByText("Agregar al carrito")).toBeInTheDocument();
+    // Texto visible "Agregar" desde el 13/09/2026 (CTA compacto en la ficha);
+    // el nombre accesible sigue siendo "Agregar al carrito", abajo.
+    expect(within(preview).getByText("Agregar")).toBeInTheDocument();
 
     // Los CTA son los componentes reales, neutralizados con `inert` — así el
     // preview no puede divergir del público ni agregar al carrito del admin.

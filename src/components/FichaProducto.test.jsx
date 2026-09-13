@@ -142,7 +142,9 @@ describe("FichaProducto — modo preview", () => {
     const { container } = renderFicha();
 
     expect(container.querySelectorAll("[inert]").length).toBe(0);
-    expect(screen.getByRole("button", { name: /Agregar al carrito/i })).toBeInTheDocument();
+    // Dos desde el 13/09/2026: el bloque de compra y la barra fija comparten
+    // el nombre accesible "Agregar al carrito" (jsdom no aplica `md:hidden`).
+    expect(screen.getAllByRole("button", { name: /Agregar al carrito/i }).length).toBeGreaterThan(0);
   });
 
   it("en modoPreview el CTA refleja el estado agotado igual que la ficha pública", () => {
@@ -381,6 +383,49 @@ describe("FichaProducto — datos incompletos (preview de un producto a medio ca
  * `cantidad: 1` en el carrito: se facturaba de menos, sin error y sin aviso.
  * La cantidad es UNA sola y vive en la ficha.
  */
+// 13/09/2026: la separación precio ↔ grupo baja de 16 a 12px; con el botón
+// compacto sin ícono, es lo que hace entrar la barra en una línea a 360px
+// también con precios de seis cifras.
+// 13/09/2026: el bloque de compra de la ficha (fuera de la barra fija) se veía
+// grande y partido en tres renglones. Pasa a UNA fila: selector y botón
+// compactos ("Agregar") y el favorito como círculo con el corazón solo.
+describe("FichaProducto — bloque de compra en una fila", () => {
+  function botonAgregarDelBloque() {
+    return screen
+      .getAllByRole("button", { name: "Agregar al carrito" })
+      .find((boton) => boton.closest('[data-testid="cta-sticky-mobile"]') === null);
+  }
+
+  it("el botón del bloque muestra 'Agregar' y el favorito no lleva texto", () => {
+    renderFicha();
+
+    expect(botonAgregarDelBloque()).toHaveTextContent(/^Agregar$/);
+    const favorito = screen.getByRole("button", { name: "Agregar a favoritos" });
+    expect(favorito).not.toHaveTextContent(/guardar/i);
+    expect(favorito).toHaveClass("rounded-full", "h-9", "w-9");
+  });
+
+  it("selector, botón y favorito comparten una fila que no se parte", () => {
+    renderFicha();
+
+    const favorito = screen.getByRole("button", { name: "Agregar a favoritos" });
+    const fila = favorito.parentElement;
+    expect(fila).toContainElement(botonAgregarDelBloque());
+    expect(fila).toHaveClass("flex-nowrap");
+    expect(fila).not.toHaveClass("flex-wrap");
+  });
+});
+
+describe("FichaProducto — barra fija en una línea", () => {
+  it("la barra separa precio y CTA con gap-3", () => {
+    renderFicha();
+
+    const barraFija = screen.getByTestId("cta-sticky-mobile");
+    expect(barraFija).toHaveClass("gap-3");
+    expect(barraFija).not.toHaveClass("gap-4");
+  });
+});
+
 describe("FichaProducto — la cantidad es una sola entre las dos instancias del CTA", () => {
   /** La barra fija se identifica por su testid; el CTA del bloque de precio es el otro. */
   function botonFueraDeLaBarraFija(nombre) {
