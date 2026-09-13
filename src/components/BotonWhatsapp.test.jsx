@@ -41,6 +41,17 @@ describe("BotonWhatsapp", () => {
     expect(screen.getByText("Te respondemos ahora")).toBeInTheDocument();
   });
 
+  // Medido en navegador el 13/09/2026 a 390px: el texto de fuera de horario
+  // ocupa casi todo el ancho y tapa el contenido que pasa por detrás.
+  it("la etiqueta de horario del FAB se oculta por debajo de md", async () => {
+    render(<BotonWhatsapp contexto={{ tipo: "home" }} />);
+
+    const etiqueta = await screen.findByText("Te respondemos ahora");
+
+    expect(etiqueta).toHaveClass("hidden");
+    expect(etiqueta).toHaveClass("md:inline-block");
+  });
+
   it("fires a fire-and-forget CLICK_WHATSAPP event on click without blocking or throwing, even if the POST fails", async () => {
     const user = userEvent.setup();
 

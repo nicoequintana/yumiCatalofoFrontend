@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import BarraAnuncios from "./BarraAnuncios.jsx";
+import BotonWhatsappFlotante from "./BotonWhatsappFlotante.jsx";
 import CampaniaModalMontado from "./CampaniaModalMontado.jsx";
 import HojaMenu from "./HojaMenu.jsx";
 import Navbar from "./Navbar.jsx";
@@ -44,6 +45,11 @@ function Layout() {
         onAlternarMenu={() => setMenuAbierto((abierto) => !abierto)}
       />
       <HojaMenu abierta={menuAbierto} onCerrar={() => setMenuAbierto(false)} />
+
+      {/* El FAB de WhatsApp, montado una sola vez acá (13/09/2026) en vez de
+          que cada página pública repita su propio `<BotonWhatsapp>`. Decide
+          contexto y visibilidad por ruta — ver `BotonWhatsappFlotante.jsx`. */}
+      <BotonWhatsappFlotante />
 
       {/* El cartel estacional. Se monta acá y no en la home para alcanzar a
           quien entra directo a una ficha desde una búsqueda, que es por donde

@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import CargandoPagina from "../components/CargandoPagina.jsx";
 import CarruselCampanias from "../components/CarruselCampanias.jsx";
 import CarruselDestacados from "../components/CarruselDestacados.jsx";
@@ -346,8 +345,6 @@ function Catalogo() {
           </div>
         </div>
       </section>
-
-      <BotonWhatsapp contexto={{ tipo: "home" }} />
     </>
   );
 }

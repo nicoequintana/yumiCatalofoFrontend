@@ -110,4 +110,21 @@ test.describe("Click en WhatsApp desde el detalle de producto", () => {
     expect(bodyEvento.tipo).toBe("CLICK_WHATSAPP");
     expect(bodyEvento.productId).toBe(producto.id);
   });
+
+  test("no hay un FAB fijo de WhatsApp además del CTA inline de la ficha", async ({ page, request }) => {
+    // `BotonWhatsappFlotante` (montado en `Layout.jsx`) devuelve `null` en
+    // `/producto/*` — la ficha ya tiene su propio CTA en la barra de compra
+    // (`variant="inline"`) y un FAB fijo se lo tapaba (ver el JSDoc de ese
+    // componente). Si el guard de ruta se rompiera, este mismo `aria-label`
+    // ("Contactar por WhatsApp") aparecería DOS veces en la página, y
+    // `getByRole` con nombre exacto encontraría dos nodos en vez de uno.
+    const configRes = await request.get("http://localhost:4000/api/config/whatsapp");
+    const config = await configRes.json();
+    test.skip(!config.numero, "WHATSAPP_NUMERO no está configurado en este entorno (.env del backend).");
+
+    await page.goto(`/producto/${producto.id}`);
+    await expect(page.getByRole("heading", { name: "E2E-TEST-Producto WhatsApp" })).toBeVisible();
+
+    await expect(page.getByRole("link", { name: "Contactar por WhatsApp" })).toHaveCount(1);
+  });
 });

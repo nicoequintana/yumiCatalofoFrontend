@@ -21,6 +21,28 @@ import { AREA_TACTIL_ANCHA } from "../utils/areaTactil.js";
  * positioning, no hours pill) for the ProductoDetalle hero's secondary
  * button row, alongside BotonCompartir. Default `variant="fab"` keeps the
  * original fixed floating-action-button behavior used everywhere else.
+ *
+ * OFFSET MÓVIL DE LA VARIANTE `fab` (13/09/2026). Todo consumidor de esta
+ * variante hoy vive bajo `Layout.jsx` (`BotonWhatsappFlotante`, montado una
+ * sola vez, y `Favoritos.jsx`, que mantiene el suyo propio) — o sea, TODOS
+ * conviven con la isla flotante de `NavFlotante.jsx` en mobile. Por eso el
+ * offset que evita superponerse con ella es el DEFAULT de la variante, no
+ * algo que cada consumidor pase por `className`.
+ *
+ * La cuenta, a partir de `NavFlotante.jsx`: la píldora mide `p-1.5` (0.375rem
+ * por lado) + `h-11` (2.75rem) = **3.5rem** de alto, y el wrapper que la aloja
+ * la separa del borde inferior real de la pantalla con
+ * `pb-[calc(1rem+env(safe-area-inset-bottom))]`. O sea que el BORDE SUPERIOR
+ * de la isla queda a `1rem + 3.5rem = 4.5rem` (más el inset seguro) del fondo
+ * de la pantalla. Este FAB mide `h-14` (3.5rem) y antes flotaba a `bottom-6`
+ * (1.5rem): con la isla presente, su borde superior quedaba a `1.5 + 3.5 =
+ * 5rem`, apenas 0.5rem por encima del techo de la isla — visualmente se
+ * tocaban, y con la píldora de horario (`textoHorario`) sumando otra fila
+ * arriba, se pisaban de lleno. `bottom-[calc(5.5rem+env(safe-area-inset-bottom))]`
+ * deja el mismo margen de aire (1rem) que ya tenía el propio wrapper de la
+ * isla contra el fondo de pantalla. En escritorio la isla no existe
+ * (`NavFlotante` es `md:hidden`), así que `md:bottom-6 md:right-6` vuelve al
+ * valor de siempre.
  */
 function BotonWhatsapp({ contexto, productId, className = "", variant = "fab" }) {
   const { url, textoHorario } = useWhatsapp(contexto);
@@ -62,9 +84,14 @@ function BotonWhatsapp({ contexto, productId, className = "", variant = "fab" })
   }
 
   return (
-    <div className={`fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 ${className}`}>
+    <div
+      className={`fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-50 flex flex-col items-end gap-2 md:bottom-6 md:right-6 ${className}`}
+    >
+      {/* `hidden md:inline-block`: a 390px el texto de fuera de horario ocupa
+          casi todo el ancho y tapa lo que pasa por detrás (medido el
+          13/09/2026). En móvil el horario no se muestra en ningún lado. */}
       {textoHorario ? (
-        <span className="font-label-sm text-label-sm rounded-full bg-surface-container-lowest px-3 py-1.5 text-on-surface-variant shadow-md">
+        <span className="font-label-sm text-label-sm hidden rounded-full bg-surface-container-lowest px-3 py-1.5 text-on-surface-variant shadow-md md:inline-block">
           {textoHorario}
         </span>
       ) : null}

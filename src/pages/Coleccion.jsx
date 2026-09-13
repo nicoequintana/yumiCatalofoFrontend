@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from "reac
 import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
-import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
 import FiltrosCatalogo from "../components/FiltrosCatalogo.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import { getProducts } from "../api/products.js";
@@ -843,12 +842,6 @@ function Coleccion() {
           ) : null}
         </div>
       </section>
-
-      {/* `tipo: "home"` — `useWhatsapp` sólo reconoce "producto" y
-          "favoritos"; todo lo demás usa el mensaje genérico de consulta,
-          que es exactamente lo que corresponde acá. No se inventa un
-          `tipo: "coleccion"` que el hook no contempla. */}
-      <BotonWhatsapp contexto={{ tipo: "home" }} />
     </>
   );
 }

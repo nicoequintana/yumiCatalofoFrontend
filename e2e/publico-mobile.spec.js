@@ -115,3 +115,37 @@ test("la isla no tapa el final del catálogo", async ({ page }) => {
     "el contenido del pie termina antes de donde arranca la isla flotante",
   ).toBeLessThanOrEqual(cajaIsla.y);
 });
+
+test("el FAB de WhatsApp no se superpone con la isla flotante en /coleccion", async ({
+  page,
+  request,
+}) => {
+  // Mismo criterio que `whatsapp-detalle.spec.js`: `WHATSAPP_NUMERO` es una
+  // variable de entorno del backend, no algo que este test pueda sembrar. Sin
+  // número configurado, `useWhatsapp` no arma `url` y `BotonWhatsappFlotante`
+  // no renderiza nada — no hay FAB que medir, y forzar el escenario acá
+  // duplicaría la config real que ya expone `GET /api/config/whatsapp`.
+  const configRes = await request.get("http://localhost:4000/api/config/whatsapp");
+  expect(configRes.ok()).toBe(true);
+  const config = await configRes.json();
+  test.skip(!config.numero, "WHATSAPP_NUMERO no está configurado en este entorno (.env del backend).");
+
+  await page.goto("/coleccion");
+
+  const fab = page.getByRole("link", { name: "Contactar por WhatsApp" });
+  await expect(fab).toBeVisible();
+  const isla = page.getByTestId("isla-flotante");
+  await expect(isla).toBeVisible();
+
+  const cajaFab = await fab.boundingBox();
+  const cajaIsla = await isla.boundingBox();
+
+  // "No se superponen" es que el FAB termine (borde inferior) ANTES de donde
+  // arranca la isla (borde superior) — mismo criterio de comparación que ya
+  // usa el test del pie más arriba en este archivo, aplicado acá al FAB en
+  // vez de al contenido del pie.
+  expect(
+    cajaFab.y + cajaFab.height,
+    "el FAB de WhatsApp termina antes de donde arranca la isla flotante",
+  ).toBeLessThanOrEqual(cajaIsla.y);
+});
