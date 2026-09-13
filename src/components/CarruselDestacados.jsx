@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import ProductCard from "./ProductCard.jsx";
 import { MIN_DESTACADOS } from "../hooks/useDestacados.js";
 
-/** Píxeles por segundo del desplazamiento automático. */
-const VELOCIDAD_PX_POR_SEGUNDO = 40;
+/** Cuántas tarjetas avanza o retrocede cada flecha. */
+const TARJETAS_POR_FLECHA = 3;
 
 /** Movimiento del puntero, en píxeles, a partir del cual es un arrastre y no un click. */
 const UMBRAL_ARRASTRE_PX = 5;
@@ -23,23 +23,25 @@ const VELOCIDAD_MINIMA_INERCIA_PX_S = 120;
 const FRICCION_POR_FRAME = 0.94;
 
 /**
- * Velocidad a la que la inercia se apaga y retoma el desplazamiento
- * automático. Coincide a propósito con `VELOCIDAD_PX_POR_SEGUNDO`: el relevo
- * ocurre cuando las dos velocidades son iguales, así no hay ningún escalón
- * perceptible entre "todavía viene frenando" y "volvió a girar solo".
+ * Velocidad, en px/s, por debajo de la cual la inercia se apaga. Es el mismo
+ * valor que tenía el viejo desplazamiento automático (40 px/s): a esa
+ * velocidad el frenado ya no se percibe como movimiento propio del gesto.
  */
-const VELOCIDAD_FIN_INERCIA_PX_S = VELOCIDAD_PX_POR_SEGUNDO;
+const VELOCIDAD_FIN_INERCIA_PX_S = 40;
 
 /**
  * Carrusel de productos destacados — "Hallazgos del día".
  *
- * **Por qué mueve `scrollLeft` y no una animación CSS.** La versión anterior
- * animaba un `translateX` con keyframes, y eso hace imposible el arrastre: el
- * `transform` de la animación y la posición que fija el gesto compiten por el
- * mismo elemento, así que la tarjeta salta de vuelta apenas se suelta. Con el
- * scroll nativo como único motor, el auto-movimiento y el arrastre escriben
- * la misma propiedad y se turnan sin pelearse — y de yapa el contenedor
- * queda scrolleable con rueda, trackpad y teclado sin código extra.
+ * **Sin autoplay** (spec del rediseño, §3 Destacados): avanza solo con las
+ * flechas (escritorio) o deslizando. Hasta el 13/09/2026 giraba solo a
+ * 40 px/s; ese motor se sacó y quedó únicamente la inercia post-arrastre.
+ *
+ * **Por qué mueve `scrollLeft` y no una animación CSS.** Una animación de
+ * `translateX` y la posición que fija el gesto compiten por el mismo
+ * `transform`, así que la tarjeta salta de vuelta apenas se suelta. Con el
+ * scroll nativo como único motor, arrastre, inercia y flechas escriben la
+ * misma propiedad — y el contenedor queda scrolleable con rueda, trackpad y
+ * teclado sin código extra.
  *
  * **Loop sin costura**: la lista se renderiza dos veces. El segundo juego
  * empieza exactamente en la mitad del ancho scrolleable, así que al llegar
@@ -49,34 +51,16 @@ const VELOCIDAD_FIN_INERCIA_PX_S = VELOCIDAD_PX_POR_SEGUNDO;
  * `/coleccion`, favoritos), envuelto en un DIV que lleva `aria-hidden="true"`
  * e `inert` — `ProductCard` no acepta una variante "decorativa" (solo recibe
  * `{ producto }`), así que sacar el clon del árbol de accesibilidad y del
- * tabulado es responsabilidad del envoltorio, no de la tarjeta.
+ * tabulado es responsabilidad del envoltorio, no de la tarjeta. Eso incluye
+ * sus botones Agregar y favorito.
  *
- * **Pausa**: solo al apuntar (o enfocar) UN ENVOLTORIO, y en móvil solo
- * mientras se mantiene presionada. No al pasar por la banda: ese era el
- * comportamiento anterior y dejaba el carrusel congelado con el puntero
- * quieto en cualquier hueco. Los handlers viven en el DIV que envuelve a cada
- * `ProductCard`, por el mismo motivo que el `aria-hidden`/`inert`: el
- * componente compartido no admite props propias.
- *
- * **`prefers-reduced-motion`**: sin movimiento automático; el carrusel queda
- * como una tira que se arrastra o scrollea a mano. El movimiento automático
- * infinito es justamente lo que esa preferencia existe para evitar.
+ * **`prefers-reduced-motion`**: sin inercia y con flechas que saltan en vez
+ * de deslizar; la tira sigue arrastrable y scrolleable a mano.
  */
 function CarruselDestacados({ productos }) {
   const destacados = productos.filter((p) => p.destacado);
 
   const pistaRef = useRef(null);
-  const [pausado, setPausado] = useState(false);
-
-  // Espejo de `pausado` para el bucle de animación.
-  //
-  // El bucle NO puede depender del estado directamente: tenerlo en las
-  // dependencias del efecto reinicia el `requestAnimationFrame` en cada
-  // hover, y leerlo desde el closure lo congela en el valor del render que
-  // creó ese closure. Un ref se lee fresco en cada frame sin re-suscribir
-  // nada.
-  const pausadoRef = useRef(false);
-  pausadoRef.current = pausado;
 
   // Estado del gesto de arrastre. En un ref y no en `useState`: cambia en
   // cada `pointermove` y no debe provocar un render por frame.
@@ -97,38 +81,31 @@ function CarruselDestacados({ productos }) {
   // frenando después de soltar. Cero significa que no hay inercia en curso.
   const inerciaRef = useRef(0);
 
-  const pausar = useCallback(() => setPausado(true), []);
-  const reanudar = useCallback(() => setPausado(false), []);
-
   /** Si la sección se muestra. El early return va después de los hooks. */
   const hayCarrusel = destacados.length >= MIN_DESTACADOS;
 
-  // Motor del desplazamiento automático.
+  // Motor de la inercia post-arrastre (el único movimiento que el carrusel
+  // hace sin un gesto en curso; no hay autoplay).
   //
   // `requestAnimationFrame` con delta de tiempo real, no un incremento fijo
-  // por frame: así la velocidad es la misma en una pantalla de 60 Hz que en
-  // una de 120 Hz, y una pestaña en segundo plano (donde los frames se
-  // espacian) no acumula un salto al volver.
+  // por frame: así el frenado dura lo mismo en una pantalla de 60 Hz que en
+  // una de 120 Hz, y una pestaña en segundo plano no acumula un salto.
   useEffect(() => {
     if (!hayCarrusel) return undefined;
 
-    // Respeta la preferencia del sistema: sin movimiento automático, el
-    // carrusel sigue siendo arrastrable y scrolleable a mano.
+    // Respeta la preferencia del sistema: sin inercia, el carrusel sigue
+    // siendo arrastrable y scrolleable a mano.
     const consultaMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     if (consultaMovimiento?.matches) return undefined;
 
     let frameId = 0;
     let ultimoTiempo = 0;
 
-    // Posición exacta, en punto flotante, llevada aparte de `scrollLeft`.
-    //
-    // **Esto no es una optimización, es lo que hace que el carrusel avance.**
-    // A 40 px/s con frames de ~9 ms, cada frame pide ~0,36 px, y el navegador
-    // CUANTIZA la escritura de `scrollLeft` al píxel de dispositivo: medido
-    // en Chromium, de 120 px pedidos en 3 s llegaban 24 (se perdía el 80 %).
+    // Posición exacta, en punto flotante, llevada aparte de `scrollLeft`: el
+    // navegador CUANTIZA la escritura de `scrollLeft` al píxel de dispositivo
+    // (medido en Chromium: de 120 px pedidos en pasos sub-píxel llegaban 24).
     // Acumulando aparte y escribiendo el valor absoluto, la fracción nunca se
-    // descarta — se arrastra al frame siguiente hasta completar un píxel.
-    // Volver a `scrollLeft += …` reintroduce el bug.
+    // descarta. Volver a `scrollLeft += …` reintroduce el bug.
     let posicion = null;
 
     function paso(tiempo) {
@@ -137,41 +114,26 @@ function CarruselDestacados({ productos }) {
 
       // El ref se lee DENTRO del frame, no una vez al montar el efecto: en el
       // primer render `productos` todavía llega vacío, así que el `<div>` de
-      // la pista no existe y una captura única se quedaría con `null` para
-      // siempre. Ese fue exactamente el bug de "no gira solo".
+      // la pista no existe y una captura única se quedaría con `null`.
       const pista = pistaRef.current;
-
-      // La inercia manda sobre la pausa: es un movimiento que la persona
-      // acaba de imprimir con el dedo y dura menos de un segundo. Frenarlo en
-      // seco porque el puntero quedó encima de una tarjeta sería, otra vez,
-      // el corte abrupto que esta rama existe para evitar.
-      const hayInercia = inerciaRef.current !== 0;
 
       // Un frame de más entre el desmontaje y el `cancelAnimationFrame` no
       // debe explotar.
-      if (pista && !arrastreRef.current.activo && (hayInercia || !pausadoRef.current)) {
+      if (pista && !arrastreRef.current.activo && inerciaRef.current !== 0) {
         // Se resincroniza con el DOM cuando algo externo movió el scroll
-        // (arrastre, rueda, teclado): si la posición propia se alejó del
-        // scroll real, manda el real.
+        // (arrastre, rueda, teclado, flechas): manda el real.
         if (posicion === null || Math.abs(posicion - pista.scrollLeft) > 1) {
           posicion = pista.scrollLeft;
         }
 
-        if (hayInercia) {
-          posicion += inerciaRef.current * delta;
+        posicion += inerciaRef.current * delta;
 
-          // El decaimiento se eleva al tiempo REAL transcurrido, no se aplica
-          // una vez por frame: si no, el carrusel frenaría al doble de rápido
-          // en una pantalla de 120 Hz que en una de 60.
-          inerciaRef.current *= Math.pow(FRICCION_POR_FRAME, delta * 60);
-
-          // Al caer a la velocidad del desplazamiento automático, se apaga y
-          // el relevo es imperceptible: las dos velocidades son la misma.
-          if (Math.abs(inerciaRef.current) < VELOCIDAD_FIN_INERCIA_PX_S) {
-            inerciaRef.current = 0;
-          }
-        } else {
-          posicion += VELOCIDAD_PX_POR_SEGUNDO * delta;
+        // El decaimiento se eleva al tiempo REAL transcurrido, no se aplica
+        // una vez por frame: si no, el carrusel frenaría al doble de rápido
+        // en una pantalla de 120 Hz que en una de 60.
+        inerciaRef.current *= Math.pow(FRICCION_POR_FRAME, delta * 60);
+        if (Math.abs(inerciaRef.current) < VELOCIDAD_FIN_INERCIA_PX_S) {
+          inerciaRef.current = 0;
         }
 
         // Rebobinado en las DOS direcciones: arrastrar hacia la derecha lleva
@@ -185,8 +147,8 @@ function CarruselDestacados({ productos }) {
 
         pista.scrollLeft = posicion;
       } else if (pista) {
-        // Mientras está pausado o el usuario arrastra, la posición propia
-        // sigue al DOM en vez de quedar vieja y provocar un salto al soltar.
+        // Sin inercia en curso la posición propia sigue al DOM, así no queda
+        // vieja y no provoca un salto cuando arranque la próxima.
         posicion = pista.scrollLeft;
       }
 
@@ -195,9 +157,41 @@ function CarruselDestacados({ productos }) {
 
     frameId = window.requestAnimationFrame(paso);
     return () => window.cancelAnimationFrame(frameId);
-    // `pausado` NO va acá: lo lee `pausadoRef` en cada frame. Ponerlo
-    // reiniciaría el bucle en cada hover.
   }, [hayCarrusel]);
+
+  /**
+   * Flechas de escritorio: desplazan una tanda de `TARJETAS_POR_FLECHA`.
+   *
+   * `scrollLeft` está clampeado a `[0, scrollWidth - clientWidth]`, así que
+   * antes de un desplazamiento que cruzaría la costura se salta a la copia
+   * equivalente (vista idéntica, mismo truco que el arrastre). Sin eso,
+   * "Anteriores" no haría nada en el primer uso: la pista arranca en 0.
+   */
+  function desplazarTanda(direccion) {
+    const pista = pistaRef.current;
+    if (!pista) return;
+
+    // Una flecha es un gesto nuevo: corta la inercia que venía, igual que
+    // volver a apoyar el dedo.
+    inerciaRef.current = 0;
+
+    // Ancho de tarjeta MÁS el hueco entre tarjetas: sin el `gap`, cada click
+    // se quedaría corto 3 × 24 px y la tanda iría corriéndose de a poco.
+    const tarjeta = pista.querySelector("[data-tarjeta-carrusel]");
+    if (!tarjeta) return;
+    const hueco = parseFloat(window.getComputedStyle(tarjeta.parentElement).columnGap) || 0;
+    const desplazamiento = direccion * (tarjeta.offsetWidth + hueco) * TARJETAS_POR_FLECHA;
+
+    const mitad = pista.scrollWidth / 2;
+    const destino = pista.scrollLeft + desplazamiento;
+    if (mitad > 0) {
+      if (destino < 0) pista.scrollLeft += mitad;
+      else if (destino >= mitad) pista.scrollLeft -= mitad;
+    }
+
+    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    pista.scrollBy({ left: desplazamiento, behavior: sinMovimiento ? "auto" : "smooth" });
+  }
 
   function handlePointerDown(evento) {
     // Solo botón principal del mouse; en touch/pen `button` también es 0.
@@ -227,10 +221,6 @@ function CarruselDestacados({ productos }) {
     // llegan igual porque los escucha el contenedor y el gesto ocurre dentro
     // de él; la captura se toma recién cuando el movimiento supera el umbral
     // y ya sabemos que es un arrastre y no un tap (ver `handlePointerMove`).
-
-    // En móvil el gesto ES la pausa: se frena mientras el dedo está apoyado y
-    // sigue al soltar, que es lo que se pidió. `onMouseEnter` no existe ahí.
-    setPausado(true);
   }
 
   function handlePointerMove(evento) {
@@ -323,7 +313,6 @@ function CarruselDestacados({ productos }) {
     arrastre.activo = false;
     // `movido` NO se limpia acá: lo lee el `onClickCapture` de la tarjeta,
     // que corre inmediatamente después de soltar. Se limpia ahí.
-    setPausado(false);
   }
 
   /**
@@ -347,19 +336,44 @@ function CarruselDestacados({ productos }) {
         {/* Sin margen inferior: el aire hasta las tarjetas lo pone ahora el
             `py-8` de la pista, que entró para que el anillo de los destacados
             no se corte. Con los dos, el encabezado quedaba desprendido. */}
-        <div className="flex flex-col gap-2">
-          <h2 className="font-headline-md text-headline-md text-on-surface">Hallazgos del día</h2>
-          <p className="font-body-lg text-body-lg max-w-2xl text-on-surface-variant">
-            Nuestra selección del momento — piezas destacadas que no vas a querer perderte.
-          </p>
+        <div className="flex items-end justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <h2 className="font-headline-md text-headline-md text-on-surface">Hallazgos del día</h2>
+            <p className="font-body-lg text-body-lg max-w-2xl text-on-surface-variant">
+              Nuestra selección del momento — piezas destacadas que no vas a querer perderte.
+            </p>
+          </div>
+          {/* Solo escritorio (mockup `.flechas`): en mobile deslizar alcanza. */}
+          <div className="hidden shrink-0 gap-2 md:flex">
+            <button
+              type="button"
+              aria-label="Anteriores"
+              onClick={() => desplazarTanda(-1)}
+              className="grid h-10 w-10 place-items-center rounded-full border border-outline-variant bg-surface-container-lowest text-primary transition-colors hover:border-primary hover:bg-primary hover:text-on-primary"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined">
+                chevron_left
+              </span>
+            </button>
+            <button
+              type="button"
+              aria-label="Siguientes"
+              onClick={() => desplazarTanda(1)}
+              className="grid h-10 w-10 place-items-center rounded-full border border-outline-variant bg-surface-container-lowest text-primary transition-colors hover:border-primary hover:bg-primary hover:text-on-primary"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined">
+                chevron_right
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* La pista va a ancho completo (fuera del contenedor centrado) para que
           las tarjetas entren y salgan por los bordes de la pantalla.
 
-          `overflow-x-auto` es el motor: lo mueve tanto el bucle automático
-          como el arrastre. `scrollbar-none` la oculta sin desactivar el
+          `overflow-x-auto` es el motor: lo mueven el arrastre, la inercia y
+          las flechas. `scrollbar-none` la oculta sin desactivar el
           scroll. `touch-action: pan-y` deja que el gesto horizontal lo maneje
           el componente y el vertical siga haciendo scroll de la página —
           sin eso, arrastrar de costado sobre el carrusel secuestra el scroll
@@ -385,11 +399,8 @@ function CarruselDestacados({ productos }) {
           {destacados.map((producto) => (
             <div
               key={producto.id}
+              data-tarjeta-carrusel
               className="w-[220px] shrink-0 md:w-[260px]"
-              onMouseEnter={pausar}
-              onMouseLeave={reanudar}
-              onFocus={pausar}
-              onBlur={reanudar}
               onClickCapture={handleClickCapture}
             >
               <ProductCard producto={producto} />
@@ -404,11 +415,8 @@ function CarruselDestacados({ productos }) {
               // `CarruselCampanias.jsx`) — pasarlo como texto dispara un
               // warning.
               inert={true}
+              data-tarjeta-carrusel
               className="w-[220px] shrink-0 md:w-[260px]"
-              onMouseEnter={pausar}
-              onMouseLeave={reanudar}
-              onFocus={pausar}
-              onBlur={reanudar}
               onClickCapture={handleClickCapture}
             >
               <ProductCard producto={producto} />

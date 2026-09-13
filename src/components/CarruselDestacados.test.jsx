@@ -129,7 +129,7 @@ describe("CarruselDestacados", () => {
   });
 });
 
-describe("CarruselDestacados — pausa y arrastre", () => {
+describe("CarruselDestacados — arrastre", () => {
   /** La pista scrolleable: es la región etiquetada que envuelve al track. */
   function obtenerPista() {
     return screen.getByRole("region", { name: /productos destacados/i });
@@ -139,8 +139,8 @@ describe("CarruselDestacados — pausa y arrastre", () => {
     renderComponente(cuatroDestacados());
     const pista = obtenerPista();
 
-    // El motor es el scroll nativo: es lo que permite que el arrastre y el
-    // movimiento automático convivan sin pelearse por el mismo `transform`.
+    // El motor es el scroll nativo: es lo que permite que el arrastre, la
+    // inercia y las flechas convivan sin pelearse por el mismo `transform`.
     expect(pista.className).toContain("overflow-x-auto");
     expect(pista.className).toContain("cursor-grab");
   });
@@ -268,24 +268,6 @@ describe("CarruselDestacados — pausa y arrastre", () => {
     }
   });
 
-  it("el envoltorio de la tarjeta es el que pausa, no la banda que lo contiene", () => {
-    renderComponente(cuatroDestacados());
-    const tarjeta = screen.getAllByRole("link")[0];
-    // `ProductCard` solo acepta `{ producto }`: no puede llevar sus propios
-    // handlers. La pausa vive en el DIV que envuelve a cada tarjeta, un nivel
-    // por encima del `<a>` que arma el propio componente.
-    const envoltorio = tarjeta.parentElement;
-
-    // El bug reportado: con el handler en el contenedor de ancho completo, el
-    // carrusel se congelaba con el puntero quieto en cualquier hueco de la
-    // franja. El hover tiene que vivir en el envoltorio de CADA tarjeta.
-    expect(envoltorio).toHaveProperty("onmouseenter");
-    fireEvent.mouseEnter(envoltorio);
-    fireEvent.mouseLeave(envoltorio);
-    // No hay assertion de movimiento acá (rAF no corre en jsdom): lo que se
-    // fija es que el gesto se recibe en el envoltorio sin romper el render.
-    expect(envoltorio).toBeInTheDocument();
-  });
 });
 
 describe("CarruselDestacados — regresiones verificadas en navegador", () => {
@@ -399,7 +381,25 @@ describe("CarruselDestacados — inercia al soltar", () => {
     };
   }
 
-  it("sigue desplazándose después de soltar, mucho más que el avance automático", () => {
+  it("no se mueve solo: sin gesto, el scrollLeft no cambia con el tiempo", () => {
+    // Spec §3 Destacados: SIN autoplay, avanza solo con flechas o deslizando.
+    const reloj = tomarControlDelTiempo();
+    try {
+      renderComponente(cuatroDestacados());
+      const pista = obtenerPista();
+      Object.defineProperty(pista, "scrollWidth", { value: 4000, configurable: true });
+      pista.scrollLeft = 500;
+
+      // Tres segundos de frames sin ningún gesto.
+      for (let i = 0; i < 180; i++) reloj.avanzar(16);
+
+      expect(pista.scrollLeft).toBe(500);
+    } finally {
+      reloj.restaurar();
+    }
+  });
+
+  it("sigue desplazándose después de soltar un swipe rápido", () => {
     const reloj = tomarControlDelTiempo();
     try {
       renderComponente(cuatroDestacados());
@@ -424,8 +424,8 @@ describe("CarruselDestacados — inercia al soltar", () => {
       for (let i = 0; i < 30; i++) reloj.avanzar(16);
       const avanceTrasSoltar = pista.scrollLeft - alSoltar;
 
-      // El desplazamiento automático solo daría ~20 px en 500 ms (40 px/s).
-      // Cualquier valor de ese orden significa que el gesto frenó en seco.
+      // Sin inercia el carrusel quedaría quieto al soltar: un avance de este
+      // orden solo lo da el momentum del gesto.
       expect(avanceTrasSoltar).toBeGreaterThan(100);
     } finally {
       reloj.restaurar();
@@ -448,8 +448,8 @@ describe("CarruselDestacados — inercia al soltar", () => {
       const antes = pista.scrollLeft;
       for (let i = 0; i < 10; i++) reloj.avanzar(16);
 
-      // Solo el avance automático: 40 px/s durante ~160 ms.
-      expect(pista.scrollLeft - antes).toBeLessThan(20);
+      // Sin arrastre no hay momentum, y sin autoplay nada más lo mueve.
+      expect(pista.scrollLeft).toBe(antes);
     } finally {
       reloj.restaurar();
     }
@@ -482,5 +482,55 @@ describe("CarruselDestacados — inercia al soltar", () => {
     } finally {
       reloj.restaurar();
     }
+  });
+});
+
+describe("CarruselDestacados — flechas", () => {
+  function obtenerPista() {
+    return screen.getByRole("region", { name: /productos destacados/i });
+  }
+
+  /** jsdom no hace layout ni implementa `scrollBy` en elementos: se declaran a mano. */
+  function prepararPista({ scrollLeft = 0 } = {}) {
+    const pista = obtenerPista();
+    Object.defineProperty(pista, "scrollWidth", { value: 4000, configurable: true });
+    pista.scrollLeft = scrollLeft;
+    pista.scrollBy = vi.fn();
+    for (const envoltorio of pista.querySelectorAll("[data-tarjeta-carrusel]")) {
+      Object.defineProperty(envoltorio, "offsetWidth", { value: 260, configurable: true });
+    }
+    return pista;
+  }
+
+  it("las flechas avanzan/retroceden una tanda de tres tarjetas", async () => {
+    renderComponente(cuatroDestacados());
+    const pista = prepararPista({ scrollLeft: 1000 });
+
+    await userEvent.click(screen.getByRole("button", { name: "Siguientes" }));
+    expect(pista.scrollBy).toHaveBeenLastCalledWith({ left: 780, behavior: "smooth" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Anteriores" }));
+    expect(pista.scrollBy).toHaveBeenLastCalledWith({ left: -780, behavior: "smooth" });
+  });
+
+  it("Anteriores desde el inicio rebobina a la mitad antes de desplazar: el loop sigue siendo infinito", async () => {
+    renderComponente(cuatroDestacados());
+    const pista = prepararPista({ scrollLeft: 0 });
+
+    await userEvent.click(screen.getByRole("button", { name: "Anteriores" }));
+
+    // `scrollLeft` está clampeado a >= 0: sin el salto previo a la segunda
+    // copia (vista idéntica), la flecha no haría nada en el primer uso.
+    expect(pista.scrollLeft).toBe(2000);
+    expect(pista.scrollBy).toHaveBeenLastCalledWith({ left: -780, behavior: "smooth" });
+  });
+
+  it("las flechas están ocultas en mobile (mismo criterio que el mockup, `hidden md:flex`)", () => {
+    renderComponente(cuatroDestacados());
+
+    // jsdom no aplica @media: se prueba el markup del que depende el CSS.
+    const contenedor = screen.getByRole("button", { name: "Siguientes" }).parentElement;
+    expect(contenedor).toBe(screen.getByRole("button", { name: "Anteriores" }).parentElement);
+    expect(contenedor.className.split(" ")).toEqual(expect.arrayContaining(["hidden", "md:flex"]));
   });
 });
