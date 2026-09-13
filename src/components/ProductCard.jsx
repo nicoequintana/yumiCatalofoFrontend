@@ -24,16 +24,17 @@ function ProductCard({ producto }) {
   const foto = producto.fotos?.[0];
   const href = rutaProducto(producto);
 
-  const shell = `bg-surface-container-lowest rounded-xl shadow-ambient relative group flex flex-col h-full overflow-hidden transition-shadow hover:shadow-lg ${
-    producto.destacado ? "ring-2 ring-secondary shadow-[0_0_24px_-8px_rgba(119,89,47,0.5)]" : ""
-  }`;
+  // Sin anillo para los destacados: el mockup no lo tiene, y la sombra usaba
+  // un rgba fijo de la marca vieja. Al destacado lo señala su chip.
+  const shell =
+    "bg-surface-container-lowest rounded-xl shadow-ambient relative group flex flex-col h-full overflow-hidden transition-shadow hover:shadow-lg";
 
   // Sin `absolute`: vive en la pila de chips de arriba a la izquierda, junto a
   // NUEVO y %OFF. `tertiary-container` y no `secondary` (mockup `.chip--dest`):
   // en la paleta pública `secondary` es el naranja del %OFF, y los dos chips
   // apilados del mismo color no se distinguirían.
   const destacadoChip = producto.destacado ? (
-    <span className="font-label-sm text-label-sm flex items-center gap-1 rounded bg-tertiary-container px-2 py-1 uppercase tracking-wide text-on-tertiary-container">
+    <span className="font-label-sm text-label-sm flex items-center gap-1 rounded-full bg-tertiary-container px-2 py-1 uppercase tracking-wide text-on-tertiary-container">
       <span aria-hidden="true" className="material-symbols-outlined text-[14px]">star</span>
       Destacado
     </span>
@@ -41,13 +42,13 @@ function ProductCard({ producto }) {
 
   // `esNuevo` lo resuelve el backend (fecha de alta): la card no mira fechas.
   const nuevoChip = producto.esNuevo ? (
-    <span className="font-label-sm text-label-sm rounded bg-primary px-2 py-1 uppercase tracking-wide text-on-primary">
+    <span className="font-label-sm text-label-sm rounded-full bg-primary px-2 py-1 uppercase tracking-wide text-on-primary">
       Nuevo
     </span>
   ) : null;
 
   const offChip = producto.descuento?.porcentaje ? (
-    <span className="font-label-sm text-label-sm rounded bg-secondary px-2 py-1 uppercase tracking-wide text-on-secondary">
+    <span className="font-label-sm text-label-sm rounded-full bg-secondary px-2 py-1 uppercase tracking-wide text-on-secondary">
       {producto.descuento.porcentaje}% OFF
     </span>
   ) : null;
@@ -62,7 +63,7 @@ function ProductCard({ producto }) {
             }
           : undefined
       }
-      className={`font-label-sm text-label-sm absolute bottom-2 left-2 z-10 rounded px-2 py-1 uppercase tracking-wide ${
+      className={`font-label-sm text-label-sm absolute bottom-2 left-2 z-10 rounded-full px-2 py-1 uppercase tracking-wide ${
         producto.etiqueta.colorFondo ? "" : "bg-secondary-container text-on-secondary-container"
       }`}
     >
@@ -74,7 +75,7 @@ function ProductCard({ producto }) {
   // umbral de stock bajo que lista `docs/reglas/sincronizaciones.md`.
   const pocoStockChip =
     producto.stock > 0 && producto.stock <= 3 ? (
-      <span className="font-label-sm text-label-sm absolute bottom-2 right-2 z-10 rounded bg-surface-container-lowest px-2 py-1 uppercase tracking-wide text-secondary shadow-ambient">
+      <span className="font-label-sm text-label-sm absolute bottom-2 right-2 z-10 rounded-full bg-surface-container-lowest px-2 py-1 uppercase tracking-wide text-secondary shadow-ambient">
         Últimos {producto.stock}
       </span>
     ) : null;
@@ -170,21 +171,28 @@ function ProductCard({ producto }) {
               `min-h-[2lh]` reserva las dos líneas SIEMPRE. Sin eso, en una fila
               con un nombre de una línea y otro de dos, la eyebrow de categoría
               y el nombre quedan a distinta altura entre tarjetas vecinas — el
-              precio no se mueve porque va con `mt-auto`, pero el bloque de
+              precio no se mueve porque su bloque va con `mt-auto`, pero el bloque de
               texto se desalinea. Reservar el alto lo mantiene parejo. */}
           <h3 className="font-body-md text-[13px] md:text-body-md mb-1 line-clamp-2 min-h-[2lh] text-on-surface">
             {producto.nombre}
           </h3>
-          {/* El precio y su promoción, si la tiene. `PrecioProducto` no calcula
-              nada: el efectivo llega resuelto del backend. */}
-          {calificacionSlot}
-          {/* `font-label-lg` (Outfit en el público) y no `font-body-lg`, que
-              pasó a DM Sans: el precio va en la familia de títulos. */}
-          <PrecioProducto
-            producto={producto}
-            className="font-label-lg text-[15px] md:text-[17px] font-extrabold mt-auto text-primary"
-          />
-          {cuotasSlot}
+          {/* Puntaje, precio y cuotas en UN bloque con `mt-auto`: si el
+              `mt-auto` fuera del precio, un puntaje con dato quedaría arriba y
+              el precio abajo, separados por el hueco que abre la card más alta
+              de la fila. */}
+          <div className="mt-auto flex flex-col gap-0.5">
+            {calificacionSlot}
+            {/* El precio y su promoción, si la tiene. `PrecioProducto` no
+                calcula nada: el efectivo llega resuelto del backend. Mockup
+                `.precio__actual`: Outfit (`font-label-lg` en el público) 800,
+                terracota, 19px / 24px. Solo se ajusta desde la card: los
+                defaults de `PrecioProducto` los usa la ficha. */}
+            <PrecioProducto
+              producto={producto}
+              className="font-label-lg text-[19px] leading-[22px] md:text-[24px] md:leading-[28px] font-extrabold tracking-[-0.03em] tabular-nums text-secondary"
+            />
+            {cuotasSlot}
+          </div>
         </div>
       </Link>
       {/* Mismo criterio que el corazón: HERMANO del enlace, no hijo. En flujo

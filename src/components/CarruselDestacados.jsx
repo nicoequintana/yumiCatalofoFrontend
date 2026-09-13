@@ -182,11 +182,23 @@ function CarruselDestacados({ productos }) {
     const hueco = parseFloat(window.getComputedStyle(tarjeta.parentElement).columnGap) || 0;
     const desplazamiento = direccion * (tarjeta.offsetWidth + hueco) * TARJETAS_POR_FLECHA;
 
+    // El salto se decide por la posición ACTUAL, no por el destino: saltar
+    // desde una posición que todavía no cruzó la costura escribiría un
+    // `scrollLeft` fuera de rango, el navegador lo clampearía y la tira
+    // volvería de golpe. Si el salto no entra en el rango scrolleable (pocas
+    // tarjetas en pantalla ancha), no se salta: `scrollBy` clampea solo.
     const mitad = pista.scrollWidth / 2;
-    const destino = pista.scrollLeft + desplazamiento;
+    const maximo = pista.scrollWidth - pista.clientWidth;
     if (mitad > 0) {
-      if (destino < 0) pista.scrollLeft += mitad;
-      else if (destino >= mitad) pista.scrollLeft -= mitad;
+      if (desplazamiento > 0 && pista.scrollLeft >= mitad) {
+        pista.scrollLeft -= mitad;
+      } else if (
+        desplazamiento < 0 &&
+        pista.scrollLeft + desplazamiento < 0 &&
+        pista.scrollLeft + mitad <= maximo
+      ) {
+        pista.scrollLeft += mitad;
+      }
     }
 
     const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;

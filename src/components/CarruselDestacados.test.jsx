@@ -226,11 +226,23 @@ describe("CarruselDestacados — arrastre", () => {
   it("un tap limpio en Agregar dentro del carrusel suma al carrito, sin cancelarlo un drag previo", async () => {
     agregarMock.mockClear();
     renderComponente(cuatroDestacados().map((p) => ({ ...p, stock: 10 })));
+    const pista = obtenerPista();
+    const boton = screen.getAllByRole("button", { name: "Agregar" })[0];
 
-    // `userEvent.click` dispara pointerdown/pointerup sobre el botón, que
-    // burbujean hasta la pista: es el mismo recorrido que un tap real.
-    await userEvent.click(screen.getAllByRole("button", { name: "Agregar" })[0]);
+    // Primero un arrastre real, soltado sobre la tarjeta: su click queda
+    // cancelado (lo cubre el test de abajo) y la bandera `movido` se limpia.
+    fireEvent.pointerDown(pista, { button: 0, pointerId: 1, clientX: 300 });
+    fireEvent.pointerMove(pista, { pointerId: 1, clientX: 200 });
+    fireEvent.pointerUp(pista, { pointerId: 1, clientX: 200 });
+    fireEvent.click(boton);
+    expect(agregarMock).not.toHaveBeenCalled();
 
+    // Después, un tap limpio: `userEvent.click` dispara pointerdown/pointerup
+    // sobre el botón, que burbujean hasta la pista, como un tap real. Si la
+    // bandera del arrastre anterior quedara colgada, este tap se perdería.
+    await userEvent.click(boton);
+
+    expect(agregarMock).toHaveBeenCalledTimes(1);
     expect(agregarMock).toHaveBeenCalledWith(1, 1);
   });
 
@@ -267,7 +279,6 @@ describe("CarruselDestacados — arrastre", () => {
       expect(boton.closest("[inert]")).toBeNull();
     }
   });
-
 });
 
 describe("CarruselDestacados — regresiones verificadas en navegador", () => {
@@ -491,9 +502,10 @@ describe("CarruselDestacados — flechas", () => {
   }
 
   /** jsdom no hace layout ni implementa `scrollBy` en elementos: se declaran a mano. */
-  function prepararPista({ scrollLeft = 0 } = {}) {
+  function prepararPista({ scrollLeft = 0, scrollWidth = 4000, clientWidth = 1280 } = {}) {
     const pista = obtenerPista();
-    Object.defineProperty(pista, "scrollWidth", { value: 4000, configurable: true });
+    Object.defineProperty(pista, "scrollWidth", { value: scrollWidth, configurable: true });
+    Object.defineProperty(pista, "clientWidth", { value: clientWidth, configurable: true });
     pista.scrollLeft = scrollLeft;
     pista.scrollBy = vi.fn();
     for (const envoltorio of pista.querySelectorAll("[data-tarjeta-carrusel]")) {
@@ -522,6 +534,65 @@ describe("CarruselDestacados — flechas", () => {
     // `scrollLeft` está clampeado a >= 0: sin el salto previo a la segunda
     // copia (vista idéntica), la flecha no haría nada en el primer uso.
     expect(pista.scrollLeft).toBe(2000);
+    expect(pista.scrollBy).toHaveBeenLastCalledWith({ left: -780, behavior: "smooth" });
+  });
+
+  it("la tanda incluye el hueco entre tarjetas: (ancho + gap) × 3", async () => {
+    renderComponente(cuatroDestacados());
+    const pista = prepararPista({ scrollLeft: 1000 });
+    const computedReal = window.getComputedStyle;
+    const espia = vi
+      .spyOn(window, "getComputedStyle")
+      .mockImplementation((el, ...resto) => {
+        const estilo = computedReal(el, ...resto);
+        return el.querySelector?.("[data-tarjeta-carrusel]") ? { ...estilo, columnGap: "24px" } : estilo;
+      });
+    try {
+      await userEvent.click(screen.getByRole("button", { name: "Siguientes" }));
+      expect(pista.scrollBy).toHaveBeenLastCalledWith({ left: (260 + 24) * 3, behavior: "smooth" });
+    } finally {
+      espia.mockRestore();
+    }
+  });
+
+  it("Siguientes cerca de la costura NO salta: decide por la posición actual, no por el destino", async () => {
+    renderComponente(cuatroDestacados());
+    // mitad = 2000; 1500 + 780 cruza la mitad, pero la posición actual no:
+    // restar la mitad dejaría -500, el navegador lo clampearía a 0 y la tira
+    // volvería de golpe al principio.
+    const pista = prepararPista({ scrollLeft: 1500 });
+
+    await userEvent.click(screen.getByRole("button", { name: "Siguientes" }));
+
+    expect(pista.scrollLeft).toBe(1500);
+    expect(pista.scrollBy).toHaveBeenLastCalledWith({ left: 780, behavior: "smooth" });
+  });
+
+  it("Siguientes ya pasada la costura salta a la copia equivalente antes de desplazar", async () => {
+    renderComponente(cuatroDestacados());
+    const pista = prepararPista({ scrollLeft: 2100 });
+
+    await userEvent.click(screen.getByRole("button", { name: "Siguientes" }));
+
+    expect(pista.scrollLeft).toBe(100);
+    expect(pista.scrollBy).toHaveBeenLastCalledWith({ left: 780, behavior: "smooth" });
+  });
+
+  it("con pocas tarjetas (scroll máximo < mitad) ninguna flecha salta fuera de rango", async () => {
+    renderComponente(cuatroDestacados());
+    // 4 destacados en 1440 px: mitad = 1188, scroll máximo = 936.
+    const pista = prepararPista({ scrollLeft: 900, scrollWidth: 2376, clientWidth: 1440 });
+
+    await userEvent.click(screen.getByRole("button", { name: "Siguientes" }));
+    // 900 + 780 cruza la mitad, pero 900 < mitad: saltar daría negativo.
+    expect(pista.scrollLeft).toBe(900);
+    expect(pista.scrollBy).toHaveBeenLastCalledWith({ left: 780, behavior: "smooth" });
+
+    pista.scrollLeft = 0;
+    await userEvent.click(screen.getByRole("button", { name: "Anteriores" }));
+    // 0 + 1188 superaría el máximo (936): se clampearía y la vista saltaría.
+    // Sin salto, el scrollBy simplemente queda clampeado en 0.
+    expect(pista.scrollLeft).toBe(0);
     expect(pista.scrollBy).toHaveBeenLastCalledWith({ left: -780, behavior: "smooth" });
   });
 

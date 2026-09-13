@@ -136,6 +136,56 @@ describe("ProductCard — badges nuevos", () => {
   });
 });
 
+describe("ProductCard — tratamiento del mockup", () => {
+  it("los cinco chips son píldoras (rounded-full)", () => {
+    renderCard(
+      producto({
+        destacado: true,
+        esNuevo: true,
+        stock: 2,
+        descuento: { porcentaje: 20 },
+        etiqueta: { id: 1, nombre: "Exclusivo", colorFondo: null, colorTexto: null },
+      }),
+    );
+    for (const texto of ["Destacado", "Nuevo", "20% OFF", "Exclusivo", "Últimos 2"]) {
+      const chip = screen.getAllByText(texto).find((el) => el.closest("a"));
+      const clases = chip.className.split(" ");
+      expect(clases, texto).toContain("rounded-full");
+      expect(clases, texto).not.toContain("rounded");
+    }
+  });
+
+  it("el precio efectivo va en terracota (secondary), Outfit extra-bold, 19px / 24px", () => {
+    renderCard(producto());
+    const precio = document.querySelector('[data-precio="efectivo"]');
+    const clases = precio.className.split(" ");
+    expect(clases).toEqual(
+      expect.arrayContaining(["font-label-lg", "font-extrabold", "text-secondary", "text-[19px]", "md:text-[24px]"]),
+    );
+    expect(clases).not.toContain("text-primary");
+  });
+
+  it("puntaje, precio y cuotas viajan juntos al pie del cuerpo (mt-auto en el bloque, no en el precio)", () => {
+    renderCard(
+      producto({ calificacion: { promedio: 4.8, cantidad: 62 }, cuotas: "3 cuotas sin interés de $ 333" }),
+    );
+    const bloque = screen.getByText("4,8").parentElement;
+    const precio = document.querySelector('[data-precio="efectivo"]');
+    expect(bloque.className.split(" ")).toContain("mt-auto");
+    expect(bloque).toContainElement(precio);
+    expect(bloque).toContainElement(screen.getByText("3 cuotas sin interés de $ 333"));
+    expect(precio.className.split(" ")).not.toContain("mt-auto");
+  });
+
+  it("un destacado ya no lleva el anillo ni la sombra de la marca vieja: lo señala el chip", () => {
+    renderCard(producto({ destacado: true }));
+    const shell = screen.getByRole("link").parentElement;
+    expect(shell.className).not.toContain("ring-2");
+    expect(shell.className).not.toContain("shadow-[");
+    expect(screen.getByText("Destacado")).toBeInTheDocument();
+  });
+});
+
 describe("ProductCard — Agregar al carrito", () => {
   it("el botón Agregar es HERMANO del enlace, no su hijo", () => {
     renderCard(producto());
