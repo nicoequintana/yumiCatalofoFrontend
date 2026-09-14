@@ -230,7 +230,13 @@ function MiCuenta() {
           </h2>
           <div
             data-testid="lista-configuracion"
-            className="divide-y divide-outline-variant overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest lg:grid lg:auto-rows-fr lg:grid-cols-2 lg:gap-4 lg:divide-y-0 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent"
+            // `max-lg:divide-*` y NO `divide-y` + `lg:divide-y-0`: la regla de
+            // `divide` vive en este PADRE (`> * ~ *`) y le gana en
+            // especificidad a la `lg:border` de cada fila. "Apagarla" en `lg`
+            // igual escribe `border-top/bottom-width: 0` sobre las filas 2 y 3,
+            // que quedaban sin borde arriba y abajo mientras "Mis favoritos"
+            // (la primera, fuera del selector) lo conservaba entero.
+            className="overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest max-lg:divide-y max-lg:divide-outline-variant lg:grid lg:auto-rows-fr lg:grid-cols-2 lg:gap-4 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent"
           >
             <FilaAcceso
               to="/favoritos"

@@ -256,12 +256,24 @@ describe("MiCuenta — markup del layout de escritorio", () => {
 
   it("el contenedor de la lista pasa de lista dividida a grilla en escritorio", () => {
     renderMiCuenta(PERFIL_LOCAL);
-    expect(screen.getByTestId("lista-configuracion")).toHaveClass(
-      "lg:grid",
-      "lg:grid-cols-2",
-      "lg:divide-y-0",
-      "lg:border-0",
+    const lista = screen.getByTestId("lista-configuracion");
+    expect(lista).toHaveClass("lg:grid", "lg:grid-cols-2", "lg:border-0", "max-lg:divide-y");
+    // ⚠️ El divisor NO puede existir en escritorio, ni "apagado" con
+    // `lg:divide-y-0`: la regla de `divide-*` vive en el PADRE con el selector
+    // `> * ~ *`, gana en especificidad a la `lg:border` de cada fila y le
+    // dejaba el borde de arriba y de abajo en 0 a todas menos la primera.
+    // Medido a 1440px: "Mis favoritos" con `border-top: 1px` y "Seguridad y
+    // acceso"/"Ayuda y soporte" con 0 — las dos tarjetas "cortadas".
+    expect(lista.className).not.toMatch(/(^|\s)(lg:)?divide-y(-0)?(\s|$)/);
+  });
+
+  it("las tres filas de Configuración comparten la MISMA clase de tarjeta", () => {
+    renderMiCuenta(PERFIL_LOCAL);
+    const clases = ["Mis favoritos", "Seguridad y acceso", "Ayuda y soporte"].map(
+      (titulo) => screen.getByRole("link", { name: new RegExp(titulo) }).className,
     );
+    expect(new Set(clases).size).toBe(1);
+    expect(clases[0].split(" ")).toContain("lg:border");
   });
 
   // 13/09/2026: "Ayuda y soporte" quedaba sola en la segunda fila y más baja
