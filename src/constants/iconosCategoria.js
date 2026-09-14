@@ -15,20 +15,25 @@
  * §3 "Círculos de categoría") decidió ícono + color en vez de foto — esa
  * decisión supersede al revert de 09/06. Si esto vuelve a discutirse, la
  * fuente de verdad es esa spec, no el commit del 06/09.
+ *
+ * **`valor` / `etiqueta` (14/09/2026).** El selector mostraba el nombre técnico
+ * en inglés, que para quien opera el panel no dice nada. `valor` es lo que se
+ * GUARDA en `Categoria.icono` (el nombre de Material Symbols, sin cambios de
+ * contrato); `etiqueta` es solo lo que se lee.
  */
 export const ICONOS_CATEGORIA = [
-  "restaurant",
-  "chair",
-  "watch",
-  "devices",
-  "spa",
-  "light",
-  "pets",
-  "toys",
-  "checkroom",
-  "sports_soccer",
-  "local_florist",
-  "yard",
-  "kitchen",
-  "weekend",
+  { valor: "restaurant", etiqueta: "Cocina / restaurante" },
+  { valor: "chair", etiqueta: "Silla / muebles" },
+  { valor: "watch", etiqueta: "Reloj / accesorios" },
+  { valor: "devices", etiqueta: "Tecnología" },
+  { valor: "spa", etiqueta: "Bienestar / spa" },
+  { valor: "light", etiqueta: "Iluminación" },
+  { valor: "pets", etiqueta: "Mascotas" },
+  { valor: "toys", etiqueta: "Juguetes" },
+  { valor: "checkroom", etiqueta: "Ropa / percheros" },
+  { valor: "sports_soccer", etiqueta: "Deportes" },
+  { valor: "local_florist", etiqueta: "Flores / plantas" },
+  { valor: "yard", etiqueta: "Jardín / exterior" },
+  { valor: "kitchen", etiqueta: "Electrodomésticos" },
+  { valor: "weekend", etiqueta: "Living / sillones" },
 ];

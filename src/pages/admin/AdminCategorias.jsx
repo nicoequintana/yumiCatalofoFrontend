@@ -26,6 +26,50 @@ import {
 const MAX_CATEGORIAS_HOME = 3;
 
 /**
+ * La foto de la categoría está OCULTA en esta pantalla, pendiente de sacarla
+ * del todo (14/09/2026): los círculos de la home ya no la usan —pasaron a
+ * ícono + color—, así que subirla no cambiaba nada visible y confundía. Se
+ * oculta y NO se borra: los handlers, `subirImagenCategoria`/
+ * `quitarImagenCategoria` y los endpoints `PUT`/`DELETE /categorias/:id/imagen`
+ * del backend siguen intactos hasta que se decida la baja completa. Volver a
+ * `true` restituye la columna tal cual estaba.
+ */
+const MOSTRAR_FOTO_CATEGORIA = false;
+
+/**
+ * Selector de ícono: etiqueta en castellano en cada opción y, al lado, el
+ * GLIFO del ícono elegido. El glifo va afuera del `<select>` porque un
+ * `<option>` no carga la fuente de Material Symbols de forma confiable entre
+ * navegadores: se vería el nombre en inglés en vez del dibujo.
+ */
+function SelectorIcono({ valor, onCambiar, etiquetaAccesible, testIdVista, className }) {
+  return (
+    <div className="flex items-center gap-2">
+      <select
+        value={valor ?? ""}
+        onChange={(e) => onCambiar(e.target.value || null)}
+        aria-label={etiquetaAccesible}
+        className={className}
+      >
+        <option value="">Sin ícono</option>
+        {ICONOS_CATEGORIA.map((icono) => (
+          <option key={icono.valor} value={icono.valor}>
+            {icono.etiqueta}
+          </option>
+        ))}
+      </select>
+      <span
+        data-testid={testIdVista}
+        aria-hidden="true"
+        className="material-symbols-outlined flex size-11 shrink-0 items-center justify-center rounded-lg bg-surface-container-low text-[22px] text-on-surface-variant"
+      >
+        {valor ?? ""}
+      </span>
+    </div>
+  );
+}
+
+/**
  * `/catalogo/admin/configuracion/categorias` — la lista de categorías y, desde
  * el 29/08/2026, también lo que alimenta la fila de accesos por categoría de
  * la home pública: la foto de cada círculo y cuáles van primero. Sin foto, el
@@ -247,8 +291,8 @@ function AdminCategorias() {
         <p className="font-body-md text-body-md mt-2 max-w-2xl text-on-surface-variant">
           Además de organizar los productos, acá se arma la fila de accesos por
           categoría de la home: aparecen ahí todas las categorías con
-          productos publicados, a cada una se le puede subir una foto —sin
-          foto se muestra un ícono genérico—, y marcar hasta{" "}
+          productos publicados, cada una con el ícono que le elijas, y marcar
+          hasta{" "}
           {MAX_CATEGORIAS_HOME} hace que esas vayan primero.{" "}
           {cantidadDestacadas === 0
             ? "Todavía no marcaste ninguna: se muestran en el orden por defecto."
@@ -292,19 +336,13 @@ function AdminCategorias() {
           <span className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
             Ícono
           </span>
-          <select
-            value={iconoNuevo ?? ""}
-            onChange={(e) => setIconoNuevo(e.target.value || null)}
-            aria-label="Ícono de la nueva categoría"
+          <SelectorIcono
+            valor={iconoNuevo}
+            onCambiar={setIconoNuevo}
+            etiquetaAccesible="Ícono de la nueva categoría"
+            testIdVista="vista-icono-nuevo"
             className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-on-surface focus:border-primary focus:outline-none"
-          >
-            <option value="">Sin ícono</option>
-            {ICONOS_CATEGORIA.map((icono) => (
-              <option key={icono} value={icono}>
-                {icono}
-              </option>
-            ))}
-          </select>
+          />
         </label>
       </form>
 
@@ -351,33 +389,38 @@ function AdminCategorias() {
           >
             <thead role="rowgroup">
               <tr role="row" className="border-b border-outline-variant">
+                {/* Con la columna Foto oculta (`MOSTRAR_FOTO_CATEGORIA`) su 22%
+                    se reparte: Nombre +8 (en modo edición aloja el selector de
+                    ícono con su glifo), Productos +2, home +6, Acciones +6. */}
                 <th
                   role="columnheader"
-                  className="font-label-sm text-label-sm w-[22%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                  className={`font-label-sm text-label-sm ${MOSTRAR_FOTO_CATEGORIA ? "w-[22%]" : "w-[30%]"} px-4 py-3 uppercase tracking-widest text-on-surface-variant`}
                 >
                   Nombre
                 </th>
                 <th
                   role="columnheader"
-                  className="font-label-sm text-label-sm w-[10%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                  className={`font-label-sm text-label-sm ${MOSTRAR_FOTO_CATEGORIA ? "w-[10%]" : "w-[12%]"} px-4 py-3 uppercase tracking-widest text-on-surface-variant`}
                 >
                   Productos
                 </th>
+                {MOSTRAR_FOTO_CATEGORIA ? (
+                  <th
+                    role="columnheader"
+                    className="font-label-sm text-label-sm w-[22%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                  >
+                    Foto
+                  </th>
+                ) : null}
                 <th
                   role="columnheader"
-                  className="font-label-sm text-label-sm w-[22%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
-                >
-                  Foto
-                </th>
-                <th
-                  role="columnheader"
-                  className="font-label-sm text-label-sm w-[24%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                  className={`font-label-sm text-label-sm ${MOSTRAR_FOTO_CATEGORIA ? "w-[24%]" : "w-[30%]"} px-4 py-3 uppercase tracking-widest text-on-surface-variant`}
                 >
                   Aparece primero en la home
                 </th>
                 <th
                   role="columnheader"
-                  className="font-label-sm text-label-sm w-[22%] px-4 py-3 uppercase tracking-widest text-on-surface-variant"
+                  className={`font-label-sm text-label-sm ${MOSTRAR_FOTO_CATEGORIA ? "w-[22%]" : "w-[28%]"} px-4 py-3 uppercase tracking-widest text-on-surface-variant`}
                 >
                   Acciones
                 </th>
@@ -409,19 +452,13 @@ function AdminCategorias() {
                             (`categoria.nombre`, no `nombreEditado`): no cambia
                             mientras se edita, así que el selector no pierde su
                             nombre accesible a mitad de un renombrado. */}
-                        <select
-                          value={iconoEditado ?? ""}
-                          onChange={(e) => setIconoEditado(e.target.value || null)}
-                          aria-label={`Ícono de ${categoria.nombre}`}
-                          className="font-body-md text-body-md w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
-                        >
-                          <option value="">Sin ícono</option>
-                          {ICONOS_CATEGORIA.map((icono) => (
-                            <option key={icono} value={icono}>
-                              {icono}
-                            </option>
-                          ))}
-                        </select>
+                        <SelectorIcono
+                          valor={iconoEditado}
+                          onCambiar={setIconoEditado}
+                          etiquetaAccesible={`Ícono de ${categoria.nombre}`}
+                          testIdVista={`vista-icono-${categoria.id}`}
+                          className="font-body-md text-body-md w-full min-w-0 rounded-lg border border-outline-variant bg-surface px-3 py-2 text-on-surface focus:border-primary focus:outline-none"
+                        />
                       </div>
                     ) : (
                       categoria.nombre
@@ -435,6 +472,8 @@ function AdminCategorias() {
                     {categoria.cantidadProductos}
                   </td>
 
+                  {/* Oculta, no borrada: ver `MOSTRAR_FOTO_CATEGORIA`. */}
+                  {MOSTRAR_FOTO_CATEGORIA ? (
                   <td role="cell" data-label="Foto" className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-surface-container-low">
@@ -526,6 +565,7 @@ function AdminCategorias() {
                       {ocupadaId === categoria.id ? <Spinner className="h-4 w-4" /> : null}
                     </div>
                   </td>
+                  ) : null}
 
                   <td role="cell" data-label="Aparece primero en la home" className="px-4 py-3">
                     <div className="flex items-center gap-2">

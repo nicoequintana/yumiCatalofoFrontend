@@ -56,6 +56,56 @@ describe("AdminCategorias", () => {
     expect(within(selector).getAllByRole("option").length).toBeGreaterThan(1);
   });
 
+  it("el selector muestra etiquetas en castellano pero guarda el nombre de Material Symbols", async () => {
+    categoriasApi.getCategorias.mockResolvedValue([]);
+
+    renderPagina();
+    await screen.findByText("Todavía no hay categorías");
+
+    const selector = screen.getByLabelText(/ícono de la nueva categoría/i);
+    const opcion = within(selector).getByRole("option", { name: "Cocina / restaurante" });
+    expect(opcion).toHaveValue("restaurant");
+    // Ninguna opción visible es el nombre técnico en inglés.
+    for (const o of within(selector).getAllByRole("option")) {
+      if (o.value) expect(o.textContent).not.toBe(o.value);
+    }
+  });
+
+  it("muestra el glifo del ícono elegido al lado del selector", async () => {
+    const usuario = userEvent.setup();
+    categoriasApi.getCategorias.mockResolvedValue([]);
+
+    renderPagina();
+    await screen.findByText("Todavía no hay categorías");
+
+    await usuario.selectOptions(screen.getByLabelText(/ícono de la nueva categoría/i), "pets");
+    const glifo = screen.getByTestId("vista-icono-nuevo");
+    expect(glifo).toHaveTextContent("pets");
+    expect(glifo).toHaveAttribute("aria-hidden", "true");
+    expect(glifo.className).toContain("material-symbols-outlined");
+  });
+
+  it("la foto de la categoría está OCULTA: ni columna ni controles de subir/quitar", async () => {
+    categoriasApi.getCategorias.mockResolvedValue([
+      {
+        id: 1,
+        nombre: "Iluminación",
+        cantidadProductos: 4,
+        cantidadPublicados: 4,
+        destacadaEnHome: false,
+        imagenUrl: "https://cdn.test/ilu.webp",
+      },
+    ]);
+
+    renderPagina();
+    await screen.findByText("Iluminación");
+
+    expect(screen.queryByRole("columnheader", { name: "Foto" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /foto de Iluminación/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Foto de Iluminación")).not.toBeInTheDocument();
+    expect(screen.queryByText(/subir una foto/i)).not.toBeInTheDocument();
+  });
+
   it("al crear con un ícono elegido, lo manda a createCategoria", async () => {
     const usuario = userEvent.setup();
     categoriasApi.getCategorias.mockResolvedValueOnce([]);
@@ -318,14 +368,11 @@ describe("AdminCategorias — área táctil (WCAG 2.5.8) y nombres accesibles", 
     expect(switchHome.className).toContain("before:w-11");
   });
 
-  // Medido a 1280px: 33x33 de área efectiva los cuatro (a 390px ya cumplían
-  // por el `max-md:size-11` que había). Van agrandados DE VERDAD y no con
-  // pseudo-elemento porque "cambiar foto"/"quitar foto" están pegados con
-  // `gap-1`: dos áreas de 44 a 36 de paso se superponen y la de más abajo en el
-  // DOM le roba la mitad a la de arriba. Con `size-11` el paso pasa a 48.
+  // Medido a 1280px: 33x33 de área efectiva (a 390px ya cumplían por el
+  // `max-md:size-11` que había). Van agrandados DE VERDAD y no con
+  // pseudo-elemento. Los de "cambiar foto"/"quitar foto" salieron de este test
+  // el 14/09/2026: la foto de la categoría está oculta (ver el test de arriba).
   it.each([
-    "Cambiar la foto de Iluminación",
-    "Quitar la foto de Iluminación",
     "Renombrar Iluminación",
     "Eliminar la categoría Iluminación",
   ])("el botón de ícono «%s» mide 44x44 también en escritorio", async (nombre) => {
