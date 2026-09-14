@@ -1,45 +1,28 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { formatFecha, formatPrecio } from "../../utils/formato.js";
-import { getPedidos } from "../../api/cuenta.js";
+import usePedidosCliente from "../../hooks/usePedidosCliente.js";
+
+const MENSAJE_ERROR = "Revisá tu conexión e intentá de nuevo.";
 
 function MisPedidos() {
-  const [pedidos, setPedidos] = useState(null);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState(null);
-
-  function cargar() {
-    setCargando(true);
-    setError(null);
-    getPedidos()
-      .then((body) => {
-        setPedidos(body?.data ?? []);
-      })
-      .catch(() => {
-        // Falló la carga, no está vacío: no se pisa `pedidos` con `[]`, así
-        // no se muestra por un instante el estado vacío antes del de error.
-        setError("Revisá tu conexión e intentá de nuevo.");
-      })
-      .finally(() => setCargando(false));
-  }
-
-  useEffect(() => {
-    cargar();
-    // Solo al montar.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Cache + refetch en segundo plano, mismo patrón que `useProductosCarrito`
+  // (`Carrito.jsx`/`Checkout.jsx`): sin esto, cada remontaje de esta pantalla
+  // arrancaba vacío y pintaba nada (`return null`) durante el viaje de red —
+  // el mismo ghosting al ir y volver de `/cuenta` que ya se midió y resolvió
+  // en el carrito y el checkout.
+  const { pedidos, cargando, error, recargar } = usePedidosCliente();
 
   if (cargando) return null;
 
   if (error) {
     return (
       <div className="flex flex-col items-center gap-4">
-        <EstadoVacio icono="cloud_off" titulo="No pudimos cargar tus pedidos" mensaje={error} />
+        <EstadoVacio icono="cloud_off" titulo="No pudimos cargar tus pedidos" mensaje={MENSAJE_ERROR} />
         <button
           type="button"
-          onClick={cargar}
+          onClick={recargar}
           className="min-h-11 rounded bg-primary px-4 py-2 text-label-md text-on-primary"
         >
           Reintentar

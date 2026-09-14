@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MisPedidos from "./MisPedidos.jsx";
+import { reiniciarPedidosCliente } from "../../hooks/usePedidosCliente.js";
 import * as cuentaApi from "../../api/cuenta.js";
 
 vi.mock("../../api/cuenta.js");
@@ -13,6 +14,10 @@ function renderMisPedidos() {
       <MisPedidos />
     </MemoryRouter>,
   );
+}
+
+function nuncaContesta() {
+  return new Promise(() => {});
 }
 
 const PEDIDO = {
@@ -27,6 +32,7 @@ const PEDIDO = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  reiniciarPedidosCliente();
 });
 
 afterEach(() => {
@@ -96,5 +102,35 @@ describe("MisPedidos — error de carga", () => {
       expect(screen.queryByText("No pudimos cargar tus pedidos")).not.toBeInTheDocument(),
     );
     expect(await screen.findByRole("link", { name: /Pedido #42/ })).toBeInTheDocument();
+  });
+});
+
+describe("MisPedidos — sin ghosting al remontar (mismo bug que carrito/checkout)", () => {
+  it("con cache no se pinta nada de carga al remontar, aunque el refetch no conteste", async () => {
+    cuentaApi.getPedidos.mockResolvedValueOnce({ data: [PEDIDO], page: 1, pageSize: 20, total: 1 });
+    const primero = renderMisPedidos();
+    await screen.findByRole("link", { name: /Pedido #42/ });
+    primero.unmount();
+
+    cuentaApi.getPedidos.mockReturnValue(nuncaContesta());
+    renderMisPedidos();
+
+    expect(await screen.findByRole("link", { name: /Pedido #42/ })).toBeInTheDocument();
+    expect(screen.queryByText("Todavía no hiciste ningún pedido")).not.toBeInTheDocument();
+    expect(screen.queryByText("No pudimos cargar tus pedidos")).not.toBeInTheDocument();
+  });
+
+  it("el cache de una cuenta no sobrevive a un cambio de sesión", async () => {
+    cuentaApi.getPedidos.mockResolvedValueOnce({ data: [PEDIDO], page: 1, pageSize: 20, total: 1 });
+    const primero = renderMisPedidos();
+    await screen.findByRole("link", { name: /Pedido #42/ });
+    primero.unmount();
+
+    reiniciarPedidosCliente();
+    cuentaApi.getPedidos.mockResolvedValueOnce({ data: [], page: 1, pageSize: 20, total: 0 });
+    renderMisPedidos();
+
+    expect(await screen.findByText("Todavía no hiciste ningún pedido")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Pedido #42/ })).not.toBeInTheDocument();
   });
 });

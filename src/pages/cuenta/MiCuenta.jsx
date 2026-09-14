@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import usePerfilCliente, { invalidarPerfil } from "../../hooks/usePerfilCliente.js";
@@ -6,6 +6,7 @@ import useWhatsapp from "../../hooks/useWhatsapp.js";
 import { salirCuenta } from "../../api/cuenta.js";
 import { iniciales } from "../../utils/iniciales.js";
 import { clasePaginaDensa } from "./clasesCuenta.js";
+import { precargarMisPedidos } from "./cargarMisPedidos.js";
 
 /**
  * El botón destructivo. Es la misma caja que `claseBotonPrimario` con el color
@@ -117,6 +118,13 @@ function MiCuenta() {
   // y la fila no se dibuja — falla blanda, igual que el resto del sitio.
   const { url: urlWhatsapp } = useWhatsapp({ tipo: "home" });
   const [confirmandoSalida, setConfirmandoSalida] = useState(false);
+
+  // Precarga el chunk de `/cuenta/pedidos` (lazy en `App.jsx`): sin esto el
+  // primer "Mis pedidos" pinta el spinner de Suspense del guard ~300 ms.
+  // Fire-and-forget, mismo patrón que `Carrito.jsx` con el guard de checkout.
+  useEffect(() => {
+    precargarMisPedidos();
+  }, []);
 
   async function handleCerrarSesion() {
     await salirCuenta();

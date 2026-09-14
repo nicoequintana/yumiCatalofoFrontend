@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchConTimeout } from "../api/http.js";
 import { parsearCuerpo } from "../api/parseo.js";
+import { reiniciarPedidosCliente } from "./usePedidosCliente.js";
 
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api/cuenta`;
 
@@ -144,6 +145,11 @@ export default function usePerfilCliente() {
 export function invalidarPerfil() {
   generacion += 1;
   promesaEnVuelo = null;
+  // Login, logout o una sesión que venció son los tres casos en que la
+  // CUENTA detrás de este navegador pudo cambiar: el cache de
+  // `usePedidosCliente` es por sesión, y sin esto la próxima cuenta que entre
+  // vería, por un instante, los pedidos de la anterior.
+  reiniciarPedidosCliente();
   notificar(ESTADO_VACIO);
 }
 

@@ -6,6 +6,12 @@ import usePerfilCliente, {
   refrescarPerfil,
   sincronizarPerfil,
 } from "./usePerfilCliente.js";
+import usePedidosCliente, { reiniciarPedidosCliente } from "./usePedidosCliente.js";
+import * as cuentaApi from "../api/cuenta.js";
+
+// Solo para la integración con `usePedidosCliente`: `usePerfilCliente` en sí
+// no pasa por `api/cuenta.js` (usa `fetchConTimeout` directo a `BASE`).
+vi.mock("../api/cuenta.js");
 
 function respuesta(status, body) {
   return {
@@ -17,6 +23,7 @@ function respuesta(status, body) {
 
 afterEach(() => {
   _reiniciarParaTests();
+  reiniciarPedidosCliente();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -284,5 +291,26 @@ describe("sincronizarPerfil", () => {
     });
 
     expect(result.current.perfil).toEqual({ id: 1, nombre: "Ana Nueva" });
+  });
+});
+
+describe("invalidarPerfil limpia el cache de pedidos", () => {
+  it("un cache de pedidos no sobrevive a un cambio de sesión (login/logout/vencida)", async () => {
+    cuentaApi.getPedidos.mockResolvedValueOnce({ data: [{ id: 1 }] });
+    const pedidos = renderHook(() => usePedidosCliente());
+    await waitFor(() => expect(pedidos.result.current.cargando).toBe(false));
+    pedidos.unmount();
+
+    act(() => {
+      invalidarPerfil();
+    });
+
+    // Sin el cache, un fetch que nunca contesta deja `cargando` en `true`: si
+    // `invalidarPerfil()` no hubiera limpiado el cache, la próxima cuenta que
+    // entre en este navegador vería los pedidos de la anterior.
+    cuentaApi.getPedidos.mockReturnValue(new Promise(() => {}));
+    const segundo = renderHook(() => usePedidosCliente());
+    expect(segundo.result.current.cargando).toBe(true);
+    expect(segundo.result.current.pedidos).toBe(null);
   });
 });
