@@ -166,7 +166,8 @@ describe("AdminCategorias — selección para la home", () => {
   });
 });
 
-describe("AdminCategorias — foto de la categoría", () => {
+// Oculta por MOSTRAR_FOTO_CATEGORIA (2026-09-14): reactivar o borrar junto con la funcionalidad.
+describe.skip("AdminCategorias — foto de la categoría", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
