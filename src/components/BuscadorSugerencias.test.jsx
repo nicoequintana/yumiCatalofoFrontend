@@ -168,6 +168,37 @@ describe("BuscadorSugerencias", () => {
     expect(screen.queryByText("Resultado viejo")).not.toBeInTheDocument();
   });
 
+  it("una respuesta en vuelo no reabre el dropdown si el término ya bajó de 2 caracteres (M1)", async () => {
+    // Bug: la rama "<2 caracteres" no bumpeaba `pedidoIdRef`, así que un
+    // pedido ya en vuelo cuando se borra el término llegaba con el MISMO id
+    // de pedido que sigue vigente y reabría el dropdown que el usuario ya
+    // cerró al borrar.
+    vi.useFakeTimers();
+    let resolver;
+    getProducts.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolver = resolve;
+        }),
+    );
+
+    renderBuscador();
+    const input = screen.getByRole("searchbox", { name: "Buscar en el catálogo" });
+
+    fireEvent.change(input, { target: { value: "lam" } });
+    await vi.advanceTimersByTimeAsync(300); // dispara el pedido, todavía sin resolver
+
+    fireEvent.change(input, { target: { value: "l" } }); // <2: cierra sin pedir nada nuevo
+
+    await act(async () => {
+      resolver({ data: [producto()], total: 1 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   describe("cierre al salir del componente", () => {
     function renderConVecino() {
       return render(

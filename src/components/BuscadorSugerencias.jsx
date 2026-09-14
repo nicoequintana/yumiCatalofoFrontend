@@ -76,6 +76,11 @@ function BuscadorSugerencias({ className = "", variante = "default" }) {
     const limpio = termino.trim();
 
     if (limpio.length < 2) {
+      // Bumpea el id de pedido igual que un pedido nuevo: sin esto, una
+      // respuesta en vuelo del término anterior llega con el MISMO id que
+      // `pedidoIdRef` sigue mostrando vigente y reabre el dropdown que este
+      // borrado ya cerró.
+      ++pedidoIdRef.current;
       setResultados([]);
       setError(false);
       setAbierto(false);
