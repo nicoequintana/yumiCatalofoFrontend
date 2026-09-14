@@ -65,7 +65,11 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
       //   3. El cartel de campaña (`ModalCampania` vía `VeloModal`), `z-[60]`
       //      SIEMPRE: es el único elemento que interrumpe sin que lo pidan, y
       //      tiene que poder taparlo todo, isla abierta o no.
-      className={`fixed inset-x-0 bottom-0 flex justify-end px-margin-mobile pb-[calc(1rem+env(safe-area-inset-bottom))] md:hidden ${
+      // `pl-margin-mobile pr-4`: el borde derecho a 16px, el MISMO `right-4`
+      // del FAB de `BotonWhatsapp`, para que los dos flotantes compartan borde
+      // derecho y eje (mockup `.wa`/`.menu-flotante`). Con `px-margin-mobile`
+      // (20px) la píldora quedaba 4px más adentro que el FAB.
+      className={`fixed inset-x-0 bottom-0 flex justify-end pl-margin-mobile pr-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:hidden ${
         menuAbierto ? "z-50" : "z-40"
       }`}
     >
@@ -124,8 +128,12 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
           `backdrop-filter` (Firefox con la flag apagada, entornos sin GPU), el
           alfa se aplicaría igual pero el desenfoque no, y quedaría una
           píldora semitransparente con el contenido NÍTIDO por detrás — peor
-          que no haber intentado el efecto. Ahí el fondo pasa a opaco. */}
-      <div className="vidrio-isla flex items-center rounded-full border border-background/30 bg-inverse-surface/55 p-1.5 shadow-[inset_0_1px_0_0_rgb(253_249_242_/_0.3),0_8px_24px_-8px_rgb(28_28_24_/_0.55)] backdrop-blur-xl backdrop-saturate-150">
+          que no haber intentado el efecto. Ahí el fondo pasa a opaco.
+
+          `p-[5px]` y no `p-1.5`: 44 + 2×5 + 2×1 de borde = 56px, el mismo
+          `h-14 w-14` del FAB de WhatsApp. Con `p-1.5` medía 58 y el centro de
+          la píldora quedaba 1px corrido del centro del FAB. */}
+      <div className="vidrio-isla flex items-center rounded-full border border-background/30 bg-inverse-surface/55 p-[5px] shadow-[inset_0_1px_0_0_rgb(253_249_242_/_0.3),0_8px_24px_-8px_rgb(28_28_24_/_0.55)] backdrop-blur-xl backdrop-saturate-150">
         <button
           type="button"
           aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}

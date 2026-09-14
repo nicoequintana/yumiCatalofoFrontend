@@ -29,8 +29,9 @@ import { AREA_TACTIL_ANCHA } from "../utils/areaTactil.js";
  * offset que evita superponerse con ella es el DEFAULT de la variante, no
  * algo que cada consumidor pase por `className`.
  *
- * La cuenta, a partir de `NavFlotante.jsx`: la píldora mide `p-1.5` (0.375rem
- * por lado) + `h-11` (2.75rem) = **3.5rem** de alto, y el wrapper que la aloja
+ * La cuenta, a partir de `NavFlotante.jsx`: la píldora mide `h-11` (2.75rem)
+ * + `p-[5px]` y 1px de borde por lado = **3.5rem** (56px) de alto Y de ancho
+ * —el mismo `h-14 w-14` de este FAB—, y el wrapper que la aloja
  * la separa del borde inferior real de la pantalla con
  * `pb-[calc(1rem+env(safe-area-inset-bottom))]`. O sea que el BORDE SUPERIOR
  * de la isla queda a `1rem + 3.5rem = 4.5rem` (más el inset seguro) del fondo
@@ -43,6 +44,11 @@ import { AREA_TACTIL_ANCHA } from "../utils/areaTactil.js";
  * isla contra el fondo de pantalla. En escritorio la isla no existe
  * (`NavFlotante` es `md:hidden`), así que `md:bottom-6 md:right-6` vuelve al
  * valor de siempre.
+ *
+ * EJE COMPARTIDO CON LA ISLA (14/09/2026). `right-4` acá y `pr-4` en el wrapper
+ * de la isla: los dos flotantes a 16px del borde derecho y, como miden lo
+ * mismo (56px), sobre el mismo eje vertical. Medido a 390×844: FAB y píldora
+ * con `x = 318`, `width = 56`. Si cambia uno, cambia el otro.
  */
 function BotonWhatsapp({ contexto, productId, className = "", variant = "fab" }) {
   const { url, textoHorario } = useWhatsapp(contexto);

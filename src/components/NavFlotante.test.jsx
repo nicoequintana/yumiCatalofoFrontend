@@ -74,6 +74,22 @@ describe("NavFlotante", () => {
     expect(container.firstChild.className).toMatch(/\bmd:hidden\b/);
   });
 
+  it("se alinea con el FAB de WhatsApp: mismo borde derecho (16px) y mismo ancho (56px)", () => {
+    const { container } = montar();
+    const wrapper = container.firstChild;
+    const pildora = wrapper.firstChild;
+
+    // `BotonWhatsapp` (fab) es `right-4` y `h-14 w-14`: el wrapper de la isla
+    // tiene que dejar la píldora a los mismos 16px del borde (mockup
+    // `.wa`/`.menu-flotante`, los dos `right:16px`), no a `px-margin-mobile`
+    // (20px). Y la píldora mide 44 + 2×5 de padding + 2×1 de borde = 56px:
+    // con `p-1.5` medía 58 y los centros quedaban corridos 1px.
+    expect(wrapper).toHaveClass("pr-4");
+    expect(wrapper.className).not.toMatch(/(^|\s)px-margin-mobile(\s|$)/);
+    expect(pildora).toHaveClass("p-[5px]", "border");
+    expect(pildora).not.toHaveClass("p-1.5");
+  });
+
   it("flota a la derecha, no centrada: es donde cae el pulgar", () => {
     const { container } = montar();
 

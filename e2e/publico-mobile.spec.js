@@ -148,4 +148,11 @@ test("el FAB de WhatsApp no se superpone con la isla flotante en /coleccion", as
     cajaFab.y + cajaFab.height,
     "el FAB de WhatsApp termina antes de donde arranca la isla flotante",
   ).toBeLessThanOrEqual(cajaIsla.y);
+
+  // Los dos botones flotantes sobre UN mismo eje: mismo borde derecho y mismo
+  // centro horizontal (mockup: `.wa` y `.menu-flotante` a `right:16px`). Se
+  // mide la píldora, no el wrapper `inset-x-0` de la isla.
+  const cajaPildora = await isla.locator("> div").boundingBox();
+  expect(Math.abs(cajaFab.x + cajaFab.width - (cajaPildora.x + cajaPildora.width))).toBeLessThanOrEqual(0.5);
+  expect(Math.abs(cajaFab.x + cajaFab.width / 2 - (cajaPildora.x + cajaPildora.width / 2))).toBeLessThanOrEqual(0.5);
 });
