@@ -88,6 +88,15 @@ describe("PromosActivas — sin promo destacada (fallback a ofertas)", () => {
     expect(screen.queryByText("Oferta 9")).not.toBeInTheDocument();
   });
 
+  it("el tope de la grilla es el mismo número que pide useOfertas (una sola fuente)", async () => {
+    const { OFERTAS_POR_RIEL } = await import("../hooks/useOfertas.js");
+    const ofertas = Array.from({ length: 12 }, (_, i) => producto({ id: i + 1, nombre: `Oferta ${i + 1}` }));
+
+    renderPromos({ promoDestacada: null, ofertas, errorOfertas: null });
+
+    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(OFERTAS_POR_RIEL);
+  });
+
   it("una promo destacada sin productos cae al listado de ofertas", () => {
     renderPromos({
       promoDestacada: { id: 3, nombre: "Semana del Hogar", finVigencia: enSegundos(3600), productos: [] },

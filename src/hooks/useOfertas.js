@@ -14,11 +14,12 @@ import { getProducts } from "../api/products.js";
  */
 
 /**
- * Cuántas ofertas se piden: el tope de tarjetas de `PromosActivas`
- * (`PRODUCTOS_EN_GRILLA`, dos filas de 4 en escritorio). Pedir más sería
- * traer tarjetas que nunca se dibujan; el resto está en "Ver todas las ofertas".
+ * Cuántas ofertas se piden, y el tope de tarjetas que dibuja `PromosActivas`
+ * (lo importa de acá: una sola fuente). Dos filas de 4 en escritorio; pedir
+ * más sería traer tarjetas que nunca se dibujan — el resto está en "Ver todas
+ * las ofertas".
  */
-const OFERTAS_POR_RIEL = 8;
+export const OFERTAS_POR_RIEL = 8;
 
 /** El mensaje compartido de "falló la carga", igual en toda la app. */
 export const MENSAJE_ERROR_CARGA = "Revisá tu conexión e intentá de nuevo.";

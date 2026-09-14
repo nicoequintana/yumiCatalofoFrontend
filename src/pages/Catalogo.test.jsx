@@ -172,7 +172,7 @@ describe("Catalogo - home editorial", () => {
   it("el buscador de la home solo existe por debajo de lg, donde el header no tiene el suyo", async () => {
     const { container } = await renderPaginaLista();
 
-    const envoltorio = container.querySelector('[data-seccion-home="buscador-mobile"]');
+    const envoltorio = container.querySelector('[data-seccion-home="buscador"]');
     expect(envoltorio).toHaveClass("lg:hidden");
     expect(
       within(envoltorio).getByRole("searchbox", { name: "Buscar en el catálogo" }),
@@ -188,7 +188,7 @@ describe("Catalogo - home editorial", () => {
     expect(secciones).toEqual([
       "campanias",
       "hero",
-      "buscador-mobile",
+      "buscador",
       "circulos",
       "promos",
       "mas-vendidos",

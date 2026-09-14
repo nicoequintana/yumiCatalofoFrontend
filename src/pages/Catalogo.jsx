@@ -143,6 +143,13 @@ function Catalogo() {
             manda al pie: con el hero arriba, el primer producto entraba a los
             1.430 px en un teléfono de 412 px (medido el 05/09/2026).
 
+            Mismatch aceptado: por debajo de `md` el orden del DOM —el del
+            foco con Tab y el de un lector de pantalla— llega al h1 y al CTA
+            del hero ANTES que a las secciones que el ojo ve primero. Se
+            acepta en este corte porque la alternativa es renderizar el hero
+            dos veces (dos h1); en escritorio DOM y orden visual coinciden, y
+            el HTML del crawler (`cuerpoHome`) sigue el orden del DOM.
+
             ⚠️ Su copy está espejado en `seo.controller.js` (HERO_TITULO /
             HERO_PARRAFO / HERO_CTA). Cambiar una punta sin la otra es
             cloaking. Sin señales de confianza: envíos y WhatsApp van solo en
@@ -202,7 +209,7 @@ function Catalogo() {
             cortes son complementarios a propósito — con `md:hidden` acá, entre
             768 y 1023 px no habría ningún buscador con sugerencias. */}
         <div
-          data-seccion-home="buscador-mobile"
+          data-seccion-home="buscador"
           className="mx-auto mb-4 mt-1.5 w-full max-w-container-max px-margin-mobile md:px-margin-desktop lg:hidden"
         >
           <BuscadorSugerencias />

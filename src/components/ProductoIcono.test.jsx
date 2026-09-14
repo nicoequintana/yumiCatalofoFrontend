@@ -46,6 +46,17 @@ describe("ProductoIcono", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  // Guard de caracterización: sin foto NO queda una caja oscura vacía. Es el
+  // mismo criterio del resto del sitio (ProductCard no inventa placeholder):
+  // sin portada, el bloque de imagen no se dibuja y el texto ocupa la banda.
+  it("sin fotos no dibuja la caja de imagen vacía", () => {
+    const { container } = renderIcono(productoIconoDePrueba({ fotos: [] }));
+
+    expect(screen.getByRole("heading", { level: 2 })).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(container.querySelector(".aspect-\\[4\\/3\\]")).toBeNull();
+  });
+
   it("todo sale del producto: título, párrafo, dos specs, imagen, precio", () => {
     const producto = productoIconoDePrueba();
 

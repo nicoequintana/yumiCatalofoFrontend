@@ -2,9 +2,13 @@ import { useEffect, useId, useState } from "react";
 import CabezaSeccion from "./CabezaSeccion.jsx";
 import EstadoVacio from "./EstadoVacio.jsx";
 import ProductCard from "./ProductCard.jsx";
+import { OFERTAS_POR_RIEL } from "../hooks/useOfertas.js";
 
-/** Dos filas de la grilla de escritorio; el resto está en "Ver todas las ofertas". */
-const PRODUCTOS_EN_GRILLA = 8;
+/**
+ * Dos filas de la grilla de escritorio; el resto está en "Ver todas las
+ * ofertas". Es el MISMO número que pide `useOfertas`, importado de ahí.
+ */
+const PRODUCTOS_EN_GRILLA = OFERTAS_POR_RIEL;
 
 const SEGUNDOS_POR_DIA = 86400;
 

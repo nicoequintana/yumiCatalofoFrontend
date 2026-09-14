@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import { getProductosMasVendidos } from "../api/products.js";
 import { MENSAJE_ERROR_CARGA } from "./useOfertas.js";
 
-/** Cuántos más vendidos se piden: dos filas de la grilla de 4 columnas. */
-const MAS_VENDIDOS_POR_SECCION = 8;
+/**
+ * Cuántos más vendidos se piden: dos filas de la grilla de 4 columnas. Es
+ * también el tope de tarjetas de `MasVendidos`, que lo importa de acá.
+ */
+export const MAS_VENDIDOS_POR_SECCION = 8;
 
 /**
  * Mínimo para mostrar "Más vendidos". Con menos, la grilla de 4 columnas no

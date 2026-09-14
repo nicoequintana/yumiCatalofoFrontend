@@ -46,6 +46,12 @@ describe("useOfertas", () => {
     expect(getProductsMock).toHaveBeenCalledWith({ conDescuento: true, pageSize: 8 });
   });
 
+  it("exporta el tope para que PromosActivas no tenga una copia propia", async () => {
+    const { OFERTAS_POR_RIEL } = await import("./useOfertas.js");
+
+    expect(OFERTAS_POR_RIEL).toBe(8);
+  });
+
   it("distingue 'falló la carga' de 'no hay ofertas'", async () => {
     // Un catch que solo vacía la lista hace que un backend caído se lea como
     // "no hay ofertas". Son dos cosas distintas y la pantalla tiene que saberlo.
