@@ -9,10 +9,9 @@ import { registrarEvento } from "../api/products.js";
 
 /**
  * Tagline de marca. No hay una descripción de marca ya escrita en otro lado
- * del código (se revisó `constants/seo.js` y `constants/hero.js` antes de
- * escribir esto acá: el primero solo tiene identidad técnica de SEO —
- * dominio, nombre, imagen OG—, y el segundo son señales de confianza sueltas,
- * no una oración de marca), así que se usa el copy de la maqueta aprobada.
+ * del código (se revisó `constants/seo.js` antes de escribir esto acá: solo
+ * tiene identidad técnica de SEO — dominio, nombre, imagen OG—, no una
+ * oración de marca), así que se usa el copy de la maqueta aprobada.
  */
 const TAGLINE_MARCA = "Objetos para la casa elegidos uno por uno.";
 
@@ -80,9 +79,8 @@ function RedesSociales({ contacto }) {
 }
 
 /** Logo + tagline + redes. Se renderiza dos veces (escritorio/mobile): son dos
- * posiciones distintas en el layout, mismo criterio que las señales de
- * confianza del hero (`constants/hero.js`) — un solo nodo no puede vivir en
- * dos columnas/filas distintas a la vez. */
+ * posiciones distintas en el layout — un solo nodo no puede vivir en dos
+ * columnas/filas distintas a la vez. */
 function BloqueMarca({ doodleUrl, contacto }) {
   return (
     <div className="flex flex-col gap-4">

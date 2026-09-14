@@ -60,8 +60,7 @@ function claseTab({ isActive }) {
  *
  * Se resuelve con un flag en el dato y CSS, NO con `matchMedia`: el frontend no
  * tiene ninguno y el plan del admin responsive lo descarta a propósito. Mismo
- * mecanismo que `soloChico` en `EditorTabs.jsx` y `soloEscritorio` en
- * `constants/hero.js`.
+ * mecanismo que `soloChico` en `EditorTabs.jsx`.
  */
 const ITEMS_NAV = [
   { to: "/catalogo/admin/productos", icono: "inventory_2", label: "Productos" },

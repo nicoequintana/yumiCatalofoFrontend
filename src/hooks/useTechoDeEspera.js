@@ -20,8 +20,14 @@ import { useEffect, useState } from "react";
  *
  * POR QUÉ ESE NÚMERO, y no uno más generoso: es el último instante en que la
  * home todavía puede pintar dentro del umbral de 2,5 s con que Google califica
- * un LCP como "bueno" —quedan ~500 ms para la foto del hero, que ya sale con
- * `fetchPriority="high"` y además se precarga MIENTRAS el loader está puesto—.
+ * un LCP como "bueno" —quedan ~500 ms de margen para terminar de pintar—.
+ * ⚠️ Hasta el 13/09/2026 ese margen era para la FOTO del hero
+ * (`fetchPriority="high"`, precargada MIENTRAS el loader está puesto); el
+ * hero del rediseño de esa fecha es copy puro, sin foto (ver "Hero",
+ * `docs/reglas/catalogo-publico.md`), así que hoy el margen es genérico —
+ * el razonamiento del NÚMERO (2s, con margen para terminar de pintar bajo el
+ * umbral de LCP) sigue valiendo igual, solo cambió qué elemento se
+ * beneficiaba del margen.
  * Un techo más alto compraría un poco menos de riesgo de soltar temprano al
  * precio de la métrica que este proyecto mide.
  *
