@@ -28,7 +28,21 @@ const ICONO_ESTADO = {
  * como `sinStock` — la alternativa (dejar agregar sin tope real) vendería
  * stock que no se puede confirmar.
  */
-function BotonAgregar({ producto, className = "" }) {
+/**
+ * Colores por superficie. `claro` es el de la card. `sobrePrimario` es para
+ * secciones con fondo `bg-primary` (`ProductoIcono`): ahí el hover de `claro`
+ * pinta el botón del MISMO color que la sección y el botón desaparece. Sobre
+ * el oscuro va como botón fantasma (relleno `on-primary` al 10 %) y el hover
+ * invierte a relleno claro con texto oscuro.
+ */
+const COLORES_VARIANTE = {
+  claro:
+    "bg-surface-container-high text-primary enabled:hover:bg-primary enabled:hover:text-on-primary disabled:bg-surface-container disabled:text-outline",
+  sobrePrimario:
+    "bg-on-primary/10 text-on-primary ring-1 ring-inset ring-on-primary/40 enabled:hover:bg-on-primary enabled:hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-primary focus-visible:ring-offset-2 focus-visible:ring-offset-primary disabled:bg-on-primary/5 disabled:text-on-primary-container",
+};
+
+function BotonAgregar({ producto, className = "", variante = "claro" }) {
   const { carrito, agregar } = useCarrito();
   const { mostrarToast } = useToast();
 
@@ -59,7 +73,7 @@ function BotonAgregar({ producto, className = "" }) {
       // `not-disabled` como variante, la descarta en silencio (sin error, sin
       // CSS emitido) y el hover terminaba aplicándose SIEMPRE, disabled
       // incluido. `enabled:` sí existe desde v3.0 y es el idiom correcto acá.
-      className={`flex h-9 items-center justify-center gap-1.5 rounded-full bg-surface-container-high font-label-md text-label-md text-primary transition-colors enabled:hover:bg-primary enabled:hover:text-on-primary disabled:cursor-not-allowed disabled:bg-surface-container disabled:text-outline md:h-11 ${className}`}
+      className={`flex h-9 items-center justify-center gap-1.5 rounded-full font-label-md text-label-md transition-colors disabled:cursor-not-allowed md:h-11 ${COLORES_VARIANTE[variante] ?? COLORES_VARIANTE.claro} ${className}`}
     >
       <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
         {ICONO_ESTADO[estado]}

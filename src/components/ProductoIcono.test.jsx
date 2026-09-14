@@ -120,6 +120,18 @@ describe("ProductoIcono", () => {
     expect(screen.getByRole("button", { name: /agregar/i })).toBeInTheDocument();
   });
 
+  it("el hover de Agregar NO usa el color de fondo de la sección (no desaparece sobre bg-primary)", () => {
+    renderIcono(productoIconoDePrueba());
+
+    const clases = screen.getByRole("button", { name: /agregar/i }).className.split(/\s+/);
+    // La sección es `bg-primary`: un hover al mismo token deja el botón
+    // invisible contra el fondo.
+    expect(clases.filter((c) => /hover:/.test(c) && /(^|:)bg-primary(\/|$)/.test(c))).toEqual([]);
+    expect(clases).toEqual(
+      expect.arrayContaining(["enabled:hover:bg-on-primary", "enabled:hover:text-primary", "focus-visible:ring-2"]),
+    );
+  });
+
   it("no muestra el lugar de garantía: no hay dato", () => {
     renderIcono(productoIconoDePrueba());
 

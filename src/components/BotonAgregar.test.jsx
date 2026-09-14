@@ -103,4 +103,17 @@ describe("BotonAgregar", () => {
     const boton = screen.getByRole("button", { name: /agregar/i });
     expect(boton.closest("a")).toBeNull();
   });
+  it("sin variante conserva el estilo de la card: fondo claro y hover a primary", () => {
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <BotonAgregar producto={producto()} />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    const clases = screen.getByRole("button", { name: /agregar/i }).className.split(/\s+/);
+    expect(clases).toEqual(
+      expect.arrayContaining(["bg-surface-container-high", "text-primary", "enabled:hover:bg-primary", "enabled:hover:text-on-primary"]),
+    );
+  });
 });

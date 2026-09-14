@@ -91,7 +91,9 @@ export default function ProductoIcono({ producto = null }) {
                 arrow_forward
               </span>
             </Link>
-            <BotonAgregar producto={producto} className="!h-11 px-5" />
+            {/* `sobrePrimario`: con el color de la card, el hover pintaba el botón
+                de `bg-primary`, el mismo fondo de esta sección, y desaparecía. */}
+            <BotonAgregar producto={producto} variante="sobrePrimario" className="!h-11 px-5" />
           </div>
 
           {stockBajo ? (
