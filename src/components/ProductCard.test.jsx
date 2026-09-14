@@ -113,18 +113,22 @@ describe("ProductCard — badges nuevos", () => {
     expect(screen.queryByText("Nuevo")).not.toBeInTheDocument();
   });
 
-  it("apila DESTACADO y NUEVO cuando el producto es las dos cosas", () => {
+  it("un producto destacado y nuevo muestra UN solo chip de estado: DESTACADO gana", () => {
+    // Prioridad DESTACADO > NUEVO: dos chips apilados sobre la foto competían
+    // entre sí y tapaban la imagen en la grilla de dos columnas del móvil.
     renderCard(producto({ destacado: true, esNuevo: true }));
-    const destacado = screen.getByText("Destacado");
-    const nuevo = screen.getByText("Nuevo");
-    // Apilados = mismo contenedor, no dos chips `absolute` superpuestos en la
-    // misma esquina (que es lo que pasaría si cada uno se posicionara solo).
-    expect(destacado.parentElement).toBe(nuevo.parentElement);
+    expect(screen.getByText("Destacado")).toBeInTheDocument();
+    expect(screen.queryByText("Nuevo")).not.toBeInTheDocument();
   });
 
-  it("muestra el % OFF cuando hay descuento", () => {
-    renderCard(producto({ descuento: { porcentaje: 20 } }));
-    expect(screen.getByText("20% OFF")).toBeInTheDocument();
+  it("con descuento NO hay chip de % OFF sobre la foto: lo muestra PrecioProducto junto al precio", () => {
+    renderCard(producto({ precio: "1000", precioEfectivo: "800", descuento: { porcentaje: 20 } }));
+    const chips = screen.getAllByText("20% OFF");
+    expect(chips).toHaveLength(1);
+    // El único vive dentro del bloque del precio, no en la caja de la foto.
+    const precio = document.querySelector('[data-precio="efectivo"]');
+    expect(precio.parentElement).toContainElement(chips[0]);
+    expect(screen.getByRole("img").parentElement).not.toContainElement(chips[0]);
   });
 
   it("el chip de últimas unidades usa superficie clara, no el rojo de error", () => {
@@ -137,17 +141,15 @@ describe("ProductCard — badges nuevos", () => {
 });
 
 describe("ProductCard — tratamiento del mockup", () => {
-  it("los cinco chips son píldoras (rounded-full)", () => {
+  it("los chips de la foto son píldoras (rounded-full)", () => {
     renderCard(
       producto({
         destacado: true,
-        esNuevo: true,
         stock: 2,
-        descuento: { porcentaje: 20 },
         etiqueta: { id: 1, nombre: "Exclusivo", colorFondo: null, colorTexto: null },
       }),
     );
-    for (const texto of ["Destacado", "Nuevo", "20% OFF", "Exclusivo", "Últimos 2"]) {
+    for (const texto of ["Destacado", "Exclusivo", "Últimos 2"]) {
       const chip = screen.getAllByText(texto).find((el) => el.closest("a"));
       const clases = chip.className.split(" ");
       expect(clases, texto).toContain("rounded-full");

@@ -29,27 +29,22 @@ function ProductCard({ producto }) {
   const shell =
     "bg-surface-container-lowest rounded-xl shadow-ambient relative group flex flex-col h-full overflow-hidden transition-shadow hover:shadow-lg";
 
-  // Sin `absolute`: vive en la pila de chips de arriba a la izquierda, junto a
-  // NUEVO y %OFF. `tertiary-container` y no `secondary` (mockup `.chip--dest`):
-  // en la paleta pública `secondary` es el naranja del %OFF, y los dos chips
-  // apilados del mismo color no se distinguirían.
-  const destacadoChip = producto.destacado ? (
+  // UN solo chip de estado arriba a la izquierda, por prioridad
+  // DESTACADO > NUEVO (decisión con el usuario, 13/09/2026): dos chips
+  // apilados competían entre sí y tapaban la foto en la grilla móvil de dos
+  // columnas. El "% OFF" tampoco va sobre la foto: ya lo muestra
+  // `PrecioProducto` al lado del precio, y repetirlo era ruido.
+  // `tertiary-container` para el destacado (mockup `.chip--dest`) y `primary`
+  // para el nuevo. `esNuevo` lo resuelve el backend (fecha de alta): la card
+  // no mira fechas.
+  const chipEstado = producto.destacado ? (
     <span className="font-label-sm text-label-sm flex items-center gap-1 rounded-full bg-tertiary-container px-2 py-1 uppercase tracking-wide text-on-tertiary-container">
       <span aria-hidden="true" className="material-symbols-outlined text-[14px]">star</span>
       Destacado
     </span>
-  ) : null;
-
-  // `esNuevo` lo resuelve el backend (fecha de alta): la card no mira fechas.
-  const nuevoChip = producto.esNuevo ? (
+  ) : producto.esNuevo ? (
     <span className="font-label-sm text-label-sm rounded-full bg-primary px-2 py-1 uppercase tracking-wide text-on-primary">
       Nuevo
-    </span>
-  ) : null;
-
-  const offChip = producto.descuento?.porcentaje ? (
-    <span className="font-label-sm text-label-sm rounded-full bg-secondary px-2 py-1 uppercase tracking-wide text-on-secondary">
-      {producto.descuento.porcentaje}% OFF
     </span>
   ) : null;
 
@@ -154,11 +149,7 @@ function ProductCard({ producto }) {
               draggable={false}
             />
           ) : null}
-          <div className="absolute left-2 top-2 z-10 flex flex-col items-start gap-1">
-            {destacadoChip}
-            {nuevoChip}
-            {offChip}
-          </div>
+          {chipEstado ? <div className="absolute left-2 top-2 z-10">{chipEstado}</div> : null}
           {etiquetaChip}
           {pocoStockChip}
         </div>
