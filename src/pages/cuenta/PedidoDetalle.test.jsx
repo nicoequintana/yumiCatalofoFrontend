@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render, renderHook, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PedidoDetalle from "./PedidoDetalle.jsx";
+import usePedidosCliente, { reiniciarPedidosCliente } from "../../hooks/usePedidosCliente.js";
 import * as cuentaApi from "../../api/cuenta.js";
 
 vi.mock("../../api/cuenta.js");
@@ -30,6 +31,7 @@ const PEDIDO = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  reiniciarPedidosCliente();
 });
 
 afterEach(() => {
@@ -84,5 +86,36 @@ describe("PedidoDetalle — error de red", () => {
 
     expect(await screen.findByText("No pudimos cargar el pedido")).toBeInTheDocument();
     expect(screen.queryByText("No encontramos ese pedido")).not.toBeInTheDocument();
+  });
+});
+
+describe("PedidoDetalle — sin ghosting (mismo bug que Mis pedidos)", () => {
+  it("un pedido ya visto remonta con sus items, aunque el refetch no conteste", async () => {
+    cuentaApi.getPedidoPorId.mockResolvedValueOnce(PEDIDO);
+    const primero = renderConId(42);
+    await screen.findByText(/Reloj Clásico/);
+    primero.unmount();
+
+    cuentaApi.getPedidoPorId.mockReturnValue(new Promise(() => {}));
+    renderConId(42);
+
+    expect(screen.getByText("Pedido #42")).toBeInTheDocument();
+    expect(screen.getByText(/Reloj Clásico/)).toBeInTheDocument();
+  });
+
+  it("desde el listado cacheado, pinta YA la cabecera y el total con el resumen", async () => {
+    cuentaApi.getPedidos.mockResolvedValueOnce({
+      data: [{ id: 42, estado: "ENTREGADA", estadoEtiqueta: "Entregada", createdAt: PEDIDO.createdAt, total: "1500" }],
+    });
+    const lista = renderHook(() => usePedidosCliente());
+    await waitFor(() => expect(lista.result.current.cargando).toBe(false));
+    lista.unmount();
+
+    cuentaApi.getPedidoPorId.mockReturnValue(new Promise(() => {}));
+    renderConId(42);
+
+    expect(screen.getByText("Pedido #42")).toBeInTheDocument();
+    expect(screen.getByText(/Entregada/)).toBeInTheDocument();
+    expect(screen.getByText(/Total:/)).toBeInTheDocument();
   });
 });

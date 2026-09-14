@@ -7,6 +7,7 @@ import RequireAuth from "./components/RequireAuth.jsx";
 import Spinner from "./components/Spinner.jsx";
 import { cargarRequireAuthCliente } from "./components/cargarRequireAuthCliente.js";
 import { cargarMisPedidos } from "./pages/cuenta/cargarMisPedidos.js";
+import { cargarPedidoDetalle } from "./pages/cuenta/cargarPedidoDetalle.js";
 import Catalogo from "./pages/Catalogo.jsx";
 import Coleccion from "./pages/Coleccion.jsx";
 import Favoritos from "./pages/Favoritos.jsx";
@@ -78,7 +79,7 @@ const MiCuenta = lazy(() => import("./pages/cuenta/MiCuenta.jsx"));
 const Seguridad = lazy(() => import("./pages/cuenta/Seguridad.jsx"));
 const Datos = lazy(() => import("./pages/cuenta/Datos.jsx"));
 const MisPedidos = lazy(cargarMisPedidos);
-const PedidoDetalle = lazy(() => import("./pages/cuenta/PedidoDetalle.jsx"));
+const PedidoDetalle = lazy(cargarPedidoDetalle);
 
 // El mismo fallback para las trece pantallas de cuenta: repetirlo inline en
 // cada `Suspense` era catorce copias del mismo div.

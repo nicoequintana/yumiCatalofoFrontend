@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import { formatFecha, formatPrecio } from "../../utils/formato.js";
 import usePedidosCliente from "../../hooks/usePedidosCliente.js";
+import { precargarPedidoDetalle } from "./cargarPedidoDetalle.js";
 
 const MENSAJE_ERROR = "Revisá tu conexión e intentá de nuevo.";
 
@@ -13,6 +15,12 @@ function MisPedidos() {
   // el mismo ghosting al ir y volver de `/cuenta` que ya se midió y resolvió
   // en el carrito y el checkout.
   const { pedidos, cargando, error, recargar } = usePedidosCliente();
+
+  // Precarga el chunk del detalle (lazy en `App.jsx`): abrir un pedido no
+  // pinta el spinner de Suspense del guard. Mismo patrón que `MiCuenta.jsx`.
+  useEffect(() => {
+    precargarPedidoDetalle();
+  }, []);
 
   if (cargando) return null;
 

@@ -5,8 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MisPedidos from "./MisPedidos.jsx";
 import { reiniciarPedidosCliente } from "../../hooks/usePedidosCliente.js";
 import * as cuentaApi from "../../api/cuenta.js";
+import { precargarPedidoDetalle } from "./cargarPedidoDetalle.js";
 
 vi.mock("../../api/cuenta.js");
+vi.mock("./cargarPedidoDetalle.js", () => ({ precargarPedidoDetalle: vi.fn() }));
 
 function renderMisPedidos() {
   return render(
@@ -132,5 +134,15 @@ describe("MisPedidos — sin ghosting al remontar (mismo bug que carrito/checkou
 
     expect(await screen.findByText("Todavía no hiciste ningún pedido")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Pedido #42/ })).not.toBeInTheDocument();
+  });
+});
+
+describe("MisPedidos — precarga del detalle", () => {
+  it("al montar precarga el chunk del detalle (sin spinner de Suspense al abrir un pedido)", async () => {
+    cuentaApi.getPedidos.mockReturnValue(nuncaContesta());
+
+    renderMisPedidos();
+
+    expect(precargarPedidoDetalle).toHaveBeenCalled();
   });
 });

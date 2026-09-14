@@ -329,3 +329,10 @@ describe("MiCuenta — markup del layout de escritorio", () => {
     expect(configuracion).toHaveClass("lg:col-start-3", "lg:row-start-2");
   });
 });
+
+describe("MiCuenta — precarga de Mis pedidos", () => {
+  it("al montar pide el listado de pedidos, así el primer 'Mis pedidos' no arranca en blanco", () => {
+    renderMiCuenta(PERFIL_LOCAL);
+    expect(cuentaApi.getPedidos).toHaveBeenCalled();
+  });
+});

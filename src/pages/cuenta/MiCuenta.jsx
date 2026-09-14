@@ -7,6 +7,7 @@ import { salirCuenta } from "../../api/cuenta.js";
 import { iniciales } from "../../utils/iniciales.js";
 import { clasePaginaDensa } from "./clasesCuenta.js";
 import { precargarMisPedidos } from "./cargarMisPedidos.js";
+import { precargarPedidosCliente } from "../../hooks/usePedidosCliente.js";
 
 /**
  * El botón destructivo. Es la misma caja que `claseBotonPrimario` con el color
@@ -119,11 +120,14 @@ function MiCuenta() {
   const { url: urlWhatsapp } = useWhatsapp({ tipo: "home" });
   const [confirmandoSalida, setConfirmandoSalida] = useState(false);
 
-  // Precarga el chunk de `/cuenta/pedidos` (lazy en `App.jsx`): sin esto el
-  // primer "Mis pedidos" pinta el spinner de Suspense del guard ~300 ms.
-  // Fire-and-forget, mismo patrón que `Carrito.jsx` con el guard de checkout.
+  // Precarga el chunk de `/cuenta/pedidos` (lazy en `App.jsx`) y el listado:
+  // sin el chunk, el primer "Mis pedidos" pinta el spinner de Suspense del
+  // guard ~300 ms; sin el listado, pinta el `main` en blanco mientras viaja la
+  // request (medido 14/09/2026). Fire-and-forget, mismo patrón que
+  // `Carrito.jsx` con el guard de checkout.
   useEffect(() => {
     precargarMisPedidos();
+    precargarPedidosCliente();
   }, []);
 
   async function handleCerrarSesion() {
