@@ -90,7 +90,10 @@ test.describe("Producto agotado — visible pero no comprable", () => {
 
   test("el producto agotado no aparece en el listado público de /coleccion", async ({ page }) => {
     await page.goto("/coleccion");
-    await page.getByPlaceholder(/buscar/i).fill("E2E-TEST-Producto Agotado");
+    // Nombre EXACTO: el buscador del header (`BuscadorSugerencias`, ≥lg) es
+    // "Buscar en el catálogo" y también matchea /buscar/i — ver el mismo
+    // comentario en `flujo-feliz.spec.js`.
+    await page.getByRole("textbox", { name: "Buscar", exact: true }).fill("E2E-TEST-Producto Agotado");
     await expect(page).toHaveURL(/search=E2E-TEST-Producto/);
 
     // Excluido de la grilla pública: no ocupa un slot del listado.

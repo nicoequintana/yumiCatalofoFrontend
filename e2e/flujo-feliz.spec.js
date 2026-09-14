@@ -74,7 +74,13 @@ test.describe("Flujo feliz — checkout autenticado", () => {
   }) => {
     await test.step("agregar el producto al carrito desde el catálogo", async () => {
       await page.goto("/coleccion");
-      await page.getByPlaceholder(/buscar/i).fill("E2E-TEST-Producto Flujo Feliz");
+      // El buscador del header (`BuscadorSugerencias`, ≥lg) también matchea
+      // /buscar/i por placeholder y accessible name ("Buscar en el
+      // catálogo"): el nombre EXACTO distingue el campo de `FiltrosCatalogo`
+      // ("Buscar" a secas, ver `docs/reglas/catalogo-publico.md`).
+      await page
+        .getByRole("textbox", { name: "Buscar", exact: true })
+        .fill("E2E-TEST-Producto Flujo Feliz");
       // El input de búsqueda debouncea 350ms antes de escribir a la URL y
       // recién ahí dispara el refetch — esperar a que la URL refleje el
       // filtro evita clickear el link justo en medio de ese re-render.
