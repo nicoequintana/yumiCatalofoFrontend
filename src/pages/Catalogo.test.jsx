@@ -1,5 +1,5 @@
 import { StrictMode } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { ToastProvider } from "../context/ToastContext.jsx";
@@ -8,15 +8,21 @@ import Catalogo from "./Catalogo.jsx";
 import Coleccion from "./Coleccion.jsx";
 import * as productsApi from "../api/products.js";
 import * as categoriasApi from "../api/categorias.js";
+import * as promocionesApi from "../api/promociones.js";
+import * as configApi from "../api/config.js";
 
 vi.mock("../api/products.js");
 vi.mock("../api/categorias.js");
+vi.mock("../api/promociones.js");
+vi.mock("../api/config.js");
 
 // El carrusel de campañas reemplazó al banner: `useContextoComercial` se
 // mockea para no depender de una request real, mismo patrón que
 // `Footer.test.jsx`.
 const contextoMock = vi.fn();
 vi.mock("../hooks/useContextoComercial.js", () => ({ default: () => contextoMock() }));
+
+const TITULO_HERO = "Objetos singulares que transforman tu cotidiano.";
 
 const PRODUCTO = {
   id: 1,
@@ -25,6 +31,16 @@ const PRODUCTO = {
   categoria: null,
   precio: "1000",
   fotos: [],
+};
+
+const SLIDE_CAMPANIA = {
+  tipo: "CAMPANIA",
+  campaniaId: 7,
+  titulo: "Primavera YIMA",
+  texto: null,
+  ctaDestino: null,
+  arteUrl: null,
+  doodleUrl: null,
 };
 
 function renderPagina() {
@@ -42,11 +58,10 @@ function renderPagina() {
 /**
  * Renderiza la home y espera a que el loader de carga inicial se levante.
  *
- * Desde el 07/09/2026 la home se tapa con un velo hasta que sus cuatro fuentes
- * resuelven (ver `Catalogo.carga.test.jsx`), así que NINGÚN aserto sobre el
- * contenido puede ser síncrono: el primer render solo tiene el spinner. El
- * `<h1>` del hero es la señal de que ya está todo dibujado — es lo ÚLTIMO de
- * la página, así que si está él está todo lo de arriba.
+ * La home se tapa con un velo hasta que sus fuentes resuelven (ver
+ * `Catalogo.carga.test.jsx`), así que NINGÚN aserto sobre el contenido puede
+ * ser síncrono: el primer render solo tiene el spinner. El `<h1>` del hero es
+ * la señal de que el velo se levantó — la página se dibuja entera de una vez.
  */
 async function renderPaginaLista() {
   const utils = renderPagina();
@@ -62,18 +77,26 @@ function pagina(filas, extra = {}) {
   return { data: filas, page: 1, pageSize: 12, total: filas.length, ...extra };
 }
 
+/** La `<section>` del hero: el ancestro más cercano del único `<h1>`. */
+function seccionHero() {
+  return screen.getByRole("heading", { level: 1 }).closest("[data-seccion-home]");
+}
+
 describe("Catalogo - home editorial", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+    productsApi.getProductosMasVendidos.mockResolvedValue(pagina([]));
+    promocionesApi.getPromocionDestacada.mockResolvedValue(null);
+    configApi.getConfiguracionHome.mockResolvedValue({ productoIcono: null });
     // La home monta `CirculosCategoria`, que pide las categorías. Sin este
     // default el auto-mock devuelve `undefined` y el hook revienta con un
     // `undefined.then(...)` síncrono dentro del efecto — un artefacto de la
     // harness, no del producto: la API real siempre devuelve una promesa.
     // Cada test que necesite categorías concretas pisa este valor.
     categoriasApi.getCategorias.mockResolvedValue([]);
-    // Default sin campañas ni ofertas: el carrusel no dibuja nada, mismo
-    // estado inicial que el catálogo real sin contexto comercial cargado.
+    // Default sin campañas: el carrusel no dibuja nada, mismo estado inicial
+    // que el catálogo real sin contexto comercial cargado.
     contextoMock.mockReturnValue({
       slides: [],
       modal: null,
@@ -83,73 +106,134 @@ describe("Catalogo - home editorial", () => {
     });
   });
 
-  it("muestra el hero con el copy de marca", async () => {
+  it("en el DOM hay un solo h1, con el copy del hero", async () => {
     await renderPaginaLista();
 
-    // El texto del eyebrow va en minúsculas en el DOM y lo pasa a mayúsculas el
-    // CSS (`uppercase`). Es a propósito: el aserto —y un lector de pantalla—
-    // leen la cadena legible, no una versión gritada.
-    expect(screen.getByText("Útiles • Innovadores • Para tu día a día")).toBeInTheDocument();
+    const encabezados = screen.getAllByRole("heading", { level: 1 });
+    expect(encabezados).toHaveLength(1);
+    expect(encabezados[0]).toHaveTextContent(TITULO_HERO);
+  });
 
-    // El acento cromático de "más fácil." es un <span> DENTRO del <h1>, así que
-    // el nombre accesible sigue siendo la frase entera. Este aserto es lo que
-    // detectaría que alguien parta el titular en dos encabezados.
+  it("muestra el eyebrow y el párrafo del hero", async () => {
+    await renderPaginaLista();
+
+    const hero = seccionHero();
+    // El eyebrow va en caja normal en el DOM y lo pasa a mayúsculas el CSS: el
+    // aserto —y un lector de pantalla— leen la cadena legible.
+    expect(within(hero).getByText("Edición curada · Temporada 2026")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", {
-        name: "Descubrí cosas que te hacen la vida más fácil.",
-        level: 1,
-      }),
+      within(hero).getByText(
+        "Una selección táctil y funcional para el bienestar de la casa, la pausa y los rituales de todos los días. Cada pieza, elegida una por una.",
+      ),
     ).toBeInTheDocument();
   });
 
   it("el hero tiene UN solo CTA, que navega a /coleccion", async () => {
     await renderPaginaLista();
 
-    // Nombre por regex y no por igualdad: el link lleva un ícono de flecha
-    // adentro, y atarse al texto exacto rompería el test si el ícono cambia de
-    // nombre o de posición.
-    expect(screen.getByRole("link", { name: /ver productos/i })).toHaveAttribute(
-      "href",
-      "/coleccion",
-    );
-
-    // El mockup traía un segundo botón ("Explorar ahora") al MISMO destino. Se
-    // quitó por pedido explícito: dos acciones idénticas no son jerarquía. Este
-    // aserto existe para que no vuelva a colarse.
-    expect(screen.queryByRole("link", { name: /explorar ahora/i })).not.toBeInTheDocument();
+    const hero = seccionHero();
+    const links = within(hero).getAllByRole("link");
+    expect(links).toHaveLength(1);
+    // Regex y no igualdad: el link lleva un ícono de flecha adentro.
+    expect(links[0]).toHaveAccessibleName(/ver todo el catálogo/i);
+    expect(links[0]).toHaveAttribute("href", "/coleccion");
   });
 
-  // Las señales de confianza se renderizan DOS veces (fila en escritorio,
-  // tarjeta flotante en móvil) porque viven en columnas distintas del grid y no
-  // hay forma de mover un solo nodo entre ellas. En un navegador solo una está
-  // visible; en jsdom no hay CSS, así que las dos están en el DOM. Este test
-  // fija esa duplicación a propósito: si alguien la "arregla" dejando un solo
-  // nodo, o si las dos copias se separan, falla acá y no en producción.
-  it("las señales de confianza se renderizan en sus dos variantes con el mismo origen", async () => {
+  it("las señales de confianza YA NO viven en el hero", async () => {
     await renderPaginaLista();
 
-    // Un ítem sin variante compacta aparece igual en las dos.
-    expect(screen.getAllByText("Diferentes")).toHaveLength(2);
-
-    // Etiqueta larga (fila de escritorio) y corta (tarjeta móvil) del mismo ítem.
-    expect(screen.getByText("Para vos o para regalar")).toBeInTheDocument();
-    expect(screen.getByText("Para regalar")).toBeInTheDocument();
-
-    // `soloEscritorio`: el ítem más largo no entra en la tarjeta de un teléfono
-    // sin partirla en dos renglones, así que aparece UNA sola vez. Si alguien
-    // saca ese flag "por consistencia", este aserto lo detiene.
-    expect(screen.getAllByText("Productos seleccionados")).toHaveLength(1);
+    expect(screen.queryByText("Productos seleccionados")).not.toBeInTheDocument();
+    expect(screen.queryByText("Para vos o para regalar")).not.toBeInTheDocument();
+    expect(screen.queryByText("Para regalar")).not.toBeInTheDocument();
   });
 
-  // Complementa al test de `href` de arriba: ese sólo mira el atributo, así
-  // que no detectaría que el link dejara de navegar de verdad (ej. si el
-  // `Link` volviera a ser un `<a>` común con recarga completa, o si la ruta
-  // no estuviera registrada). Antes de la separación esto era un scroll
-  // dentro de la misma página; ahora es navegación entre rutas, que tiene
-  // más formas de romperse.
+  it("el hero no carga ninguna foto", async () => {
+    await renderPaginaLista();
+
+    expect(within(seccionHero()).queryByRole("img")).toBeNull();
+  });
+
+  // jsdom no aplica CSS: lo que se fija es el markup del que depende el orden
+  // visual. `order-last` lo manda al pie en mobile y `md:order-none` lo devuelve
+  // a su lugar del DOM (después de las campañas) en escritorio.
+  it("el hero va al pie en mobile y vuelve a su lugar en escritorio, con CSS order", async () => {
+    const { container } = await renderPaginaLista();
+
+    const columna = seccionHero().parentElement;
+    expect(columna).toHaveClass("flex", "flex-col");
+    expect(seccionHero()).toHaveClass("order-last", "md:order-none");
+    // Todas las secciones son hermanas del hero: `order` solo reordena hijos
+    // directos del contenedor flex.
+    expect(container.querySelectorAll("[data-seccion-home]")).toHaveLength(columna.children.length);
+    // `Layout.jsx` ya pone el `<main>`: la página no anida otro.
+    expect(container.querySelector("main")).toBeNull();
+  });
+
+  it("el buscador de la home solo existe por debajo de lg, donde el header no tiene el suyo", async () => {
+    const { container } = await renderPaginaLista();
+
+    const envoltorio = container.querySelector('[data-seccion-home="buscador-mobile"]');
+    expect(envoltorio).toHaveClass("lg:hidden");
+    expect(
+      within(envoltorio).getByRole("searchbox", { name: "Buscar en el catálogo" }),
+    ).toBeInTheDocument();
+  });
+
+  it("el orden en el DOM es: campañas, hero, buscador, círculos, promos, más vendidos, ícono, nuevos, destacados, confianza", async () => {
+    const { container } = await renderPaginaLista();
+
+    const secciones = [...container.querySelectorAll("[data-seccion-home]")].map(
+      (el) => el.dataset.seccionHome,
+    );
+    expect(secciones).toEqual([
+      "campanias",
+      "hero",
+      "buscador-mobile",
+      "circulos",
+      "promos",
+      "mas-vendidos",
+      "producto-icono",
+      "nuevos-ingresos",
+      "destacados",
+      "confianza",
+    ]);
+  });
+
+  it("monta las tarjetas de confianza", async () => {
+    await renderPaginaLista();
+
+    expect(screen.getByRole("heading", { name: "Envíos a todo el país" })).toBeInTheDocument();
+  });
+
+  it("pasa la promo destacada a PromosActivas", async () => {
+    promocionesApi.getPromocionDestacada.mockResolvedValue({
+      id: 3,
+      nombre: "Semana del Hogar",
+      finVigencia: new Date(Date.now() + 3_600_000).toISOString(),
+      productos: [{ ...PRODUCTO, id: 9, nombre: "Lámpara en promo" }],
+    });
+
+    await renderPaginaLista();
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Semana del Hogar" })).toBeInTheDocument();
+  });
+
+  it("pasa los más vendidos a su sección", async () => {
+    productsApi.getProductosMasVendidos.mockResolvedValue(
+      pagina([1, 2, 3, 4].map((id) => ({ ...PRODUCTO, id, nombre: `Vendido ${id}` }))),
+    );
+
+    await renderPaginaLista();
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Más vendidos" })).toBeInTheDocument();
+  });
+
+  // Complementa al test de `href`: ese sólo mira el atributo, así que no
+  // detectaría que el link dejara de navegar de verdad (ej. si el `Link`
+  // volviera a ser un `<a>` común con recarga completa, o si la ruta no
+  // estuviera registrada).
   it("clickear el botón del hero renderiza la página de colección", async () => {
     const user = userEvent.setup();
-    categoriasApi.getCategorias.mockResolvedValue([]);
 
     render(
       <StrictMode>
@@ -164,11 +248,10 @@ describe("Catalogo - home editorial", () => {
       </StrictMode>,
     );
 
-    // `findBy` y no `getBy`: la home arranca tapada por el loader de carga
-    // inicial, así que el CTA del hero todavía no está en el primer render.
-    await user.click(await screen.findByRole("link", { name: /ver productos/i }));
+    // `findBy`: la home arranca tapada por el loader de carga inicial.
+    await user.click(await screen.findByRole("link", { name: /ver todo el catálogo/i }));
 
-    // Contenido propio de /coleccion, que la home ya no renderiza.
+    // Contenido propio de /coleccion, que la home no renderiza.
     expect(await screen.findByLabelText("Buscar")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Todos los productos" })).toBeInTheDocument();
     expect(screen.queryByText("El Manifiesto YIMA")).not.toBeInTheDocument();
@@ -180,44 +263,8 @@ describe("Catalogo - home editorial", () => {
     expect(screen.queryByText("El Manifiesto YIMA")).toBeNull();
   });
 
-  it("el hero conserva el h1 y va DESPUÉS de los productos", async () => {
-    // Necesita al menos un slide: sin campañas ni ofertas
-    // `CarruselCampanias` no monta el `<section>` y no habría contra qué
-    // comparar la posición del hero.
-    contextoMock.mockReturnValue({
-      slides: [
-        {
-          tipo: "CAMPANIA",
-          campaniaId: 7,
-          titulo: "Primavera YIMA",
-          texto: null,
-          ctaDestino: null,
-          arteUrl: null,
-          doodleUrl: null,
-        },
-      ],
-      modal: null,
-      doodle: null,
-      claveDia: "2026-09-05",
-      resuelto: true,
-    });
-
-    await renderPaginaLista();
-
-    const h1 = screen.getByRole("heading", { level: 1 });
-    expect(h1).toHaveTextContent("Descubrí cosas que te hacen la vida más fácil.");
-
-    // El orden importa: la home abre con mercadería, no con marca.
-    const carrusel = screen.getByRole("region", { name: "Campañas y ofertas" });
-    expect(carrusel.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
   it("no renderiza la barra de filtros ni el grid de productos", async () => {
     await renderPaginaLista();
-
-    await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalled();
-    });
 
     expect(screen.queryByLabelText("Categoría")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Buscar")).not.toBeInTheDocument();
@@ -227,9 +274,7 @@ describe("Catalogo - home editorial", () => {
   it("el carrusel pide los destacados filtrados en el backend", async () => {
     renderPagina();
 
-    // `pageSize` es el techo del carrusel, no su medida exacta: cuantos más
-    // destacados haya, más largo es el recorrido antes de repetirse. Está
-    // separado del mínimo de 4 con que se muestra la sección.
+    // `pageSize` es el techo del carrusel, no su medida exacta.
     await waitFor(() => {
       expect(productsApi.getProducts).toHaveBeenCalledWith({ destacado: true, pageSize: 12 });
     });
@@ -237,11 +282,8 @@ describe("Catalogo - home editorial", () => {
 
   it("no muestra los destacados si hay menos de 4 productos destacados", async () => {
     productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO, destacado: true }]));
-    renderPagina();
+    await renderPaginaLista();
 
-    await waitFor(() => {
-      expect(productsApi.getProducts).toHaveBeenCalled();
-    });
     expect(screen.queryByText("Hallazgos del día")).not.toBeInTheDocument();
   });
 
@@ -261,17 +303,7 @@ describe("Catalogo - home editorial", () => {
 
   it("muestra el carrusel de campañas", async () => {
     contextoMock.mockReturnValue({
-      slides: [
-        {
-          tipo: "CAMPANIA",
-          campaniaId: 7,
-          titulo: "Primavera YIMA",
-          texto: null,
-          ctaDestino: null,
-          arteUrl: null,
-          doodleUrl: null,
-        },
-      ],
+      slides: [SLIDE_CAMPANIA],
       modal: null,
       doodle: null,
       claveDia: "2026-09-05",
@@ -284,14 +316,6 @@ describe("Catalogo - home editorial", () => {
   });
 
   it("sin slides, la home no dibuja el carrusel", async () => {
-    contextoMock.mockReturnValue({
-      slides: [],
-      modal: null,
-      doodle: null,
-      claveDia: "2026-09-05",
-      resuelto: true,
-    });
-
     await renderPaginaLista();
 
     expect(screen.queryByRole("region", { name: "Campañas y ofertas" })).toBeNull();

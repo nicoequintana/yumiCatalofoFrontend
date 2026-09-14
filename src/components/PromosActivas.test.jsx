@@ -99,6 +99,17 @@ describe("PromosActivas — sin promo destacada (fallback a ofertas)", () => {
     expect(screen.getByRole("heading", { name: "Ofertas de la semana" })).toBeInTheDocument();
   });
 
+  it("una promo destacada sin productos no deja un intervalo de reloj corriendo", () => {
+    falsearReloj();
+    renderPromos({
+      promoDestacada: { id: 3, nombre: "Semana del Hogar", finVigencia: enSegundos(3600), productos: [] },
+      ofertas: [producto()],
+      errorOfertas: null,
+    });
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("una promo destacada ya vencida al montar cae al listado de ofertas, sin reloj", () => {
     renderPromos({
       promoDestacada: { id: 3, nombre: "Semana del Hogar", finVigencia: enSegundos(-10), productos: [producto()] },
@@ -153,6 +164,19 @@ describe("PromosActivas — con promo destacada vigente", () => {
     });
 
     expect(screen.getByLabelText(/tiempo restante/i)).toHaveTextContent("Termina en 00:01:04");
+  });
+
+  it("el nombre accesible del reloj incluye los dígitos, no solo el rótulo", () => {
+    falsearReloj();
+    renderPromos({
+      promoDestacada: { id: 3, nombre: "X", finVigencia: enSegundos(65), productos: [producto()] },
+      ofertas: [],
+      errorOfertas: null,
+    });
+
+    expect(
+      screen.getByRole("timer", { name: /tiempo restante de la promoción.*00:01:05/i }),
+    ).toBeInTheDocument();
   });
 
   it("con más de un día por delante muestra los días aparte de las horas", () => {

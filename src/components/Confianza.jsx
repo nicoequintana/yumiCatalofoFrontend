@@ -26,6 +26,9 @@ const TARJETAS_CONFIANZA = [
 export default function Confianza() {
   return (
     <section className="mx-auto w-full max-w-container-max px-margin-mobile py-7 md:px-margin-desktop md:py-12">
+      {/* h2 oculto: sin él las tarjetas (h3) colgarían, en el árbol de
+          encabezados, del h2 de la sección anterior. */}
+      <h2 className="sr-only">Comprá con confianza</h2>
       <div className="grid gap-3 md:grid-cols-2 md:gap-6">
         {TARJETAS_CONFIANZA.map((tarjeta) => (
           <div key={tarjeta.titulo} className="flex items-start gap-3.5 rounded-2xl bg-surface-container-low p-[18px] md:p-6">

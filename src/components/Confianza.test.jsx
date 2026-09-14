@@ -16,6 +16,13 @@ describe("Confianza", () => {
     ).toBeInTheDocument();
   });
 
+  it("la sección tiene un h2 visualmente oculto, para que las tarjetas h3 no cuelguen del h2 anterior", () => {
+    render(<Confianza />);
+
+    const titulo = screen.getByRole("heading", { level: 2, name: "Comprá con confianza" });
+    expect(titulo).toHaveClass("sr-only");
+  });
+
   it("no promete transportistas ni ubicaciones", () => {
     const { container } = render(<Confianza />);
 

@@ -1,18 +1,25 @@
 import { Link } from "react-router-dom";
+import BuscadorSugerencias from "../components/BuscadorSugerencias.jsx";
 import CargandoPagina from "../components/CargandoPagina.jsx";
 import CarruselCampanias from "../components/CarruselCampanias.jsx";
 import CarruselDestacados from "../components/CarruselDestacados.jsx";
+import CirculosCategoria from "../components/CirculosCategoria.jsx";
+import Confianza from "../components/Confianza.jsx";
+import MasVendidos from "../components/MasVendidos.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
+import NuevosIngresos from "../components/NuevosIngresos.jsx";
+import ProductoIcono from "../components/ProductoIcono.jsx";
 import PromosActivas from "../components/PromosActivas.jsx";
 import { useCategoriasHome } from "../hooks/useCategoriasNavbar.js";
 import useContextoComercial from "../hooks/useContextoComercial.js";
 import useDestacados from "../hooks/useDestacados.js";
+import useMasVendidos from "../hooks/useMasVendidos.js";
+import useNuevosIngresos from "../hooks/useNuevosIngresos.js";
 import useOfertas from "../hooks/useOfertas.js";
+import useProductoIcono from "../hooks/useProductoIcono.js";
+import usePromoDestacada from "../hooks/usePromoDestacada.js";
 import useTechoDeEspera from "../hooks/useTechoDeEspera.js";
-import CirculosCategoria from "../components/CirculosCategoria.jsx";
-import { SENALES_CONFIANZA } from "../constants/hero.js";
 import { urlAbsoluta } from "../constants/seo.js";
-import heroImg from "../assets/hero.jpg";
 
 /**
  * Revelado escalonado de la entrada del hero.
@@ -28,109 +35,62 @@ function revelado(retardoMs) {
 }
 
 /**
- * Señales de confianza del hero, en sus dos formas.
+ * `/` — home de la tienda (rediseño 13/09/2026, spec
+ * 2026-09-13-rediseno-home-publica).
  *
- * `compacto` es la variante de la tarjeta flotante sobre la foto en móvil:
- * mismo contenido, etiquetas más cortas (`textoCompacto`) y tamaño menor. Es el
- * mismo patrón de prop que ya usa `FichaProducto` para el panel de vista previa
- * del admin — una variante declarada, no clases sueltas desde afuera.
- */
-function SenalesConfianza({ compacto = false }) {
-  return (
-    <ul
-      // Caja normal y NO mayúsculas, a diferencia de la píldora de arriba: en
-      // el mockup esta fila es un pie discreto, no un rótulo. Además, en
-      // mayúsculas con el tracking de `label-sm` los cuatro ítems no entran en
-      // una línea dentro de la columna de texto.
-      className={`flex items-center font-body-md text-[14px] leading-tight text-on-surface-variant ${
-        compacto
-          ? "flex-wrap justify-center gap-x-3 gap-y-2"
-          : // Una sola línea: la fila en línea es un pie del hero, y partida en
-            // dos deja de leerse como un renglón de credenciales.
-            "flex-nowrap gap-x-2 whitespace-nowrap"
-      }`}
-    >
-      {SENALES_CONFIANZA.filter((senal) => !(compacto && senal.soloEscritorio)).map(
-        (senal, indice) => (
-        <li key={senal.texto} className={`flex items-center ${compacto ? "gap-3" : "gap-2"}`}>
-          {indice > 0 ? (
-            <span aria-hidden="true" className="text-outline">
-              •
-            </span>
-          ) : null}
-          {/* En la fila en línea el ícono va SOLO al principio; en la tarjeta
-              compacta van los dos que declara el dato. No es un capricho: son
-              las dos composiciones del mockup, y con los cuatro ítems en una
-              línea un segundo ícono a mitad de camino corta la lectura en dos
-              bloques en vez de rematarla. */}
-          {senal.icono && (compacto || indice === 0) ? (
-            <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-primary">
-              {senal.icono}
-            </span>
-          ) : null}
-          {/* La etiqueta va envuelta y no como nodo de texto suelto: los íconos
-              de Material Symbols escriben su NOMBRE como contenido de texto, así
-              que el `textContent` del <li> sería "verified_userProductos
-              seleccionados" y ninguna consulta por texto encontraría la
-              etiqueta. */}
-          <span>{compacto ? (senal.textoCompacto ?? senal.texto) : senal.texto}</span>
-        </li>
-        ),
-      )}
-    </ul>
-  );
-}
-
-/**
- * `/` — home editorial, per design doc
- * 2026-08-19-separacion-home-coleccion.md.
+ * Orden en el DOM: campañas → hero → buscador (mobile) → círculos → promos
+ * activas → más vendidos → producto ícono → nuevos ingresos → destacados →
+ * confianza. El hero se ve después de las campañas en escritorio y AL PIE en
+ * mobile, y eso lo hace CSS `order` sobre un único nodo — nunca dos renders:
+ * hay un solo `<h1>` en la página.
  *
- * Esta página es la vidriera de marca: Hero + carrusel de destacados. El
- * bloque del manifiesto que cerraba la página se sacó del render (Task 19,
- * 05/09/2026) y después se RETIRÓ del repo (`fb05e68`). Este comentario decía
- * "no de retirarlo del repo" hasta el 06/09/2026; hoy tres tests afirman su
- * ausencia, acá y en `Coleccion`.
- * El catálogo completo con filtros vive ahora en `/coleccion`
- * (`Coleccion.jsx`) — antes ambas cosas compartían un solo scroll acá, lo
- * que mezclaba dos trabajos distintos (enganchar vs. buscar) e impedía
- * compartir un link de productos filtrados sin arrastrar todo el contenido
- * editorial.
+ * El catálogo completo con filtros vive en `/coleccion` (`Coleccion.jsx`).
  */
 function Catalogo() {
   const { productos: destacados, resuelto: destacadosResueltos } = useDestacados();
   const { slides, resuelto: contextoResuelto } = useContextoComercial();
   // El mismo hook que consume `CirculosCategoria` puertas adentro. Llamarlo
   // DOS veces no cuesta una segunda request: cachea a nivel de módulo, con una
-  // sola promesa en vuelo compartida por todos los montajes. Por eso este
-  // componente sigue pidiendo lo suyo mientras `PromosActivas` pasó a recibirlo
-  // por prop — su hook fetchea por instancia y ahí sí habría dos requests.
+  // sola promesa en vuelo compartida por todos los montajes. Las demás
+  // secciones reciben sus datos por prop — sus hooks fetchean por instancia y
+  // ahí sí habría dos requests.
   const { resuelto: categoriasResueltas } = useCategoriasHome();
   const { productos: ofertas, error: errorOfertas, resuelto: ofertasResueltas } = useOfertas();
+  const { promo: promoDestacada, resuelto: promoResuelta } = usePromoDestacada();
+  const {
+    productos: masVendidos,
+    error: errorMasVendidos,
+    resuelto: masVendidosResueltos,
+  } = useMasVendidos();
+  const { producto: productoIcono, resuelto: productoIconoResuelto } = useProductoIcono();
+  const { productos: nuevosIngresos, resuelto: nuevosResueltos } = useNuevosIngresos();
 
   /**
    * ⚠️ **ESTE LOADER ESCONDE UN PROBLEMA, NO LO ARREGLA.**
    *
-   * Medido en producción con Playwright el 07/09/2026 contra
-   * `https://yima-productos.com/`: **el hero salta 792 px y el CLS de la home
-   * da 0,407** (Google llama "malo" a todo lo que pase de 0,25). La causa es
-   * el orden de render de más abajo, que se conserva a propósito: el hero va
-   * al PIE, y las cuatro secciones de arriba devuelven `null` mientras no
-   * tienen datos, así que arranca pegado al tope y lo empujan hacia abajo
-   * cuando los fetch aterrizan.
+   * Medido en producción con Playwright el 07/09/2026: el hero saltaba 792 px
+   * y el CLS de la home daba 0,407 (Google llama "malo" a todo lo que pase de
+   * 0,25). La causa: las secciones devuelven `null` mientras no tienen datos
+   * y, en mobile, el hero va al pie, así que lo empujan hacia abajo cuando los
+   * fetch aterrizan.
    *
-   * Tapar la página hasta que las cuatro fuentes contesten hace que ese
-   * empujón ocurra sin nadie mirando. **La causa queda intacta**: quien sume
-   * una quinta sección que también empiece en `null` va a agrandar el salto
-   * escondido, no a producir ningún síntoma. Arreglarlo de verdad es reservar
-   * el alto final de cada sección o subir el hero — las dos se evaluaron y se
-   * descartaron por decisión de producto, con esta información sobre la mesa.
+   * Tapar la página hasta que las fuentes contesten hace que ese empujón
+   * ocurra sin nadie mirando. **La causa queda intacta**: quien sume una
+   * sección que también empiece en `null` va a agrandar el salto escondido.
    *
-   * Las cuatro fuentes van enumeradas y no derivadas de una lista: si mañana
-   * hay una quinta, tiene que aparecer acá a mano, y eso es deliberado — una
+   * Las ocho fuentes van enumeradas y no derivadas de una lista: si mañana hay
+   * una novena, tiene que aparecer acá a mano, y eso es deliberado — una
    * fuente nueva sin su `resuelto` es justo lo que el techo de abajo cubre.
    */
   const fuentesResueltas =
-    contextoResuelto && categoriasResueltas && ofertasResueltas && destacadosResueltos;
+    contextoResuelto &&
+    categoriasResueltas &&
+    ofertasResueltas &&
+    destacadosResueltos &&
+    promoResuelta &&
+    masVendidosResueltos &&
+    productoIconoResuelto &&
+    nuevosResueltos;
 
   // La red de seguridad: pasado el techo la home se dibuja con lo que haya.
   // Un loader sin techo es un sitio caído — ver `useTechoDeEspera.js`.
@@ -158,12 +118,6 @@ function Catalogo() {
     return (
       <>
         {metaHome}
-        {/* Mitiga el costo que el loader le cobra al LCP: la foto del hero es
-            el elemento LCP de la home, y sin esto su descarga recién arrancaría
-            al levantarse el velo. Con el preload viaja EN PARALELO a los cuatro
-            fetch, así que cuando el velo se suelta ya está en caché. React 19
-            hoistea los `<link>` al `<head>` solo. */}
-        <link rel="preload" as="image" href={heroImg} fetchPriority="high" />
         <CargandoPagina />
       </>
     );
@@ -173,180 +127,113 @@ function Catalogo() {
     <>
       {metaHome}
 
-      {/* La home abre con MERCADERÍA, no con marca. Medido: con el hero
-          arriba, el primer producto entraba a los 1.430 px en un teléfono de
-          412 px — una pantalla y media antes de ver algo comprable. */}
-      <CarruselCampanias slides={slides} />
-
-      {/* Puertas de entrada al catálogo por categoría: el mapa del catálogo.
-          Va ANTES de la mercadería (ofertas y destacados) — quien ya sabe qué
-          categoría busca no tiene que scrollear los rieles primero. */}
-      <CirculosCategoria />
-
-      {/* Entre el mapa de categorías y los hallazgos: la oferta puntual antes
-          de la vidriera general de destacados. */}
-      {/* T14: puente mínimo, modo "sin promo destacada" (el riel de ofertas
-          de siempre). T15 suma `usePromoDestacada` y el orden final. */}
-      <PromosActivas promoDestacada={null} ofertas={ofertas} errorOfertas={errorOfertas} />
-
-      <CarruselDestacados productos={destacados} />
-
-      {/* El hero, al pie. NO se achica ni se reescribe: se mueve, y se lleva el
-          único <h1> de la home — por eso no hace falta promover ningún otro
-          texto a encabezado principal.
-
-          ⚠️ Su copy está espejado en `seo.controller.js` (HERO_TITULO /
-          HERO_PARRAFO). Cambiar una punta sin la otra es cloaking.
-
-          La `<section>` NO lleva `max-w-container-max`: si lo llevara, la foto
-          se cortaría en el borde del contenedor en vez de llegar al borde de la
-          ventana. La alineación del contenido con el resto de la página se
-          recupera en la columna de texto (ver el comentario de `max-w-[36rem]`). */}
-      <section className="relative w-full overflow-hidden">
-        <div className="grid grid-cols-1 lg:min-h-[42rem] lg:grid-cols-2">
-          {/* `relative z-10` es obligatorio, no cosmético: de `lg` para arriba
-              la foto desborda su columna y se mete por debajo de este bloque.
-              Sin contexto de apilado propio, la foto —que va después en el
-              DOM— se pintaría ENCIMA del titular. */}
-          <div className="relative z-10 flex items-center px-margin-mobile py-12 lg:px-margin-desktop lg:py-16">
-            {/* 36rem = 576px = (1280px de container-max ÷ 2) − 64px de margen.
-                Con `lg:ml-auto` el borde izquierdo de este bloque cae exactamente
-                sobre el margen del contenedor, así el texto queda alineado con el
-                resto de la página aunque la sección sea de ancho completo.
-                Atarlo a `max-w-container-max` impediría el sangrado de la foto. */}
-            <div className="w-full max-w-[36rem] lg:ml-auto lg:mr-0">
-              <span
-                style={revelado(0)}
-                className="inline-block w-max rounded-full border border-outline-variant px-4 py-2 font-label-sm text-label-sm uppercase text-on-surface-variant motion-safe:animate-fadeIn"
-              >
-                Útiles • Innovadores • Para tu día a día
-              </span>
-
-              <h1
-                style={revelado(80)}
-                className="mt-6 font-display-xl text-display-xl text-on-surface motion-safe:animate-fadeIn lg:mt-8"
-              >
-                Descubrí cosas que te hacen la vida{" "}
-                {/* El acento va en un <span> DENTRO del h1: el nombre accesible
-                    del encabezado sigue siendo la frase completa. */}
-                <span className="text-primary">más fácil.</span>
-              </h1>
-
-              <p
-                style={revelado(160)}
-                className="mt-6 max-w-[34rem] font-body-lg text-body-lg text-on-surface-variant motion-safe:animate-fadeIn"
-              >
-                En YIMA reunimos productos útiles, innovadores y con diseño que simplifican tu
-                rutina y suman estilo a tu hogar, tu trabajo y tus momentos.
-              </p>
-
-              {/* UN SOLO CTA. El mockup traía dos, pero los dos apuntaban a
-                  `/coleccion`: un botón sólido y un link de texto que hacen lo
-                  mismo no son una jerarquía, son la misma acción pidiéndose dos
-                  veces, y obligan a elegir entre opciones idénticas. Se conserva
-                  el que nombra el destino ("Ver productos"), con el peso visual
-                  del principal — un hero cuya única acción va en borde suave se
-                  lee como si no hubiera nada que hacer.
-
-                  Ancho completo en móvil (el pulgar apunta a un blanco grande) y
-                  al ancho de su texto de `sm` para arriba. */}
-              <Link
-                to="/coleccion"
-                style={revelado(240)}
-                className="group mt-8 flex min-h-11 w-full items-center justify-center gap-3 rounded-lg bg-inverse-surface px-8 py-4 font-label-lg text-label-lg text-background transition-colors motion-safe:animate-fadeIn hover:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-max lg:mt-10"
-              >
-                Ver productos
-                <span
-                  aria-hidden="true"
-                  className="material-symbols-outlined text-[20px] transition-transform group-hover:translate-x-1"
-                >
-                  arrow_forward
-                </span>
-              </Link>
-
-              {/* Variante en línea, solo escritorio. La de móvil es la tarjeta
-                  flotante sobre la foto — ver `constants/hero.js` por qué son
-                  dos nodos y no uno. */}
-              <div style={revelado(320)} className="mt-10 hidden motion-safe:animate-fadeIn lg:block">
-                <SenalesConfianza />
-              </div>
-            </div>
-          </div>
-
-          {/* Columna de la foto. En móvil el alto sale del `aspect-[4/5]`; en
-              `lg` se cancela y el div estira al alto de la fila del grid. */}
-          {/* El solapamiento con el texto lo produce ESTE contenedor, no la
-              <img>: con `lg:-ml-[45%]` la celda del grid crece hacia la
-              izquierda y la imagen la llena con el `inset-0 h-full w-full` de
-              siempre.
-
-              Se intentó primero estirando la propia <img> (`-left` + `w-[145%]`)
-              y no funciona por dos razones que conviene no volver a pisar:
-              `w-full` le gana en la cascada a la variante `lg:` del ancho —así
-              que el `left` negativo se aplicaba y el ancho no, y la foto
-              quedaba corrida dejando una franja de fondo a la derecha— y, aun
-              resolviendo eso, un elemento REEMPLAZADO en posición absoluta con
-              `width:auto` usa su ancho intrínseco e ignora el `right`. Movido
-              al contenedor, el ancho de la imagen no depende de ninguna de las
-              dos cosas.
-
-              El `-mt-16` de móvil es el equivalente vertical: sube la foto para
-              que su borde superior —ya disuelto por la máscara— quede por
-              debajo del texto en vez de arrancar con un corte limpio bajo el
-              botón. Cada uno se cancela en el breakpoint del otro. */}
-          <div className="relative -mt-16 aspect-[4/5] w-full bg-background lg:-ml-[45%] lg:mt-0 lg:aspect-auto lg:h-full lg:w-auto">
-            {/* La imagen va `absolute inset-0`, NUNCA `h-full w-full` en flujo
-                normal. Es el gotcha de CSS con elementos reemplazados que ya
-                mordió en ProductCard y MediaUploader: un <img> en flujo con
-                alto en porcentaje no puede resolverlo contra un contenedor cuyo
-                alto viene de `aspect-ratio`, el navegador cae a `height: auto`
-                y la CAJA ENTERA se estira al aspect ratio intrínseco del
-                archivo. Cambiar el `object-fit` no lo arregla: el problema es
-                el tamaño de la caja, no el recorte del contenido.
-
-                Es el elemento LCP de la home: `eager` + `fetchPriority="high"`,
-                nunca `lazy`. `width`/`height` son los del ARCHIVO (1672×941):
-                con la imagen fuera de flujo no reservan layout —de eso se
-                encarga el `aspect-[4/5]` del contenedor— pero le declaran al
-                navegador la relación de aspecto real del recurso.
-
-                **El encuadre se dirige con `object-position`, y hace falta uno
-                por breakpoint.** La foto es apaisada (1.78) y las dos cajas son
-                mucho más angostas, así que `object-cover` descarta buena parte
-                del ancho: en escritorio se ve el 63% del archivo y en móvil solo
-                el 45%. Con el default (`center`) móvil se queda con la pared
-                vacía de la izquierda y pierde la mitad del bodegón.
-
-                - `65%` en móvil: ventana ~600–1350 del archivo. Entra la lámpara
-                  entera, el vaso y medio organizador, sin el hueco de pared.
-                - `right` en escritorio: ventana ~615–1672. Es el recorte del
-                  mockup — lo único que se pierde es la pared vacía, que en esta
-                  composición ya la aporta la columna de texto. */}
-            <img
-              className="hero-fundido absolute inset-0 h-full w-full object-cover object-[65%_center] lg:object-right"
-              src={heroImg}
-              alt="Lámpara, vaso térmico, organizador y estuche de la selección YIMA sobre una mesa con luz natural"
-              width={1672}
-              height={941}
-              loading="eager"
-              decoding="async"
-              fetchPriority="high"
-            />
-
-            {/* Fondo SÓLIDO, sin modificador de opacidad. Los colores de este
-                proyecto son `var(--color-x)` con un hex adentro, y Tailwind 3
-                no puede componerles alfa: al no encontrar ni un color parseable
-                ni el placeholder `<alpha-value>`, NO EMITE la regla — la clase
-                queda sin CSS y el elemento termina transparente, sin error ni
-                aviso. Acá eso dejaba la tarjeta ilegible sobre la foto. Por lo
-                mismo no hay `backdrop-blur`: sobre una superficie opaca no
-                aporta nada. */}
-            <div className="absolute inset-x-4 bottom-4 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 shadow-ambient lg:hidden">
-              <SenalesConfianza compacto />
-            </div>
-          </div>
+      {/* Columna flex: es lo que deja reordenar el hero con `order` sin mover
+          el nodo. Es un `div` y no un `<main>`: el landmark ya lo pone
+          `Layout.jsx`, y anidar dos rompe la navegación por regiones. Cada
+          hijo lleva `data-seccion-home` para que el orden del DOM sea
+          verificable en tests (jsdom no aplica CSS). Los envoltorios existen
+          aunque la sección devuelva `null`: un div vacío no ocupa alto. */}
+      <div className="flex flex-col">
+        <div data-seccion-home="campanias">
+          <CarruselCampanias slides={slides} />
         </div>
-      </section>
+
+        {/* El hero. En escritorio va acá, después de las campañas
+            (`md:order-none` = su lugar del DOM). En mobile `order-last` lo
+            manda al pie: con el hero arriba, el primer producto entraba a los
+            1.430 px en un teléfono de 412 px (medido el 05/09/2026).
+
+            ⚠️ Su copy está espejado en `seo.controller.js` (HERO_TITULO /
+            HERO_PARRAFO / HERO_CTA). Cambiar una punta sin la otra es
+            cloaking. Sin señales de confianza: envíos y WhatsApp van solo en
+            las tarjetas de `Confianza`, sin repetirse. */}
+        <section
+          data-seccion-home="hero"
+          className="relative order-last w-full overflow-hidden md:order-none"
+        >
+          {/* Halo decorativo (mockup `.hero::before`). */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-[120px] -top-[160px] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgb(var(--color-secondary-container)/0.14),transparent_70%)]"
+          />
+          <div className="relative mx-auto w-full max-w-container-max px-margin-mobile pb-9 pt-10 md:px-margin-desktop md:pb-7 md:pt-11">
+            <span
+              style={revelado(0)}
+              className="inline-flex w-fit items-center gap-2 rounded-full bg-surface-container-high px-3 py-[5px] font-label-sm text-[11px] font-bold uppercase leading-[14px] tracking-[0.08em] text-primary motion-safe:animate-fadeIn"
+            >
+              <i aria-hidden="true" className="block h-[7px] w-[7px] rounded-full bg-secondary" />
+              Edición curada · Temporada 2026
+            </span>
+
+            <h1
+              style={revelado(80)}
+              className="mt-3.5 font-display-xl text-[28px] font-bold leading-[34px] tracking-[-0.02em] text-primary motion-safe:animate-fadeIn md:max-w-[24ch] md:text-[48px] md:leading-[54px]"
+            >
+              Objetos singulares que transforman tu cotidiano.
+            </h1>
+
+            <p
+              style={revelado(160)}
+              className="mt-3 max-w-[60ch] font-body-md text-[16px] leading-[25px] text-on-surface-variant motion-safe:animate-fadeIn md:text-[17px] md:leading-[26px]"
+            >
+              Una selección táctil y funcional para el bienestar de la casa, la pausa y los
+              rituales de todos los días. Cada pieza, elegida una por una.
+            </p>
+
+            {/* UN SOLO CTA: dos acciones al mismo destino no son jerarquía. */}
+            <Link
+              to="/coleccion"
+              style={revelado(240)}
+              className="group mt-[22px] inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 font-label-lg text-[14px] font-bold leading-none text-on-primary transition-colors motion-safe:animate-fadeIn hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              Ver todo el catálogo
+              <span
+                aria-hidden="true"
+                className="material-symbols-outlined text-[18px] transition-transform motion-safe:group-hover:translate-x-1"
+              >
+                arrow_forward
+              </span>
+            </Link>
+          </div>
+        </section>
+
+        {/* Buscador con sugerencias SOLO por debajo de `lg`: desde `lg` lo
+            reemplaza el del header (`Navbar`, `hidden lg:block`). Los dos
+            cortes son complementarios a propósito — con `md:hidden` acá, entre
+            768 y 1023 px no habría ningún buscador con sugerencias. */}
+        <div
+          data-seccion-home="buscador-mobile"
+          className="mx-auto mb-4 mt-1.5 w-full max-w-container-max px-margin-mobile md:px-margin-desktop lg:hidden"
+        >
+          <BuscadorSugerencias />
+        </div>
+
+        <div data-seccion-home="circulos">
+          <CirculosCategoria />
+        </div>
+        <div data-seccion-home="promos">
+          <PromosActivas
+            promoDestacada={promoDestacada}
+            ofertas={ofertas}
+            errorOfertas={errorOfertas}
+          />
+        </div>
+        <div data-seccion-home="mas-vendidos">
+          <MasVendidos productos={masVendidos} error={errorMasVendidos} />
+        </div>
+        <div data-seccion-home="producto-icono">
+          <ProductoIcono producto={productoIcono} />
+        </div>
+        <div data-seccion-home="nuevos-ingresos">
+          <NuevosIngresos productos={nuevosIngresos} />
+        </div>
+        <div data-seccion-home="destacados">
+          <CarruselDestacados productos={destacados} />
+        </div>
+        <div data-seccion-home="confianza">
+          <Confianza />
+        </div>
+      </div>
     </>
   );
 }

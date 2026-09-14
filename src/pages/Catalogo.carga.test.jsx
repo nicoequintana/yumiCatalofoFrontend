@@ -11,7 +11,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * datos y EMPUJAN el hero hacia abajo cuando los fetch aterrizan. Medido en
  * producción con Playwright: el hero salta 792 px y el CLS da 0.407.
  *
- * Este loader NO arregla ese salto: lo TAPA hasta que las cuatro fuentes
+ * Desde el rediseño del 13/09/2026 son OCHO fuentes: se suman promo destacada,
+ * más vendidos, producto ícono y nuevos ingresos.
+ *
+ * Este loader NO arregla ese salto: lo TAPA hasta que las fuentes
  * terminaron. Los tests de acá fijan las tres cosas que lo vuelven seguro:
  * que tape, que se suelte, y que se suelte IGUAL si una fuente nunca contesta.
  */
@@ -19,9 +22,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const getProductsMock = vi.fn();
 const getCategoriasMock = vi.fn();
 const getContextoComercialMock = vi.fn();
+const getProductosMasVendidosMock = vi.fn();
+const getPromocionDestacadaMock = vi.fn();
+const getConfiguracionHomeMock = vi.fn();
 
 vi.mock("../api/products.js", () => ({
   getProducts: (...args) => getProductsMock(...args),
+  getProductosMasVendidos: (...args) => getProductosMasVendidosMock(...args),
+}));
+vi.mock("../api/promociones.js", () => ({
+  getPromocionDestacada: (...args) => getPromocionDestacadaMock(...args),
+}));
+vi.mock("../api/config.js", () => ({
+  getConfiguracionHome: (...args) => getConfiguracionHomeMock(...args),
 }));
 vi.mock("../api/categorias.js", () => ({
   getCategorias: (...args) => getCategoriasMock(...args),
@@ -36,7 +49,7 @@ const { reiniciarContextoComercial } = await import("../hooks/useContextoComerci
 const { reiniciarCategoriasNavbar } = await import("../hooks/useCategoriasNavbar.js");
 const { TECHO_ESPERA_MS } = await import("../hooks/useTechoDeEspera.js");
 
-const TITULO_HERO = "Descubrí cosas que te hacen la vida más fácil.";
+const TITULO_HERO = "Objetos singulares que transforman tu cotidiano.";
 
 /** Promesa que nunca se cumple — "esta fuente no contesta". */
 function nuncaResuelve() {
@@ -65,6 +78,9 @@ beforeEach(() => {
   getProductsMock.mockResolvedValue(pagina());
   getCategoriasMock.mockResolvedValue([]);
   getContextoComercialMock.mockResolvedValue({ claveDia: "2026-09-07", slides: [] });
+  getProductosMasVendidosMock.mockResolvedValue(pagina());
+  getPromocionDestacadaMock.mockResolvedValue(null);
+  getConfiguracionHomeMock.mockResolvedValue({ productoIcono: null });
 });
 
 afterEach(() => {
@@ -72,7 +88,40 @@ afterEach(() => {
 });
 
 describe("Catalogo — loader de carga inicial", () => {
-  it("tapa la home mientras alguna de las cuatro fuentes no resolvió", async () => {
+  // Cada fuente nueva (rediseño 13/09/2026) tiene que estar en el gate: una
+  // sección que empieza en `null` sin su `resuelto` es justo el salto escondido
+  // que el comentario de `Catalogo.jsx` advierte.
+  it.each([
+    ["la promo destacada", () => getPromocionDestacadaMock],
+    ["los más vendidos", () => getProductosMasVendidosMock],
+    ["el producto ícono", () => getConfiguracionHomeMock],
+  ])("tapa la home mientras %s no resolvió", async (_nombre, mock) => {
+    mock().mockReturnValue(nuncaResuelve());
+
+    renderHome();
+
+    await waitFor(() => expect(getProductsMock).toHaveBeenCalled());
+    await act(async () => {});
+
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
+  });
+
+  it("tapa la home mientras los nuevos ingresos no resolvieron", async () => {
+    getProductsMock.mockImplementation((params) =>
+      params?.orden === "recientes" ? nuncaResuelve() : Promise.resolve(pagina()),
+    );
+
+    renderHome();
+
+    await waitFor(() => expect(getProductsMock).toHaveBeenCalled());
+    await act(async () => {});
+
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
+  });
+
+  it("tapa la home mientras alguna de las fuentes originales no resolvió", async () => {
     // Las categorías nunca contestan; las otras tres sí.
     getCategoriasMock.mockReturnValue(nuncaResuelve());
 
@@ -89,7 +138,7 @@ describe("Catalogo — loader de carga inicial", () => {
     expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
   });
 
-  it("suelta la home cuando las cuatro fuentes resolvieron", async () => {
+  it("suelta la home cuando las ocho fuentes resolvieron", async () => {
     renderHome();
 
     expect(await screen.findByRole("heading", { level: 1, name: TITULO_HERO })).toBeInTheDocument();
@@ -104,6 +153,8 @@ describe("Catalogo — loader de carga inicial", () => {
 
     getCategoriasMock.mockReturnValue(nuncaResuelve());
     getContextoComercialMock.mockReturnValue(nuncaResuelve());
+    getPromocionDestacadaMock.mockReturnValue(nuncaResuelve());
+    getConfiguracionHomeMock.mockReturnValue(nuncaResuelve());
 
     renderHome();
 
@@ -121,7 +172,7 @@ describe("Catalogo — loader de carga inicial", () => {
       vi.advanceTimersByTime(1);
     });
 
-    // Un loader sin techo es un sitio caído: dos fuentes colgadas no pueden
+    // Un loader sin techo es un sitio caído: fuentes colgadas no pueden
     // dejar la home en blanco para siempre.
     expect(screen.getByRole("heading", { level: 1, name: TITULO_HERO })).toBeInTheDocument();
     expect(screen.queryByRole("status")).toBeNull();

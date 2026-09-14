@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import CabezaSeccion from "./CabezaSeccion.jsx";
 import EstadoVacio from "./EstadoVacio.jsx";
 import ProductCard from "./ProductCard.jsx";
@@ -65,13 +65,19 @@ function Reloj({ segundos }) {
   const horas = Math.floor((segundos % SEGUNDOS_POR_DIA) / 3600);
   const minutos = Math.floor((segundos % 3600) / 60);
   const resto = segundos % 60;
+  const id = useId();
 
+  // Nombre accesible = rótulo oculto + los dígitos. Con `aria-label` el lector
+  // anunciaba solo el rótulo, sin cuánto falta. `timer` no toma el nombre del
+  // contenido por sí solo, así que se autorreferencia con `aria-labelledby`.
   return (
     <span
+      id={id}
       role="timer"
-      aria-label="Tiempo restante de la promoción"
+      aria-labelledby={id}
       className="inline-flex items-center gap-1.5 font-label-md text-[12px] font-semibold leading-none text-primary md:text-[13px]"
     >
+      <span className="sr-only">Tiempo restante de la promoción: </span>
       Termina en{" "}
       {dias > 0 ? (
         <>
@@ -103,8 +109,10 @@ function Reloj({ segundos }) {
  * @param {string|null} [errorOfertas]
  */
 export default function PromosActivas({ promoDestacada = null, ofertas = [], errorOfertas = null }) {
-  const segundos = useSegundosRestantes(promoDestacada?.finVigencia);
-  const promoVigente = Boolean(promoDestacada?.productos?.length) && segundos > 0;
+  const tieneProductos = Boolean(promoDestacada?.productos?.length);
+  // Sin productos la promo no se muestra: no tiene sentido que el reloj corra.
+  const segundos = useSegundosRestantes(tieneProductos ? promoDestacada.finVigencia : null);
+  const promoVigente = tieneProductos && segundos > 0;
 
   if (!promoVigente && errorOfertas) {
     return (

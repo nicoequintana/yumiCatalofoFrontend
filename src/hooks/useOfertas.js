@@ -13,8 +13,12 @@ import { getProducts } from "../api/products.js";
  * dice al visitante que no hay nada rebajado cuando puede haber doce cosas.
  */
 
-/** Cuántas ofertas entran en el riel. Múltiplo de 2, 3 y 4: las columnas reales. */
-const OFERTAS_POR_RIEL = 12;
+/**
+ * Cuántas ofertas se piden: el tope de tarjetas de `PromosActivas`
+ * (`PRODUCTOS_EN_GRILLA`, dos filas de 4 en escritorio). Pedir más sería
+ * traer tarjetas que nunca se dibujan; el resto está en "Ver todas las ofertas".
+ */
+const OFERTAS_POR_RIEL = 8;
 
 /** El mensaje compartido de "falló la carga", igual en toda la app. */
 export const MENSAJE_ERROR_CARGA = "Revisá tu conexión e intentá de nuevo.";
@@ -25,7 +29,7 @@ export default function useOfertas() {
   // `resuelto` responde "¿este hook TERMINÓ?", nunca "¿salió bien?" — para lo
   // segundo está `error`, que es un dato aparte y sigue poblándose igual. Lo
   // pide el loader de carga de la home (`pages/Catalogo.jsx`), que se levanta
-  // recién cuando sus cuatro fuentes contestaron que sí.
+  // recién cuando sus fuentes contestaron que sí.
   const [resuelto, setResuelto] = useState(false);
 
   useEffect(() => {
