@@ -1,6 +1,6 @@
 import { fetchConTimeout } from "./http.js";
 import { parsearCuerpo } from "./parseo.js";
-import { invalidarPerfil } from "../hooks/usePerfilCliente.js";
+import { notificarCambioSesion } from "../utils/eventosSesion.js";
 
 /**
  * Espera antes del único reintento de `VERIFICACION_NO_DISPONIBLE`. No es
@@ -51,9 +51,11 @@ function armarError(body, res) {
 function resolver({ res, body }) {
   if (res.status === 401 && body?.codigo === "SESION_INVALIDA") {
     // El cache del perfil quedó mintiendo: dice que hay sesión y no la hay.
-    // Se invalida ANTES de navegar para que la pantalla de login no lea un
-    // perfil fantasma al montar.
-    invalidarPerfil();
+    // Se avisa ANTES de navegar para que la pantalla de login no lea un
+    // perfil fantasma al montar. Este módulo no importa `usePerfilCliente.js`
+    // directamente —eso cerraba un ciclo con `api/cuenta.js`—, así que avisa
+    // por `eventosSesion.js` y es `usePerfilCliente.js` quien se suscribe.
+    notificarCambioSesion();
     const ruta = window.location.pathname + window.location.search;
     window.location.assign(`/cuenta/entrar?volverA=${encodeURIComponent(ruta)}`);
     // Se LANZA igual que en `authClient.js`: sin esto el caller sigue

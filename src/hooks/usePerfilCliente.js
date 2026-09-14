@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchConTimeout } from "../api/http.js";
 import { parsearCuerpo } from "../api/parseo.js";
 import { reiniciarPedidosCliente } from "./usePedidosCliente.js";
+import { alCambiarSesion } from "../utils/eventosSesion.js";
 
 const BASE = `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000"}/api/cuenta`;
 
@@ -152,6 +153,11 @@ export function invalidarPerfil() {
   reiniciarPedidosCliente();
   notificar(ESTADO_VACIO);
 }
+
+// `api/clienteAuth.js` (401 SESION_INVALIDA) no puede llamar a
+// `invalidarPerfil` directamente sin cerrar un ciclo de módulos con
+// `api/cuenta.js` → `usePedidosCliente.js` → este archivo. Se suscribe acá.
+alCambiarSesion(invalidarPerfil);
 
 /**
  * Fuerza un fetch nuevo YA, sin esperar un remontaje. Lo usa el botón

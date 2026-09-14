@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { pedirCliente } from "./clienteAuth.js";
-import * as perfilCliente from "../hooks/usePerfilCliente.js";
+import * as eventosSesion from "../utils/eventosSesion.js";
 
 // Se mockea el módulo entero: `pedirCliente` solo necesita que
-// `invalidarPerfil` sea una función espiable, no el hook real (que además
-// haría su propio fetch al importarse).
-vi.mock("../hooks/usePerfilCliente.js", () => ({
-  invalidarPerfil: vi.fn(),
+// `notificarCambioSesion` sea una función espiable. `clienteAuth.js` no
+// importa `usePerfilCliente.js` directamente —cerraría un ciclo con
+// `api/cuenta.js`— y avisa por este bus en su lugar.
+vi.mock("../utils/eventosSesion.js", () => ({
+  notificarCambioSesion: vi.fn(),
 }));
 
 const locationOriginal = window.location;
@@ -53,8 +54,8 @@ afterEach(() => {
   restaurarLocation();
   vi.unstubAllGlobals();
   // `vi.restoreAllMocks()` NO alcanza: solo restaura los espías de
-  // `vi.spyOn`, y `invalidarPerfil` es un `vi.fn()` que creó la factory de
-  // `vi.mock` — su historial de llamadas sobrevive de un caso al otro. Sin
+  // `vi.spyOn`, y `notificarCambioSesion` es un `vi.fn()` que creó la factory
+  // de `vi.mock` — su historial de llamadas sobrevive de un caso al otro. Sin
   // este `clearAllMocks`, el caso "con otro codigo NO redirige" ve la llamada
   // que dejó el caso anterior y falla por contagio, no por el código.
   vi.clearAllMocks();
@@ -100,7 +101,7 @@ describe("pedirCliente — 401", () => {
 
     await expect(pedirCliente("http://api.test/api/cuenta/ordenes")).rejects.toThrow();
 
-    expect(perfilCliente.invalidarPerfil).toHaveBeenCalledTimes(1);
+    expect(eventosSesion.notificarCambioSesion).toHaveBeenCalledTimes(1);
     expect(assign).toHaveBeenCalledWith(
       "/cuenta/entrar?volverA=" + encodeURIComponent("/cuenta/pedidos?page=2"),
     );
@@ -114,7 +115,7 @@ describe("pedirCliente — 401", () => {
       "Email o contraseña incorrectos.",
     );
     expect(assign).not.toHaveBeenCalled();
-    expect(perfilCliente.invalidarPerfil).not.toHaveBeenCalled();
+    expect(eventosSesion.notificarCambioSesion).not.toHaveBeenCalled();
   });
 });
 
@@ -182,7 +183,7 @@ describe("pedirCliente — 503 VERIFICACION_NO_DISPONIBLE", () => {
     await vi.advanceTimersByTimeAsync(1500);
 
     await expect(promesa).rejects.toThrow();
-    expect(perfilCliente.invalidarPerfil).toHaveBeenCalledTimes(1);
+    expect(eventosSesion.notificarCambioSesion).toHaveBeenCalledTimes(1);
     expect(assign).toHaveBeenCalledWith(
       "/cuenta/entrar?volverA=" + encodeURIComponent("/cuenta/pedidos"),
     );
