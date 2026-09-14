@@ -28,6 +28,13 @@ import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
  * `bannerCtaTexto` / `bannerColor` siguen en la base pero quedaron INERTES —
  * nadie las lee ni las escribe.
  *
+ * ⚠️ **Título y texto del banner están OCULTOS desde el 14/09/2026** (decisión
+ * de usuario, misma fecha que `SeccionBanner` de campañas): el texto vive en
+ * la imagen. Los dos `<input>` quedan detrás de `MOSTRAR_TEXTOS_BANNER`
+ * (abajo), en `false`; el estado, `guardar()` y el backend
+ * (`parsearBannerPromocion`) siguen leyendo/escribiendo las dos columnas sin
+ * cambios, así que reactivar el campo es volver la constante a `true`.
+ *
  * **A diferencia de `SeccionBanner`, no hay modo "alta sin guardar".** Esta
  * sección solo se monta con una promoción ya `abierta` en
  * `AdminPromociones.jsx`, y una promoción SIEMPRE tiene id desde que se crea
@@ -43,6 +50,15 @@ import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
  */
 
 const PLACEHOLDER_TITULO = "Semana del Hogar";
+
+/**
+ * Oculta los campos de título y texto del banner, sin borrarlos.
+ *
+ * Decisión de usuario 2026-09-14: el texto del banner vive en la imagen que
+ * sube el admin. Reactivar es volver esta constante a `true` — mismo criterio
+ * que `SeccionBanner.jsx` (campañas).
+ */
+const MOSTRAR_TEXTOS_BANNER = false;
 
 const MARCADOR_DIAS = /\{dias\}/i;
 
@@ -170,41 +186,47 @@ export default function SeccionBannerPromocion({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="flex flex-col gap-4">
-          <div>
-            <label htmlFor="promocion-banner-titulo" className={claseEtiqueta}>
-              Título del banner
-            </label>
-            <input
-              id="promocion-banner-titulo"
-              type="text"
-              maxLength={120}
-              value={valores.bannerTitulo}
-              onChange={(e) => editar("bannerTitulo", e.target.value)}
-              className={claseCampo}
-              placeholder={PLACEHOLDER_TITULO}
-            />
-            {avisoTitulo ? (
-              <p className="font-body-sm text-body-sm mt-1 text-error">{avisoTitulo}</p>
-            ) : null}
-          </div>
+          {/* Ocultos por decisión de usuario 2026-09-14: el texto del banner
+              vive en la imagen. Reactivar: `MOSTRAR_TEXTOS_BANNER = true`. */}
+          {MOSTRAR_TEXTOS_BANNER ? (
+            <>
+              <div>
+                <label htmlFor="promocion-banner-titulo" className={claseEtiqueta}>
+                  Título del banner
+                </label>
+                <input
+                  id="promocion-banner-titulo"
+                  type="text"
+                  maxLength={120}
+                  value={valores.bannerTitulo}
+                  onChange={(e) => editar("bannerTitulo", e.target.value)}
+                  className={claseCampo}
+                  placeholder={PLACEHOLDER_TITULO}
+                />
+                {avisoTitulo ? (
+                  <p className="font-body-sm text-body-sm mt-1 text-error">{avisoTitulo}</p>
+                ) : null}
+              </div>
 
-          <div>
-            <label htmlFor="promocion-banner-texto" className={claseEtiqueta}>
-              Texto del banner <span className="normal-case tracking-normal">· máx. 200</span>
-            </label>
-            <textarea
-              id="promocion-banner-texto"
-              rows={2}
-              maxLength={200}
-              value={valores.bannerTexto}
-              onChange={(e) => editar("bannerTexto", e.target.value)}
-              className={claseCampo}
-              placeholder="Hasta 30 % en cocina, deco e iluminación."
-            />
-            {avisoTexto ? (
-              <p className="font-body-sm text-body-sm mt-1 text-error">{avisoTexto}</p>
-            ) : null}
-          </div>
+              <div>
+                <label htmlFor="promocion-banner-texto" className={claseEtiqueta}>
+                  Texto del banner <span className="normal-case tracking-normal">· máx. 200</span>
+                </label>
+                <textarea
+                  id="promocion-banner-texto"
+                  rows={2}
+                  maxLength={200}
+                  value={valores.bannerTexto}
+                  onChange={(e) => editar("bannerTexto", e.target.value)}
+                  className={claseCampo}
+                  placeholder="Hasta 30 % en cocina, deco e iluminación."
+                />
+                {avisoTexto ? (
+                  <p className="font-body-sm text-body-sm mt-1 text-error">{avisoTexto}</p>
+                ) : null}
+              </div>
+            </>
+          ) : null}
 
           {/* El arte sube a `PUT /promociones/:id/arte`. A diferencia de
               campañas, esta sección solo existe con una promoción que ya

@@ -20,9 +20,17 @@ import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
  * decisiones, así que el formulario dejó de ofrecerlas — un campo que se guarda
  * y que ninguna pantalla lee es peor que no tenerlo.
  *
- * Los campos se muestran SIEMPRE, no solo con el banner prendido: se puede
- * escribir con calma y prenderlo después. El backend solo exige el título
- * cuando está activo.
+ * ⚠️ **Título y texto del banner están OCULTOS desde el 14/09/2026** (decisión
+ * de usuario): "para los banners, de ahora en más el admin solo decide si se
+ * muestra en el catálogo y qué imagen sube — el texto vive en la imagen". Los
+ * dos `<input>` quedan detrás de `MOSTRAR_TEXTOS_BANNER` (abajo), en `false`.
+ * El estado, el guardado (`useCampaniaEditor`) y el backend (`parsearBanner`)
+ * siguen leyendo/escribiendo las dos columnas sin cambios — incluida una
+ * campaña vieja que ya tenía título cargado, que lo conserva aunque no haya
+ * dónde editarlo — así que reactivar el campo es volver la constante a
+ * `true`. El backend YA NO exige título con el banner prendido (mismo
+ * commit): exigirlo hubiera vuelto imposible guardar el interruptor sin un
+ * campo que dejó de existir en pantalla.
  *
  * ⚠️ El fallback del título en el preview reutiliza el MISMO placeholder que el
  * `<input>` (`PLACEHOLDER_TITULO`), nunca el texto de la etiqueta: la etiqueta
@@ -31,6 +39,16 @@ import { claseCampo, claseEtiqueta } from "../clasesFormulario.js";
  * campo real y el título del slide— en vez de uno solo.
  */
 const PLACEHOLDER_TITULO = "Semana del Hogar";
+
+/**
+ * Oculta los campos de título y texto del banner, sin borrarlos.
+ *
+ * Decisión de usuario 2026-09-14: el texto del banner vive en la imagen que
+ * sube el admin, así que el panel dejó de ofrecer esos dos campos. Reactivar
+ * es volver esta constante a `true` — el estado y el guardado siguen
+ * funcionando igual, así que no hace falta tocar nada más.
+ */
+const MOSTRAR_TEXTOS_BANNER = false;
 
 /**
  * El mismo marcador que usa el cartel para su contador, pero PROHIBIDO acá: el
@@ -152,44 +170,50 @@ export default function SeccionBanner({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="flex flex-col gap-4">
-          <div>
-            <label htmlFor="campania-banner-titulo" className={claseEtiqueta}>
-              Título del banner
-            </label>
-            <input
-              id="campania-banner-titulo"
-              type="text"
-              maxLength={120}
-              value={valores.bannerTitulo}
-              onChange={(e) => editar("bannerTitulo", e.target.value)}
-              className={claseCampo}
-              placeholder={PLACEHOLDER_TITULO}
-            />
-            {avisoTitulo ? (
-              <p className="font-body-sm text-body-sm mt-1 text-error">{avisoTitulo}</p>
-            ) : null}
-          </div>
+          {/* Ocultos por decisión de usuario 2026-09-14: el texto del banner
+              vive en la imagen. Reactivar: `MOSTRAR_TEXTOS_BANNER = true`. */}
+          {MOSTRAR_TEXTOS_BANNER ? (
+            <>
+              <div>
+                <label htmlFor="campania-banner-titulo" className={claseEtiqueta}>
+                  Título del banner
+                </label>
+                <input
+                  id="campania-banner-titulo"
+                  type="text"
+                  maxLength={120}
+                  value={valores.bannerTitulo}
+                  onChange={(e) => editar("bannerTitulo", e.target.value)}
+                  className={claseCampo}
+                  placeholder={PLACEHOLDER_TITULO}
+                />
+                {avisoTitulo ? (
+                  <p className="font-body-sm text-body-sm mt-1 text-error">{avisoTitulo}</p>
+                ) : null}
+              </div>
 
-          <div>
-            <label htmlFor="campania-banner-texto" className={claseEtiqueta}>
-              Texto del banner{" "}
-              <span className="normal-case tracking-normal">
-                · el contador de días es del cartel · máx. 200
-              </span>
-            </label>
-            <textarea
-              id="campania-banner-texto"
-              rows={2}
-              maxLength={200}
-              value={valores.bannerTexto}
-              onChange={(e) => editar("bannerTexto", e.target.value)}
-              className={claseCampo}
-              placeholder="Hasta 30 % en cocina, deco e iluminación."
-            />
-            {avisoTexto ? (
-              <p className="font-body-sm text-body-sm mt-1 text-error">{avisoTexto}</p>
-            ) : null}
-          </div>
+              <div>
+                <label htmlFor="campania-banner-texto" className={claseEtiqueta}>
+                  Texto del banner{" "}
+                  <span className="normal-case tracking-normal">
+                    · el contador de días es del cartel · máx. 200
+                  </span>
+                </label>
+                <textarea
+                  id="campania-banner-texto"
+                  rows={2}
+                  maxLength={200}
+                  value={valores.bannerTexto}
+                  onChange={(e) => editar("bannerTexto", e.target.value)}
+                  className={claseCampo}
+                  placeholder="Hasta 30 % en cocina, deco e iluminación."
+                />
+                {avisoTexto ? (
+                  <p className="font-body-sm text-body-sm mt-1 text-error">{avisoTexto}</p>
+                ) : null}
+              </div>
+            </>
+          ) : null}
 
           {/* El bloque se muestra SIEMPRE; en el alta espera. Sube a
               `PUT /:id/arte`, así que no puede operar hasta que la campaña

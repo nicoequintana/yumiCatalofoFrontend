@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -31,19 +30,6 @@ function montar(props = {}) {
       {...props}
     />,
   );
-}
-
-/**
- * Envoltorio con estado REAL, para probar lo que hace el editor real: cada
- * `editar(campo, valor)` reescribe `valores` con `setValores` y dispara un
- * re-render con el prop nuevo — no un mock que se queda quieto. `SeccionBanner`
- * ya no tiene ningún buffer local (ver su comentario): el aviso de `{dias}`
- * depende enteramente de que este reescriba el prop, igual que en la app real.
- */
-function EditorDePrueba(props = {}) {
-  const [valores, setValores] = useState({ ...VALORES, ...props.valoresIniciales });
-  const editar = (campo, valor) => setValores((actuales) => ({ ...actuales, [campo]: valor }));
-  return <SeccionBanner valores={valores} editar={editar} opciones={OPCIONES} {...props} />;
 }
 
 /** Un `File` con `size` forzado, sin materializar los bytes — mismo helper que `MediaUploader.test.jsx`. */
@@ -80,40 +66,18 @@ describe("SeccionBanner", () => {
     expect(screen.queryAllByRole("radio")).toHaveLength(0);
   });
 
-  it("el marcador {dias} en el texto avisa antes de guardar", async () => {
-    // El backend lo rechaza con un 400. Avisarlo acá evita que el error llegue
-    // al banner de arriba de todo, que en este editor queda fuera de pantalla.
-    //
-    // Se monta con `EditorDePrueba`, que sí reescribe `valores` en cada
-    // `editar(...)` — como hace `useCampaniaEditor` de verdad. Montar esto
-    // contra un `editar` que no actualiza nada solo prueba un mock, no el
-    // componente.
-    //
-    // ⚠️ Dos trampas encontradas al confirmar el RED de este test (verificado
-    // a mano, ver el fix report):
-    //
-    // 1. `{` y `}` son sintaxis reservada de `userEvent.type` (teclas
-    //    especiales, ej. `{enter}`): tipeados sin escapar, `{dias}` se
-    //    consume como un comando y NUNCA llega al campo — el texto real
-    //    queda "Faltan  dias", sin marcador. Hace falta `{{`/`}}` para
-    //    tipear las llaves literales.
-    // 2. El regex del brief (`/contador .*es del cartel/i`) también matchea
-    //    la AYUDA ESTÁTICA de al lado del textarea ("· el contador de días es
-    //    del cartel · máx. 200"), que está en pantalla SIEMPRE, con o sin
-    //    aviso — así que ese assert pasaba igual aunque el aviso estuviera
-    //    apagado. Se afirma sobre "no del banner", texto exclusivo del aviso
-    //    dinámico.
-    //
-    // Se monta con `EditorDePrueba`, que sí reescribe `valores` en cada
-    // `editar(...)` — como hace `useCampaniaEditor` de verdad. Montar esto
-    // contra un `editar` que no actualiza nada solo prueba un mock, no el
-    // componente.
-    const usuario = userEvent.setup();
-    render(<EditorDePrueba />);
+  it("el título y el texto del banner ya no son campos editables: el texto vive en la imagen (2026-09-14)", () => {
+    // Hasta el 13/09/2026 acá se tipeaba en "Texto del banner" y "Título del
+    // banner" para probar el aviso del marcador `{dias}`. Decisión de usuario
+    // 2026-09-14: el admin dejó de escribir esos dos campos —solo decide si
+    // se muestra y qué imagen sube—, así que los `<input>` se ocultaron
+    // (`MOSTRAR_TEXTOS_BANNER = false`). `avisoMarcadorDias` y el resto de la
+    // lógica siguen en el componente para cuando se reactive el campo, pero
+    // no hay nada que tipear hoy.
+    montar();
 
-    await usuario.type(screen.getByLabelText(/Texto del banner/i), "Faltan {{dias}} dias");
-
-    expect(await screen.findByText(/no del banner/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Título del banner/i)).toBeNull();
+    expect(screen.queryByLabelText(/Texto del banner/i)).toBeNull();
   });
 
   it("en el alta no ofrece subir arte todavía: hace falta guardar primero", () => {

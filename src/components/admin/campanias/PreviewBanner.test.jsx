@@ -14,11 +14,15 @@ const SLIDE = {
 
 
 describe("PreviewBanner", () => {
-  it("muestra el slide con el copy tipeado", () => {
-    render(<PreviewBanner slide={SLIDE} />);
+  it("muestra el slide, sin copy visible: el texto vive en la imagen (decisión 2026-09-14)", () => {
+    // Hasta el 13/09/2026 el título y el texto se leían acá. Con el campo
+    // oculto en el panel y el copy retirado de `SlideCampania`, el preview
+    // muestra el molde de marca (sin arte en este fixture) y nada de texto.
+    const { container } = render(<PreviewBanner slide={SLIDE} />);
 
-    expect(screen.getByText("Semana del Hogar")).toBeInTheDocument();
-    expect(screen.getByText(/Hasta 30 %/)).toBeInTheDocument();
+    expect(screen.queryByText("Semana del Hogar")).toBeNull();
+    expect(screen.queryByText(/Hasta 30 %/)).toBeNull();
+    expect(container.querySelector(".bg-primary")).not.toBeNull();
   });
 
   it("NO navega: es un preview, no la home", () => {

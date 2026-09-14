@@ -113,7 +113,9 @@ test.describe("Editor de campaña: vitrina, cartel y la grilla filtrada", () => 
       // banner") para que `getByLabel` resuelva a un único campo en cada una
       // — antes "Título" y "Botón" eran ambiguos entre las dos secciones.
       await expect(page.getByLabel("Título del cartel")).toHaveCount(1);
-      await expect(page.getByLabel("Título del banner")).toHaveCount(1);
+      // "Título del banner" se ocultó el 14/09/2026 (decisión de usuario: el
+      // texto del banner vive en la imagen, el admin ya no lo escribe).
+      await expect(page.getByLabel("Título del banner")).toHaveCount(0);
 
       await page.getByLabel("Título del cartel").fill("Vitrina de prueba E2E");
 

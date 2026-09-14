@@ -49,42 +49,16 @@ function archivoPesado(nombre, tipo, bytes) {
 const MB = 1024 * 1024;
 
 describe("SeccionBannerPromocion", () => {
-  it("avisa cuando el título lleva el marcador {dias}", async () => {
-    const usuario = userEvent.setup();
-    render(<SeccionBannerPromocion promocion={promo()} onGuardar={vi.fn()} />);
+  it("el título y el texto del banner ya no son campos editables: el texto vive en la imagen (2026-09-14)", () => {
+    // Hasta el 13/09/2026 acá se tipeaba en "Título" y "Texto del banner" para
+    // probar el aviso del marcador `{dias}`. Decisión de usuario 2026-09-14:
+    // el admin dejó de escribir esos dos campos —solo decide si se muestra y
+    // qué imagen sube—, así que se ocultaron (`MOSTRAR_TEXTOS_BANNER = false`,
+    // mismo criterio que `SeccionBanner.jsx` de campañas).
+    montar();
 
-    const titulo = screen.getByLabelText(/título/i);
-    await usuario.clear(titulo);
-    // ⚠️ `userEvent` v14 reserva las llaves para teclas especiales: hay que
-    // escaparlas o el texto nunca llega con `{dias}`.
-    await usuario.type(titulo, "Faltan {{dias}} días");
-
-    expect(screen.getByText(/es del cartel/i)).toBeInTheDocument();
-  });
-
-  it("el aviso del marcador es carácter por carácter el mismo que el backend de promociones", async () => {
-    const usuario = userEvent.setup();
-    render(<SeccionBannerPromocion promocion={promo()} onGuardar={vi.fn()} />);
-
-    await usuario.type(screen.getByLabelText(/título/i), "Faltan {{dias}} días");
-
-    // Copia EXACTA de `exigirSinMarcadorDeDias` en
-    // `backend/src/controllers/promociones.controller.js` — "de campañas" y
-    // no solo "del cartel", que es como lo dice el de campañas.
-    expect(
-      screen.getByText(
-        "El contador `{dias}` es del cartel de campañas, no del banner. Sacalo de `bannerTitulo` o escribí los días a mano.",
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("también avisa el marcador {dias} en el texto del banner", async () => {
-    const usuario = userEvent.setup();
-    render(<SeccionBannerPromocion promocion={promo()} onGuardar={vi.fn()} />);
-
-    await usuario.type(screen.getByLabelText(/texto del banner/i), "Faltan {{dias}} dias");
-
-    expect(await screen.findByText(/no del banner/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/título/i)).toBeNull();
+    expect(screen.queryByLabelText(/texto del banner/i)).toBeNull();
   });
 
   it("ya no hay selector de color ni campo de texto del botón", () => {
@@ -186,10 +160,12 @@ describe("SeccionBannerPromocion", () => {
   });
 
   it("el preview usa el mismo SlideCampania de la home", () => {
-    montar({ promocion: promo({ bannerTitulo: "Hogar" }) });
+    // El título ya no se pinta como texto (decisión de usuario 2026-09-14):
+    // lo que se puede afirmar es que el preview renderiza el molde de marca
+    // de `SlideCampania` sin arte, no un renderer distinto.
+    const { container } = montar({ promocion: promo({ bannerTitulo: "Hogar" }) });
 
-    // `SlideCampania` pinta el título dentro del preview; si el componente
-    // usara otro renderer, este texto no aparecería junto al preview.
-    expect(screen.getByTestId("preview-banner")).toHaveTextContent("Hogar");
+    expect(screen.getByTestId("preview-banner")).not.toHaveTextContent("Hogar");
+    expect(container.querySelector(".bg-primary")).not.toBeNull();
   });
 });
