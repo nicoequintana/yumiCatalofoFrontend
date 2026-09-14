@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Checkout from "./Checkout.jsx";
 import useCarrito from "../hooks/useCarrito.js";
 import usePerfilCliente from "../hooks/usePerfilCliente.js";
+import { reiniciarProductosCarrito } from "../hooks/useProductosCarrito.js";
 import * as productsApi from "../api/products.js";
 import * as ordenesApi from "../api/ordenes.js";
 
@@ -64,6 +65,8 @@ function leerBorradorDeTest() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // El cache de productos es module-level: sin esto un test hereda los del anterior.
+  reiniciarProductosCarrito();
   const { result } = renderHook(() => useCarrito());
   act(() => {
     result.current.vaciar();
@@ -425,6 +428,38 @@ describe("Checkout — carrito, total y carga (regresiones)", () => {
 
     expect(await screen.findByText(/No pudimos cargar tu pedido/i)).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("un remonte con el mismo carrito no muestra 'Cargando checkout…': usa el cache y refetchea", async () => {
+    const { vista } = await prepararCheckout();
+    vista.unmount();
+
+    productsApi.getProductsByIds.mockReturnValue(new Promise(() => {}));
+    renderCheckout();
+
+    expect(screen.queryByText("Cargando checkout…")).not.toBeInTheDocument();
+    expect(screen.getByText("1 × Reloj Clásico")).toBeInTheDocument();
+    expect(productsApi.getProductsByIds).toHaveBeenLastCalledWith([1]);
+  });
+
+  it("el refetch en segundo plano reemplaza el precio cuando contesta", async () => {
+    const { vista } = await prepararCheckout(2);
+    vista.unmount();
+
+    let resolver;
+    productsApi.getProductsByIds.mockReturnValue(
+      new Promise((resolve) => {
+        resolver = resolve;
+      }),
+    );
+    renderCheckout();
+    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$ 3.000");
+
+    await act(async () => {
+      resolver([{ ...PRODUCTO_1, precio: "2000" }]);
+    });
+
+    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$ 4.000");
   });
 
   it("el título de la página es el h1 y está en castellano", async () => {

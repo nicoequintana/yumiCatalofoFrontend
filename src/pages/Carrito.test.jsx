@@ -4,9 +4,19 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Carrito from "./Carrito.jsx";
 import useCarrito from "../hooks/useCarrito.js";
+import { reiniciarProductosCarrito } from "../hooks/useProductosCarrito.js";
+import { precargarRequireAuthCliente } from "../components/cargarRequireAuthCliente.js";
 import * as productsApi from "../api/products.js";
 
 vi.mock("../api/products.js");
+vi.mock("../components/cargarRequireAuthCliente.js", () => ({
+  precargarRequireAuthCliente: vi.fn(),
+}));
+
+// El cache de productos es module-level: sin esto un test hereda los del anterior.
+beforeEach(() => {
+  reiniciarProductosCarrito();
+});
 
 const PRODUCTO_1 = {
   id: 1,
@@ -453,5 +463,73 @@ describe("Carrito — fetch acotado a los productos del carrito", () => {
     });
 
     expect(productsApi.getProductsByIds.mock.calls.length).toBe(llamadasPrevias);
+  });
+});
+
+describe("Carrito — volver al carrito no parpadea (stale-while-revalidate)", () => {
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    vi.clearAllMocks();
+  });
+
+  /** Primer montaje: carga el producto 1 en vivo y desmonta, como al ir al checkout. */
+  async function montarYSalir(carritoHook) {
+    const vista = renderCarrito();
+    act(() => {
+      carritoHook.current.agregar(1, 1);
+    });
+    await screen.findByText("Reloj Clásico");
+    vista.unmount();
+  }
+
+  it("un remonte con el mismo carrito muestra los productos al instante, sin 'Cargando carrito…'", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    await montarYSalir(carritoHook);
+
+    // El refetch del segundo montaje no contesta nunca: lo que se ve sale del cache.
+    productsApi.getProductsByIds.mockReturnValue(new Promise(() => {}));
+    renderCarrito();
+
+    expect(screen.queryByText("Cargando carrito…")).not.toBeInTheDocument();
+    expect(screen.getByText("Reloj Clásico")).toBeInTheDocument();
+    // El refetch en segundo plano SIGUE saliendo: plata y stock no se confían al cache.
+    expect(productsApi.getProductsByIds).toHaveBeenLastCalledWith([1]);
+  });
+
+  it("precarga el guard de /checkout al montar, para que el primer Continuar no pinte Suspense", () => {
+    productsApi.getProductsByIds.mockReturnValue(new Promise(() => {}));
+
+    renderCarrito();
+
+    expect(precargarRequireAuthCliente).toHaveBeenCalledTimes(1);
+  });
+
+  it("el refetch en segundo plano reemplaza precio y stock cuando contesta", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([{ ...PRODUCTO_1, stock: 5 }]);
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    await montarYSalir(carritoHook);
+    act(() => {
+      carritoHook.current.actualizarCantidad(1, 3);
+    });
+
+    let resolver;
+    productsApi.getProductsByIds.mockReturnValue(
+      new Promise((resolve) => {
+        resolver = resolve;
+      }),
+    );
+    renderCarrito();
+    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 4.500");
+
+    await act(async () => {
+      resolver([{ ...PRODUCTO_1, precio: "2000", stock: 2 }]);
+    });
+
+    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 6.000");
+    expect(screen.getByText(/Solo hay 2 unidades disponibles/)).toBeInTheDocument();
   });
 });

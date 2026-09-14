@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
 import SelectorCantidad from "../components/SelectorCantidad.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import useCarrito from "../hooks/useCarrito.js";
-import { getProductsByIds } from "../api/products.js";
+import useProductosCarrito from "../hooks/useProductosCarrito.js";
+import { precargarRequireAuthCliente } from "../components/cargarRequireAuthCliente.js";
+import { MENSAJE_ERROR_CARGA } from "../hooks/useOfertas.js";
 import { formatPrecio, precioACentavos } from "../utils/formato.js";
 import { urlAbsoluta } from "../constants/seo.js";
 import PrecioProducto from "../components/PrecioProducto.jsx";
@@ -37,40 +39,24 @@ import { precioAPagar } from "../utils/precioEfectivo.js";
  */
 function Carrito() {
   const { carrito, actualizarCantidad, quitar } = useCarrito();
-  const [productos, setProductos] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [errorCarga, setErrorCarga] = useState(null);
-
   // Clave de los productos que hay que traer: los ids del carrito, ordenados y
   // serializados. Es lo que dispara el refetch, y por eso NO incluye las
   // cantidades — subir o bajar el contador de una línea no cambia qué
   // productos hay que cotizar, así que no debe costar una request.
   const claveIds = [...new Set(carrito.map((l) => l.productId))].sort((a, b) => a - b).join(",");
 
+  // Cache + refetch en segundo plano: volver al carrito no pinta "Cargando…".
+  // El error se distingue del vacío: sin `productos` toda línea parecería "no
+  // disponible" y el carrito se leería como vacío cuando falla la conexión.
+  const { productos, cargando, error } = useProductosCarrito(claveIds);
+  const errorCarga = error ? MENSAJE_ERROR_CARGA : null;
+
+  // Precarga el chunk del guard de `/checkout` (lazy en `App.jsx`): sin esto el
+  // primer "Continuar" pinta el spinner de Suspense ~300 ms. Fire-and-forget: un
+  // fallo acá solo significa que ese primer paso vuelve a esperar al chunk.
   useEffect(() => {
-    let activo = true;
-    const ids = claveIds === "" ? [] : claveIds.split(",").map(Number);
-
-    getProductsByIds(ids)
-      .then((data) => {
-        if (!activo) return;
-        setProductos(data);
-        setCargando(false);
-      })
-      // Sin este catch, un backend caído deja la promesa rechazada sin manejar
-      // y el spinner girando para siempre. Peor todavía acá: sin `productos`
-      // toda línea parece "no disponible", así que el carrito se leería como
-      // vacío cuando el problema es la conexión.
-      .catch(() => {
-        if (!activo) return;
-        setErrorCarga("Revisá tu conexión e intentá de nuevo.");
-        setCargando(false);
-      });
-
-    return () => {
-      activo = false;
-    };
-  }, [claveIds]);
+    precargarRequireAuthCliente();
+  }, []);
 
   const productosPorId = new Map(productos.map((p) => [p.id, p]));
 

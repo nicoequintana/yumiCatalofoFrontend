@@ -5,6 +5,7 @@ import ScrollAlTope from "./components/ScrollAlTope.jsx";
 import AdminLayout from "./components/AdminLayout.jsx";
 import RequireAuth from "./components/RequireAuth.jsx";
 import Spinner from "./components/Spinner.jsx";
+import { cargarRequireAuthCliente } from "./components/cargarRequireAuthCliente.js";
 import Catalogo from "./pages/Catalogo.jsx";
 import Coleccion from "./pages/Coleccion.jsx";
 import Favoritos from "./pages/Favoritos.jsx";
@@ -60,8 +61,9 @@ const NoEncontradoAdmin = lazy(() => import("./components/admin/NoEncontradoAdmi
 // admin: quien llega a mirar el catálogo no necesita descargarse el login, el
 // registro ni "Mis pedidos". `RequireAuthCliente` va `lazy` también — mantenerlo
 // síncrono mientras todo lo que envuelve es `lazy` no ahorra nada y rompe el
-// patrón.
-const RequireAuthCliente = lazy(() => import("./components/RequireAuthCliente.jsx"));
+// patrón. Su cargador es compartido con la precarga de `Carrito.jsx`: ya
+// precargado resuelve sincrónico y el primer "Continuar" no pinta Suspense.
+const RequireAuthCliente = lazy(cargarRequireAuthCliente);
 const Entrar = lazy(() => import("./pages/cuenta/Entrar.jsx"));
 const EntrarCodigo = lazy(() => import("./pages/cuenta/EntrarCodigo.jsx"));
 const Registro = lazy(() => import("./pages/cuenta/Registro.jsx"));

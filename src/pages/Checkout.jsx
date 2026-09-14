@@ -5,7 +5,7 @@ import EstadoVacio from "../components/EstadoVacio.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import useCarrito, { storageDisponible } from "../hooks/useCarrito.js";
 import usePerfilCliente from "../hooks/usePerfilCliente.js";
-import { getProductsByIds } from "../api/products.js";
+import useProductosCarrito from "../hooks/useProductosCarrito.js";
 import { crearOrden } from "../api/ordenes.js";
 import { formatPrecio, precioACentavos } from "../utils/formato.js";
 import { urlAbsoluta } from "../constants/seo.js";
@@ -91,9 +91,6 @@ function Checkout() {
   const navigate = useNavigate();
   const { carrito } = useCarrito();
   const { perfil, resuelto, error: errorSesion } = usePerfilCliente();
-  const [productos, setProductos] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [errorCarga, setErrorCarga] = useState(null);
 
   // Se lee UNA vez, con initializer perezoso: leerlo en cada render volvería a
   // parsear el JSON a cada tecla del campo de notas.
@@ -133,28 +130,11 @@ function Checkout() {
   // cantidades.
   const claveIds = [...new Set(carrito.map((l) => l.productId))].sort((a, b) => a - b).join(",");
 
-  useEffect(() => {
-    let activo = true;
-    const ids = claveIds === "" ? [] : claveIds.split(",").map(Number);
-
-    getProductsByIds(ids)
-      .then((data) => {
-        if (!activo) return;
-        setProductos(data);
-        setCargando(false);
-      })
-      // Sin este catch, un backend caído deja la promesa rechazada sin manejar
-      // y el spinner girando para siempre, con el usuario a un paso de pagar.
-      .catch(() => {
-        if (!activo) return;
-        setErrorCarga(MENSAJE_ERROR_CARGA);
-        setCargando(false);
-      });
-
-    return () => {
-      activo = false;
-    };
-  }, [claveIds]);
+  // Mismo hook que `Carrito.jsx`: al llegar desde el carrito los productos ya
+  // están cacheados y no se pinta "Cargando checkout…"; el refetch en segundo
+  // plano igual reemplaza precio y stock antes de que se pueda confirmar nada.
+  const { productos, cargando, error } = useProductosCarrito(claveIds);
+  const errorCarga = error ? MENSAJE_ERROR_CARGA : null;
 
   const productosPorId = new Map(productos.map((p) => [p.id, p]));
 
