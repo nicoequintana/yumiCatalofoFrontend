@@ -10,15 +10,17 @@ vi.mock("../api/campanias.js", () => ({
 }));
 
 /**
- * La forma EXACTA que emite `aSlideCampania` desde el 06/09/2026: sin
- * `ctaTexto` y sin `color`. Los dos dejaron de viajar cuando el slide entero
- * pasó a ser el enlace — el copy de la señal es fijo acá y el molde sin arte va
- * siempre en el color de marca.
+ * La forma EXACTA que emite `aSlideCampania` desde el 14/09/2026: sin
+ * `ctaTexto` y sin `color` (06/09), y con `nombre` sumado como fallback del
+ * nombre accesible cuando no hay `titulo` cargado (decisión de usuario
+ * 2026-09-14: el título del banner dejó de ser obligatorio, el texto vive en
+ * la imagen que sube el admin).
  */
 const SLIDE = {
   tipo: "CAMPANIA",
   campaniaId: 7,
   titulo: "Primavera YIMA",
+  nombre: "Primavera YIMA",
   texto: "Renovamos la casa",
   ctaDestino: "/coleccion?campania=7",
   arteUrl: null,
@@ -37,14 +39,13 @@ describe("SlideCampania", () => {
   it("sin arte, pinta el color de marca y muestra el doodle", () => {
     const { container } = renderSlide(SLIDE);
 
-    expect(screen.getByText("Primavera YIMA")).toBeInTheDocument();
     // Decorativa (`alt=""`): no tiene rol "img" en el árbol de accesibilidad,
     // así que se busca por el DOM, no por rol.
     expect(container.querySelector("img")).toHaveAttribute("src", SLIDE.doodleUrl);
     expect(container.querySelector(".bg-primary")).not.toBeNull();
   });
 
-  it("con arte, la pieza llena la caja y el doodle NO se muestra", () => {
+  it("con arte, la imagen llena el slide y el doodle NO se muestra", () => {
     // Dos imágenes en 135 px de alto es ruido: con arte, el doodle sobra.
     const { container } = renderSlide({
       ...SLIDE,
@@ -52,50 +53,24 @@ describe("SlideCampania", () => {
       doodleUrl: "https://cdn.test/doodle.png",
     });
 
-    // Decorativas (`alt=""`): sin rol "img", se cuentan por el DOM.
-    //
-    // Este test afirmaba `toHaveLength(1)` hasta el 06/09/2026, y contar dejó
-    // de servir: el vidrio es una COPIA desenfocada del arte, así que con arte
-    // hay DOS `<img>` del mismo `src`. Lo que el test protege no es el número
-    // sino que el doodle no se cuele — así que ahora eso es lo que afirma.
+    // Decisión de usuario 2026-09-14: la imagen se muestra COMPLETA, sin
+    // tinte ni vidrio encima — el texto vive adentro de la pieza que sube el
+    // admin. Con eso, con arte hay UNA sola `<img>`, no dos.
     const imagenes = [...container.querySelectorAll("img")];
-    expect(imagenes.length).toBeGreaterThan(0);
-    expect(imagenes.every((i) => i.getAttribute("src") === "https://cdn.test/arte.jpg")).toBe(true);
+    expect(imagenes).toHaveLength(1);
+    expect(imagenes[0]).toHaveAttribute("src", "https://cdn.test/arte.jpg");
     expect(container.querySelector('img[src="https://cdn.test/doodle.png"]')).toBeNull();
   });
 
-  it("el bloque de texto parte las palabras largas en vez de desbordar", () => {
-    // Una palabra sin espacios NO se puede cortar por defecto: el navegador la
-    // deja salir de su caja. Con un texto pegado (una URL, un "productosss…"),
-    // el copy se iba por encima del arte atravesando el banner entero — el
-    // `max-w-[52%]` limita la CAJA, no una palabra indivisible.
-    const { container } = renderSlide({
-      ...SLIDE,
-      arteUrl: "https://cdn.test/arte.jpg",
-      texto: `Hasta 30% de descuento en productos${"s".repeat(60)}`,
-    });
-
-    const bloque = container.querySelector("div.min-w-0");
-    expect(bloque.className).toContain("break-words");
-    // El tope de ancho es la otra mitad del par: sin él, partir palabras no
-    // alcanza porque la caja crecería igual.
-    expect(bloque.className).toContain("max-w-[64%]");
-    expect(bloque.className).toContain("md:max-w-[52%]");
-  });
-
-  it("con arte, el vidrio es una copia desenfocada y no un backdrop-filter", () => {
-    // `backdrop-filter` muestrea el fondo, así que se recalcula en cada frame
-    // de la transición de opacidad del carrusel (500 ms, dos slides a la vez):
-    // el vidrio se veía llegar tarde. `filter: blur()` sobre una copia se
-    // rasteriza una vez. Este guard existe para que nadie lo revierta por
-    // "simplificar" a una sola capa.
+  it("con arte, no hay overlay: ni tinte ni vidrio desenfocado", () => {
+    // Hasta el 13/09/2026 el arte llevaba una copia desenfocada y un degradé
+    // para que el copy se leyera encima. Sin copy que proteger, el overlay
+    // entero se fue: la imagen se muestra tal cual la sube el admin.
     const { container } = renderSlide({ ...SLIDE, arteUrl: "https://cdn.test/arte.jpg" });
 
-    const copia = container.querySelector('img[aria-hidden="true"]');
-    expect(copia).not.toBeNull();
-    expect(copia.className).toContain("blur-md");
-    // El `scale-110` cubre el sangrado del blur en los bordes.
-    expect(copia.className).toContain("scale-110");
+    expect(container.querySelector(".bg-gradient-to-r")).toBeNull();
+    expect(container.querySelector('img[aria-hidden="true"]')).toBeNull();
+    expect(container.innerHTML).not.toContain("blur-md");
     expect(container.innerHTML).not.toContain("backdrop-blur");
   });
 
@@ -114,7 +89,7 @@ describe("SlideCampania", () => {
     // El backend dejó de emitir `color` el 06/09/2026, pero una pestaña abierta
     // desde antes puede tener slides cacheados que todavía lo traigan. El molde
     // sin arte se pinta con el color de marca IGUAL: el dato ya no se lee.
-    const { container } = renderSlide({ ...SLIDE, color: "VERDE" });
+    const { container } = renderSlide({ ...SLIDE, arteUrl: null, doodleUrl: null, color: "VERDE" });
 
     expect(container.querySelector(".bg-primary")).not.toBeNull();
     expect(container.querySelector(".bg-secondary")).toBeNull();
@@ -131,6 +106,29 @@ describe("SlideCampania", () => {
     );
   });
 
+  it("sin título cargado, el nombre accesible cae al nombre de la campaña/promoción", () => {
+    // Decisión de usuario 2026-09-14: el título del banner dejó de ser
+    // obligatorio (el texto vive en la imagen), así que un slide puede llegar
+    // sin `titulo`. El link igual necesita un nombre accesible — lo da
+    // `slide.nombre`, que el backend suma para este único fin.
+    renderSlide({ ...SLIDE, titulo: null, nombre: "Primavera YIMA" });
+
+    expect(screen.getByRole("link", { name: "Primavera YIMA" })).toHaveAttribute(
+      "href",
+      "/coleccion?campania=7",
+    );
+  });
+
+  it("el título y el texto NO se pintan visualmente: el texto vive en la imagen", () => {
+    // Decisión de usuario 2026-09-14: el admin ya no escribe título/texto de
+    // un banner, solo decide si se muestra y qué imagen sube. El campo sigue
+    // viajando (se usa como nombre accesible), pero no se pinta como copy.
+    renderSlide(SLIDE);
+
+    expect(screen.queryByText(SLIDE.titulo)).toBeNull();
+    expect(screen.queryByText(SLIDE.texto)).toBeNull();
+  });
+
   it("hay UN solo link por slide: la señal del CTA no es un ancla adentro de otra", () => {
     // Un `<a>` dentro de otro `<a>` es HTML inválido, y los navegadores lo
     // "arreglan" cerrando la primera: media tarjeta deja de ser clickeable, sin
@@ -141,10 +139,6 @@ describe("SlideCampania", () => {
   });
 
   it("NO hay señal de CTA: ni texto ni flecha, el banner entero es el botón", () => {
-    // Hubo un "Ver más →" subrayado, primero como botón y después como señal
-    // visual. Se fue el 06/09/2026: con el slide entero convertido en enlace,
-    // una etiqueta que repite lo que ya hace toda la superficie es ruido, y en
-    // móvil se comía alto de una franja de 123 px.
     renderSlide(SLIDE);
 
     expect(screen.queryByText(/ver más/i)).toBeNull();
@@ -163,13 +157,9 @@ describe("SlideCampania", () => {
     renderSlide(SLIDE, { interactivo: false });
 
     expect(screen.queryByRole("link")).toBeNull();
-    // El copy sí se ve: el admin tiene que poder leer lo que escribió.
-    expect(screen.getByText(SLIDE.titulo)).toBeInTheDocument();
   });
 
-  it("las imágenes son decorativas: el título no se anuncia dos veces", () => {
-    // El título ya está como texto al lado de la imagen. Un `alt` con el mismo
-    // texto se lo hace leer dos veces seguidas a un lector de pantalla.
+  it("las imágenes son decorativas: alt vacío en todos los casos", () => {
     const { container } = renderSlide({ ...SLIDE, arteUrl: "https://cdn.test/arte.jpg" });
 
     for (const img of container.querySelectorAll("img")) {
@@ -188,47 +178,13 @@ describe("SlideCampania", () => {
   });
 });
 
-/**
- * El copy va sobre una foto que sube el admin, así que el contraste no puede
- * depender de que esa foto sea oscura. El tinte es lo único que lo garantiza:
- * el vidrio desenfoca pero NO oscurece.
- *
- * Medido en Chromium con un arte PNG **blanco** (el peor caso realista: una
- * foto de producto sobre fondo blanco, lo más común en e-commerce) a 390px de
- * ancho, sobre el texto `background` (#fff8f5):
- *
- * | tinte | peor píxel del copy | área del copy bajo 4.5 |
- * |---|---|---|
- * | `/75` desde 40 %, `/40` en 70 % (antes) | **2.54** | 100 % |
- * | `/90` desde 45 %, `/75` en 72 % (hoy)   | **5.13** | 0 %   |
- *
- * El test fija la REGLA —el piso del tinte y el de su punto medio—, no una
- * clase literal: el número del medio importa porque la caja del copy llega
- * hasta el 64 % del ancho en móvil, o sea bastante más allá del primer stop.
- */
-describe("SlideCampania — el piso del tinte sobre el copy", () => {
-  function alfaDe(clases, prefijo) {
-    const encontrada = clases.split(/\s+/).find((c) => c.startsWith(prefijo));
-    expect(encontrada, `no hay ninguna clase ${prefijo}…`).toBeDefined();
-    return Number(encontrada.split("/")[1]);
-  }
-
-  it("el tinte arranca en 90 % y no baja de 75 % dentro de la zona del copy", () => {
-    const { container } = renderSlide({ ...SLIDE, arteUrl: "https://cdn.test/arte.jpg" });
-
-    const tinte = container.querySelector(".bg-gradient-to-r");
-    expect(tinte).not.toBeNull();
-    expect(alfaDe(tinte.className, "from-on-surface-variant/")).toBeGreaterThanOrEqual(90);
-    expect(alfaDe(tinte.className, "via-on-surface-variant/")).toBeGreaterThanOrEqual(75);
-  });
-});
-
 describe("click del slide", () => {
   const slide = {
     tipo: "CAMPANIA",
     campaniaId: 7,
     promocionId: null,
     titulo: "Primavera",
+    nombre: "Primavera",
     texto: "Hasta 30%",
     ctaDestino: "/coleccion?campania=7",
     ctaTipo: "CAMPANIA",
@@ -289,13 +245,15 @@ describe("click del slide", () => {
 
   it("la vista previa del editor NO emite", async () => {
     const usuario = userEvent.setup();
-    render(
+    const { container } = render(
       <MemoryRouter>
         <SlideCampania slide={slide} interactivo={false} />
       </MemoryRouter>,
     );
 
-    await usuario.click(screen.getByText("Primavera"));
+    // Sin `interactivo`, el envoltorio es un `<div>` sin nombre accesible (el
+    // copy ya no se pinta): se clickea el nodo raíz directo.
+    await usuario.click(container.firstChild);
 
     expect(registrarEventoComercialMock).not.toHaveBeenCalled();
   });

@@ -128,7 +128,10 @@ test.describe("La home abre con el carrusel de campañas y ofertas", () => {
       // rotación se reanudaría.
       await cerrarCartelSiAparece(page);
       await fijarPrimerSlide(region);
-      await expect(region.getByText(TITULO_BANNER)).toBeVisible();
+      // Decisión de usuario 2026-09-14: el título ya no se pinta como texto
+      // visible (el texto vive en la imagen) — se afirma por el nombre
+      // accesible del link, que sigue saliendo del título.
+      await expect(region.getByRole("link", { name: TITULO_BANNER })).toBeVisible();
     });
 
     await test.step("el slide entero es el enlace, y lleva a la vitrina de la campaña", async () => {

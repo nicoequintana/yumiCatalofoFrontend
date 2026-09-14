@@ -78,9 +78,12 @@ describe("CarruselCampanias", () => {
   it("con UN slide no pinta la fila de control: ni flechas ni puntos", () => {
     // Un carrusel de un elemento es un banner. Los puntos serían adorno que
     // miente y una flecha que vuelve al mismo slide es un control roto.
-    renderCarrusel([slide(1)]);
+    //
+    // El título ya no se pinta visualmente (decisión de usuario 2026-09-14):
+    // se afirma que el slide renderizó por el link accesible, no por texto.
+    renderCarrusel([slide(1, { ctaDestino: "/coleccion" })]);
 
-    expect(screen.getByText("Campaña 1")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Campaña 1" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /siguiente/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /anterior/i })).toBeNull();
     expect(screen.queryByRole("tab")).toBeNull();
@@ -223,8 +226,8 @@ describe("CarruselCampanias", () => {
     // ATRIBUTO en el DOM, no que el link sea intabulable de verdad.
     //
     // El link se busca por el TÍTULO: desde el 06/09/2026 el enlace es el slide
-    // entero y su nombre accesible sale de `aria-label={slide.titulo}`, no del
-    // texto del CTA.
+    // entero y su nombre accesible sale del título (o, a falta de título, del
+    // nombre de la campaña/promoción desde el 14/09/2026), no del texto del CTA.
     renderCarrusel([slide(1, { ctaDestino: "/coleccion" }), slide(2, { ctaDestino: "/coleccion" })]);
 
     const linkActivo = screen.getByRole("link", { name: "Campaña 1" });
@@ -252,12 +255,18 @@ describe("CarruselCampanias", () => {
     // `campaniaId ?? tipo`, y dos slides PROMOCION comparten `campaniaId:
     // null` y `tipo: "PROMOCION"` → la misma key literal "PROMOCION" para los
     // dos. React no lanza por eso, pero deja de garantizar que reconcilie
-    // cada nodo por separado; lo que sí podemos afirmar sin depender de eso
-    // es que los DOS títulos llegan al DOM y hay dos tabs, uno por slide.
-    renderCarrusel([slidePromocion(10), slidePromocion(20)]);
+    // cada nodo por separado.
+    //
+    // El título ya no se pinta como texto visible (decisión de usuario
+    // 2026-09-14): lo que se puede afirmar sin depender de eso es que los DOS
+    // nombres accesibles llegan al DOM (uno por link) y hay dos tabs.
+    renderCarrusel([
+      slidePromocion(10, { ctaDestino: "/coleccion?promocion=10" }),
+      slidePromocion(20, { ctaDestino: "/coleccion?promocion=20" }),
+    ]);
 
-    expect(screen.getByText("Promoción 10")).toBeInTheDocument();
-    expect(screen.getByText("Promoción 20", { selector: "p" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Promoción 10" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Promoción 20", hidden: true })).toBeInTheDocument();
     expect(screen.getAllByRole("tab")).toHaveLength(2);
   });
 });
