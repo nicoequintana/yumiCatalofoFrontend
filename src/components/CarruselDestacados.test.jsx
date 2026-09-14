@@ -496,6 +496,28 @@ describe("CarruselDestacados — inercia al soltar", () => {
   });
 });
 
+describe("CarruselDestacados — sin motor corriendo en reposo (M2)", () => {
+  it("no agenda ningún frame de animación mientras nadie arrastra ni hay inercia en curso", () => {
+    // El motor de inercia solo tiene sentido MIENTRAS hay algo que frenar.
+    // Antes de este fix, `requestAnimationFrame` se reagendaba a sí mismo en
+    // cada frame para siempre, aunque el carrusel estuviera completamente
+    // quieto — el mismo desperdicio que el viejo autoplay de 40 px/s, ahora
+    // por otra puerta.
+    const rafSpy = vi.spyOn(window, "requestAnimationFrame");
+
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <CarruselDestacados productos={cuatroDestacados()} />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+
+    expect(rafSpy).not.toHaveBeenCalled();
+    rafSpy.mockRestore();
+  });
+});
+
 describe("CarruselDestacados — flechas", () => {
   function obtenerPista() {
     return screen.getByRole("region", { name: /productos destacados/i });

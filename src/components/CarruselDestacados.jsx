@@ -81,83 +81,105 @@ function CarruselDestacados({ productos }) {
   // frenando después de soltar. Cero significa que no hay inercia en curso.
   const inerciaRef = useRef(0);
 
+  // Estado del motor de inercia, en refs y no en variables locales del
+  // efecto: el motor arranca y para muchas veces a lo largo de la vida del
+  // componente (uno por gesto), así que tiene que sobrevivir entre esos
+  // ciclos sin recrearse.
+  const frameIdRef = useRef(0);
+  const ultimoTiempoRef = useRef(0);
+  // Posición exacta, en punto flotante, llevada aparte de `scrollLeft`: el
+  // navegador CUANTIZA la escritura de `scrollLeft` al píxel de dispositivo
+  // (medido en Chromium: de 120 px pedidos en pasos sub-píxel llegaban 24).
+  // Acumulando aparte y escribiendo el valor absoluto, la fracción nunca se
+  // descarta. Volver a `scrollLeft += …` reintroduce el bug.
+  const posicionRef = useRef(null);
+
   /** Si la sección se muestra. El early return va después de los hooks. */
   const hayCarrusel = destacados.length >= MIN_DESTACADOS;
 
-  // Motor de la inercia post-arrastre (el único movimiento que el carrusel
-  // hace sin un gesto en curso; no hay autoplay).
-  //
-  // `requestAnimationFrame` con delta de tiempo real, no un incremento fijo
-  // por frame: así el frenado dura lo mismo en una pantalla de 60 Hz que en
-  // una de 120 Hz, y una pestaña en segundo plano no acumula un salto.
-  useEffect(() => {
-    if (!hayCarrusel) return undefined;
+  /**
+   * Un frame del motor de inercia post-arrastre (el único movimiento que el
+   * carrusel hace sin un gesto en curso; no hay autoplay).
+   *
+   * **Solo se agenda MIENTRAS hay inercia viva** — arranca en
+   * `terminarArrastre` cuando el gesto suelta con velocidad, y deja de
+   * reagendarse solo cuando la fricción la apaga. Hasta el 13/09/2026 esto
+   * corría con un `requestAnimationFrame` que se reagendaba a sí mismo PARA
+   * SIEMPRE desde que el carrusel montaba, sin importar si había algo que
+   * animar: el mismo desperdicio del viejo autoplay de 40 px/s, por otra
+   * puerta. `useEffect` con delta de tiempo real, no un incremento fijo por
+   * frame: así el frenado dura lo mismo en una pantalla de 60 Hz que en una
+   * de 120 Hz, y una pestaña en segundo plano no acumula un salto.
+   */
+  function paso(tiempo) {
+    const delta = ultimoTiempoRef.current ? (tiempo - ultimoTiempoRef.current) / 1000 : 0;
+    ultimoTiempoRef.current = tiempo;
 
-    // Respeta la preferencia del sistema: sin inercia, el carrusel sigue
-    // siendo arrastrable y scrolleable a mano.
-    const consultaMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    if (consultaMovimiento?.matches) return undefined;
+    // El ref se lee DENTRO del frame, no una vez al arrancar el motor: en el
+    // primer render `productos` todavía llega vacío, así que el `<div>` de
+    // la pista no existe y una captura única se quedaría con `null`.
+    const pista = pistaRef.current;
 
-    let frameId = 0;
-    let ultimoTiempo = 0;
-
-    // Posición exacta, en punto flotante, llevada aparte de `scrollLeft`: el
-    // navegador CUANTIZA la escritura de `scrollLeft` al píxel de dispositivo
-    // (medido en Chromium: de 120 px pedidos en pasos sub-píxel llegaban 24).
-    // Acumulando aparte y escribiendo el valor absoluto, la fracción nunca se
-    // descarta. Volver a `scrollLeft += …` reintroduce el bug.
-    let posicion = null;
-
-    function paso(tiempo) {
-      const delta = ultimoTiempo ? (tiempo - ultimoTiempo) / 1000 : 0;
-      ultimoTiempo = tiempo;
-
-      // El ref se lee DENTRO del frame, no una vez al montar el efecto: en el
-      // primer render `productos` todavía llega vacío, así que el `<div>` de
-      // la pista no existe y una captura única se quedaría con `null`.
-      const pista = pistaRef.current;
-
-      // Un frame de más entre el desmontaje y el `cancelAnimationFrame` no
-      // debe explotar.
-      if (pista && !arrastreRef.current.activo && inerciaRef.current !== 0) {
-        // Se resincroniza con el DOM cuando algo externo movió el scroll
-        // (arrastre, rueda, teclado, flechas): manda el real.
-        if (posicion === null || Math.abs(posicion - pista.scrollLeft) > 1) {
-          posicion = pista.scrollLeft;
-        }
-
-        posicion += inerciaRef.current * delta;
-
-        // El decaimiento se eleva al tiempo REAL transcurrido, no se aplica
-        // una vez por frame: si no, el carrusel frenaría al doble de rápido
-        // en una pantalla de 120 Hz que en una de 60.
-        inerciaRef.current *= Math.pow(FRICCION_POR_FRAME, delta * 60);
-        if (Math.abs(inerciaRef.current) < VELOCIDAD_FIN_INERCIA_PX_S) {
-          inerciaRef.current = 0;
-        }
-
-        // Rebobinado en las DOS direcciones: arrastrar hacia la derecha lleva
-        // el scroll hacia 0, y sin la rama de abajo el carrusel se clavaba
-        // contra el borde izquierdo en vez de seguir siendo infinito.
-        const mitad = pista.scrollWidth / 2;
-        if (mitad > 0) {
-          if (posicion >= mitad) posicion -= mitad;
-          else if (posicion < 0) posicion += mitad;
-        }
-
-        pista.scrollLeft = posicion;
-      } else if (pista) {
-        // Sin inercia en curso la posición propia sigue al DOM, así no queda
-        // vieja y no provoca un salto cuando arranque la próxima.
-        posicion = pista.scrollLeft;
+    // Un frame de más entre el desmontaje y el `cancelAnimationFrame` no
+    // debe explotar.
+    if (pista && !arrastreRef.current.activo && inerciaRef.current !== 0) {
+      // Se resincroniza con el DOM cuando algo externo movió el scroll
+      // (arrastre, rueda, teclado, flechas, o el tiempo idle entre un gesto
+      // y el siguiente, ahora que el motor para entre medio): manda el real.
+      if (posicionRef.current === null || Math.abs(posicionRef.current - pista.scrollLeft) > 1) {
+        posicionRef.current = pista.scrollLeft;
       }
 
-      frameId = window.requestAnimationFrame(paso);
+      posicionRef.current += inerciaRef.current * delta;
+
+      // El decaimiento se eleva al tiempo REAL transcurrido, no se aplica
+      // una vez por frame: si no, el carrusel frenaría al doble de rápido en
+      // una pantalla de 120 Hz que en una de 60.
+      inerciaRef.current *= Math.pow(FRICCION_POR_FRAME, delta * 60);
+      if (Math.abs(inerciaRef.current) < VELOCIDAD_FIN_INERCIA_PX_S) {
+        inerciaRef.current = 0;
+      }
+
+      // Rebobinado en las DOS direcciones: arrastrar hacia la derecha lleva
+      // el scroll hacia 0, y sin la rama de abajo el carrusel se clavaba
+      // contra el borde izquierdo en vez de seguir siendo infinito.
+      const mitad = pista.scrollWidth / 2;
+      if (mitad > 0) {
+        if (posicionRef.current >= mitad) posicionRef.current -= mitad;
+        else if (posicionRef.current < 0) posicionRef.current += mitad;
+      }
+
+      pista.scrollLeft = posicionRef.current;
+    } else if (pista) {
+      // Sin inercia en curso la posición propia sigue al DOM, así no queda
+      // vieja y no provoca un salto cuando arranque la próxima.
+      posicionRef.current = pista.scrollLeft;
     }
 
-    frameId = window.requestAnimationFrame(paso);
-    return () => window.cancelAnimationFrame(frameId);
-  }, [hayCarrusel]);
+    // Sigue agendándose SOLO mientras quede inercia; si la fricción la apagó
+    // en este mismo frame (arriba), el motor para acá y no vuelve a
+    // despertarse hasta el próximo `terminarArrastre` con velocidad.
+    if (inerciaRef.current !== 0) {
+      frameIdRef.current = window.requestAnimationFrame(paso);
+    } else {
+      frameIdRef.current = 0;
+      ultimoTiempoRef.current = 0;
+    }
+  }
+
+  /** Despierta el motor de inercia. Sin efecto si ya está corriendo. */
+  function iniciarInercia() {
+    if (frameIdRef.current) return;
+    frameIdRef.current = window.requestAnimationFrame(paso);
+  }
+
+  // Único trabajo del efecto: cancelar el frame en vuelo al desmontar. El
+  // motor en sí lo arranca `terminarArrastre`, no el montaje del componente.
+  useEffect(() => {
+    return () => {
+      if (frameIdRef.current) window.cancelAnimationFrame(frameIdRef.current);
+    };
+  }, []);
 
   /**
    * Flechas de escritorio: desplazan una tanda de `TARJETAS_POR_FLECHA`.
@@ -313,14 +335,23 @@ function CarruselDestacados({ productos }) {
       pista.releasePointerCapture(evento.pointerId);
     }
 
+    // Respeta la preferencia del sistema: sin inercia, el carrusel sigue
+    // siendo arrastrable y scrolleable a mano. Mismo criterio que
+    // `desplazarTanda` para las flechas.
+    const sinMovimiento = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+
     // El scroll se mueve al revés que el dedo, de ahí el signo invertido.
     // Solo un gesto que venía rápido deja al carrusel en movimiento; soltar
     // despacio lo deja donde está.
     const velocidadScroll = -arrastre.velocidad;
     inerciaRef.current =
-      arrastre.movido && Math.abs(velocidadScroll) >= VELOCIDAD_MINIMA_INERCIA_PX_S
+      !sinMovimiento && arrastre.movido && Math.abs(velocidadScroll) >= VELOCIDAD_MINIMA_INERCIA_PX_S
         ? velocidadScroll
         : 0;
+
+    // Arranca el motor SOLO acá, con velocidad real que frenar — no al
+    // montar el componente. Ver el comentario de `paso` más arriba.
+    if (inerciaRef.current !== 0) iniciarInercia();
 
     arrastre.activo = false;
     // `movido` NO se limpia acá: lo lee el `onClickCapture` de la tarjeta,
