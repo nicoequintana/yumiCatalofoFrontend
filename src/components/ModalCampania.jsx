@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom";
 import { registrarEventoComercial } from "../api/campanias.js";
 import CartelCampania from "./CartelCampania.jsx";
 import useDialogo from "../hooks/useDialogo.js";
@@ -25,6 +26,13 @@ const ID_TITULO = "titulo-modal-campania";
 
 export default function ModalCampania({ modal, onCerrar }) {
   const dialogoRef = useDialogo({ onCerrar });
+  // `VeloModal` portala a `document.body`, AFUERA del `.tema-publico` que
+  // pinta `Layout.jsx` — este cartel nunca se monta en admin en los hechos
+  // (`CampaniaModalMontado` le pasa `modal: null` ahí), pero el scoping se
+  // decide acá y no por esa invariante ajena, mismo criterio que
+  // `Layout`/`CampaniaModalMontado` (I1 de la revisión del rediseño).
+  const { pathname } = useLocation();
+  const esAdmin = pathname.startsWith("/catalogo/admin");
 
   // Registra ANTES de cerrar: cerrar desmonta el árbol, y un registro disparado
   // después podría no llegar a salir. `CartelCampania` no se toca — el panel lo
@@ -50,7 +58,7 @@ export default function ModalCampania({ modal, onCerrar }) {
     // El guard contra el arrastre vive en `VeloModal`.
     <VeloModal
       onClickFuera={onCerrar}
-      className="z-[60] flex items-center justify-center bg-black/50 px-margin-mobile"
+      className={`z-[60] flex items-center justify-center bg-black/50 px-margin-mobile ${esAdmin ? "" : "tema-publico"}`}
     >
       <div
         ref={dialogoRef}

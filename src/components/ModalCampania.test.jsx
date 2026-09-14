@@ -39,6 +39,26 @@ function velo() {
   return screen.getByRole("dialog").parentElement;
 }
 
+describe("ModalCampania — tema público del velo (I1)", () => {
+  // El toast y el cartel comercial se montan en `Layout`, dentro del wrapper
+  // `.tema-publico` — pero `VeloModal` portala a `document.body`, AFUERA de
+  // ese wrapper en el DOM real. Sin este scoping propio, el cartel pinta con
+  // la paleta y la tipografía del ADMIN por más que nunca se muestre ahí.
+  it("el velo lleva tema-publico en una ruta pública", () => {
+    montar();
+    expect(velo().className).toContain("tema-publico");
+  });
+
+  it("NO lleva tema-publico si cuelga de una ruta de admin", () => {
+    render(
+      <MemoryRouter initialEntries={["/catalogo/admin/ordenes"]}>
+        <ModalCampania modal={{ ...BASE }} onCerrar={() => {}} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("dialog").parentElement.className).not.toContain("tema-publico");
+  });
+});
+
 describe("ModalCampania — la salida del cartel en un celular", () => {
   // El cartel es `fixed inset-0` y se monta en el Layout: aparece en TODA ruta
   // pública, el checkout incluido. `useDialogo` da Escape, pero en un celular
