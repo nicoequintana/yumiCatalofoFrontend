@@ -312,7 +312,9 @@ describe("Catalogo - home editorial", () => {
 
     renderPagina();
 
-    expect(await screen.findByText("Primavera YIMA")).toBeInTheDocument();
+    // Desde el 14/09/2026 el título del banner no se dibuja (el texto vive en
+    // la imagen): el carrusel se afirma por su región, no por el copy.
+    expect(await screen.findByRole("region", { name: "Campañas y ofertas" })).toBeInTheDocument();
   });
 
   it("sin slides, la home no dibuja el carrusel", async () => {
