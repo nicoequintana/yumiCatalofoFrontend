@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getProducts } from "../api/products.js";
 import BuscadorSugerencias from "./BuscadorSugerencias.jsx";
 import Navbar from "./Navbar.jsx";
@@ -48,6 +48,15 @@ describe("BuscadorSugerencias", () => {
     navigateMock.mockReset();
   });
 
+  // Restaura los timers reales en un solo lugar: un `vi.useRealTimers()`
+  // inline al final de cada test que usa `vi.useFakeTimers()` NUNCA corre si
+  // una `expect` anterior en el mismo test tira — y esa pérdida de timers
+  // reales se le queda pegada al PRÓXIMO test del archivo, que puede fallar
+  // sin que nada en su propio código esté mal.
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("no pide nada con menos de 2 caracteres", async () => {
     renderBuscador();
     await userEvent.type(screen.getByRole("searchbox", { name: "Buscar en el catálogo" }), "a");
@@ -71,7 +80,6 @@ describe("BuscadorSugerencias", () => {
     expect(getProducts).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(300);
     expect(getProducts).toHaveBeenCalledWith(expect.objectContaining({ search: "lampara", pageSize: 5 }));
-    vi.useRealTimers();
   });
 
   it("muestra hasta 5 productos con miniatura, categoría y precio", async () => {
@@ -163,6 +171,12 @@ describe("BuscadorSugerencias", () => {
     resolverLenta({ data: [producto({ nombre: "Resultado viejo" })], total: 1 });
     await vi.advanceTimersByTimeAsync(0);
 
+    // Este `useRealTimers()` NO es el cleanup de fin de test (ese quedó en el
+    // `afterEach` de arriba, para que sobreviva a un `expect` que tire antes
+    // de esta línea): `findByText` pollea con `setTimeout` real por dentro, y
+    // bajo timers falsos ese poll nunca corre — el test cuelga hasta el
+    // timeout de Vitest en vez de fallar por lo que afirma. Verificado:
+    // sacarlo cuelga este test a los 5000ms.
     vi.useRealTimers();
     expect(await screen.findByText("Resultado nuevo")).toBeInTheDocument();
     expect(screen.queryByText("Resultado viejo")).not.toBeInTheDocument();
@@ -196,7 +210,6 @@ describe("BuscadorSugerencias", () => {
     });
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-    vi.useRealTimers();
   });
 
   describe("cierre al salir del componente", () => {
