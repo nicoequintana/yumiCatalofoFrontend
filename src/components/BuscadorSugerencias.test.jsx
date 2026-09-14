@@ -327,3 +327,99 @@ describe("BuscadorSugerencias", () => {
     expect(screen.getByRole("searchbox", { name: "Buscar en el catálogo" })).toBeInTheDocument();
   });
 });
+
+describe("BuscadorSugerencias — pista animada del campo vacío", () => {
+  // `matchMedia` no existe en jsdom: mismo helper que `BarraAnuncios.test.jsx`
+  // para ejercitar las dos ramas de `prefers-reduced-motion`.
+  function instalarMatchMedia(reduce) {
+    const previo = Object.getOwnPropertyDescriptor(window, "matchMedia");
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      writable: true,
+      value: (consulta) => ({
+        matches: consulta.includes("prefers-reduced-motion") ? reduce : false,
+        media: consulta,
+        addEventListener() {},
+        removeEventListener() {},
+      }),
+    });
+    return () => {
+      if (previo) Object.defineProperty(window, "matchMedia", previo);
+      else delete window.matchMedia;
+    };
+  }
+
+  let restaurar = () => {};
+  afterEach(() => {
+    restaurar();
+    restaurar = () => {};
+    vi.useRealTimers();
+  });
+
+  const pista = () => screen.queryByTestId("pista-buscador");
+  const campo = () => screen.getByRole("searchbox", { name: "Buscar en el catálogo" });
+
+  it("vacío y sin foco muestra la pista: aria-hidden, sin interceptar clicks, y el input con placeholder corto", () => {
+    restaurar = instalarMatchMedia(false);
+    renderBuscador();
+
+    expect(pista()).toBeInTheDocument();
+    expect(pista()).toHaveAttribute("aria-hidden", "true");
+    expect(pista().className.split(" ")).toContain("pointer-events-none");
+    // El placeholder real es corto (entra en el campo más angosto) y el
+    // nombre accesible sigue siendo el `aria-label`.
+    expect(campo()).toHaveAttribute("placeholder", "Buscar…");
+    // Con la pista encima, el placeholder real no se pinta: serían dos textos
+    // superpuestos. Con foco vuelve a verse.
+    expect(campo().className.split(" ")).toContain("placeholder:text-transparent");
+    fireEvent.focus(campo());
+    expect(campo().className.split(" ")).not.toContain("placeholder:text-transparent");
+  });
+
+  it("recorre frases cortas mientras está visible", () => {
+    restaurar = instalarMatchMedia(false);
+    vi.useFakeTimers();
+    renderBuscador();
+
+    const primera = pista().textContent;
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(pista().textContent).not.toBe(primera);
+    expect(pista().className).toContain("motion-safe:animate-fadeIn");
+  });
+
+  it("se oculta al enfocar el campo y vuelve al perder el foco si sigue vacío", () => {
+    restaurar = instalarMatchMedia(false);
+    renderBuscador();
+
+    fireEvent.focus(campo());
+    expect(pista()).not.toBeInTheDocument();
+
+    fireEvent.blur(campo());
+    expect(pista()).toBeInTheDocument();
+  });
+
+  it("se oculta con texto escrito aunque el campo no tenga foco", () => {
+    restaurar = instalarMatchMedia(false);
+    renderBuscador();
+
+    fireEvent.change(campo(), { target: { value: "m" } });
+    fireEvent.blur(campo());
+    expect(pista()).not.toBeInTheDocument();
+  });
+
+  it("con prefers-reduced-motion queda estática: sin animación y sin rotar", () => {
+    restaurar = instalarMatchMedia(true);
+    vi.useFakeTimers();
+    renderBuscador();
+
+    const texto = pista().textContent;
+    expect(pista().className).not.toMatch(/animate-/);
+    expect(pista()).toHaveAttribute("data-estatica", "true");
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
+    expect(pista().textContent).toBe(texto);
+  });
+});

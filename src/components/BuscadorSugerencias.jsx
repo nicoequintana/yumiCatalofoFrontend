@@ -8,6 +8,18 @@ import { rutaProducto } from "../utils/slug.js";
 const DEBOUNCE_MS = 250;
 const MAX_SUGERENCIAS = 5;
 
+/**
+ * La pista del campo vacío. El placeholder de antes, "Buscar productos,
+ * categorías…", mide ~235px a 16px y el campo del header en `lg` (1024px)
+ * deja 135px: se cortaba a la mitad. Se eligió ROTAR frases cortas y no un
+ * marquee: cada frase se lee quieta y entera en el campo más angosto, mientras
+ * que un texto que se desplaza hay que perseguirlo con la vista, compite con
+ * la cinta de anuncios (que ya es un marquee, arriba) y en 135px mostraría
+ * nunca más de media frase por vez. Cada frase entra en ~128px.
+ */
+const FRASES_PISTA = ["Buscá productos", "Buscá categorías"];
+const MS_POR_FRASE = 2800;
+
 // Mismo mensaje que el resto del catálogo público usa para "falló la carga"
 // (ver "Invariante: pantallas que responden ¿hay productos?" en
 // docs/reglas/catalogo-publico.md). No se reusa `EstadoVacio` entero: ese
@@ -66,6 +78,13 @@ function BuscadorSugerencias({ className = "", variante = "default" }) {
   const [total, setTotal] = useState(0);
   const [abierto, setAbierto] = useState(false);
   const [error, setError] = useState(false);
+  const [enfocado, setEnfocado] = useState(false);
+  const [indiceFrase, setIndiceFrase] = useState(0);
+  // Se lee una vez al montar, mismo guard que `BarraAnuncios`: sin
+  // `matchMedia` (jsdom) cae a "sin preferencia declarada".
+  const [reducirMovimiento] = useState(
+    () => Boolean(typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),
+  );
   const navigate = useNavigate();
   const debounceRef = useRef(null);
   const pedidoIdRef = useRef(0);
@@ -107,6 +126,15 @@ function BuscadorSugerencias({ className = "", variante = "default" }) {
     return () => clearTimeout(debounceRef.current);
   }, [termino]);
 
+  const mostrarPista = !enfocado && termino === "";
+  const pistaAnimada = mostrarPista && !reducirMovimiento;
+
+  useEffect(() => {
+    if (!pistaAnimada) return undefined;
+    const intervalo = setInterval(() => setIndiceFrase((i) => (i + 1) % FRASES_PISTA.length), MS_POR_FRASE);
+    return () => clearInterval(intervalo);
+  }, [pistaAnimada]);
+
   // Click/toque FUERA cierra. Se escucha `pointerdown` (mouse, touch y lápiz
   // en un solo evento) y solo mientras el dropdown está abierto.
   useEffect(() => {
@@ -141,25 +169,48 @@ function BuscadorSugerencias({ className = "", variante = "default" }) {
 
   return (
     <div ref={contenedorRef} onBlur={alPerderFoco} className={`relative ${className}`}>
-      <label className="flex h-11 items-center gap-2 rounded-full bg-surface-container-low px-4 focus-within:bg-surface-container-lowest focus-within:shadow-ambient">
+      <label className="relative flex h-11 items-center gap-2 rounded-full bg-surface-container-low px-4 focus-within:bg-surface-container-lowest focus-within:shadow-ambient">
         <span aria-hidden="true" className="material-symbols-outlined text-[20px] text-on-surface-variant">
           search
         </span>
+        {/* La pista: `aria-hidden` (el nombre accesible es el `aria-label`
+            del input) y `pointer-events-none` (el toque tiene que llegar al
+            input de abajo). Vive solo con el campo vacío y sin foco; con foco
+            queda el placeholder real, corto. `key` remonta la frase para que
+            el `fadeIn` corra en cada cambio. `left-[2.75rem]` = `px-4` (16) +
+            lupa (20) + `gap-2` (8): arranca donde arranca el texto. */}
+        {mostrarPista ? (
+          <span
+            key={pistaAnimada ? indiceFrase : "estatica"}
+            data-testid="pista-buscador"
+            data-estatica={pistaAnimada ? "false" : "true"}
+            aria-hidden="true"
+            className={`font-body-md pointer-events-none absolute inset-y-0 left-[2.75rem] right-4 truncate text-[16px] leading-[2.75rem] text-on-surface-variant ${
+              pistaAnimada ? "motion-safe:animate-fadeIn" : ""
+            }`}
+          >
+            {FRASES_PISTA[pistaAnimada ? indiceFrase : 0]}
+          </span>
+        ) : null}
         <input
           type="search"
           role="searchbox"
           aria-label="Buscar en el catálogo"
           value={termino}
           onChange={(e) => setTermino(e.target.value)}
+          onFocus={() => setEnfocado(true)}
+          onBlur={() => setEnfocado(false)}
           onKeyDown={(e) => {
             if (e.key === "Enter") irATodos();
             if (e.key === "Escape") setAbierto(false);
           }}
-          placeholder="Buscar productos, categorías…"
+          placeholder="Buscar…"
           autoComplete="off"
           // 16px, nunca menos: por debajo de eso Safari en iOS hace zoom
           // automático al enfocar el campo.
-          className="font-body-md w-full min-w-0 border-0 bg-transparent text-[16px] text-on-surface outline-none placeholder:text-on-surface-variant"
+          className={`font-body-md w-full min-w-0 border-0 bg-transparent text-[16px] text-on-surface outline-none ${
+            mostrarPista ? "placeholder:text-transparent" : "placeholder:text-on-surface-variant"
+          }`}
         />
       </label>
 
