@@ -50,6 +50,32 @@ function extraerBloque(css, regexInicio) {
   return css.slice(inicio, fin === -1 ? undefined : fin);
 }
 
+// Luminancia relativa y contraste — fórmula WCAG 2.x, en scope de módulo
+// porque más de un `describe` de este archivo la necesita (círculos de
+// categoría más abajo, y el link del toast — I1 de la revisión del
+// rediseño): ya se usó una vez a mano para la isla flotante (ver "Qué hace
+// que la isla se lea como VIDRIO", `docs/reglas/catalogo-publico.md`).
+function luminanciaRelativa([r, g, b]) {
+  const canal = (c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+}
+
+function contraste(rgbA, rgbB) {
+  const lA = luminanciaRelativa(rgbA);
+  const lB = luminanciaRelativa(rgbB);
+  const [claro, oscuro] = lA > lB ? [lA, lB] : [lB, lA];
+  return (claro + 0.05) / (oscuro + 0.05);
+}
+
+/** Lee un token `--color-<nombre>: R G B;` de un bloque CSS ya recortado. */
+function valorColor(bloque, nombre) {
+  const match = bloque.match(new RegExp(`--color-${nombre}:\\s*(\\d{1,3}) (\\d{1,3}) (\\d{1,3});`));
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null;
+}
+
 // Los 30 tokens semánticos (los 34 del admin MENOS los 4 alias literales del
 // mockup viejo — terracotta-warm/moss-green/golden-sand/cream-base — que no
 // se redefinen en `.tema-publico`, ver más abajo).
@@ -128,6 +154,36 @@ describe("paleta pública (.tema-publico)", () => {
 });
 
 /**
+ * `Toast.jsx` — el link "Ver carrito" (`accion.texto`) usa `text-primary-container`
+ * sobre el fondo `bg-surface-container-lowest` del toast tipo "info". Antes del
+ * scoping de `.tema-publico` al toast (I1 de la revisión del rediseño), un toast
+ * disparado en una pantalla pública pintaba con la paleta del ADMIN por estar
+ * montado fuera de ese wrapper — ahí `primary-container` es `255 181 158`
+ * (#ffb59e), que contra blanco da ~1.7:1, muy por debajo del piso de texto de
+ * WCAG (4.5:1). Con el toast ya escopado (ver `context/ToastContext.jsx`), este
+ * guard prueba que el token que el link realmente usa en la paleta PÚBLICA
+ * alcanza el piso — no que "el admin esté mal", que no es lo que se corrigió.
+ */
+describe("toast — contraste del link \"Ver carrito\" en la paleta pública (I1)", () => {
+  const PISO_CONTRASTE_TEXTO = 4.5; // WCAG 1.4.3, texto normal
+
+  it("primary-container de .tema-publico contra surface-container-lowest llega a 4.5:1", () => {
+    const publico = extraerBloque(indexCss, /\.tema-publico\s*\{/);
+    const primaryContainer = valorColor(publico, "primary-container");
+    // `surface-container-lowest` no se redefine en TODAS las paletas si
+    // coincide con el admin, así que se busca primero en `.tema-publico` y se
+    // cae al bloque `:root` si ahí no está.
+    const superficie =
+      valorColor(publico, "surface-container-lowest") ??
+      valorColor(extraerBloque(indexCss, /^:root,\r?\n\.paleta-clara \{/m), "surface-container-lowest");
+
+    expect(primaryContainer).not.toBeNull();
+    expect(superficie).not.toBeNull();
+    expect(contraste(primaryContainer, superficie)).toBeGreaterThanOrEqual(PISO_CONTRASTE_TEXTO);
+  });
+});
+
+/**
  * Paleta pastel de los círculos de categoría (T13, corregida tras review de
  * la primera versión). `utils/paletaCategoria.js` solo elige el NOMBRE de la
  * familia por slug — los tres canales de cada familia (`claro`, `profundo`,
@@ -171,25 +227,6 @@ describe("paleta pastel de círculos de categoría (T13)", () => {
       });
     });
   });
-
-  // Luminancia relativa y contraste — misma fórmula WCAG 2.x que ya se usó a
-  // mano para la isla flotante (ver "Qué hace que la isla se lea como
-  // VIDRIO", `docs/reglas/catalogo-publico.md`), ahora como helper de test en
-  // vez de una cuenta hecha una sola vez y pegada en un comentario.
-  function luminanciaRelativa([r, g, b]) {
-    const canal = (c) => {
-      const s = c / 255;
-      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-    };
-    return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
-  }
-
-  function contraste(rgbA, rgbB) {
-    const lA = luminanciaRelativa(rgbA);
-    const lB = luminanciaRelativa(rgbB);
-    const [claro, oscuro] = lA > lB ? [lA, lB] : [lB, lA];
-    return (claro + 0.05) / (oscuro + 0.05);
-  }
 
   const PISO_CONTRASTE_ICONO = 3; // WCAG 1.4.11, non-text contrast
 

@@ -31,17 +31,32 @@ export function ToastProvider({ children }) {
     }, DURACION_MS);
   }, []);
 
+  // `ToastProvider` se monta en `main.jsx` FUERA del `.tema-publico` que
+  // pinta `Layout.jsx`: sin este scoping, un toast disparado en cualquier
+  // pantalla pública pinta con la paleta y la tipografía del admin (I1 de la
+  // revisión del rediseño) — el link "Ver carrito" en particular pierde
+  // contraste (usa `text-primary-container`, que en la paleta admin resuelve
+  // a un durazno claro sobre blanco, ~1.7:1).
+  //
+  // Se lee `window.location.pathname`, NO `useLocation`: varios tests de
+  // este archivo montan `ToastProvider` sin ningún Router (ver
+  // `ToastContext.test.jsx`), y `useLocation` tira fuera de uno. Mismo
+  // mecanismo que ya usa `main.jsx` para el flash del tema oscuro del admin.
+  const esAdmin = window.location.pathname.startsWith("/catalogo/admin");
+
   return (
     <ToastContext.Provider value={{ mostrarToast }}>
       {children}
       {toast ? (
-        <Toast
-          mensaje={toast.mensaje}
-          tipo={toast.tipo}
-          foto={toast.foto}
-          accion={toast.accion}
-          onCerrar={() => setToast(null)}
-        />
+        <div className={esAdmin ? undefined : "tema-publico"}>
+          <Toast
+            mensaje={toast.mensaje}
+            tipo={toast.tipo}
+            foto={toast.foto}
+            accion={toast.accion}
+            onCerrar={() => setToast(null)}
+          />
+        </div>
       ) : null}
     </ToastContext.Provider>
   );

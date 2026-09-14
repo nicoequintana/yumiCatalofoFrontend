@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "./ToastContext.jsx";
 import { useToast } from "./useToast.js";
 
@@ -156,5 +156,35 @@ describe("ToastContext", () => {
     // `justify-center` sin prefijo `md:` alcanza para las dos anchuras: no se
     // pisa con un `md:justify-end` que ya no existe.
     expect(contenedor.className).toContain("justify-center");
+  });
+
+  describe("tema público del toast (I1)", () => {
+    // `ToastProvider` se monta en `main.jsx` FUERA del `.tema-publico` que
+    // pinta `Layout` (ver `Layout.jsx`): un toast disparado en una pantalla
+    // pública pintaba con la paleta y la tipografía del admin. Se lee
+    // `window.location.pathname` (mismo mecanismo que ya usa `main.jsx` para
+    // el flash del tema oscuro), NO `useLocation`: varios tests de este
+    // archivo montan `ToastProvider` sin ningún Router, y `useLocation`
+    // tiraría fuera de uno.
+    afterEach(() => {
+      window.history.pushState({}, "", "/");
+    });
+
+    it("envuelve el toast en tema-publico en una ruta pública (default)", async () => {
+      renderConProvider("Agregado al carrito");
+      screen.getByRole("button", { name: "Disparar" }).click();
+      const status = await screen.findByRole("status");
+
+      expect(status.parentElement).toHaveClass("tema-publico");
+    });
+
+    it("NO envuelve en tema-publico dentro del panel admin", async () => {
+      window.history.pushState({}, "", "/catalogo/admin/ordenes");
+      renderConProvider("Agregado al carrito");
+      screen.getByRole("button", { name: "Disparar" }).click();
+      const status = await screen.findByRole("status");
+
+      expect(status.parentElement).not.toHaveClass("tema-publico");
+    });
   });
 });
