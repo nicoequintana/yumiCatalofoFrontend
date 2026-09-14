@@ -53,6 +53,7 @@ vi.mock("./pages/cuenta/Entrar.jsx", () => ({ default: () => <p>pantalla: entrar
 vi.mock("./pages/cuenta/MiCuenta.jsx", () => ({ default: () => <p>pantalla: mi cuenta</p> }));
 vi.mock("./pages/cuenta/Completar.jsx", () => ({ default: () => <p>pantalla: completar</p> }));
 vi.mock("./pages/cuenta/MisPedidos.jsx", () => ({ default: () => <p>pantalla: pedidos</p> }));
+vi.mock("./pages/Privacidad.jsx", () => ({ default: () => <p>pantalla: privacidad</p> }));
 
 /**
  * JWT de juguete con `exp` futuro, codificado en base64url real — mismo
@@ -197,5 +198,14 @@ describe("rutas de cuenta de cliente", () => {
     vi.mocked(usePerfilCliente).mockReturnValue({ perfil: null, resuelto: true, error: null });
     renderEnRuta("/checkout");
     expect(await screen.findByText("pantalla: entrar")).toBeInTheDocument();
+  });
+});
+
+describe("política de privacidad", () => {
+  it("/privacidad es pública: monta la política sin pasar por el guard de cuenta", async () => {
+    vi.mocked(usePerfilCliente).mockReturnValue({ perfil: null, resuelto: true, error: null });
+    renderEnRuta("/privacidad");
+    expect(await screen.findByText("pantalla: privacidad")).toBeInTheDocument();
+    expect(screen.getByTestId("sonda-ruta")).toHaveTextContent("/privacidad");
   });
 });

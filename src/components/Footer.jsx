@@ -241,7 +241,9 @@ function BandaContacto({ contacto }) {
  * aprobado (mockup "Pie de YIMA"): banda de contacto directo, mapa del sitio
  * en columnas y barra legal — boards 1 y 2 de esa maqueta. **Fuera de
  * alcance de esta tanda**: la página de ayuda (board 3), la columna "Ayuda" y
- * los links de Términos/Privacidad de la barra inferior.
+ * el link de Términos de la barra inferior. El de Privacidad (`/privacidad`)
+ * se sumó el 14/09/2026: Google exige una URL de política para publicar la
+ * pantalla de consentimiento del ingreso con Google.
  *
  * `/catalogo/admin/login` (la única ruta de admin que cuelga de este Layout
  * público) sigue con el pie MÍNIMO de siempre — logo + copyright —, sin la
@@ -366,10 +368,17 @@ function Footer() {
         </div>
 
         <div className="mx-auto w-full max-w-container-max px-margin-mobile md:px-margin-desktop">
-          <div className="border-t border-surface-container-highest pt-4 text-center md:text-left">
+          <div className="flex flex-col items-center gap-1 border-t border-surface-container-highest pt-4 md:flex-row md:justify-between">
             <span className="font-body-sm text-[12px] text-on-surface-variant">
               © 2026 YIMA · Todos los derechos reservados
             </span>
+            {/* `min-h-11`: piso táctil; `inline-flex` para que un `<a>` lo respete. */}
+            <Link
+              to="/privacidad"
+              className="font-body-sm inline-flex min-h-11 items-center text-[12px] text-on-surface-variant underline-offset-2 transition-colors hover:text-primary hover:underline"
+            >
+              Política de privacidad
+            </Link>
           </div>
         </div>
       </div>

@@ -80,6 +80,8 @@ const Seguridad = lazy(() => import("./pages/cuenta/Seguridad.jsx"));
 const Datos = lazy(() => import("./pages/cuenta/Datos.jsx"));
 const MisPedidos = lazy(cargarMisPedidos);
 const PedidoDetalle = lazy(cargarPedidoDetalle);
+// Página legal: nadie la necesita para comprar, así que va en su propio chunk.
+const Privacidad = lazy(() => import("./pages/Privacidad.jsx"));
 
 // El mismo fallback para las trece pantallas de cuenta: repetirlo inline en
 // cada `Suspense` era catorce copias del mismo div.
@@ -109,6 +111,7 @@ function App() {
         <Route path="/carrito" element={<Carrito />} />
         <Route path="/checkout/confirmacion" element={<OrdenConfirmada />} />
         <Route path="/producto/:idSlug" element={<ProductoDetalle />} />
+        <Route path="/privacidad" element={<Suspense fallback={fallbackPantalla}><Privacidad /></Suspense>} />
         {/* El login vive en el `Layout` público (con Navbar/Footer) porque
             todavía no hay sesión, pero es una pantalla del admin y también se
             carga bajo demanda. Como el resto de ese branch es síncrono, lleva

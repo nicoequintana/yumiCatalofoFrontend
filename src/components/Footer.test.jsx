@@ -295,4 +295,16 @@ describe("Footer — barra inferior", () => {
 
     expect(screen.getByText("© 2026 YIMA · Todos los derechos reservados")).toBeInTheDocument();
   });
+
+  it("linkea a la política de privacidad", () => {
+    montar();
+
+    expect(screen.getByRole("link", { name: "Política de privacidad" })).toHaveAttribute("href", "/privacidad");
+  });
+
+  it("el login del panel no lleva el link a la política de privacidad", () => {
+    montar("/catalogo/admin/login");
+
+    expect(screen.queryByRole("link", { name: "Política de privacidad" })).not.toBeInTheDocument();
+  });
 });
