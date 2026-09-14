@@ -17,6 +17,18 @@ RUN if [ -z "$VITE_API_BASE_URL" ]; then \
       echo "ERROR: VITE_API_BASE_URL build arg is required (set it as a Build Arg in EasyPanel, not a runtime env var)." >&2; \
       exit 1; \
     fi
+
+# Same build-arg mechanism as VITE_API_BASE_URL above, but with the OPPOSITE
+# policy on absence: this one is optional. Without it, BotonGmail.jsx simply
+# doesn't render — local email/password login still works and the site still
+# sells. Failing the build here would break every deploy of an environment
+# that hasn't loaded the Google Client ID yet, for an optional feature.
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+RUN if [ -z "$VITE_GOOGLE_CLIENT_ID" ]; then \
+      echo "WARN: VITE_GOOGLE_CLIENT_ID vacio: el boton de Gmail no se renderiza (cargarlo como Build Arg en EasyPanel)." >&2; \
+    fi
+
 RUN npm run build
 
 FROM nginx:1.27-alpine AS runtime
