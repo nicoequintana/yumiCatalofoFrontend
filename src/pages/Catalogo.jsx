@@ -10,6 +10,7 @@ import MetaSeo from "../components/MetaSeo.jsx";
 import NuevosIngresos from "../components/NuevosIngresos.jsx";
 import ProductoIcono from "../components/ProductoIcono.jsx";
 import PromosActivas from "../components/PromosActivas.jsx";
+import VitrinasCampania from "../components/VitrinasCampania.jsx";
 import { useCategoriasHome } from "../hooks/useCategoriasNavbar.js";
 import useContextoComercial from "../hooks/useContextoComercial.js";
 import useDestacados from "../hooks/useDestacados.js";
@@ -19,6 +20,7 @@ import useOfertas from "../hooks/useOfertas.js";
 import useProductoIcono from "../hooks/useProductoIcono.js";
 import usePromoDestacada from "../hooks/usePromoDestacada.js";
 import useTechoDeEspera from "../hooks/useTechoDeEspera.js";
+import useVitrinasCampania from "../hooks/useVitrinasCampania.js";
 import { urlAbsoluta } from "../constants/seo.js";
 
 /**
@@ -39,8 +41,9 @@ function revelado(retardoMs) {
  * 2026-09-13-rediseno-home-publica).
  *
  * Orden en el DOM: campañas → hero → buscador (mobile) → círculos → promos
- * activas → más vendidos → producto ícono → nuevos ingresos → destacados →
- * confianza. El hero se ve después de las campañas en escritorio y AL PIE en
+ * activas → vitrinas de campaña → más vendidos → producto ícono → nuevos
+ * ingresos → destacados → confianza. El hero se ve después de las campañas
+ * en escritorio y AL PIE en
  * mobile, y eso lo hace CSS `order` sobre un único nodo — nunca dos renders:
  * hay un solo `<h1>` en la página.
  *
@@ -64,6 +67,11 @@ function Catalogo() {
   } = useMasVendidos();
   const { producto: productoIcono, resuelto: productoIconoResuelto } = useProductoIcono();
   const { productos: nuevosIngresos, resuelto: nuevosResueltos } = useNuevosIngresos();
+  const {
+    vitrinas: vitrinasCampania,
+    error: errorVitrinasCampania,
+    resuelto: vitrinasResueltas,
+  } = useVitrinasCampania();
 
   /**
    * ⚠️ **ESTE LOADER ESCONDE UN PROBLEMA, NO LO ARREGLA.**
@@ -78,8 +86,8 @@ function Catalogo() {
    * ocurra sin nadie mirando. **La causa queda intacta**: quien sume una
    * sección que también empiece en `null` va a agrandar el salto escondido.
    *
-   * Las ocho fuentes van enumeradas y no derivadas de una lista: si mañana hay
-   * una novena, tiene que aparecer acá a mano, y eso es deliberado — una
+   * Las nueve fuentes van enumeradas y no derivadas de una lista: si mañana
+   * hay una décima, tiene que aparecer acá a mano, y eso es deliberado — una
    * fuente nueva sin su `resuelto` es justo lo que el techo de abajo cubre.
    */
   const fuentesResueltas =
@@ -90,7 +98,8 @@ function Catalogo() {
     promoResuelta &&
     masVendidosResueltos &&
     productoIconoResuelto &&
-    nuevosResueltos;
+    nuevosResueltos &&
+    vitrinasResueltas;
 
   // La red de seguridad: pasado el techo la home se dibuja con lo que haya.
   // Un loader sin techo es un sitio caído — ver `useTechoDeEspera.js`.
@@ -224,6 +233,9 @@ function Catalogo() {
             ofertas={ofertas}
             errorOfertas={errorOfertas}
           />
+        </div>
+        <div data-seccion-home="vitrinas-campania">
+          <VitrinasCampania vitrinas={vitrinasCampania} error={errorVitrinasCampania} />
         </div>
         <div data-seccion-home="mas-vendidos">
           <MasVendidos productos={masVendidos} error={errorMasVendidos} />

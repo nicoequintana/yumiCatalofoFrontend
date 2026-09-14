@@ -11,8 +11,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * datos y EMPUJAN el hero hacia abajo cuando los fetch aterrizan. Medido en
  * producción con Playwright: el hero salta 792 px y el CLS da 0.407.
  *
- * Desde el rediseño del 13/09/2026 son OCHO fuentes: se suman promo destacada,
- * más vendidos, producto ícono y nuevos ingresos.
+ * Desde el rediseño del 13/09/2026 son NUEVE fuentes: se suman promo
+ * destacada, más vendidos, producto ícono, nuevos ingresos y —14/09/2026— las
+ * vitrinas de campaña.
  *
  * Este loader NO arregla ese salto: lo TAPA hasta que las fuentes
  * terminaron. Los tests de acá fijan las tres cosas que lo vuelven seguro:
@@ -25,6 +26,7 @@ const getContextoComercialMock = vi.fn();
 const getProductosMasVendidosMock = vi.fn();
 const getPromocionDestacadaMock = vi.fn();
 const getConfiguracionHomeMock = vi.fn();
+const getVitrinasCampaniaMock = vi.fn();
 
 vi.mock("../api/products.js", () => ({
   getProducts: (...args) => getProductsMock(...args),
@@ -41,6 +43,7 @@ vi.mock("../api/categorias.js", () => ({
 }));
 vi.mock("../api/campanias.js", () => ({
   getContextoComercial: (...args) => getContextoComercialMock(...args),
+  getVitrinasCampania: (...args) => getVitrinasCampaniaMock(...args),
 }));
 vi.mock("../api/authClient.js", () => ({ getToken: () => null }));
 
@@ -81,6 +84,7 @@ beforeEach(() => {
   getProductosMasVendidosMock.mockResolvedValue(pagina());
   getPromocionDestacadaMock.mockResolvedValue(null);
   getConfiguracionHomeMock.mockResolvedValue({ productoIcono: null });
+  getVitrinasCampaniaMock.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -95,6 +99,7 @@ describe("Catalogo — loader de carga inicial", () => {
     ["la promo destacada", () => getPromocionDestacadaMock],
     ["los más vendidos", () => getProductosMasVendidosMock],
     ["el producto ícono", () => getConfiguracionHomeMock],
+    ["las vitrinas de campaña", () => getVitrinasCampaniaMock],
   ])("tapa la home mientras %s no resolvió", async (_nombre, mock) => {
     mock().mockReturnValue(nuncaResuelve());
 
@@ -138,7 +143,7 @@ describe("Catalogo — loader de carga inicial", () => {
     expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
   });
 
-  it("suelta la home cuando las ocho fuentes resolvieron", async () => {
+  it("suelta la home cuando las nueve fuentes resolvieron", async () => {
     renderHome();
 
     expect(await screen.findByRole("heading", { level: 1, name: TITULO_HERO })).toBeInTheDocument();

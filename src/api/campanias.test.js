@@ -1,5 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { getContadorCampania, guardarProductosDeCampania, registrarEventoComercial } from "./campanias.js";
+import {
+  getContadorCampania,
+  getVitrinasCampania,
+  guardarProductosDeCampania,
+  registrarEventoComercial,
+} from "./campanias.js";
 import { fetchAutenticado } from "./authClient.js";
 
 vi.mock("./authClient.js");
@@ -46,6 +51,32 @@ describe("getContadorCampania", () => {
     await expect(getContadorCampania("mañana")).rejects.toThrow(
       "La fecha debe tener el formato AAAA-MM-DD.",
     );
+  });
+});
+
+describe("getVitrinasCampania", () => {
+  it("pide GET /campanias/vitrinas, público y sin token", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify([{ campaniaId: 1, nombre: "Primavera", productos: [] }]),
+    });
+
+    const vitrinas = await getVitrinasCampania();
+
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/campanias/vitrinas`);
+    // Público a propósito: a diferencia de `getContextoComercial`, este
+    // endpoint no tiene rama admin, así que no hace falta mandar el token.
+    expect(fetchAutenticado).not.toHaveBeenCalled();
+    expect(vitrinas).toEqual([{ campaniaId: 1, nombre: "Primavera", productos: [] }]);
+  });
+
+  it("propaga el error del backend", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      text: async () => JSON.stringify({ error: "Ocurrió un error." }),
+    });
+
+    await expect(getVitrinasCampania()).rejects.toThrow("Ocurrió un error.");
   });
 });
 

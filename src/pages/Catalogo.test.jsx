@@ -22,6 +22,12 @@ vi.mock("../api/config.js");
 const contextoMock = vi.fn();
 vi.mock("../hooks/useContextoComercial.js", () => ({ default: () => contextoMock() }));
 
+// Mismo motivo que `useContextoComercial`: `useVitrinasCampania` pega directo
+// a `api/campanias.js`, que este archivo no mockea (solo `Catalogo.carga.test.jsx`
+// lo hace, para probar el loader).
+const vitrinasCampaniaMock = vi.fn();
+vi.mock("../hooks/useVitrinasCampania.js", () => ({ default: () => vitrinasCampaniaMock() }));
+
 const TITULO_HERO = "Objetos singulares que transforman tu cotidiano.";
 
 const PRODUCTO = {
@@ -104,6 +110,9 @@ describe("Catalogo - home editorial", () => {
       claveDia: null,
       resuelto: true,
     });
+    // Default sin vitrinas: la sección no dibuja nada, mismo estado inicial
+    // que el catálogo real sin ninguna campaña con vidriera completa.
+    vitrinasCampaniaMock.mockReturnValue({ vitrinas: [], error: null, resuelto: true });
   });
 
   it("en el DOM hay un solo h1, con el copy del hero", async () => {
@@ -179,7 +188,7 @@ describe("Catalogo - home editorial", () => {
     ).toBeInTheDocument();
   });
 
-  it("el orden en el DOM es: campañas, hero, buscador, círculos, promos, más vendidos, ícono, nuevos, destacados, confianza", async () => {
+  it("el orden en el DOM es: campañas, hero, buscador, círculos, promos, vidrieras de campaña, más vendidos, ícono, nuevos, destacados, confianza", async () => {
     const { container } = await renderPaginaLista();
 
     const secciones = [...container.querySelectorAll("[data-seccion-home]")].map(
@@ -191,12 +200,31 @@ describe("Catalogo - home editorial", () => {
       "buscador",
       "circulos",
       "promos",
+      "vitrinas-campania",
       "mas-vendidos",
       "producto-icono",
       "nuevos-ingresos",
       "destacados",
       "confianza",
     ]);
+  });
+
+  it("pasa las vitrinas de campaña a su sección", async () => {
+    vitrinasCampaniaMock.mockReturnValue({
+      vitrinas: [
+        {
+          campaniaId: 7,
+          nombre: "Navidad YIMA",
+          productos: [1, 2, 3, 4].map((id) => ({ ...PRODUCTO, id, nombre: `Navideño ${id}` })),
+        },
+      ],
+      error: null,
+      resuelto: true,
+    });
+
+    await renderPaginaLista();
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Navidad YIMA" })).toBeInTheDocument();
   });
 
   it("monta las tarjetas de confianza", async () => {

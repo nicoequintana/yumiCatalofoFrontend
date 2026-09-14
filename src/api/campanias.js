@@ -49,6 +49,25 @@ export async function getContextoComercial() {
 }
 
 /**
+ * `GET /api/campanias/vitrinas` — una sección de productos por campaña
+ * ACTIVA, para la home pública (`Catalogo.jsx` → `VitrinasCampania.jsx`).
+ *
+ * Array PELADO (`[{campaniaId, nombre, productos}]`), no el sobre
+ * `{data,...}` del listado paginado — la home dibuja "una sección por
+ * campaña", no una página de un recurso.
+ *
+ * Público y SIN token: a diferencia de `getContextoComercial`, este endpoint
+ * no tiene rama admin (nunca emite `costo`/`coeficiente`, con o sin sesión),
+ * así que no hace falta mandar `Authorization`.
+ *
+ * NO lo consumas directo desde un componente: usá
+ * `hooks/useVitrinasCampania.js`.
+ */
+export async function getVitrinasCampania() {
+  return pedir(`${BASE}/campanias/vitrinas`);
+}
+
+/**
  * `GET /api/campanias` — el listado del panel.
  *
  * `desde`/`hasta` acotan al mes que el calendario muestra, en formato
