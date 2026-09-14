@@ -26,11 +26,17 @@ import { getProductsByIds } from "../api/products.js";
  *   "falló la carga" de "no hay nada", y un checkout no se apoya en precios que
  *   no pudo verificar.
  *
+ * - `revalidando` es `true` mientras lo que se ve sale del cache y el fetch vivo
+ *   de ESTOS ids todavía no contestó. El cache vive toda la sesión SPA, así que
+ *   una pantalla que CONFIRMA plata (`Checkout.jsx`) no deja confirmar hasta que
+ *   baje a `false`; el carrito solo navega y puede ignorarlo.
+ *
  * @param {string} claveIds ids del carrito, únicos, ordenados y unidos por coma
- * @returns {{productos: object[], cargando: boolean, error: boolean}}
+ * @returns {{productos: object[], cargando: boolean, error: boolean, revalidando: boolean}}
  */
 let cache = null; // { clave, ids: Set<number>, productos }
 let ultimoPedido = 0;
+let pedidoDelCache = 0;
 
 function idsDeClave(clave) {
   return clave === "" ? [] : clave.split(",").map(Number);
@@ -55,9 +61,12 @@ export default function useProductosCarrito(claveIds) {
 
     getProductsByIds(ids)
       .then((productos) => {
-        // Solo el pedido más reciente escribe el cache: una respuesta vieja que
-        // llega tarde no puede pisar precios más nuevos.
-        if (pedido === ultimoPedido) {
+        // Escribe el cache solo si es más nuevo que el que lo escribió: una
+        // respuesta vieja que llega tarde no pisa precios más nuevos, pero una
+        // vieja EXITOSA sí queda si la más nueva falló (el error igual gana en
+        // pantalla, vía `resultado`).
+        if (pedido > pedidoDelCache) {
+          pedidoDelCache = pedido;
           cache = { clave: claveIds, ids: new Set(ids), productos };
         }
         if (activo) setResultado({ clave: claveIds, productos, error: false });
@@ -72,17 +81,22 @@ export default function useProductosCarrito(claveIds) {
   }, [claveIds]);
 
   if (resultado && resultado.clave === claveIds) {
-    return { productos: resultado.productos, cargando: false, error: resultado.error };
+    return {
+      productos: resultado.productos,
+      cargando: false,
+      error: resultado.error,
+      revalidando: false,
+    };
   }
 
   const cacheados = desdeCache(claveIds);
-  if (cacheados) return { productos: cacheados, cargando: false, error: false };
-  return { productos: [], cargando: true, error: false };
+  if (cacheados) return { productos: cacheados, cargando: false, error: false, revalidando: true };
+  return { productos: [], cargando: true, error: false, revalidando: false };
 }
 
 /** Vuelve el módulo a cero. Helper de tests, como `reiniciarConfigContacto`. */
 export function reiniciarProductosCarrito() {
-  // `ultimoPedido` NO vuelve a 0: un pedido pendiente de un test anterior podría
-  // coincidir con el contador reiniciado y sembrar el cache.
+  // Los contadores NO vuelven a 0: un pedido pendiente de un test anterior
+  // podría ganarle al contador reiniciado y sembrar el cache.
   cache = null;
 }

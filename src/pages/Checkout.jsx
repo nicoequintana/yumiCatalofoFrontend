@@ -131,9 +131,10 @@ function Checkout() {
   const claveIds = [...new Set(carrito.map((l) => l.productId))].sort((a, b) => a - b).join(",");
 
   // Mismo hook que `Carrito.jsx`: al llegar desde el carrito los productos ya
-  // están cacheados y no se pinta "Cargando checkout…"; el refetch en segundo
-  // plano igual reemplaza precio y stock antes de que se pueda confirmar nada.
-  const { productos, cargando, error } = useProductosCarrito(claveIds);
+  // están cacheados y no se pinta "Cargando checkout…". Mientras el refetch vivo
+  // no contesta (`revalidando`), el total es del cache —que puede tener horas— y
+  // "Confirmar pedido" queda deshabilitado: nadie confirma un precio sin verificar.
+  const { productos, cargando, error, revalidando } = useProductosCarrito(claveIds);
   const errorCarga = error ? MENSAJE_ERROR_CARGA : null;
 
   const productosPorId = new Map(productos.map((p) => [p.id, p]));
@@ -170,6 +171,8 @@ function Checkout() {
     e.preventDefault();
     setErrorEnvio(null);
     if (lineasValidas.length === 0) return;
+    // Mismo criterio que el `disabled` del botón: sin precios verificados no se envía.
+    if (revalidando) return;
     // Defensa en profundidad: sin perfil esta pantalla ni siquiera renderiza el
     // botón, pero un envío sin sesión se convertiría en una orden de invitado
     // silenciosa. La guarda se queda acá también.
@@ -396,9 +399,15 @@ function Checkout() {
               </p>
             ) : null}
 
+            {revalidando ? (
+              <p role="status" className="font-body-md text-body-md text-on-surface-variant">
+                Actualizando precios…
+              </p>
+            ) : null}
+
             <button
               type="submit"
-              disabled={enviando}
+              disabled={enviando || revalidando}
               className="font-label-lg text-label-lg inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:bg-surface-container-high disabled:text-on-surface-variant"
             >
               {enviando ? "Enviando…" : "Confirmar pedido"}

@@ -31,9 +31,9 @@ describe("useProductosCarrito", () => {
 
     const { result } = renderHook(() => useProductosCarrito("1"));
 
-    expect(result.current).toEqual({ productos: [], cargando: true, error: false });
+    expect(result.current).toEqual({ productos: [], cargando: true, error: false, revalidando: false });
     await waitFor(() => expect(result.current.cargando).toBe(false));
-    expect(result.current).toEqual({ productos: [P1], cargando: false, error: false });
+    expect(result.current).toEqual({ productos: [P1], cargando: false, error: false, revalidando: false });
     expect(productsApi.getProductsByIds).toHaveBeenCalledWith([1]);
   });
 
@@ -43,7 +43,7 @@ describe("useProductosCarrito", () => {
 
     const { result } = renderHook(() => useProductosCarrito("1,2"));
 
-    expect(result.current).toEqual({ productos: [P1, P2], cargando: false, error: false });
+    expect(result.current).toEqual({ productos: [P1, P2], cargando: false, error: false, revalidando: true });
     expect(productsApi.getProductsByIds).toHaveBeenCalledTimes(2);
     expect(productsApi.getProductsByIds).toHaveBeenLastCalledWith([1, 2]);
   });
@@ -73,7 +73,7 @@ describe("useProductosCarrito", () => {
 
     const { result } = renderHook(() => useProductosCarrito("1"));
 
-    expect(result.current).toEqual({ productos: [P1], cargando: false, error: false });
+    expect(result.current).toEqual({ productos: [P1], cargando: false, error: false, revalidando: true });
   });
 
   it("un id nuevo sin cache vuelve a cargar: no se dibuja como 'no disponible'", async () => {
@@ -82,7 +82,7 @@ describe("useProductosCarrito", () => {
 
     const { result } = renderHook(() => useProductosCarrito("1,2"));
 
-    expect(result.current).toEqual({ productos: [], cargando: true, error: false });
+    expect(result.current).toEqual({ productos: [], cargando: true, error: false, revalidando: false });
     expect(productsApi.getProductsByIds).toHaveBeenLastCalledWith([1, 2]);
   });
 
@@ -92,7 +92,7 @@ describe("useProductosCarrito", () => {
 
     const { result } = renderHook(() => useProductosCarrito("1,99"));
 
-    expect(result.current).toEqual({ productos: [P1], cargando: false, error: false });
+    expect(result.current).toEqual({ productos: [P1], cargando: false, error: false, revalidando: true });
   });
 
   it("si el fetch falla devuelve error, distinto de 'no hay nada'", async () => {
@@ -101,7 +101,7 @@ describe("useProductosCarrito", () => {
     const { result } = renderHook(() => useProductosCarrito("1"));
 
     await waitFor(() => expect(result.current.cargando).toBe(false));
-    expect(result.current).toEqual({ productos: [], cargando: false, error: true });
+    expect(result.current).toEqual({ productos: [], cargando: false, error: true, revalidando: false });
   });
 
   it("si el refetch falla con cache, gana el error: no se confían precios sin verificar", async () => {
@@ -112,7 +112,7 @@ describe("useProductosCarrito", () => {
 
     expect(result.current.productos).toEqual([P1]);
     await waitFor(() => expect(result.current.error).toBe(true));
-    expect(result.current).toEqual({ productos: [], cargando: false, error: true });
+    expect(result.current).toEqual({ productos: [], cargando: false, error: true, revalidando: false });
   });
 
   it("una respuesta vieja que llega tarde no pisa el cache de la más nueva", async () => {
@@ -138,6 +138,54 @@ describe("useProductosCarrito", () => {
     productsApi.getProductsByIds.mockReturnValue(nuncaContesta());
     const segundo = renderHook(() => useProductosCarrito("1"));
     expect(segundo.result.current.productos).toEqual([P1]);
+  });
+
+  it("revalidando sigue en true hasta que contesta el fetch vivo de ESTOS ids", async () => {
+    await sembrarCache("1,2", [P1, P2]);
+    let resolver;
+    productsApi.getProductsByIds.mockReturnValue(
+      new Promise((resolve) => {
+        resolver = resolve;
+      }),
+    );
+
+    const { result } = renderHook(() => useProductosCarrito("1,2"));
+    expect(result.current.revalidando).toBe(true);
+
+    await act(async () => {
+      resolver([P1, P2]);
+    });
+    expect(result.current.revalidando).toBe(false);
+  });
+
+  it("una respuesta vieja EXITOSA queda en el cache aunque la más nueva falle", async () => {
+    let resolverViejo;
+    productsApi.getProductsByIds
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolverViejo = resolve;
+        }),
+      )
+      .mockRejectedValueOnce(new Error("network down"));
+
+    const { result, rerender, unmount } = renderHook(({ clave }) => useProductosCarrito(clave), {
+      initialProps: { clave: "1,2" },
+    });
+    rerender({ clave: "1" });
+    await waitFor(() => expect(result.current.error).toBe(true));
+    await act(async () => {
+      resolverViejo([P1, P2]);
+    });
+    unmount();
+
+    productsApi.getProductsByIds.mockReturnValue(nuncaContesta());
+    const segundo = renderHook(() => useProductosCarrito("1"));
+    expect(segundo.result.current).toEqual({
+      productos: [P1],
+      cargando: false,
+      error: false,
+      revalidando: true,
+    });
   });
 
   it("reiniciarProductosCarrito vacía el cache", async () => {

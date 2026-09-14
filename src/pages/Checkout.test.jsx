@@ -462,6 +462,33 @@ describe("Checkout — carrito, total y carga (regresiones)", () => {
     expect(screen.getByTestId("checkout-total")).toHaveTextContent("$ 4.000");
   });
 
+  it("con datos del cache NO se puede confirmar hasta que el refetch vivo contesta", async () => {
+    ordenesApi.crearOrden.mockResolvedValue({ id: 1, items: [] });
+    const { vista } = await prepararCheckout(2);
+    vista.unmount();
+
+    let resolver;
+    productsApi.getProductsByIds.mockReturnValue(
+      new Promise((resolve) => {
+        resolver = resolve;
+      }),
+    );
+    renderCheckout();
+
+    // Total del cache a la vista, pero confirmarlo sería confirmar un precio viejo.
+    expect(screen.getByRole("button", { name: "Confirmar pedido" })).toBeDisabled();
+    expect(screen.getByText("Actualizando precios…")).toBeInTheDocument();
+    expect(screen.queryByText("Cargando checkout…")).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolver([{ ...PRODUCTO_1, precio: "2000" }]);
+    });
+
+    expect(screen.getByRole("button", { name: "Confirmar pedido" })).toBeEnabled();
+    expect(screen.queryByText("Actualizando precios…")).not.toBeInTheDocument();
+    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$ 4.000");
+  });
+
   it("el título de la página es el h1 y está en castellano", async () => {
     await prepararCheckout();
 
