@@ -27,7 +27,7 @@ function claseLink({ isActive }, extra = "") {
 // apilado ícono-arriba/texto-abajo en vez de en fila, y sin mayúsculas
 // forzadas por tracking-widest (no entra en el ancho chico de cada tab).
 const tabBase =
-  "flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 font-label-sm text-label-sm transition-colors";
+  "flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2 font-label-sm text-label-sm transition-colors";
 const tabInactivo = "text-on-surface-variant hover:bg-surface-container hover:text-on-surface";
 const tabActivo = "bg-primary text-on-primary";
 
@@ -358,11 +358,28 @@ function AdminSidebar({ colapsada, onCerrar }) {
           el drawer fantasma, incluida la pestaña ACTUAL, que no navega y por
           eso no dispara el cierre por cambio de ruta de `AdminLayout`. Residuo
           asumido y documentado en CLAUDE.md: hasta ese toque (o Escape, o
-          navegar) el scroll sigue bloqueado. */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-6 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:flex">
+          navegar) el scroll sigue bloqueado.
+
+          **15/09/2026: "Combos" sumó un SEXTO ítem suelto (siete elementos
+          contando los dos acordeones) y volvió a desbordar.** Medido en
+          navegador —mismo `scrollWidth`/`elementFromPoint` de siempre—, a
+          1025px la barra medía `scrollWidth` 1082 contra un `clientWidth` de
+          1025 (57px de desborde), reabriendo la misma familia de bug que las
+          dos vueltas anteriores. Esta vez la causa no era la CANTIDAD de
+          ítems sino el ESPACIADO: se angostó `tabBase` (`px-3` → `px-2`), el
+          `gap-2` entre los ocho elementos de la fila (`gap-1`) y el padding
+          propio de la `<nav>` (`px-6` → `px-4`), sin tocar tipografía ni
+          `min-h-11`. Remedido con los mismos tres anchos: a 1025/1100/1280px
+          `scrollWidth` quedó EXACTAMENTE IGUAL a `clientWidth` (0px de
+          desborde, sin texto cortado ni en dos líneas — confirmado con
+          capturas de la barra completa a cada ancho), y "Cerrar sesión" siguió
+          recibiendo el click en el centro de su caja en los tres. No hizo
+          falta mover ningún ítem al acordeón de Configuración (la salida de
+          respaldo si el espaciado no hubiera alcanzado). */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 hidden items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-4 py-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:flex">
         <LogoYima className="h-6 shrink-0" doodleUrl={doodleUrl} />
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {ITEMS_NAV.map((item) => (
             <NavLink key={item.to} to={item.to} className={claseTab} onClick={onCerrar}>
               <span className="material-symbols-outlined text-[20px]">{item.icono}</span>
