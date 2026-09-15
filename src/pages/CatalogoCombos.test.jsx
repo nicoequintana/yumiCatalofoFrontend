@@ -47,4 +47,11 @@ describe("CatalogoCombos", () => {
     expect(screen.getByText("Revisá tu conexión e intentá de nuevo.")).toBeInTheDocument();
     expect(screen.queryByText(/Muy pronto/)).not.toBeInTheDocument();
   });
+
+  it("cargando: no muestra ni el mensaje de vacío ni el de error", () => {
+    combosCatalogoMock.mockReturnValue({ combos: [], cargando: true, error: null });
+    renderizar();
+    expect(screen.queryByText(/Muy pronto/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Revisá tu conexión e intentá de nuevo.")).not.toBeInTheDocument();
+  });
 });

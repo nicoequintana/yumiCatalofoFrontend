@@ -29,8 +29,15 @@ function FilaCombos({ combos = [], titulo, bajada, enlace }) {
         bajada={bajada}
         enlace={enlace}
       />
+      {/* Por debajo de `md` la fila sangra hasta el borde del viewport
+          (`-mx-margin-mobile`, mismo patrón que `NuevosIngresos.jsx`): así la
+          card siguiente asoma cortada contra el borde real de la pantalla,
+          como en el diseño aprobado, y no contra el padding de la sección.
+          `px-margin-mobile`/`scroll-px-margin-mobile` compensan ese sangrado
+          para que la primera card siga alineada con el resto del contenido.
+          Desde `md` no hace falta: la fila vuelve al ancho de la sección. */}
       <div
-        className="grid auto-cols-[88%] grid-flow-col gap-4 overflow-x-auto pb-1.5 [scroll-snap-type:x_mandatory] md:auto-cols-[100%]"
+        className="-mx-margin-mobile grid auto-cols-[88%] grid-flow-col gap-4 overflow-x-auto px-margin-mobile pb-1.5 scroll-px-margin-mobile [scroll-snap-type:x_mandatory] md:mx-0 md:auto-cols-[100%] md:px-0"
         role="list"
         onScroll={alDeslizar}
       >
