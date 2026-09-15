@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
 import { getProductsByIds } from "../api/products.js";
+import { crearRecursoDeCarrito } from "./recursoDeCarrito.js";
+
+// Lambda y no la referencia directa: los tests reemplazan el export con
+// `vi.mock("../api/products.js")` y la llamada tiene que ver ese reemplazo.
+const recurso = crearRecursoDeCarrito((ids) => getProductsByIds(ids));
 
 /**
  * Los productos EN VIVO de las líneas del carrito, compartido por `Carrito.jsx`
@@ -34,69 +38,12 @@ import { getProductsByIds } from "../api/products.js";
  * @param {string} claveIds ids del carrito, únicos, ordenados y unidos por coma
  * @returns {{productos: object[], cargando: boolean, error: boolean, revalidando: boolean}}
  */
-let cache = null; // { clave, ids: Set<number>, productos }
-let ultimoPedido = 0;
-let pedidoDelCache = 0;
-
-function idsDeClave(clave) {
-  return clave === "" ? [] : clave.split(",").map(Number);
-}
-
-function desdeCache(clave) {
-  if (!cache) return null;
-  if (cache.clave === clave) return cache.productos;
-  const ids = idsDeClave(clave);
-  if (!ids.every((id) => cache.ids.has(id))) return null;
-  const vigentes = new Set(ids);
-  return cache.productos.filter((p) => vigentes.has(p.id));
-}
-
 export default function useProductosCarrito(claveIds) {
-  const [resultado, setResultado] = useState(null);
-
-  useEffect(() => {
-    let activo = true;
-    const pedido = ++ultimoPedido;
-    const ids = idsDeClave(claveIds);
-
-    getProductsByIds(ids)
-      .then((productos) => {
-        // Escribe el cache solo si es más nuevo que el que lo escribió: una
-        // respuesta vieja que llega tarde no pisa precios más nuevos, pero una
-        // vieja EXITOSA sí queda si la más nueva falló (el error igual gana en
-        // pantalla, vía `resultado`).
-        if (pedido > pedidoDelCache) {
-          pedidoDelCache = pedido;
-          cache = { clave: claveIds, ids: new Set(ids), productos };
-        }
-        if (activo) setResultado({ clave: claveIds, productos, error: false });
-      })
-      .catch(() => {
-        if (activo) setResultado({ clave: claveIds, productos: [], error: true });
-      });
-
-    return () => {
-      activo = false;
-    };
-  }, [claveIds]);
-
-  if (resultado && resultado.clave === claveIds) {
-    return {
-      productos: resultado.productos,
-      cargando: false,
-      error: resultado.error,
-      revalidando: false,
-    };
-  }
-
-  const cacheados = desdeCache(claveIds);
-  if (cacheados) return { productos: cacheados, cargando: false, error: false, revalidando: true };
-  return { productos: [], cargando: true, error: false, revalidando: false };
+  const { datos, cargando, error, revalidando } = recurso.useRecurso(claveIds);
+  return { productos: datos, cargando, error, revalidando };
 }
 
 /** Vuelve el módulo a cero. Helper de tests, como `reiniciarConfigContacto`. */
 export function reiniciarProductosCarrito() {
-  // Los contadores NO vuelven a 0: un pedido pendiente de un test anterior
-  // podría ganarle al contador reiniciado y sembrar el cache.
-  cache = null;
+  recurso.reiniciar();
 }
