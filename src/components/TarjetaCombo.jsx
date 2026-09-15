@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import useCarrito from "../hooks/useCarrito.js";
 import { useToast } from "../context/useToast.js";
-import FichasCombo, { AhorroCombo, ChipsCombo, PreciosCombo, SelloCombo } from "./FichasCombo.jsx";
+import FichasCombo, { AhorroCombo, ArteCombo, ChipsCombo, PreciosCombo, SelloCombo } from "./FichasCombo.jsx";
 
 /**
  * La card de combo (rediseño del 15/09/2026, `combos-rediseno.html`, pestaña
@@ -41,11 +41,12 @@ function TarjetaCombo({ combo }) {
       <article className="tarjeta-combo relative grid h-full rounded-[22px] bg-surface-container-lowest shadow-sombra-ticket">
         <Link
           to={combo.ruta}
-          className="tarjeta-combo-cuerpo fondo-ticket-combo grid min-w-0 rounded-t-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-secondary-container"
+          className="tarjeta-combo-cuerpo relative isolate grid min-w-0 bg-crema-arte rounded-t-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-secondary-container"
         >
-          {/* Chips, título y frase en UN contenedor: lleva el velo crema que
-              separa el texto del arte del fondo (`.tarjeta-combo-texto::before`). */}
-          <div className="tarjeta-combo-texto relative isolate grid content-start">
+          <ArteCombo />
+          {/* Chips, título y frase juntos: en el ticket ancho no pasan del 58%
+              del cuerpo, y el lettering vive a la derecha (`.arte-combo-*`). */}
+          <div className="tarjeta-combo-texto relative grid content-start">
             <ChipsCombo combo={combo} />
 
             <div className="grid content-start gap-1.5">

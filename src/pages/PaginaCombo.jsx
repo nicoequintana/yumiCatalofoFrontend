@@ -6,7 +6,7 @@ import CargandoPagina from "../components/CargandoPagina.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import SelectorCantidad from "../components/SelectorCantidad.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
-import FichasCombo, { AhorroCombo, ChipsCombo, PreciosCombo, SelloCombo } from "../components/FichasCombo.jsx";
+import FichasCombo, { AhorroCombo, ArteCombo, ChipsCombo, PreciosCombo, SelloCombo } from "../components/FichasCombo.jsx";
 import useCombo from "../hooks/useCombo.js";
 import useCarrito from "../hooks/useCarrito.js";
 import { formatPrecio } from "../utils/formato.js";
@@ -112,10 +112,11 @@ function PaginaCombo({ comboForzado = null }) {
               aria-label="Comprar combo"
               className="tarjeta-combo tarjeta-combo-pagina relative grid rounded-[22px] bg-surface-container-lowest shadow-sombra-ticket"
             >
-              <div className="tarjeta-combo-cuerpo fondo-ticket-combo grid min-w-0 rounded-t-[22px]">
-                {/* Chips, título y frase en UN contenedor: lleva el velo crema que
-                    separa el texto del arte del fondo (`.tarjeta-combo-texto::before`). */}
-                <div className="tarjeta-combo-texto relative isolate grid content-start">
+              <div className="tarjeta-combo-cuerpo relative isolate grid min-w-0 bg-crema-arte rounded-t-[22px]">
+                <ArteCombo />
+                {/* Chips, título y frase juntos: en el ticket ancho no pasan del 58%
+                    del cuerpo, y el lettering vive a la derecha (`.arte-combo-*`). */}
+                <div className="tarjeta-combo-texto relative grid content-start">
                   <ChipsCombo combo={combo} />
 
                   <div className="grid content-start gap-1.5">

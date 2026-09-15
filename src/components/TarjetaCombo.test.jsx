@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -179,19 +179,33 @@ describe("TarjetaCombo", () => {
     expect(ahorro.querySelector(".material-symbols-outlined")).toHaveTextContent("savings");
   });
 
-  // Fondo ilustrado del cuerpo (15/09/2026): el arte ("Mejor juntos", "COMBO")
-  // son píxeles decorativos de un background CSS, nunca texto ni `<img>` —
-  // así no entra al DOM ni a la regla de cloaking.
-  it("el cuerpo lleva el fondo ilustrado por CSS, sin texto ni imagen decorativa en el DOM", () => {
+  // Arte del cuerpo dibujado en CÓDIGO (15/09/2026, `combos-fondo-separado.html`):
+  // manchas, curva, subrayado y rayitas son SVG `aria-hidden` sin `<text>`, y
+  // "Mejor juntos" / "COMBO" salen de `content:` de pseudo-elementos — nunca
+  // texto del DOM (regla de cloaking y lectores de pantalla).
+  it("el cuerpo lleva el arte en una capa aria-hidden, sin texto decorativo en el DOM ni imagen de fondo", () => {
     const { container } = renderizar();
     const cuerpo = container.querySelector(".tarjeta-combo-cuerpo");
-    expect(cuerpo).toHaveClass("fondo-ticket-combo");
-    expect(cuerpo.className).not.toMatch(/\bbg-surface-container-lowest\b/);
+    expect(cuerpo).toHaveClass("bg-crema-arte", "relative", "isolate");
+    expect(cuerpo).not.toHaveClass("fondo-ticket-combo");
+    const arte = cuerpo.querySelector(".arte-combo");
+    expect(arte).not.toBeNull();
+    expect(arte).toHaveAttribute("aria-hidden", "true");
+    expect(arte.textContent).toBe("");
+    expect(arte.querySelectorAll("svg text")).toHaveLength(0);
+    expect(arte.querySelectorAll(".arte-combo-mancha")).toHaveLength(4);
+    expect(arte.querySelector(".arte-combo-lettering .arte-combo-script")).not.toBeNull();
+    expect(arte.querySelector(".arte-combo-lettering svg.arte-combo-subrayado")).not.toBeNull();
+    expect(arte.querySelector(".arte-combo-r1")).not.toBeNull();
+    expect(arte.querySelector(".arte-combo-r2")).not.toBeNull();
+    expect(arte.querySelector(".arte-combo-marca")).not.toBeNull();
     expect(screen.queryByText(/Mejor juntos/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/juntos/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("COMBO")).not.toBeInTheDocument();
     expect(container.querySelector('img[src*="fondo-combo"]')).toBeNull();
+    // Chips, título y frase siguen juntos; los chips reservan el lugar del lettering.
     expect(container.querySelector(".tarjeta-combo-texto")).toContainElement(screen.getByText("Kit Living Cálido"));
-    // UN velo crema detrás de chips, título y frase: el mismo contenedor los agrupa.
-    expect(container.querySelector(".tarjeta-combo-texto")).toContainElement(screen.getByText("3 productos"));
+    expect(container.querySelector(".tarjeta-combo-texto .chips-combo")).toContainElement(screen.getByText("3 productos"));
   });
 
   it("las fichas son baldosas blancas con sombra suave, sin aro beige; el +N va en gris cálido", () => {
@@ -205,9 +219,15 @@ describe("TarjetaCombo", () => {
   });
 });
 
-describe("fondo del ticket en index.css", () => {
-  const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../index.css"), "utf8").replace(/\r\n/g, "\n");
-  const bloque = (desde) => css.slice(css.indexOf(desde), css.indexOf("}", css.indexOf(desde)) + 1);
+describe("arte del ticket en index.css", () => {
+  const aqui = dirname(fileURLToPath(import.meta.url));
+  const css = readFileSync(join(aqui, "../index.css"), "utf8").replace(/\r\n/g, "\n");
+  const html = readFileSync(join(aqui, "../../index.html"), "utf8");
+  /** La primera regla `selector { ... }` a nivel raíz (fuera de at-rules). */
+  const bloque = (selector) => {
+    const inicio = css.indexOf(`\n${selector} {`);
+    return inicio === -1 ? "" : css.slice(inicio, css.indexOf("}", inicio) + 1);
+  };
   /** La regla `selector { ... }` dentro de `@container <condicion> {` (la primera con esa condición que la declara). */
   function reglaEn(condicion, selector) {
     let desde = 0;
@@ -221,26 +241,36 @@ describe("fondo del ticket en index.css", () => {
       desde = fin;
     }
   }
-  const IMAGE_SET_ANCHO = /image-set\(\s*url\([^)]*fondo-combo-ancho-1100\.webp"?\)\s*1x,\s*url\([^)]*fondo-combo-ancho-1600\.webp"?\)\s*2x/;
 
-  it("angosta (< 460px) usa el arte vertical en WebP, cover y anclado arriba, con crema de respaldo", () => {
-    const base = bloque(".fondo-ticket-combo {");
-    expect(base).toMatch(/fondo-combo-alto-720\.webp/);
-    expect(base).toMatch(/background-size:\s*cover/);
-    expect(base).toMatch(/background-position:\s*top center/);
-    expect(base).toMatch(/background-color:\s*rgb\(var\(--color-background\)\)/);
+  it("las palabras decorativas salen de content: de pseudo-elementos, con texto alternativo vacío", () => {
+    expect(bloque(".arte-combo-script::before")).toMatch(/content:\s*"Mejor"\s*\/\s*""/);
+    expect(bloque(".arte-combo-script::after")).toMatch(/content:\s*"juntos"\s*\/\s*""/);
+    expect(bloque(".arte-combo-marca::before")).toMatch(/content:\s*"COMBO"\s*\/\s*""/);
   });
 
-  it("desde 460px de contenedor (apilada media y ancha) usa el arte apaisado con image-set 1x/2x", () => {
-    expect(reglaEn("(min-width: 460px)", ".fondo-ticket-combo")).toMatch(IMAGE_SET_ANCHO);
+  it("el lettering usa Dancing Script con respaldo cursive, cargada como Outfit (Google Fonts, 700, swap)", () => {
+    expect(bloque(".arte-combo-script")).toMatch(/font-family:\s*"Dancing Script",[^;]*cursive/);
+    expect(html).toMatch(/fonts\.googleapis\.com\/css2\?family=Dancing\+Script:wght@700[^"]*display=swap/);
   });
 
-  it("en el paso intermedio del ticket ancho (cuerpo casi cuadrado) vuelve al arte vertical: 720–870 en la card, 720–920 en la página", () => {
-    expect(reglaEn("(min-width: 720px) and (max-width: 869.98px)", ".fondo-ticket-combo")).toMatch(/fondo-combo-alto-720\.webp/);
-    expect(reglaEn("(min-width: 720px) and (max-width: 919.98px)", ".tarjeta-combo-pagina .fondo-ticket-combo")).toMatch(/fondo-combo-alto-720\.webp/);
+  it("ubicación apilada: lettering arriba a la derecha y chips con reserva; COMBO abajo a la derecha escalando con cqw", () => {
+    expect(bloque(".arte-combo-lettering")).toMatch(/right:\s*16px;[\s\S]*top:\s*8px/);
+    expect(bloque(".chips-combo")).toMatch(/padding-right:\s*110px/);
+    expect(bloque(".arte-combo-marca")).toMatch(/font-size:\s*clamp\(38px, 15cqw, 68px\)/);
   });
 
-  it("nunca se sirve un PNG del arte", () => {
-    expect(css).not.toMatch(/bg_(desktop|mobile)_card_combo\.png/);
+  it("≤ 300px oculta lettering y rayitas; ancha ≥ 720px corre el lettering al 58% y el texto no pasa del 58%", () => {
+    expect(reglaEn("(max-width: 300px)", ".arte-combo-lettering")).toMatch(/display:\s*none/);
+    expect(reglaEn("(max-width: 300px)", ".arte-combo-rayitas")).toMatch(/display:\s*none/);
+    expect(reglaEn("(min-width: 720px)", ".arte-combo-lettering")).toMatch(/left:\s*58%/);
+    expect(reglaEn("(min-width: 720px)", ".tarjeta-combo-texto")).toMatch(/max-width:\s*58%/);
+    expect(reglaEn("(min-width: 720px)", ".arte-combo-marca")).toMatch(/clamp\(60px, 10\.5cqw, 108px\)/);
+  });
+
+  it("sin fondo raster: ni WebP ni PNG del arte en el CSS, y los derivados WebP no existen", () => {
+    expect(css).not.toMatch(/fondo-combo|fondo-ticket-combo|bg_(desktop|mobile)_card_combo/);
+    ["fondo-combo-alto-720.webp", "fondo-combo-ancho-1100.webp", "fondo-combo-ancho-1600.webp"].forEach((f) => {
+      expect(existsSync(join(aqui, "../assets/combos", f))).toBe(false);
+    });
   });
 });

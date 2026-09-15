@@ -57,6 +57,13 @@ export default {
         // Rojo del sello de descuento de los combos. Definido SOLO en
         // `.tema-publico` (ver `index.css`): no es un token del admin.
         sello: "rgb(var(--color-sello) / <alpha-value>)",
+        // Arte del cuerpo del ticket de combo (`ArteCombo`), también SOLO en
+        // `.tema-publico`: decorativos, ningún texto real va en estos colores.
+        "crema-arte": "rgb(var(--color-crema-arte) / <alpha-value>)",
+        salvia: "rgb(var(--color-salvia) / <alpha-value>)",
+        durazno: "rgb(var(--color-durazno) / <alpha-value>)",
+        "naranja-vivo": "rgb(var(--color-naranja-vivo) / <alpha-value>)",
+        "marca-combo": "rgb(var(--color-marca-combo) / <alpha-value>)",
       },
       borderRadius: {
         DEFAULT: "0.25rem",

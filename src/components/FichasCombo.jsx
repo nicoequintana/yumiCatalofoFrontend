@@ -97,6 +97,57 @@ export default function FichasCombo({ items, unidades }) {
   );
 }
 
+/**
+ * El arte del cuerpo claro del ticket (15/09/2026, `combos-fondo-separado.html`),
+ * dibujado ENTERO en código: manchas, curva punteada, subrayado y rayitas son
+ * SVG de trazos (sin `<text>`), y "Mejor juntos" / "COMBO" salen de `content:`
+ * de pseudo-elementos en `index.css` — nunca texto del DOM, así no entran a la
+ * regla de cloaking ni los lee un lector de pantalla (`aria-hidden` además).
+ * Dónde va cada pieza lo decide el CSS por container query, para que el
+ * lettering nunca pise chips, título ni frase.
+ */
+export function ArteCombo() {
+  return (
+    <span aria-hidden="true" className="arte-combo">
+      <svg className="arte-combo-mancha arte-combo-mancha-ti text-salvia" viewBox="0 0 150 130" focusable="false">
+        <path d="M0 0 H140 C150 40 120 70 88 74 C55 78 40 96 30 130 H0 Z" fill="currentColor" />
+      </svg>
+      <svg className="arte-combo-mancha arte-combo-mancha-td text-durazno" viewBox="0 0 170 150" focusable="false">
+        <path d="M20 0 H170 V150 C150 110 150 70 118 62 C80 54 40 44 20 0 Z" fill="currentColor" />
+      </svg>
+      <svg className="arte-combo-mancha arte-combo-mancha-bi text-durazno" viewBox="0 0 170 150" focusable="false">
+        <path d="M0 20 C30 30 46 60 66 98 C80 122 120 112 150 130 L170 150 H0 Z" fill="currentColor" />
+      </svg>
+      <svg className="arte-combo-mancha arte-combo-mancha-bd text-salvia" viewBox="0 0 190 150" focusable="false">
+        <path d="M190 40 C150 44 128 76 104 104 C84 128 40 124 20 150 H190 Z" fill="currentColor" />
+        <path
+          d="M10 148 C40 130 70 132 96 118 C122 104 130 70 186 58"
+          fill="none"
+          className="text-marca-combo"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeDasharray="9 8"
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="arte-combo-lettering">
+        <span className="arte-combo-script text-primary-container" />
+        <svg className="arte-combo-subrayado text-naranja-vivo" viewBox="0 0 120 22" focusable="false">
+          <path d="M8 12 C40 4 80 2 116 5" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+          <path d="M34 19 C62 14 90 12 116 13" fill="none" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" />
+        </svg>
+      </span>
+      <svg className="arte-combo-rayitas arte-combo-r1 text-naranja-vivo" viewBox="0 0 30 26" focusable="false">
+        <path d="M4 22 L9 2 M14 24 L24 8 M18 25 L28 21" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+      </svg>
+      <svg className="arte-combo-rayitas arte-combo-r2 text-primary-container" viewBox="0 0 30 26" focusable="false">
+        <path d="M26 4 L20 22 M14 2 L8 16 M4 22 L14 22" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+      </svg>
+      <span className="arte-combo-marca" />
+    </span>
+  );
+}
+
 /** El sello rojo girado con el %: rojo propio (`bg-sello`), nunca el de error. */
 export function SelloCombo({ porcentaje }) {
   return (
@@ -171,7 +222,7 @@ export function ChipStockCombo({ combo }) {
 /** Chip teal "Combo" + "N productos" + stock. */
 export function ChipsCombo({ combo }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="chips-combo flex flex-wrap items-center gap-2">
       <span className="inline-flex items-center gap-[5px] rounded-full bg-primary py-[5px] pl-2 pr-2.5 font-label-sm text-[11px] font-extrabold uppercase leading-none tracking-[0.14em] text-on-primary">
         <span aria-hidden="true" className="material-symbols-outlined text-[15px]">
           redeem

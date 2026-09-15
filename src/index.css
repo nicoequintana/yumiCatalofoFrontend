@@ -290,6 +290,16 @@
      no `error`: una oferta no es un error, y atarlos haría que ajustar uno
      mueva el otro. Blanco encima da 5,17:1 (guard en `tokens.test.js`). */
   --color-sello: 207 46 31; /* #cf2e1f */
+  /* Arte del cuerpo claro del ticket de combo (15/09/2026,
+     `combos-fondo-separado.html`): base crema, manchas salvia y durazno,
+     subrayado y rayitas naranja vivo, y el verde de la marca de agua "COMBO"
+     (se usa al 34%) y de la curva punteada. Solo decorativos: ningún texto
+     real va en estos colores. */
+  --color-crema-arte: 253 248 240; /* #fdf8f0 */
+  --color-salvia: 219 227 218; /* #dbe3da */
+  --color-durazno: 251 195 164; /* #fbc3a4 */
+  --color-naranja-vivo: 242 106 31; /* #f26a1f */
+  --color-marca-combo: 143 168 150; /* #8fa896 */
 
   --font-display: "Outfit", sans-serif;
   --font-label: "Outfit", sans-serif;
@@ -479,55 +489,127 @@ h6 {
   gap: 14px;
   grid-template-rows: 1fr auto;
 }
-/* Fondo ilustrado del cuerpo (arte del usuario, 15/09/2026): "Mejor juntos",
-   "COMBO", manchas y la curva punteada son PÍXELES de un background, nunca
-   texto del DOM (no entran a la regla de cloaking). Derivados WebP de los PNG
-   de `assets/combos/` (los PNG son la fuente, no se importan).
-   Qué arte va lo decide la PROPORCIÓN del cuerpo, no la forma del ticket:
-   - cuerpo casi cuadrado (contenedor < 460px, y el paso intermedio del ticket
-     ancho 720–870 / 720–920 en la página): arte vertical anclado arriba, que
-     deja "Mejor juntos" + "COMBO" detrás de chips y título;
-   - cuerpo apaisado (apilada ≥ 460px y ancha desde 870 / 920): arte apaisado
-     al 62% horizontal, que con el cuerpo más angosto recorta "COMBO" contra
-     el borde derecho (se lee como sangrado) y nunca corta "Mejor juntos".
-   El navegador baja SOLO la imagen del valor que gana: un celular nunca pide
-   el apaisado. Crema de respaldo = base del arte (`background`). */
-.fondo-ticket-combo {
-  background-color: rgb(var(--color-background));
-  background-image: url("./assets/combos/fondo-combo-alto-720.webp");
-  background-size: cover;
-  background-position: top center;
-  background-repeat: no-repeat;
-}
-/* Velo crema detrás del bloque de texto (chips, título y frase): donde el
-   trazo oscuro de "Mejor juntos" o "COMBO" cae debajo del texto, lo aclara
-   sin mover el texto. UN rectángulo difuminado del tamaño del bloque (se
-   achica al texto con `justify-self: start`; con dos velos, uno por fila, el
-   trazo asomaba cortado en el hueco entre chips y título): el arte sigue
-   entero alrededor y asoma, tenue, debajo. 0,84 de opacidad deja el píxel
-   más oscuro del arte dentro de la caja de cada texto en ≥ 4,5:1 (medido en
-   navegador, ver `docs/reglas/combos.md`). */
+/* Arte del cuerpo claro (15/09/2026, `combos-fondo-separado.html`), dibujado
+   ENTERO en código (`ArteCombo` en `FichasCombo.jsx`): base `crema-arte`,
+   cuatro manchas y la curva punteada en SVG de trazos, y "Mejor juntos" /
+   "COMBO" como `content:` de pseudo-elementos — nunca texto del DOM (cloaking y
+   lectores de pantalla) ni imagen raster. La capa entera va `aria-hidden`.
+   Las piezas NUNCA pisan el texto real: la card decide dónde va cada una por
+   container query.
+   - Apilada (default): lettering chico arriba a la derecha, a la altura de los
+     chips (que reservan `padding-right`); "COMBO" abajo a la derecha, puede
+     pasar detrás de las fichas (baldosas opacas, aprobado por el usuario).
+   - ≤ 380px: lettering 19px; ≤ 300px: sin lettering ni rayitas.
+   - Ancha (≥ 720px): chips/título/frase hasta el 58% del cuerpo; lettering y
+     "COMBO" viven a la derecha, nunca detrás del título ni la frase.
+   Pintado: la capa es `absolute` z 0 y va PRIMERO en el DOM; texto y fichas son
+   `relative` después, así pintan encima sin z-index propio. */
 .tarjeta-combo-texto {
-  justify-self: start;
   gap: 14px;
 }
-.tarjeta-combo-texto::before {
-  content: "";
+.chips-combo {
+  padding-right: 110px;
+  min-height: 44px;
+}
+.arte-combo {
   position: absolute;
-  inset: -8px -14px;
-  z-index: -1;
-  border-radius: 20px;
-  background: rgb(var(--color-background) / 0.84);
-  filter: blur(10px);
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
   pointer-events: none;
 }
-@container (min-width: 460px) {
-  /* `url()` suelto primero: respaldo para un navegador sin `image-set`. */
-  .fondo-ticket-combo {
-    background-image: url("./assets/combos/fondo-combo-ancho-1100.webp");
-    background-image: image-set(url("./assets/combos/fondo-combo-ancho-1100.webp") 1x, url("./assets/combos/fondo-combo-ancho-1600.webp") 2x);
-    background-position: 62% 50%;
-  }
+.arte-combo-mancha {
+  position: absolute;
+}
+.arte-combo-mancha-ti {
+  left: -30px;
+  top: -34px;
+  width: 150px;
+}
+.arte-combo-mancha-td {
+  right: -26px;
+  top: -40px;
+  width: 170px;
+}
+.arte-combo-mancha-bi {
+  left: -40px;
+  bottom: -46px;
+  width: 170px;
+}
+.arte-combo-mancha-bd {
+  right: -30px;
+  bottom: -40px;
+  width: 190px;
+}
+.arte-combo-lettering {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  right: 16px;
+  top: 8px;
+}
+/* Dancing Script 700, cargada como Outfit (Google Fonts en `index.html`, con
+   `text=` para bajar solo las letras de "Mejor juntos"). */
+.arte-combo-script {
+  display: block;
+  font-family: "Dancing Script", "Segoe Script", cursive;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 0.78;
+  text-align: left;
+  transform: rotate(-9deg);
+}
+/* `/ ""`: texto alternativo vacío — el lector de pantalla no lo anuncia ni
+   aunque se pierda el `aria-hidden`. La primera declaración es el respaldo. */
+.arte-combo-script::before {
+  content: "Mejor";
+  content: "Mejor" / "";
+  display: block;
+}
+.arte-combo-script::after {
+  content: "juntos";
+  content: "juntos" / "";
+  display: block;
+  padding-left: 0.9em;
+}
+.arte-combo-subrayado {
+  display: block;
+  width: 58px;
+  margin-top: 4px;
+  transform: rotate(-9deg);
+}
+.arte-combo-rayitas {
+  position: absolute;
+  z-index: 1;
+}
+.arte-combo-r1 {
+  display: none;
+}
+.arte-combo-r2 {
+  right: 8px;
+  top: 52px;
+  width: 22px;
+}
+/* "COMBO" escala con el ancho de la card (`cqw` de `.tarjeta-combo-wrap`). */
+.arte-combo-marca {
+  position: absolute;
+  z-index: 1;
+  right: -4px;
+  bottom: 50px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(38px, 15cqw, 68px);
+  letter-spacing: -0.05em;
+  line-height: 0.8;
+  white-space: nowrap;
+  color: rgb(var(--color-marca-combo) / 0.34);
+  transform: rotate(-12deg);
+}
+.arte-combo-marca::before {
+  content: "COMBO";
+  content: "COMBO" / "";
 }
 .tarjeta-combo-titulo {
   font-size: 24px;
@@ -536,6 +618,7 @@ h6 {
   font-size: 15px;
 }
 .fichas-combo {
+  position: relative;
   gap: 6px;
   align-self: end;
 }
@@ -599,6 +682,46 @@ h6 {
   }
   .tarjeta-combo-texto {
     gap: 18px;
+    max-width: 58%;
+  }
+  .chips-combo {
+    padding-right: 0;
+    min-height: 0;
+  }
+  .arte-combo-mancha-td {
+    width: 210px;
+  }
+  .arte-combo-mancha-bd {
+    width: 250px;
+  }
+  .arte-combo-lettering {
+    right: auto;
+    left: 58%;
+    top: 26px;
+  }
+  .arte-combo-script {
+    font-size: 44px;
+  }
+  .arte-combo-subrayado {
+    width: 118px;
+  }
+  .arte-combo-r1 {
+    display: block;
+    left: calc(58% + 150px);
+    top: 22px;
+    width: 30px;
+  }
+  .arte-combo-r2 {
+    right: 20px;
+    top: auto;
+    bottom: 150px;
+    width: 30px;
+  }
+  /* Ancha: "COMBO" abajo a la derecha, fuera de la columna del texto. */
+  .arte-combo-marca {
+    right: -14px;
+    bottom: 60px;
+    font-size: clamp(60px, 10.5cqw, 108px);
   }
   .tarjeta-combo-titulo {
     font-size: 36px;
@@ -656,10 +779,15 @@ h6 {
    con huecos de 4px (~302px, entra desde 720). Medido en navegador el
    15/09/2026: ver `docs/reglas/combos.md`. */
 @container (min-width: 720px) and (max-width: 869.98px) {
-  /* Cuerpo casi cuadrado: vuelve el arte vertical (ver `.fondo-ticket-combo`). */
-  .fondo-ticket-combo {
-    background-image: url("./assets/combos/fondo-combo-alto-720.webp");
-    background-position: top center;
+  /* El lettering se achica con el cuerpo (34px) en el mismo paso. */
+  .arte-combo-script {
+    font-size: 34px;
+  }
+  .arte-combo-subrayado {
+    width: 90px;
+  }
+  .arte-combo-r1 {
+    left: calc(58% + 116px);
   }
   .fichas-combo {
     gap: 4px;
@@ -676,9 +804,14 @@ h6 {
    88px desde 920; 62px entre 760 y 920; y entre 720 y 760 ni 4 fichas de 62px
    entran (~268px de contenido), así que muestra la variante angosta (2 + "+N"). */
 @container (min-width: 720px) and (max-width: 919.98px) {
-  .tarjeta-combo-pagina .fondo-ticket-combo {
-    background-image: url("./assets/combos/fondo-combo-alto-720.webp");
-    background-position: top center;
+  .tarjeta-combo-pagina .arte-combo-script {
+    font-size: 34px;
+  }
+  .tarjeta-combo-pagina .arte-combo-subrayado {
+    width: 90px;
+  }
+  .tarjeta-combo-pagina .arte-combo-r1 {
+    left: calc(58% + 116px);
   }
   .tarjeta-combo-pagina .fichas-combo {
     gap: 4px;
@@ -700,6 +833,19 @@ h6 {
   }
 }
 @container (max-width: 380px) {
+  .chips-combo {
+    padding-right: 92px;
+  }
+  .arte-combo-script {
+    font-size: 19px;
+  }
+  .arte-combo-subrayado {
+    width: 48px;
+  }
+  .arte-combo-marca {
+    right: -6px;
+    bottom: 46px;
+  }
   .fichas-combo {
     gap: 4px;
   }
@@ -723,6 +869,18 @@ h6 {
   }
   .precio-combo {
     font-size: 38px;
+  }
+}
+/* Card de ≤ 300px: el lettering apretaría los chips; "COMBO" se queda. */
+@container (max-width: 300px) {
+  .chips-combo {
+    padding-right: 0;
+  }
+  .arte-combo-lettering {
+    display: none;
+  }
+  .arte-combo-rayitas {
+    display: none;
   }
 }
 

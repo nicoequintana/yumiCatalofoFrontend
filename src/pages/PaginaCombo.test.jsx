@@ -93,11 +93,17 @@ describe("PaginaCombo", () => {
     expect(within(ticket).getAllByTestId("ficha-item")).toHaveLength(2);
     expect(within(ticket).getAllByTestId("ficha-item")[0]).toHaveClass("bg-surface-container-lowest", "shadow-sombra-ficha");
     const cuerpo = ticket.querySelector(".tarjeta-combo-cuerpo");
-    expect(cuerpo).toHaveClass("fondo-ticket-combo");
-    expect(cuerpo.className).not.toMatch(/\bbg-surface-container-lowest\b/);
+    expect(cuerpo).toHaveClass("bg-crema-arte", "relative", "isolate");
+    expect(cuerpo).not.toHaveClass("fondo-ticket-combo");
+    const arte = cuerpo.querySelector(".arte-combo");
+    expect(arte).toHaveAttribute("aria-hidden", "true");
+    expect(arte.textContent).toBe("");
+    expect(arte.querySelector(".arte-combo-lettering")).not.toBeNull();
+    expect(arte.querySelector(".arte-combo-marca")).not.toBeNull();
     expect(cuerpo.querySelector(".tarjeta-combo-texto")).toContainElement(within(ticket).getByRole("heading", { level: 1 }));
     expect(cuerpo.querySelector(".tarjeta-combo-texto")).toContainElement(within(ticket).getByText("3 productos"));
     expect(within(ticket).queryByText(/Mejor juntos/i)).not.toBeInTheDocument();
+    expect(within(ticket).queryByText("COMBO")).not.toBeInTheDocument();
     expect(within(ticket).getByText(/Ahorrás/).querySelector(".material-symbols-outlined")).toHaveTextContent("savings");
   });
 
