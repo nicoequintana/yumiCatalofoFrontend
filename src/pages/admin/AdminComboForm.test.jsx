@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { ToastProvider } from "../../context/ToastContext.jsx";
 import AdminComboForm from "./AdminComboForm.jsx";
+import { CLASE_SECCION_CATALOGO_COMBOS } from "../../constants/combos.js";
 
 const comboEditorMock = vi.fn();
 vi.mock("../../hooks/useComboEditor.js", () => ({ default: (...a) => comboEditorMock(...a) }));
@@ -366,9 +367,12 @@ describe("AdminComboForm — vista previa y acciones", () => {
 
     expect(within(previa).getByRole("button", { name: "Celular" })).toHaveAttribute("aria-pressed", "true");
     expect(within(previa).getByRole("button", { name: "Escritorio" })).toHaveAttribute("aria-pressed", "false");
-    expect(previa.querySelector("iframe")).toHaveAttribute("width", "390");
-    expect(within(previa).getByText("390 px · celular")).toBeInTheDocument();
-    expect(marco).toBeTruthy();
+    expect(marco).toHaveAttribute("width", "390");
+    // La leyenda del ancho va AFUERA del lienzo (antes, en la barra): encima tapaba "Agregar combo".
+    const leyenda = within(previa).getByText("390 px · celular");
+    expect(leyenda.compareDocumentPosition(marco) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(marco.parentElement.contains(leyenda)).toBe(false);
+    expect(marco.parentElement.parentElement.contains(leyenda)).toBe(false);
   });
 
   it("'Card en el catálogo' pinta la grilla de /combos con el combo solo, sin inventar otros", async () => {
@@ -383,6 +387,9 @@ describe("AdminComboForm — vista previa y acciones", () => {
     const grilla = tienda.querySelector(".grilla-combos");
     expect(grilla).not.toBeNull();
     expect(grilla.children).toHaveLength(1);
+    // El contenedor de /combos, el MISMO de CatalogoCombos (márgenes y aire incluidos).
+    expect(grilla.parentElement.className).toBe(CLASE_SECCION_CATALOGO_COMBOS);
+    expect(grilla.parentElement).toHaveClass("pb-32", "pt-5", "md:pt-8");
     expect(tienda.querySelector(".fila-combos-pista")).toBeNull();
   });
 
@@ -409,7 +416,7 @@ describe("AdminComboForm — vista previa y acciones", () => {
     // jsdom no implementa `inert`: se verifica el atributo (ver AdminSidebar.test.jsx).
     expect(tienda.querySelector(".tema-publico")).toHaveAttribute("inert");
     expect(within(tienda).getByRole("link", { name: /Ver el combo/ }).closest("[inert]")).not.toBeNull();
-    expect(marco).toHaveAttribute("inert");
+    expect(marco).toHaveAttribute("tabindex", "-1");
   });
 
   it("sin cotización no inventa números: explica cuándo aparece la vista previa", () => {

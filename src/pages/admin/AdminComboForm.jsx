@@ -8,7 +8,7 @@ import TarjetaCombo from "../../components/TarjetaCombo.jsx";
 import GrillaCombos from "../../components/GrillaCombos.jsx";
 import FilaCombos from "../../components/FilaCombos.jsx";
 import LienzoTienda from "../../components/admin/combos/LienzoTienda.jsx";
-import { FILA_COMBOS_HOME } from "../../constants/combos.js";
+import { CLASE_SECCION_CATALOGO_COMBOS, FILA_COMBOS_HOME } from "../../constants/combos.js";
 import SelectorCantidad from "../../components/SelectorCantidad.jsx";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
@@ -60,22 +60,23 @@ const DISPOSITIVOS = [
   { id: "celular", etiqueta: "Celular", icono: "smartphone", ancho: 390 },
 ];
 
-/** La página es larga: el marco se corta acá y se recorre con scroll. */
-const ALTO_MAXIMO_PAGINA = "min(75vh, 760px)";
+/** La página es larga: el marco se corta en estos px (y en el 60% de la ventana) y se recorre adentro. */
+const ALTO_MAXIMO_PAGINA = 760;
 
 /**
  * Lo que se dibuja dentro del lienzo, con los componentes REALES de la tienda:
  * - `home`: `FilaCombos` con los mismos textos que la home (`FILA_COMBOS_HOME`).
  * - `catalogo`: la grilla de `/combos` (`CatalogoCombos.jsx`) con este combo
  *   SOLO — impar, la card queda centrada a media columna, como en la tienda.
- *   La grilla es `GrillaCombos`, el MISMO componente que usa la tienda.
+ *   La grilla es `GrillaCombos` y el contenedor `CLASE_SECCION_CATALOGO_COMBOS`,
+ *   los MISMOS que usa la tienda (sin el encabezado teal, que no es del combo).
  * - `pagina`: `PaginaCombo` con `comboForzado`.
  */
 function PreviaEnTienda({ modo, combo }) {
   if (modo === "pagina") return <PaginaCombo comboForzado={combo} />;
   if (modo === "catalogo") {
     return (
-      <section className="mx-auto w-full max-w-container-max px-margin-mobile py-7 md:px-margin-desktop md:py-10">
+      <section className={CLASE_SECCION_CATALOGO_COMBOS}>
         <GrillaCombos>
           <TarjetaCombo combo={combo} />
         </GrillaCombos>
@@ -724,13 +725,20 @@ function AdminComboForm() {
           aria-label="Vista previa"
           className={`${panelActivo === "preview" ? "flex" : "hidden"} flex-col gap-3 border-outline-variant bg-surface-container-low px-4 py-4 md:px-5 lg:flex lg:min-h-0 lg:overflow-y-auto lg:border-l`}
         >
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          {/* Leyenda del ancho ARRIBA, en la misma línea que el título: sobre el
+              lienzo tapaba contenido (en "Página" a 390, "Agregar combo"). */}
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <span className="font-label-sm text-label-sm inline-flex items-center gap-1.5 uppercase tracking-widest text-on-surface-variant">
               <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-secondary">
                 visibility
               </span>
               Así lo ve el cliente
             </span>
+            <span className="font-label-sm text-label-sm tabular-nums text-on-surface-variant">
+              {`${dispositivo.ancho} px · ${dispositivo.etiqueta.toLowerCase()}`}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div role="group" aria-label="Qué previsualizar" className={claseSegmentado}>
               {MODOS_PREVIA.map((modo) => (
                 <button
@@ -738,7 +746,7 @@ function AdminComboForm() {
                   type="button"
                   aria-pressed={vistaPrevia === modo.id}
                   onClick={() => setVistaPrevia(modo.id)}
-                  className={`${claseOpcionSegmentado} gap-1.5 whitespace-nowrap px-2.5 sm:px-3 ${
+                  className={`${claseOpcionSegmentado} gap-1.5 whitespace-nowrap px-2 max-sm:text-[13px] sm:px-3 ${
                     vistaPrevia === modo.id ? claseOpcionElegida : "text-on-surface-variant"
                   }`}
                 >
@@ -771,11 +779,7 @@ function AdminComboForm() {
           </div>
 
           {preview ? (
-            <LienzoTienda
-              ancho={dispositivo.ancho}
-              etiqueta={`${dispositivo.ancho} px · ${dispositivo.etiqueta.toLowerCase()}`}
-              altoMaximo={vistaPrevia === "pagina" ? ALTO_MAXIMO_PAGINA : null}
-            >
+            <LienzoTienda ancho={dispositivo.ancho} altoMaximo={vistaPrevia === "pagina" ? ALTO_MAXIMO_PAGINA : null}>
               <PreviaEnTienda modo={vistaPrevia} combo={preview} />
             </LienzoTienda>
           ) : (

@@ -1,8 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { escalaParaAncho, medidasDelMarco } from "./escalaLienzo.js";
 
 const ATRIBUTO_COPIA = "data-lienzo-estilo";
 const ALTO_INICIAL = 600;
+/** Con tope, el marco tampoco pasa de este tanto de la ventana del panel. */
+const FRACCION_MAXIMA_VENTANA = 0.6;
 
 /** Clona las hojas del documento del panel (links de fuentes + CSS de la app) al iframe. */
 function copiarEstilos(origen, destino) {
@@ -32,11 +35,15 @@ function esNodoDeEstilo(nodo) {
  *
  * El contenido entra por portal (mismo árbol de React: Router y Toast siguen
  * disponibles) dentro de un `.tema-publico` INERTE — sin esto "Agregar combo"
- * metería el combo en el carrito del admin. El iframe también es `inert`: no
- * toma foco y la rueda cae en el marco con scroll, que va AFUERA del subárbol
- * inerte (con `altoMaximo`, la página se recorre dentro del marco).
+ * metería el combo en el carrito del admin. El iframe en sí NO es inerte (con
+ * `tabIndex=-1`, no entra al orden de foco): la rueda tiene que llegar a su
+ * documento. Sin `altoMaximo` ese documento no scrollea y la rueda sigue de
+ * largo al panel; con `altoMaximo` (px) el iframe es un viewport cortado que
+ * scrollea ADENTRO, así la barra fija de la página queda pegada abajo.
+ *
+ * Sin leyenda encima: el ancho lo dice la barra del editor, afuera del lienzo.
  */
-function LienzoTienda({ ancho, etiqueta, altoMaximo = null, children }) {
+function LienzoTienda({ ancho, altoMaximo = null, children }) {
   const lienzoRef = useRef(null);
   const marcoRef = useRef(null);
   const [doc, setDoc] = useState(null);
@@ -54,7 +61,6 @@ function LienzoTienda({ ancho, etiqueta, altoMaximo = null, children }) {
       const documento = marco.contentDocument;
       if (!documento?.body) return;
       documento.documentElement.lang = document.documentElement.lang || "es";
-      documento.documentElement.style.overflow = "hidden";
       documento.body.style.margin = "0";
       copiarEstilos(document, documento);
       setDoc(documento);
@@ -79,14 +85,19 @@ function LienzoTienda({ ancho, etiqueta, altoMaximo = null, children }) {
     };
   }, []);
 
+  // Con tope el documento de la tienda scrollea; sin tope, no (y vuelve arriba al cambiar).
+  useEffect(() => {
+    if (!doc) return;
+    doc.documentElement.style.overflowX = "hidden";
+    doc.documentElement.style.overflowY = altoMaximo ? "auto" : "hidden";
+    doc.defaultView?.scrollTo?.(0, 0);
+  }, [doc, altoMaximo, ancho]);
+
   // Escala: ancho disponible del marco sobre el ancho real de la tienda.
   useLayoutEffect(() => {
     const lienzo = lienzoRef.current;
     if (!lienzo) return undefined;
-    const medir = () => {
-      const disponible = lienzo.clientWidth;
-      setEscala(disponible > 0 ? Math.min(1, disponible / ancho) : 1);
-    };
+    const medir = () => setEscala(escalaParaAncho(lienzo.clientWidth, ancho));
     medir();
     if (typeof ResizeObserver === "undefined") return undefined;
     const observador = new ResizeObserver(medir);
@@ -108,34 +119,27 @@ function LienzoTienda({ ancho, etiqueta, altoMaximo = null, children }) {
     return () => observador.disconnect();
   }, [contenido]);
 
-  const altoEscalado = Math.ceil(alto * escala);
+  const tope = altoMaximo ? Math.min(altoMaximo, Math.round(window.innerHeight * FRACCION_MAXIMA_VENTANA)) : null;
+  const { altoMarco, altoIframe } = medidasDelMarco({ altoContenido: alto, escala, altoMaximo: tope });
   const esCelular = ancho < 768;
 
   return (
-    <div className={`relative mx-auto w-full ${esCelular ? "max-w-[392px]" : ""}`}>
+    <div className={`mx-auto w-full ${esCelular ? "max-w-[392px]" : ""}`}>
       <div
         ref={lienzoRef}
-        className={`overflow-x-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-ambient ${
-          altoMaximo ? "overflow-y-auto [scrollbar-gutter:stable] [scrollbar-width:thin]" : "overflow-y-hidden"
-        }`}
-        style={altoMaximo ? { maxHeight: altoMaximo } : undefined}
+        className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-ambient"
+        style={{ height: altoMarco + 2 }}
       >
-        <div className="overflow-hidden" style={{ height: altoEscalado }}>
-          <iframe
-            ref={marcoRef}
-            title="Vista previa en la tienda"
-            width={ancho}
-            height={alto}
-            inert
-            tabIndex={-1}
-            className="block origin-top-left border-0"
-            style={{ width: ancho, height: alto, transform: `scale(${escala})` }}
-          />
-        </div>
+        <iframe
+          ref={marcoRef}
+          title="Vista previa en la tienda"
+          width={ancho}
+          height={altoIframe}
+          tabIndex={-1}
+          className="block origin-top-left border-0"
+          style={{ width: ancho, height: altoIframe, transform: `scale(${escala})` }}
+        />
       </div>
-      <span className="font-label-sm pointer-events-none absolute bottom-2.5 right-2.5 rounded-full bg-inverse-surface/80 px-2 py-0.5 text-[11px] font-bold tabular-nums text-surface">
-        {etiqueta}
-      </span>
       {doc
         ? createPortal(
             <div ref={setContenido} inert className="tema-publico flow-root bg-background">

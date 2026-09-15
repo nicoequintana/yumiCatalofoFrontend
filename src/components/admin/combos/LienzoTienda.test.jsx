@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, waitFor, within } from "@testing-library/react";
 import LienzoTienda from "./LienzoTienda.jsx";
 
 async function tiendaDe(container) {
@@ -13,9 +13,9 @@ afterEach(() => {
 });
 
 describe("LienzoTienda", () => {
-  it("pinta los hijos dentro del iframe, con tema-publico e inerte", async () => {
+  it("pinta los hijos dentro del iframe, con tema-publico e inerte, sin tapar nada con una etiqueta", async () => {
     const { container } = render(
-      <LienzoTienda ancho={1280} etiqueta="1280 px · escritorio">
+      <LienzoTienda ancho={1280}>
         <p>contenido de la tienda</p>
       </LienzoTienda>,
     );
@@ -24,8 +24,25 @@ describe("LienzoTienda", () => {
     const texto = within(doc.body).getByText("contenido de la tienda");
     expect(texto.closest(".tema-publico")).toHaveAttribute("inert");
     expect(marco).toHaveAttribute("width", "1280");
-    expect(marco).toHaveAttribute("inert");
-    expect(screen.getByText("1280 px · escritorio")).toBeInTheDocument();
+    expect(marco).toHaveAttribute("tabindex", "-1");
+    expect(container.textContent).toBe("");
+  });
+
+  it("sin tope el documento de la tienda no scrollea; con tope scrollea ADENTRO del iframe (barra fija abajo)", async () => {
+    const { container, rerender } = render(
+      <LienzoTienda ancho={390}>
+        <p>hola</p>
+      </LienzoTienda>,
+    );
+    const { doc } = await tiendaDe(container);
+    expect(doc.documentElement.style.overflowY).toBe("hidden");
+
+    rerender(
+      <LienzoTienda ancho={390} altoMaximo={700}>
+        <p>hola</p>
+      </LienzoTienda>,
+    );
+    await waitFor(() => expect(doc.documentElement.style.overflowY).toBe("auto"));
   });
 
   it("copia las hojas de estilo del documento al iframe (sin ellas no hay tokens ni fuentes)", async () => {
@@ -35,7 +52,7 @@ describe("LienzoTienda", () => {
     document.head.appendChild(hoja);
 
     const { container } = render(
-      <LienzoTienda ancho={390} etiqueta="390 px · celular">
+      <LienzoTienda ancho={390}>
         <p>hola</p>
       </LienzoTienda>,
     );

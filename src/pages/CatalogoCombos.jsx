@@ -6,6 +6,7 @@ import MetaSeo from "../components/MetaSeo.jsx";
 import useCombosCatalogo from "../hooks/useCombosCatalogo.js";
 import useResumenCombos from "../hooks/useResumenCombos.js";
 import { urlAbsoluta } from "../constants/seo.js";
+import { CLASE_SECCION_CATALOGO_COMBOS } from "../constants/combos.js";
 
 /**
  * Franja teal del encabezado (rediseño del 15/09/2026, `.cat-hero`). Los dos
@@ -64,8 +65,8 @@ function EncabezadoCombos({ resumen, ocultarDatos }) {
  * pronto", y afirmar eso ante un error de carga sería mentirle a quien tuvo
  * un problema de conexión.
  *
- * `pb-32`: en celular la isla flotante y el FAB de WhatsApp quedan fijos
- * abajo; sin ese aire tapaban para siempre los botones de la última card. */
+ * El contenedor (`CLASE_SECCION_CATALOGO_COMBOS`) lo comparte la vista previa
+ * del editor; ahí está el porqué del `pb-32`. */
 function CatalogoCombos() {
   const { combos, cargando, error } = useCombosCatalogo();
   const { resumen } = useResumenCombos();
@@ -77,7 +78,7 @@ function CatalogoCombos() {
         descripcion="Conjuntos de productos con un descuento que se aplica solo si los llevás juntos."
         canonical={urlAbsoluta("/combos")}
       />
-      <section className="mx-auto grid w-full max-w-container-max gap-7 px-margin-mobile pb-32 pt-5 md:gap-8 md:px-margin-desktop md:pb-24 md:pt-8">
+      <section className={CLASE_SECCION_CATALOGO_COMBOS}>
         <EncabezadoCombos resumen={resumen} ocultarDatos={Boolean(error)} />
 
         {cargando ? null : error ? (
