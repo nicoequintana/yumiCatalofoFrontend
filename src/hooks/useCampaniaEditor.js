@@ -147,6 +147,11 @@ export default function useCampaniaEditor() {
   const [errorProductos, setErrorProductos] = useState(null);
   const [errorPromociones, setErrorPromociones] = useState(null);
   const [errorCombos, setErrorCombos] = useState(null);
+  // La CARGA de las listas del panel, aparte del error al GUARDAR: sin esto un
+  // fallo se tragaba en `[]` y la sección decía "Todavía no hay combos" con el
+  // backend caído — "falló la carga" y "no hay nada" son dos respuestas.
+  const [errorCargaPromociones, setErrorCargaPromociones] = useState(null);
+  const [errorCargaCombos, setErrorCargaCombos] = useState(null);
   const [sucio, setSucio] = useState(false);
   const confirmarSalida = useGuardaSalida(sucio);
 
@@ -166,16 +171,21 @@ export default function useCampaniaEditor() {
 
   // Las promociones son la lista COMPLETA del panel, no las de esta campaña:
   // los checkboxes ofrecen todas y marcan las asociadas. Falla blanda — sin
-  // ellas el resto del editor sigue siendo usable.
+  // ellas el resto del editor sigue siendo usable —, pero VISIBLE: el fallo va a
+  // `errorCargaPromociones`, nunca a una lista vacía silenciosa.
   useEffect(() => {
     if (!esEdicion) return undefined;
     let activo = true;
     getPromociones()
       .then((datos) => {
-        if (activo) setPromociones(datos);
+        if (!activo) return;
+        setPromociones(datos);
+        setErrorCargaPromociones(null);
       })
-      .catch(() => {
-        if (activo) setPromociones([]);
+      .catch((err) => {
+        if (!activo) return;
+        setPromociones([]);
+        setErrorCargaPromociones(err?.message || "No se pudieron cargar las promociones.");
       });
     return () => {
       activo = false;
@@ -184,16 +194,20 @@ export default function useCampaniaEditor() {
 
   // Mismo criterio que las promociones: la lista COMPLETA del panel, no la de
   // esta campaña — los checkboxes ofrecen todos los combos y marcan los
-  // asociados. Falla blanda.
+  // asociados. Falla blanda y visible, en `errorCargaCombos`.
   useEffect(() => {
     if (!esEdicion) return undefined;
     let activo = true;
     getAdminCombos()
       .then((datos) => {
-        if (activo) setCombos(datos);
+        if (!activo) return;
+        setCombos(datos);
+        setErrorCargaCombos(null);
       })
-      .catch(() => {
-        if (activo) setCombos([]);
+      .catch((err) => {
+        if (!activo) return;
+        setCombos([]);
+        setErrorCargaCombos(err?.message || "No se pudieron cargar los combos.");
       });
     return () => {
       activo = false;
@@ -486,6 +500,8 @@ export default function useCampaniaEditor() {
     errorProductos,
     errorPromociones,
     errorCombos,
+    errorCargaPromociones,
+    errorCargaCombos,
     sucio,
     confirmarSalida,
     editar,

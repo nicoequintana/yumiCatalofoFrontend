@@ -12,8 +12,21 @@
  * sección vive FUERA del `<form>` de la campaña: adentro, un control sin
  * `type="button"` dispararía el submit del formulario entero.
  */
-export default function PromocionesDeCampania({ promociones, asociadas, guardando, onGuardar }) {
+export default function PromocionesDeCampania({ promociones, asociadas, guardando, onGuardar, errorCarga = null }) {
   const idsAsociadas = new Set((asociadas ?? []).map((p) => p.id));
+
+  // "Falló la carga" NO es "no hay promociones": mismo criterio que
+  // `CombosDeCampania`.
+  if (errorCarga) {
+    return (
+      <p
+        role="alert"
+        className="font-body-md text-body-md rounded-lg bg-error-container px-4 py-3 text-on-error-container"
+      >
+        No pudimos cargar las promociones. Recargá la pantalla para intentar de nuevo.
+      </p>
+    );
+  }
 
   if (promociones.length === 0) {
     return (

@@ -39,4 +39,10 @@ describe("CombosDeCampania", () => {
 
     expect(screen.getByText(/Todavía no hay combos/)).toBeInTheDocument();
   });
+  it("con la carga fallida muestra el error, NO el cartel de vacío", () => {
+    render(<CombosDeCampania combos={[]} asociados={[]} guardando={false} onGuardar={vi.fn()} errorCarga="Failed to fetch" />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("No pudimos cargar los combos");
+    expect(screen.queryByText(/Todavía no hay combos/)).not.toBeInTheDocument();
+  });
 });

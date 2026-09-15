@@ -47,6 +47,13 @@ beforeEach(() => {
 });
 
 describe("PaginaCombo", () => {
+  it("la imagen principal lleva el nombre del combo como texto alternativo, igual que la foto primaria de un producto", () => {
+    mockUseCombo.mockReturnValue({ combo: combo(), cargando: false, error: null, noEncontrado: false });
+    renderizar();
+
+    expect(screen.getByRole("img", { name: "Kit Living Cálido" })).toHaveAttribute("src", "https://x/1.jpg");
+  });
+
   it("pide el combo de la ruta y muestra el título, qué incluye y la cuenta con los textos del cuerpo SEO", () => {
     mockUseCombo.mockReturnValue({ combo: combo(), cargando: false, error: null, noEncontrado: false });
     renderizar();

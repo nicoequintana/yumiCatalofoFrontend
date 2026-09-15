@@ -51,3 +51,19 @@ describe("PromocionesDeCampania — área táctil (44px)", () => {
     }
   });
 });
+
+describe("PromocionesDeCampania — carga fallida contra lista vacía", () => {
+  it("con la carga fallida muestra el error, NO el cartel de vacío", () => {
+    montar({ promociones: [], errorCarga: "Failed to fetch" });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("No pudimos cargar las promociones");
+    expect(screen.queryByText(/Todavía no hay promociones/)).not.toBeInTheDocument();
+  });
+
+  it("sin error y sin promociones sigue mostrando el cartel de vacío", () => {
+    montar({ promociones: [] });
+
+    expect(screen.getByText(/Todavía no hay promociones/)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});

@@ -6,8 +6,21 @@
  * Cada checkbox persiste en el acto (`PUT /campanias/:id/combos`), igual que
  * `PromocionesDeCampania`: vive FUERA del `<form>` de la campaña.
  */
-export default function CombosDeCampania({ combos, asociados, guardando, onGuardar }) {
+export default function CombosDeCampania({ combos, asociados, guardando, onGuardar, errorCarga = null }) {
   const idsAsociados = new Set((asociados ?? []).map((combo) => combo.id));
+
+  // "Falló la carga" NO es "no hay combos": sin esta rama un backend caído se
+  // leía como una lista vacía y mandaba al admin a crear un combo que ya existe.
+  if (errorCarga) {
+    return (
+      <p
+        role="alert"
+        className="font-body-md text-body-md rounded-lg bg-error-container px-4 py-3 text-on-error-container"
+      >
+        No pudimos cargar los combos. Recargá la pantalla para intentar de nuevo.
+      </p>
+    );
+  }
 
   if (combos.length === 0) {
     return (

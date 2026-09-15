@@ -21,7 +21,8 @@ vi.mock("../api/campanias.js", () => ({
   guardarProductosDeCampania: vi.fn(),
   guardarPromocionesDeCampania: vi.fn(),
 }));
-vi.mock("../api/promociones.js", () => ({ getPromociones: () => Promise.resolve([]) }));
+const getPromocionesMock = vi.fn();
+vi.mock("../api/promociones.js", () => ({ getPromociones: (...a) => getPromocionesMock(...a) }));
 const getAdminCombosMock = vi.fn();
 const guardarCombosDeCampaniaMock = vi.fn();
 vi.mock("../api/combos.js", () => ({
@@ -57,6 +58,7 @@ beforeEach(() => {
   getCampaniaMock.mockResolvedValue(DETALLE);
   actualizarCampaniaMock.mockResolvedValue(DETALLE);
   getAdminCombosMock.mockResolvedValue([{ id: 4, nombre: "Kit Living" }]);
+  getPromocionesMock.mockResolvedValue([]);
 });
 
 describe("useCampaniaEditor — el bloque del banner", () => {
@@ -98,6 +100,34 @@ describe("useCampaniaEditor — el bloque del banner", () => {
     const [, payload] = actualizarCampaniaMock.mock.calls[0];
     expect(payload).not.toHaveProperty("bannerColor");
     expect(payload).not.toHaveProperty("bannerCtaTexto");
+  });
+});
+
+// Una pantalla que responde "¿hay combos/promociones?" distingue "falló la
+// carga" de "no hay nada": tragarse el fallo en `[]` mostraba "Todavía no hay
+// combos" con el backend caído.
+describe("useCampaniaEditor — fallo al cargar las listas del panel", () => {
+  it("un fallo de getAdminCombos queda en errorCargaCombos, no como lista vacía silenciosa", async () => {
+    getAdminCombosMock.mockRejectedValue(new Error("Failed to fetch"));
+    const { result } = renderHook(() => useCampaniaEditor(), { wrapper: envoltorio });
+
+    await waitFor(() => expect(result.current.errorCargaCombos).toBe("Failed to fetch"));
+    expect(result.current.combos).toEqual([]);
+  });
+
+  it("con la carga de combos OK, errorCargaCombos queda en null", async () => {
+    const { result } = renderHook(() => useCampaniaEditor(), { wrapper: envoltorio });
+
+    await waitFor(() => expect(result.current.combos).toHaveLength(1));
+    expect(result.current.errorCargaCombos).toBeNull();
+  });
+
+  it("un fallo de getPromociones queda en errorCargaPromociones", async () => {
+    getPromocionesMock.mockRejectedValue(new Error("Failed to fetch"));
+    const { result } = renderHook(() => useCampaniaEditor(), { wrapper: envoltorio });
+
+    await waitFor(() => expect(result.current.errorCargaPromociones).toBe("Failed to fetch"));
+    expect(result.current.promociones).toEqual([]);
   });
 });
 

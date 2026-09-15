@@ -173,7 +173,7 @@ function AdminCombos() {
                       <span className={`rounded-full px-2 py-1 text-[12px] font-bold ${estado.clase}`}>{estado.texto}</span>
                     </td>
                     <td role="cell" data-label="Stock" className={`${claseCelda} whitespace-nowrap`}>
-                      {combo.alcanza > 0 ? `${combo.alcanza} combos` : <span className="font-bold text-error">Agotado</span>}
+                      {combo.alcanza > 0 ? `${combo.alcanza} ${combo.alcanza === 1 ? "combo" : "combos"}` : <span className="font-bold text-error">Agotado</span>}
                     </td>
                     <td role="cell" data-celda="acciones" className={`${claseCelda} text-right`}>
                       {confirmandoBorrado === combo.id ? (

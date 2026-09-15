@@ -107,6 +107,13 @@ describe("AdminCombos", () => {
     expect(within(await filaDe("Kit Living Cálido")).getByText("Sin campaña")).toBeInTheDocument();
   });
 
+  it("con stock para un solo combo, la columna Stock va en singular", async () => {
+    combosApi.getAdminCombos.mockResolvedValue([fila({ alcanza: 1 })]);
+    renderPagina();
+
+    expect(within(await filaDe("Kit Living Cálido")).getByText("1 combo")).toBeInTheDocument();
+  });
+
   it("sin stock, la columna Stock dice Agotado", async () => {
     combosApi.getAdminCombos.mockResolvedValue([fila({ alcanza: 0 })]);
     renderPagina();

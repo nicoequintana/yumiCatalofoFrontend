@@ -91,7 +91,7 @@ function PaginaCombo({ comboForzado = null }) {
 
       {combo.heroUrl ? (
         <div className="pc-hero relative mx-auto mt-3 max-w-container-max overflow-hidden rounded-[22px] md:mx-8">
-          <img src={combo.heroUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={combo.heroUrl} alt={combo.nombre} className="absolute inset-0 h-full w-full object-cover" />
         </div>
       ) : null}
 

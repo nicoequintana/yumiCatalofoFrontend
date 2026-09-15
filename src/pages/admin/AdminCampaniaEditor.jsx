@@ -119,6 +119,8 @@ export default function AdminCampaniaEditor() {
     errorProductos,
     errorPromociones,
     errorCombos,
+    errorCargaPromociones,
+    errorCargaCombos,
     sucio,
     confirmarSalida,
     editar,
@@ -298,6 +300,7 @@ export default function AdminCampaniaEditor() {
                 asociadas={campania?.promociones}
                 guardando={guardando}
                 onGuardar={guardarPromociones}
+                errorCarga={errorCargaPromociones}
               />
             ) : (
               <AunNoDisponible>
@@ -324,6 +327,7 @@ export default function AdminCampaniaEditor() {
                 asociados={campania?.combos}
                 guardando={guardando}
                 onGuardar={guardarCombos}
+                errorCarga={errorCargaCombos}
               />
             ) : (
               <AunNoDisponible>Guardá la campaña para elegir qué combos programa.</AunNoDisponible>
