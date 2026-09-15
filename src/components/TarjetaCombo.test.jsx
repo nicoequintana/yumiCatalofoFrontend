@@ -100,4 +100,18 @@ describe("TarjetaCombo", () => {
     await userEvent.click(screen.getByRole("button", { name: /Agregar combo/i }));
     expect(agregarMock).toHaveBeenCalledWith({ comboId: 3 }, 1);
   });
+
+  it("prefers-reduced-motion anula el lift y la transición del hover", () => {
+    renderizar();
+    // Mismo criterio que `AdminOrdenes.test.jsx` ("prefers-reduced-motion anula
+    // la animación"): se afirma sobre la clase Tailwind, no sobre CSS
+    // computado — jsdom no aplica `@media`. `motion-reduce:transition-none`
+    // saca la transición entera (como `.combo, .btn { transition: none }` del
+    // diseño aprobado) y `motion-reduce:hover:translate-y-0` cancela el lift
+    // de 3px (`.combo:hover { transform: none }`), sin tocar el `hover:`
+    // normal para quien no pidió menos movimiento.
+    const article = screen.getByRole("article");
+    expect(article.className).toContain("motion-reduce:transition-none");
+    expect(article.className).toContain("motion-reduce:hover:translate-y-0");
+  });
 });

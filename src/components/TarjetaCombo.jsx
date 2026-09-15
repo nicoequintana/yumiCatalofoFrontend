@@ -40,7 +40,7 @@ function TarjetaCombo({ combo }) {
 
   return (
     <div className="tarjeta-combo-wrap h-full min-w-0">
-      <article className="tarjeta-combo grid h-full grid-cols-1 grid-rows-[1fr_auto] overflow-hidden rounded-[20px] bg-surface-container-lowest shadow-sombra-2 transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_18px_40px_-10px_rgb(var(--color-primary)/0.4)]">
+      <article className="tarjeta-combo grid h-full grid-cols-1 grid-rows-[1fr_auto] overflow-hidden rounded-[20px] bg-surface-container-lowest shadow-sombra-2 transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_18px_40px_-10px_rgb(var(--color-primary)/0.4)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
         <Link to={combo.ruta} className="flex min-w-0 flex-col gap-3.5 p-5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 font-label-sm text-[11px] font-extrabold uppercase tracking-[0.14em] text-on-primary">
