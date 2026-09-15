@@ -58,7 +58,17 @@ export default function useComboEditor(id) {
   }, []);
 
   useEffect(() => {
-    getOpcionesCombo().then(setOpciones).catch(() => setOpciones(null));
+    let activo = true;
+    getOpcionesCombo()
+      .then((datos) => {
+        if (activo) setOpciones(datos);
+      })
+      .catch(() => {
+        if (activo) setOpciones(null);
+      });
+    return () => {
+      activo = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -116,6 +126,7 @@ export default function useComboEditor(id) {
   const firmaCotizacion = JSON.stringify([cambios.items.map((i) => [i.productId, i.cantidad]), cambios.porcentaje]);
   const temporizadorCotizar = useRef(null);
   useEffect(() => {
+    let activo = true;
     clearTimeout(temporizadorCotizar.current);
     if (cambios.items.length === 0) {
       setCotizacion(null);
@@ -126,12 +137,25 @@ export default function useComboEditor(id) {
         items: cambios.items.map((item) => ({ productId: item.productId, cantidad: item.cantidad })),
         porcentaje: cambios.porcentaje,
       })
-        .then(setCotizacion)
+        .then((datos) => {
+          if (activo) setCotizacion(datos);
+        })
         // Una composición que el backend rechaza (menos de 2 unidades, % fuera
         // de rango) no tiene cuenta que mostrar: la vista previa espera.
-        .catch(() => setCotizacion(null));
+        .catch(() => {
+          if (activo) setCotizacion(null);
+        });
     }, DEBOUNCE_COTIZAR_MS);
-    return () => clearTimeout(temporizadorCotizar.current);
+    // `activo` en falso, ADEMÁS del `clearTimeout`: el timeout evita que un
+    // debounce viejo DISPARE la request, pero una vez que ya está en vuelo
+    // `clearTimeout` no la cancela. Sin esta guarda, una respuesta vieja que
+    // llega DESPUÉS de una más nueva pisa la vista previa con un número que
+    // ya no corresponde a lo que se está editando (mismo patrón que el
+    // buscador, más abajo).
+    return () => {
+      activo = false;
+      clearTimeout(temporizadorCotizar.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `firmaCotizacion` resume items y porcentaje
   }, [firmaCotizacion]);
 

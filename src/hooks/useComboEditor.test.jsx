@@ -207,6 +207,80 @@ describe("useComboEditor — cotización y búsqueda con debounce", () => {
 
     expect(result.current.cotizacion).toEqual(COTIZACION);
   });
+
+  it("una respuesta vieja de cotizar no pisa una más nueva que ya llegó", async () => {
+    vi.useFakeTimers();
+    let resolverPrimera;
+    let resolverSegunda;
+    const primera = new Promise((resolve) => {
+      resolverPrimera = resolve;
+    });
+    const segunda = new Promise((resolve) => {
+      resolverSegunda = resolve;
+    });
+    combosApi.cotizarCombo.mockReturnValueOnce(primera).mockReturnValueOnce(segunda);
+
+    const { result } = renderHook(() => useComboEditor(null));
+    act(() => result.current.agregarProducto(LAMPARA));
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+    });
+
+    act(() => result.current.cambiarCantidad(1, 2));
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+    });
+
+    expect(combosApi.cotizarCombo).toHaveBeenCalledTimes(2);
+
+    const COTIZACION_1 = { unidades: 1, marca: "vieja" };
+    const COTIZACION_2 = { unidades: 2, marca: "nueva" };
+
+    // Llega primero la respuesta de la SEGUNDA cotización...
+    await act(async () => {
+      resolverSegunda(COTIZACION_2);
+      await Promise.resolve();
+    });
+    expect(result.current.cotizacion).toEqual(COTIZACION_2);
+
+    // ...y después, tarde, la de la primera: no puede pisar lo que ya se ve.
+    await act(async () => {
+      resolverPrimera(COTIZACION_1);
+      await Promise.resolve();
+    });
+    expect(result.current.cotizacion).toEqual(COTIZACION_2);
+  });
+
+  it("una respuesta vieja que llega como error tampoco pisa la cotización vigente", async () => {
+    vi.useFakeTimers();
+    let rechazarPrimera;
+    const primera = new Promise((_resolve, reject) => {
+      rechazarPrimera = reject;
+    });
+    const COTIZACION_2 = { unidades: 2, marca: "nueva" };
+    combosApi.cotizarCombo.mockReturnValueOnce(primera).mockResolvedValueOnce(COTIZACION_2);
+
+    const { result } = renderHook(() => useComboEditor(null));
+    act(() => result.current.agregarProducto(LAMPARA));
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+    });
+
+    act(() => result.current.cambiarCantidad(1, 2));
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+    });
+    expect(result.current.cotizacion).toEqual(COTIZACION_2);
+
+    // La primera (vieja) termina rechazada recién ahora: no puede borrar la
+    // cotización vigente ni el hook puede reventar por una promesa sin catch.
+    await act(async () => {
+      rechazarPrimera(new Error("timeout de red"));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current.cotizacion).toEqual(COTIZACION_2);
+  });
 });
 
 describe('useComboEditor — indicador de "Cambios sin guardar"', () => {
@@ -299,5 +373,36 @@ describe('useComboEditor — indicador de "Cambios sin guardar"', () => {
       await result.current.quitarHero();
     });
     expect(result.current.sucio).toBe(false);
+  });
+});
+
+describe("useComboEditor — desmontar antes de que resuelva una lectura", () => {
+  it("desmontar antes de que lleguen las opciones no intenta actualizar estado ya desmontado", async () => {
+    let resolverOpciones;
+    combosApi.getOpcionesCombo.mockReturnValue(
+      new Promise((resolve) => {
+        resolverOpciones = resolve;
+      }),
+    );
+    // React 19 no emite ningún warning por esto (a diferencia de versiones
+    // viejas): el spy documenta el contrato igual — si algo en el efecto
+    // volviera a depender de actualizar estado post-desmontaje (por ejemplo
+    // encadenando otro efecto sobre `opciones`), esto lo detectaría.
+    const errorConsola = vi.spyOn(console, "error").mockImplementation(() => {});
+    const warnConsola = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { unmount } = renderHook(() => useComboEditor(null));
+    unmount();
+
+    resolverOpciones(OPCIONES);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(errorConsola).not.toHaveBeenCalled();
+    expect(warnConsola).not.toHaveBeenCalled();
+
+    errorConsola.mockRestore();
+    warnConsola.mockRestore();
   });
 });
