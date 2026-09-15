@@ -313,7 +313,7 @@ function AdminComboForm() {
 
       <div className="grid grid-cols-1 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
         {/* ---------------- Columna izquierda: formulario ---------------- */}
-        <div className={`${panelActivo === "form" ? "" : "hidden"} lg:block lg:min-h-0 lg:overflow-y-auto`}>
+        <div className={`${panelActivo === "form" ? "" : "hidden"} lg:relative lg:block lg:min-h-0 lg:overflow-y-auto`}>
           <div className="grid content-start gap-4 px-4 py-5 md:px-7 md:py-6">
             <Seccion id="combo-datos" icono="badge" titulo="Datos del combo" bajada="Lo que lee el cliente en la card y en la página.">
               <div className="grid gap-1.5">
@@ -723,7 +723,7 @@ function AdminComboForm() {
         {/* ---------------- Columna derecha: vista previa ---------------- */}
         <aside
           aria-label="Vista previa"
-          className={`${panelActivo === "preview" ? "flex" : "hidden"} flex-col gap-3 border-outline-variant bg-surface-container-low px-4 py-4 md:px-5 lg:flex lg:min-h-0 lg:overflow-y-auto lg:border-l`}
+          className={`${panelActivo === "preview" ? "flex" : "hidden"} flex-col gap-3 border-outline-variant bg-surface-container-low px-4 py-4 md:px-5 lg:relative lg:flex lg:min-h-0 lg:overflow-y-auto lg:border-l`}
         >
           {/* Leyenda del ancho ARRIBA, en la misma línea que el título: sobre el
               lienzo tapaba contenido (en "Página" a 390, "Agregar combo"). */}
