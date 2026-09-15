@@ -6,6 +6,8 @@ import MetaSeo from "../components/MetaSeo.jsx";
 import useCarrito, { storageDisponible } from "../hooks/useCarrito.js";
 import usePerfilCliente from "../hooks/usePerfilCliente.js";
 import useProductosCarrito from "../hooks/useProductosCarrito.js";
+import useCombosCarrito from "../hooks/useCombosCarrito.js";
+import ProductosDeCombo from "../components/ProductosDeCombo.jsx";
 import { crearOrden } from "../api/ordenes.js";
 import { formatPrecio, precioACentavos } from "../utils/formato.js";
 import { urlAbsoluta } from "../constants/seo.js";
@@ -126,31 +128,56 @@ function Checkout() {
     escribirBorrador({ notas, clave: claveIdempotenciaRef.current });
   }, [notas]);
 
-  // Misma clave de refetch que `Carrito.jsx`: los ids del carrito, sin las
-  // cantidades.
-  const claveIds = [...new Set(carrito.map((l) => l.productId))].sort((a, b) => a - b).join(",");
+  // Mismas claves que `Carrito.jsx`: una por fuente, sin las cantidades.
+  const claveIds = [...new Set(carrito.filter((l) => l.productId !== undefined).map((l) => l.productId))]
+    .sort((a, b) => a - b)
+    .join(",");
+  const claveIdsCombo = [...new Set(carrito.filter((l) => l.comboId !== undefined).map((l) => l.comboId))]
+    .sort((a, b) => a - b)
+    .join(",");
 
-  // Mismo hook que `Carrito.jsx`: al llegar desde el carrito los productos ya
-  // están cacheados y no se pinta "Cargando checkout…". Mientras el refetch vivo
-  // no contesta (`revalidando`), el total es del cache —que puede tener horas— y
-  // "Confirmar pedido" queda deshabilitado: nadie confirma un precio sin verificar.
-  const { productos, cargando, error, revalidando } = useProductosCarrito(claveIds);
-  const errorCarga = error ? MENSAJE_ERROR_CARGA : null;
+  // Mismos hooks que `Carrito.jsx`: al llegar desde el carrito los datos ya
+  // están cacheados y no se pinta "Cargando checkout…". Mientras CUALQUIERA de
+  // los dos refetch vivos no contesta (`revalidando`), el total es del cache
+  // —que puede tener horas— y "Confirmar pedido" queda deshabilitado: nadie
+  // confirma un precio sin verificar.
+  const productosCarrito = useProductosCarrito(claveIds);
+  const combosCarrito = useCombosCarrito(claveIdsCombo);
+  const { productos } = productosCarrito;
+  const { combos } = combosCarrito;
+  const cargando = productosCarrito.cargando || combosCarrito.cargando;
+  const revalidando = productosCarrito.revalidando || combosCarrito.revalidando;
+  const errorCarga = productosCarrito.error || combosCarrito.error ? MENSAJE_ERROR_CARGA : null;
 
   const productosPorId = new Map(productos.map((p) => [p.id, p]));
+  const combosPorId = new Map(combos.map((c) => [c.id, c]));
 
   const lineas = carrito.map((linea) => {
+    if (linea.comboId !== undefined) {
+      const combo = combosPorId.get(linea.comboId);
+      // `vigente`, `disponible` y `alcanza` llegan resueltos del backend: acá
+      // solo se comparan. Más combos que los que alcanza el stock también
+      // bloquea: el ajuste se hace en el carrito, nunca en silencio.
+      const bloqueado = !combo || !combo.vigente || !combo.disponible || linea.cantidad > combo.alcanza;
+      return { ...linea, tipo: "COMBO", combo, noDisponible: bloqueado };
+    }
     const producto = productosPorId.get(linea.productId);
-    return { ...linea, producto, noDisponible: !producto };
+    return { ...linea, tipo: "PRODUCTO", producto, noDisponible: !producto };
   });
 
   const lineasValidas = lineas.filter((l) => !l.noDisponible);
-  const hayProblemas = lineas.some((l) => l.noDisponible);
+  // Un producto borrado se descarta del pedido con aviso; un combo bloqueado NO
+  // se descarta en silencio: el pedido saldría sin el combo que el cliente
+  // eligió (spec §7.7), así que bloquea "Confirmar pedido" hasta resolverlo.
+  const hayProblemas = lineas.some((l) => l.tipo === "PRODUCTO" && l.noDisponible);
+  const hayCombosBloqueados = lineas.some((l) => l.tipo === "COMBO" && l.noDisponible);
 
   // Se acumula en centavos ENTEROS: sumar floats línea a línea acumula drift.
-  // Solo cuenta las líneas válidas, que son exactamente las que se envían.
+  // Solo cuenta las líneas válidas, que son exactamente las que se envían. Un
+  // combo suma su `precioCombo` tal cual lo emitió el backend.
   const totalCentavos = lineasValidas.reduce(
-    (total, l) => total + precioACentavos(precioAPagar(l.producto)) * l.cantidad,
+    (total, l) =>
+      total + precioACentavos(l.tipo === "COMBO" ? l.combo.precioCombo : precioAPagar(l.producto)) * l.cantidad,
     0,
   );
   const total = formatPrecio(totalCentavos / 100);
@@ -173,6 +200,8 @@ function Checkout() {
     if (lineasValidas.length === 0) return;
     // Mismo criterio que el `disabled` del botón: sin precios verificados no se envía.
     if (revalidando) return;
+    // Mismo criterio: sin el combo el pedido saldría incompleto.
+    if (hayCombosBloqueados) return;
     // Defensa en profundidad: sin perfil esta pantalla ni siquiera renderiza el
     // botón, pero un envío sin sesión se convertiría en una orden de invitado
     // silenciosa. La guarda se queda acá también.
@@ -181,7 +210,11 @@ function Checkout() {
     setEnviando(true);
     try {
       const orden = await crearOrden({
-        items: lineasValidas.map((l) => ({ productId: l.productId, cantidad: l.cantidad })),
+        items: lineasValidas.map((l) =>
+          l.tipo === "COMBO"
+            ? { comboId: l.comboId, cantidad: l.cantidad }
+            : { productId: l.productId, cantidad: l.cantidad },
+        ),
         notas: notas.trim() || undefined,
         claveIdempotencia: claveIdempotenciaRef.current,
       });
@@ -318,25 +351,49 @@ function Checkout() {
             </p>
           ) : null}
 
+          {hayCombosBloqueados ? (
+            <p className="rounded-lg bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container">
+              Algunos combos de tu carrito ya no están disponibles o no tienen stock. Revisalos en el
+              carrito antes de confirmar.
+            </p>
+          ) : null}
+
           {/* El último paso donde todavía se puede desistir: el comprador tiene
               que ver cuánto va a pagar ANTES de confirmar. */}
           <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
             <ul className="flex flex-col gap-3">
-              {lineasValidas.map((l) => (
-                <li key={l.productId} className="flex items-center justify-between gap-4">
-                  <span className="font-body-md text-body-md text-on-surface">
-                    {l.cantidad} × {l.producto.nombre}
-                  </span>
-                  <span className="flex shrink-0 flex-col items-end">
+              {lineasValidas.map((l) =>
+                l.tipo === "COMBO" ? (
+                  <li key={`combo-${l.comboId}`} className="flex items-center justify-between gap-4">
+                    <span className="flex flex-col">
+                      <span className="font-body-md text-body-md text-on-surface">
+                        {l.cantidad} × {l.combo.nombre}
+                      </span>
+                      <ProductosDeCombo
+                        productos={l.combo.items.map((item) => ({ nombreProducto: item.nombre, cantidad: item.cantidad }))}
+                        className="font-body-md text-[13px] text-on-surface-variant"
+                      />
+                    </span>
+                    <span className="font-body-md text-body-md shrink-0 text-on-surface">
+                      {formatPrecio((precioACentavos(l.combo.precioCombo) * l.cantidad) / 100)}
+                    </span>
+                  </li>
+                ) : (
+                  <li key={`producto-${l.productId}`} className="flex items-center justify-between gap-4">
                     <span className="font-body-md text-body-md text-on-surface">
-                      {formatPrecio((precioACentavos(precioAPagar(l.producto)) * l.cantidad) / 100)}
+                      {l.cantidad} × {l.producto.nombre}
                     </span>
-                    <span className="font-body-md text-[13px] text-on-surface-variant">
-                      {formatPrecio(precioAPagar(l.producto))} c/u
+                    <span className="flex shrink-0 flex-col items-end">
+                      <span className="font-body-md text-body-md text-on-surface">
+                        {formatPrecio((precioACentavos(precioAPagar(l.producto)) * l.cantidad) / 100)}
+                      </span>
+                      <span className="font-body-md text-[13px] text-on-surface-variant">
+                        {formatPrecio(precioAPagar(l.producto))} c/u
+                      </span>
                     </span>
-                  </span>
-                </li>
-              ))}
+                  </li>
+                ),
+              )}
             </ul>
             <div className="mt-4 flex items-center justify-between gap-4 border-t border-outline-variant pt-4">
               <span className="font-label-md text-label-md uppercase tracking-widest text-on-surface">
@@ -407,7 +464,7 @@ function Checkout() {
 
             <button
               type="submit"
-              disabled={enviando || revalidando}
+              disabled={enviando || revalidando || hayCombosBloqueados}
               className="font-label-lg text-label-lg inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-center uppercase tracking-widest text-on-primary transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:bg-surface-container-high disabled:text-on-surface-variant"
             >
               {enviando ? "Enviando…" : "Confirmar pedido"}

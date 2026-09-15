@@ -8,8 +8,11 @@ import usePerfilCliente from "../hooks/usePerfilCliente.js";
 import { reiniciarProductosCarrito } from "../hooks/useProductosCarrito.js";
 import * as productsApi from "../api/products.js";
 import * as ordenesApi from "../api/ordenes.js";
+import * as combosApi from "../api/combos.js";
+import useCombosCarrito, { reiniciarCombosCarrito } from "../hooks/useCombosCarrito.js";
 
 vi.mock("../api/products.js");
+vi.mock("../api/combos.js");
 vi.mock("../api/ordenes.js");
 vi.mock("../hooks/usePerfilCliente.js", () => ({ default: vi.fn() }));
 
@@ -67,6 +70,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   // El cache de productos es module-level: sin esto un test hereda los del anterior.
   reiniciarProductosCarrito();
+  reiniciarCombosCarrito();
   const { result } = renderHook(() => useCarrito());
   act(() => {
     result.current.vaciar();
@@ -496,5 +500,103 @@ describe("Checkout — carrito, total y carga (regresiones)", () => {
       screen.getByRole("heading", { level: 1, name: "Finalizar compra" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Checkout")).not.toBeInTheDocument();
+  });
+});
+
+describe("Checkout — combos", () => {
+  const COMBO = {
+    id: 3,
+    nombre: "Kit Living",
+    precioCombo: "38250",
+    alcanza: 4,
+    vigente: true,
+    disponible: true,
+    items: [
+      { nombre: "Lámpara", cantidad: 2 },
+      { nombre: "Mesa", cantidad: 1 },
+    ],
+  };
+
+  async function prepararConCombo(combo, cantidadCombo = 1) {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+    combosApi.getCombos.mockResolvedValue([combo]);
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCheckout();
+    act(() => {
+      carritoHook.current.agregar({ productId: 1 }, 1);
+      carritoHook.current.agregar({ comboId: 3 }, cantidadCombo);
+    });
+    await screen.findByText("Cliente Prueba");
+    return { user: userEvent.setup() };
+  }
+
+  it("muestra el combo en el resumen y lo manda como {comboId, cantidad}", async () => {
+    ordenesApi.crearOrden.mockResolvedValue({ id: 1, items: [], lineas: [] });
+    const { user } = await prepararConCombo(COMBO);
+
+    expect(await screen.findByText("1 × Kit Living")).toBeInTheDocument();
+    expect(screen.getByText("2× Lámpara · Mesa")).toBeInTheDocument();
+    // 1500 + 38250
+    expect(screen.getByTestId("checkout-total")).toHaveTextContent("$ 39.750");
+    await user.click(screen.getByRole("button", { name: "Confirmar pedido" }));
+
+    await waitFor(() => expect(ordenesApi.crearOrden).toHaveBeenCalled());
+    expect(ordenesApi.crearOrden.mock.calls[0][0].items).toEqual([
+      { productId: 1, cantidad: 1 },
+      { comboId: 3, cantidad: 1 },
+    ]);
+    expect(combosApi.getCombos).toHaveBeenCalledWith({ ids: [3] });
+  });
+
+  it("un combo no vigente deshabilita Confirmar pedido: el pedido no sale sin el combo", async () => {
+    await prepararConCombo({ ...COMBO, vigente: false });
+
+    expect(await screen.findByText(/combos de tu carrito ya no están disponibles/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar pedido" })).toBeDisabled();
+  });
+
+  it("un combo sin stock (disponible: false) deshabilita Confirmar pedido", async () => {
+    await prepararConCombo({ ...COMBO, disponible: false });
+
+    expect(await screen.findByText(/combos de tu carrito ya no están disponibles/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar pedido" })).toBeDisabled();
+  });
+
+  it("más combos que los que alcanza el stock deshabilita Confirmar pedido", async () => {
+    await prepararConCombo(COMBO, 6);
+
+    expect(await screen.findByText(/combos de tu carrito ya no están disponibles/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar pedido" })).toBeDisabled();
+  });
+
+  it("muestra el detalle del 409 del backend cuando el combo dejó de alcanzar", async () => {
+    ordenesApi.crearOrden.mockRejectedValue(new Error("El combo Kit Living ya no tiene stock suficiente."));
+    const { user } = await prepararConCombo(COMBO);
+
+    await user.click(screen.getByRole("button", { name: "Confirmar pedido" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("El combo Kit Living ya no tiene stock suficiente.");
+  });
+
+  it("mientras revalidan los combos cacheados, Confirmar pedido queda deshabilitado", async () => {
+    // Siembra el cache de combos con un montaje previo.
+    combosApi.getCombos.mockResolvedValueOnce([COMBO]);
+    const previo = renderHook(() => useCombosCarrito("3"));
+    await waitFor(() => expect(previo.result.current.cargando).toBe(false));
+    previo.unmount();
+
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+    combosApi.getCombos.mockReturnValue(new Promise(() => {}));
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCheckout();
+    act(() => {
+      carritoHook.current.agregar({ productId: 1 }, 1);
+      carritoHook.current.agregar({ comboId: 3 }, 1);
+    });
+    await screen.findByText("Cliente Prueba");
+    // Los productos YA contestaron: lo único que falta es el combo.
+    await waitFor(() => expect(productsApi.getProductsByIds).toHaveBeenCalled());
+
+    expect(screen.getByRole("button", { name: "Confirmar pedido" })).toBeDisabled();
   });
 });

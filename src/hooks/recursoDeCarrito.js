@@ -47,8 +47,11 @@ export function crearRecursoDeCarrito(pedirPorIds) {
           // Escribe el cache solo si es más nuevo que el que lo escribió: una
           // respuesta vieja que llega tarde no pisa datos más nuevos, pero una
           // vieja EXITOSA sí queda si la más nueva falló (el error igual gana en
-          // pantalla, vía `resultado`).
-          if (pedido > pedidoDelCache) {
+          // pantalla, vía `resultado`). Una clave VACÍA solo escribe si no hay
+          // cache: no tiene nada que aportar, y pisaría el útil —la pantalla que
+          // monta antes de que lleguen los combos borraría los ya cargados.
+          const aporta = ids.length > 0 || cache === null;
+          if (aporta && pedido > pedidoDelCache) {
             pedidoDelCache = pedido;
             cache = { clave: claveIds, ids: new Set(ids), datos };
           }

@@ -7,8 +7,11 @@ import useCarrito from "../hooks/useCarrito.js";
 import { reiniciarProductosCarrito } from "../hooks/useProductosCarrito.js";
 import { precargarRequireAuthCliente } from "../components/cargarRequireAuthCliente.js";
 import * as productsApi from "../api/products.js";
+import * as combosApi from "../api/combos.js";
+import { reiniciarCombosCarrito } from "../hooks/useCombosCarrito.js";
 
 vi.mock("../api/products.js");
+vi.mock("../api/combos.js");
 vi.mock("../components/cargarRequireAuthCliente.js", () => ({
   precargarRequireAuthCliente: vi.fn(),
 }));
@@ -16,6 +19,7 @@ vi.mock("../components/cargarRequireAuthCliente.js", () => ({
 // El cache de productos es module-level: sin esto un test hereda los del anterior.
 beforeEach(() => {
   reiniciarProductosCarrito();
+  reiniciarCombosCarrito();
 });
 
 const PRODUCTO_1 = {
@@ -531,5 +535,109 @@ describe("Carrito — volver al carrito no parpadea (stale-while-revalidate)", (
 
     expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 6.000");
     expect(screen.getByText(/Solo hay 2 unidades disponibles/)).toBeInTheDocument();
+  });
+});
+
+describe("Carrito — líneas de combo", () => {
+  const COMBO = {
+    id: 3,
+    nombre: "Kit Living",
+    precioCombo: "38250",
+    precioSeparado: "45000",
+    alcanza: 4,
+    vigente: true,
+    disponible: true,
+    items: [
+      { nombre: "Lámpara", cantidad: 2 },
+      { nombre: "Mesa", cantidad: 1 },
+    ],
+  };
+
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    vi.clearAllMocks();
+    productsApi.getProductsByIds.mockResolvedValue([]);
+  });
+
+  async function conCombo(combo, cantidad = 1) {
+    combosApi.getCombos.mockResolvedValue(combo ? [combo] : []);
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+    act(() => {
+      carritoHook.current.agregar({ comboId: 3 }, cantidad);
+    });
+    return carritoHook;
+  }
+
+  it("muestra el combo con sus productos y el precio del combo, sin precio por producto", async () => {
+    await conCombo(COMBO);
+
+    expect(await screen.findByText("Kit Living")).toBeInTheDocument();
+    expect(screen.getByText("2× Lámpara · Mesa")).toBeInTheDocument();
+    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 38.250");
+    expect(screen.getByRole("link", { name: "Continuar" })).toHaveAttribute("href", "/checkout");
+    expect(combosApi.getCombos).toHaveBeenCalledWith({ ids: [3] });
+  });
+
+  it("carrito mixto: suma la línea suelta y el combo, y el CTA sigue habilitado", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([PRODUCTO_1]);
+    const carritoHook = await conCombo(COMBO, 2);
+    act(() => {
+      carritoHook.current.agregar({ productId: 1 }, 1);
+    });
+
+    expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
+    expect(screen.getByText("Kit Living")).toBeInTheDocument();
+    // 1500 + 38250 × 2
+    expect(screen.getByTestId("carrito-total")).toHaveTextContent("$ 78.000");
+    expect(screen.getByRole("link", { name: "Continuar" })).toHaveAttribute("href", "/checkout");
+  });
+
+  it("un combo no vigente bloquea el checkout hasta quitarlo", async () => {
+    const carritoHook = await conCombo({ ...COMBO, vigente: false });
+
+    expect(await screen.findByText("Este combo ya no está disponible.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Quitar combo no disponible del carrito" }));
+    expect(carritoHook.current.carrito).toEqual([]);
+  });
+
+  it("un combo sin stock (disponible: false) bloquea el checkout", async () => {
+    await conCombo({ ...COMBO, disponible: false });
+
+    expect(await screen.findByText("Este combo se quedó sin stock.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+  });
+
+  it("un combo que el backend no devolvió bloquea el checkout", async () => {
+    await conCombo(null);
+
+    expect(await screen.findByText("Este combo ya no está disponible.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+  });
+
+  it("más combos que los que alcanza el stock: aviso, CTA bloqueado y ajuste explícito", async () => {
+    const carritoHook = await conCombo(COMBO, 6);
+
+    expect(await screen.findByText("Solo alcanza para 4 combos.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Ajustar a 4" }));
+    expect(carritoHook.current.carrito).toEqual([{ comboId: 3, cantidad: 4 }]);
+  });
+
+  it("si falla la carga de combos muestra el error, no un carrito vacío", async () => {
+    combosApi.getCombos.mockRejectedValue(new Error("red"));
+    const { result: carritoHook } = renderHook(() => useCarrito());
+    renderCarrito();
+    act(() => {
+      carritoHook.current.agregar({ comboId: 3 }, 1);
+    });
+
+    expect(await screen.findByText("No pudimos cargar tu carrito")).toBeInTheDocument();
   });
 });
