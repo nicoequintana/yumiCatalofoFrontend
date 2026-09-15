@@ -12,7 +12,9 @@ import {
 } from "./helpers/db.js";
 import { neutralizarContextoComercial } from "./helpers/contextoComercial.js";
 
-const EMAIL_CLIENTE = "test@test.com";
+// `E2E_CLIENTE_EMAIL` permite correr el recorrido con otra cuenta de cliente
+// que ya exista en la base local, sin versionar ese email.
+const EMAIL_CLIENTE = process.env.E2E_CLIENTE_EMAIL || "test@test.com";
 const NOMBRE_COMBO = "E2E-TEST-Kit Combo Playwright";
 
 /**
@@ -20,7 +22,8 @@ const NOMBRE_COMBO = "E2E-TEST-Kit Combo Playwright";
  * checkout con sesión -> confirmación -> la orden agrupada en "Mis pedidos",
  * y en la base una fila de ItemOrden por producto con el snapshot del combo.
  *
- * Requiere el backend real en el 4000 y `E2E_CLIENTE_PASSWORD` en backend/.env.
+ * Requiere el backend real en el 4000 y `E2E_CLIENTE_PASSWORD` en backend/.env
+ * (la contraseña de la cuenta de cliente `E2E_CLIENTE_EMAIL`, por defecto test@test.com).
  */
 test.describe("Combos — de la home a Mis pedidos", () => {
   let lampara;
