@@ -157,6 +157,51 @@ export async function borrarProductoDeTest(productId) {
 }
 
 /**
+ * Crea un combo de test, ACTIVO y SIEMPRE vigente, con hero de placeholder
+ * (activar exige hero). Los productos tienen que existir.
+ * @param {{nombre?: string, porcentaje?: number, items: Array<{productId: number, cantidad: number}>}} opciones
+ */
+export async function crearComboDeTest({ nombre = `${MARCA_TEST}Combo E2E`, porcentaje = 15, items }) {
+  return prisma.combo.create({
+    data: {
+      nombre,
+      frase: "Combo sembrado por un test E2E de Playwright.",
+      porcentaje,
+      activo: true,
+      vigencia: "SIEMPRE",
+      heroUrl: "https://placehold.co/2400x1000/png?text=E2E+Combo",
+      items: { create: items },
+    },
+  });
+}
+
+/** Borra un combo de test (cascade sobre `ComboItem` y `CampaniaCombo`). Silencioso si ya no existe. */
+export async function borrarComboDeTest(comboId) {
+  await prisma.combo.delete({ where: { id: comboId } }).catch(() => {});
+}
+
+/**
+ * Siembra un `DispositivoConocido` para una cuenta YA EXISTENTE (la de prueba
+ * `test@test.com`), para que el login por UI no pida el código de acceso.
+ * Devuelve el claro para la cookie y el id para borrarlo al terminar.
+ */
+export async function sembrarDispositivoDeTest(cuentaClienteId) {
+  const tokenDispositivo = randomBytes(32).toString("base64url");
+  const dispositivo = await prisma.dispositivoConocido.create({
+    data: {
+      cuentaClienteId,
+      tokenHash: createHash("sha256").update(tokenDispositivo).digest("hex"),
+      expiraEn: new Date(Date.now() + DURACION_DISPOSITIVO_MS),
+    },
+  });
+  return { tokenDispositivo, dispositivoId: dispositivo.id };
+}
+
+export async function borrarDispositivoDeTest(dispositivoId) {
+  await prisma.dispositivoConocido.delete({ where: { id: dispositivoId } }).catch(() => {});
+}
+
+/**
  * Crea un cliente de test directo vía Prisma (sin pasar por el checkout de
  * la UI). Usa `Cliente.nombre` marcado con `E2E-TEST-` y, si no se pasa un
  * `dni` explícito, uno generado por `crearDniDeTest()`.
@@ -535,6 +580,10 @@ export async function limpiarTodoRastroDeTest() {
   // dos cuelgan de `Campania` con `onDelete: Cascade` y se van con ella. Un
   // `deleteMany` extra sobre esas tablas sería ruido que aparenta ser necesario.
   await prisma.campania.deleteMany({ where: { nombre: { startsWith: MARCA_TEST } } });
+
+  // Combos de test ANTES que los productos: `ComboItem.productId` es
+  // `NoAction` y bloquearía el borrado del producto.
+  await prisma.combo.deleteMany({ where: { nombre: { startsWith: MARCA_TEST } } });
 
   // Productos de test (cascade se lleva fotos/video/características).
   await prisma.product.deleteMany({ where: { sku: { startsWith: MARCA_TEST } } });
