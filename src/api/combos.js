@@ -79,7 +79,12 @@ export async function quitarHeroCombo(id) {
   return pedir(`${BASE}/combos/admin/combos/${id}/hero`, { method: "DELETE" });
 }
 
-/** `POST /combos/admin/combos/cotizar` — la vista previa mientras se edita. */
+/**
+ * `POST /combos/admin/combos/cotizar` — la vista previa mientras se edita.
+ * Suma `limitante` ({productId, nombre} | null, "Lo limita X" §8.3.3) y
+ * `items` ([{productId, descuento}], la pill de promo vigente por fila
+ * §8.3.2): ninguna de las dos se calcula acá, viajan resueltas.
+ */
 export async function cotizarCombo({ items, porcentaje }) {
   return pedir(`${BASE}/combos/admin/combos/cotizar`, {
     method: "POST",
