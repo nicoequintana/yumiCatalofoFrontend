@@ -257,6 +257,10 @@ describe("arte del ticket en index.css", () => {
     expect(bloque(".arte-combo-lettering")).toMatch(/right:\s*16px;[\s\S]*top:\s*8px/);
     expect(bloque(".chips-combo")).toMatch(/padding-right:\s*110px/);
     expect(bloque(".arte-combo-marca")).toMatch(/font-size:\s*clamp\(38px, 15cqw, 68px\)/);
+    // Fix round 1: a `bottom: 50px` el borde girado de "COMBO" rozaba la frase
+    // larga; a 30px queda centrado junto a las fichas (medido: 0 cruces).
+    expect(bloque(".arte-combo-marca")).toMatch(/bottom:\s*30px/);
+    expect(reglaEn("(max-width: 380px)", ".arte-combo-marca")).toMatch(/bottom:\s*30px/);
   });
 
   it("≤ 300px oculta lettering y rayitas; ancha ≥ 720px corre el lettering al 58% y el texto no pasa del 58%", () => {
@@ -265,6 +269,30 @@ describe("arte del ticket en index.css", () => {
     expect(reglaEn("(min-width: 720px)", ".arte-combo-lettering")).toMatch(/left:\s*58%/);
     expect(reglaEn("(min-width: 720px)", ".tarjeta-combo-texto")).toMatch(/max-width:\s*58%/);
     expect(reglaEn("(min-width: 720px)", ".arte-combo-marca")).toMatch(/clamp\(60px, 10\.5cqw, 108px\)/);
+  });
+
+  // Fix round 1: con el cuerpo claro angosto dentro del ticket ancho (contenido
+  // < ~620px: card < 1022px de contenedor, página < 1072px) el tope del 58%
+  // dejaba el título largo en 6 líneas. Ahí vuelve la ubicación APILADA.
+  it("cuerpo angosto dentro del ticket ancho: texto a todo el ancho y arte en ubicación apilada (card < 1022, página < 1072)", () => {
+    const card = "(min-width: 720px) and (max-width: 1021.98px)";
+    expect(reglaEn(card, ".tarjeta-combo-texto")).toMatch(/max-width:\s*none/);
+    expect(reglaEn(card, ".chips-combo")).toMatch(/padding-right:\s*110px/);
+    expect(reglaEn(card, ".arte-combo-lettering")).toMatch(/right:\s*16px;[\s\S]*top:\s*8px/);
+    expect(reglaEn(card, ".arte-combo-lettering")).toMatch(/left:\s*auto/);
+    expect(reglaEn(card, ".arte-combo-script")).toMatch(/font-size:\s*22px/);
+    expect(reglaEn(card, ".arte-combo-r1")).toMatch(/display:\s*none/);
+    expect(reglaEn(card, ".arte-combo-marca")).toMatch(/clamp\(38px, 15cqw, 68px\)/);
+    expect(reglaEn(card, ".arte-combo-marca")).toMatch(/bottom:\s*40px/);
+    const pagina = "(min-width: 720px) and (max-width: 1071.98px)";
+    expect(reglaEn(pagina, ".tarjeta-combo-pagina .tarjeta-combo-texto")).toMatch(/max-width:\s*none/);
+    expect(reglaEn(pagina, ".tarjeta-combo-pagina .arte-combo-lettering")).toMatch(/left:\s*auto/);
+    expect(reglaEn(pagina, ".tarjeta-combo-pagina .arte-combo-marca")).toMatch(/clamp\(38px, 15cqw, 68px\)/);
+  });
+
+  it("Outfit se carga también en 900: la marca de agua y el sello no caen al 800", () => {
+    expect(html).toMatch(/family=Outfit:wght@[\d;]*900/);
+    expect(bloque(".arte-combo-marca")).toMatch(/font-weight:\s*900/);
   });
 
   it("sin fondo raster: ni WebP ni PNG del arte en el CSS, y los derivados WebP no existen", () => {

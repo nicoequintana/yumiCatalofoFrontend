@@ -592,12 +592,15 @@ h6 {
   top: 52px;
   width: 22px;
 }
-/* "COMBO" escala con el ancho de la card (`cqw` de `.tarjeta-combo-wrap`). */
+/* "COMBO" escala con el ancho de la card (`cqw` de `.tarjeta-combo-wrap`).
+   `bottom: 30px` y no los 50 del mockup (Fix round 1): a 50 el borde girado
+   rozaba la última línea de una frase larga; a 30 queda centrado junto a las
+   fichas. El sello (talón, z 3) puede tapar la punta de la "O". */
 .arte-combo-marca {
   position: absolute;
   z-index: 1;
   right: -4px;
-  bottom: 50px;
+  bottom: 30px;
   font-family: var(--font-display);
   font-weight: 900;
   font-size: clamp(38px, 15cqw, 68px);
@@ -779,16 +782,6 @@ h6 {
    con huecos de 4px (~302px, entra desde 720). Medido en navegador el
    15/09/2026: ver `docs/reglas/combos.md`. */
 @container (min-width: 720px) and (max-width: 869.98px) {
-  /* El lettering se achica con el cuerpo (34px) en el mismo paso. */
-  .arte-combo-script {
-    font-size: 34px;
-  }
-  .arte-combo-subrayado {
-    width: 90px;
-  }
-  .arte-combo-r1 {
-    left: calc(58% + 116px);
-  }
   .fichas-combo {
     gap: 4px;
   }
@@ -804,15 +797,6 @@ h6 {
    88px desde 920; 62px entre 760 y 920; y entre 720 y 760 ni 4 fichas de 62px
    entran (~268px de contenido), así que muestra la variante angosta (2 + "+N"). */
 @container (min-width: 720px) and (max-width: 919.98px) {
-  .tarjeta-combo-pagina .arte-combo-script {
-    font-size: 34px;
-  }
-  .tarjeta-combo-pagina .arte-combo-subrayado {
-    width: 90px;
-  }
-  .tarjeta-combo-pagina .arte-combo-r1 {
-    left: calc(58% + 116px);
-  }
   .tarjeta-combo-pagina .fichas-combo {
     gap: 4px;
   }
@@ -822,6 +806,100 @@ h6 {
   }
   .tarjeta-combo-pagina .signo-combo {
     font-size: 15px;
+  }
+}
+/* Cuerpo claro ANGOSTO dentro del ticket ancho (Fix round 1, 15/09/2026).
+   La ubicación ancha (texto ≤ 58% y lettering/"COMBO" a la derecha) solo
+   entra con el contenido del cuerpo ≥ ~620px: medido en navegador, el título
+   largo de prueba necesita una columna de ~364px para quedar en 3 líneas, y
+   con 58% de 383px (página a 1024px de viewport) caía en 6. Contenido del
+   cuerpo = contenedor − talón − 72px de padding, así que el corte es 1022px en
+   la card (talón 330) y 1072px en la página (talón 380). Por debajo, dentro
+   del ticket ancho, vuelve la ubicación APILADA: texto a todo el ancho, filas
+   `1fr auto` con las fichas abajo, lettering chico arriba a la derecha con la
+   reserva de los chips y "COMBO" abajo a la derecha al tamaño apilado (a 40px:
+   acá no hay sello encima del cuerpo, y 40 sigue sin tocar la frase). Las
+   manchas mantienen el tamaño ancho (el cuerpo es alto). */
+@container (min-width: 720px) and (max-width: 1021.98px) {
+  .tarjeta-combo-cuerpo {
+    grid-template-rows: 1fr auto;
+    align-content: stretch;
+  }
+  .tarjeta-combo-texto {
+    max-width: none;
+  }
+  .chips-combo {
+    padding-right: 110px;
+    min-height: 44px;
+  }
+  .fichas-combo {
+    align-self: end;
+  }
+  .arte-combo-lettering {
+    left: auto;
+    right: 16px;
+    top: 8px;
+  }
+  .arte-combo-script {
+    font-size: 22px;
+  }
+  .arte-combo-subrayado {
+    width: 58px;
+  }
+  .arte-combo-r1 {
+    display: none;
+  }
+  .arte-combo-r2 {
+    right: 8px;
+    top: 52px;
+    bottom: auto;
+    width: 22px;
+  }
+  .arte-combo-marca {
+    right: -4px;
+    bottom: 40px;
+    font-size: clamp(38px, 15cqw, 68px);
+  }
+}
+@container (min-width: 720px) and (max-width: 1071.98px) {
+  .tarjeta-combo-pagina .tarjeta-combo-cuerpo {
+    grid-template-rows: 1fr auto;
+    align-content: stretch;
+  }
+  .tarjeta-combo-pagina .tarjeta-combo-texto {
+    max-width: none;
+  }
+  .tarjeta-combo-pagina .chips-combo {
+    padding-right: 110px;
+    min-height: 44px;
+  }
+  .tarjeta-combo-pagina .fichas-combo {
+    align-self: end;
+  }
+  .tarjeta-combo-pagina .arte-combo-lettering {
+    left: auto;
+    right: 16px;
+    top: 8px;
+  }
+  .tarjeta-combo-pagina .arte-combo-script {
+    font-size: 22px;
+  }
+  .tarjeta-combo-pagina .arte-combo-subrayado {
+    width: 58px;
+  }
+  .tarjeta-combo-pagina .arte-combo-r1 {
+    display: none;
+  }
+  .tarjeta-combo-pagina .arte-combo-r2 {
+    right: 8px;
+    top: 52px;
+    bottom: auto;
+    width: 22px;
+  }
+  .tarjeta-combo-pagina .arte-combo-marca {
+    right: -4px;
+    bottom: 40px;
+    font-size: clamp(38px, 15cqw, 68px);
   }
 }
 @container (min-width: 720px) and (max-width: 759.98px) {
@@ -844,7 +922,7 @@ h6 {
   }
   .arte-combo-marca {
     right: -6px;
-    bottom: 46px;
+    bottom: 30px;
   }
   .fichas-combo {
     gap: 4px;
