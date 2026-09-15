@@ -4,6 +4,7 @@ import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
 import BotonWhatsapp from "../components/BotonWhatsapp.jsx";
+import Migas from "../components/Migas.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import useFavoritos from "../hooks/useFavoritos.js";
 import { getProductsByIds } from "../api/products.js";
@@ -109,6 +110,8 @@ function Favoritos() {
       />
 
       <section className="mx-auto w-full max-w-container-max px-margin-mobile py-16 md:px-margin-desktop md:py-24">
+        <Migas items={[{ label: "Inicio", to: "/" }, { label: "Favoritos" }]} />
+
         <div className="mb-6">
           <BotonVolver />
         </div>

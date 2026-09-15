@@ -1,4 +1,4 @@
-import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -639,5 +639,24 @@ describe("Carrito — líneas de combo", () => {
     });
 
     expect(await screen.findByText("No pudimos cargar tu carrito")).toBeInTheDocument();
+  });
+});
+
+describe("Carrito — migas de pan", () => {
+  beforeEach(() => {
+    const { result } = renderHook(() => useCarrito());
+    act(() => {
+      result.current.vaciar();
+    });
+    vi.clearAllMocks();
+  });
+
+  it("muestra las migas Inicio › Carrito", async () => {
+    renderCarrito();
+
+    await screen.findByRole("heading", { level: 1, name: "Carrito" });
+    const nav = screen.getByRole("navigation", { name: "Miga de pan" });
+    expect(within(nav).getByRole("link", { name: "Inicio" })).toHaveAttribute("href", "/");
+    expect(within(nav).getByText("Carrito")).toHaveAttribute("aria-current", "page");
   });
 });

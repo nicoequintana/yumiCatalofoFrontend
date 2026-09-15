@@ -4,6 +4,7 @@ import ProductCard from "../components/ProductCard.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
 import FiltrosCatalogo from "../components/FiltrosCatalogo.jsx";
+import Migas from "../components/Migas.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import { getProducts } from "../api/products.js";
 import { getCategorias } from "../api/categorias.js";
@@ -296,6 +297,15 @@ function Coleccion() {
 
   const titulo = nombreVitrina ? `${nombreVitrina} — YIMA` : "Todos los productos — YIMA";
   const encabezado = nombreVitrina ?? "Todos los productos";
+
+  // Migas: la identidad es la RUTA, no la vitrina de campaña/oferta/promoción
+  // por querystring (esas no tienen su propio nivel de miga, mismo criterio
+  // que `rutaCanonica` unas líneas abajo). Sin categoría de ruta, "Productos"
+  // es la página actual; con ella, "Productos" enlaza y la categoría es la
+  // actual.
+  const itemsMigas = categoriaDeRuta
+    ? [{ label: "Inicio", to: "/" }, { label: "Productos", to: "/coleccion" }, { label: categoriaDeRuta.nombre }]
+    : [{ label: "Inicio", to: "/" }, { label: "Productos" }];
   // Canonical propio SOLO para una categoría de ruta válida — construido con
   // `rutaCategoria`, la MISMA función que arma el `<loc>` del sitemap (nunca
   // a mano: son dos template literals mantenidos por separado esperando
@@ -724,6 +734,9 @@ function Coleccion() {
           se leía como un corte horizontal justo debajo del navbar. Todo lo
           que está por debajo del navbar en esta página es una sola capa. */}
       <div className="w-full bg-surface-container-low">
+        <div className="mx-auto w-full max-w-container-max px-margin-mobile md:px-margin-desktop">
+          <Migas items={itemsMigas} />
+        </div>
         <div className="mx-auto w-full max-w-container-max px-margin-mobile pb-3 pt-6 md:px-margin-desktop md:pt-8">
           <BotonVolver />
         </div>

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
@@ -1072,5 +1072,30 @@ describe("Coleccion - área táctil de Mostrar más", () => {
 
     const boton = await screen.findByRole("button", { name: "Mostrar más" });
     expect(boton.className).toContain("min-h-11");
+  });
+});
+
+describe("Coleccion - migas de pan", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    llamadasSetSearchParams.length = 0;
+    productsApi.getProducts.mockResolvedValue(pagina([{ ...PRODUCTO }]));
+    categoriasApi.getCategorias.mockResolvedValue(CATEGORIAS);
+  });
+
+  it("en /coleccion plano, Productos es la página actual", async () => {
+    renderPagina();
+
+    const nav = await screen.findByRole("navigation", { name: "Miga de pan" });
+    expect(within(nav).getByRole("link", { name: "Inicio" })).toHaveAttribute("href", "/");
+    expect(within(nav).getByText("Productos")).toHaveAttribute("aria-current", "page");
+  });
+
+  it("en una categoría de ruta, Productos enlaza y la categoría es la página actual", async () => {
+    renderPagina("/coleccion/categoria/relojes");
+
+    const nav = await screen.findByRole("navigation", { name: "Miga de pan" });
+    expect(await within(nav).findByRole("link", { name: "Productos" })).toHaveAttribute("href", "/coleccion");
+    expect(within(nav).getByText("Relojes")).toHaveAttribute("aria-current", "page");
   });
 });

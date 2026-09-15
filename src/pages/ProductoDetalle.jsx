@@ -3,10 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import FichaProducto from "../components/FichaProducto.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import BotonVolver from "../components/BotonVolver.jsx";
+import Migas from "../components/Migas.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import { getProductById } from "../api/products.js";
 import { useToast } from "../context/useToast.js";
-import { parsearIdDeRuta, rutaProducto } from "../utils/slug.js";
+import { parsearIdDeRuta, rutaCategoria, rutaProducto } from "../utils/slug.js";
 import { urlAbsoluta } from "../constants/seo.js";
 
 /**
@@ -105,6 +106,17 @@ function ProductoDetalle() {
   // cacheada sin el campo: la ficha se ve igual, solo sin datos estructurados.
   const bloquesJsonLd = producto.jsonLd ?? [];
 
+  // Categoría del producto, si tiene: se omite el nivel cuando no hay
+  // categoría o cuando su nombre no deja slug (mismo caso límite que
+  // `Coleccion.jsx` — `rutaCategoria` devuelve `null` ahí).
+  const rutaCat = producto.categoria ? rutaCategoria(producto.categoria) : null;
+  const itemsMigas = [
+    { label: "Inicio", to: "/" },
+    { label: "Productos", to: "/coleccion" },
+    ...(rutaCat ? [{ label: producto.categoria.nombre, to: rutaCat }] : []),
+    { label: producto.nombre },
+  ];
+
   return (
     <>
       <MetaSeo
@@ -128,6 +140,8 @@ function ProductoDetalle() {
           ya existe `BotonVolver` — el mismo control en los dos breakpoints, en
           flujo con el contenido en vez de pegado al borde. */}
       <main className="mx-auto w-full max-w-container-max px-margin-mobile py-6 pb-24 md:px-margin-desktop md:py-16 md:pb-16">
+        <Migas items={itemsMigas} />
+
         <div className="mb-4 md:mb-6">
           <BotonVolver />
         </div>

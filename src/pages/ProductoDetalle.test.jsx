@@ -408,6 +408,40 @@ describe("ProductoDetalle - fallo de red", () => {
   });
 });
 
+describe("ProductoDetalle — migas de pan", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("sin categoría, las migas van Inicio › Productos › {producto}", async () => {
+    productsApi.getProductById.mockResolvedValue({ ...PRODUCTO_BASE, categoria: null });
+
+    renderPagina();
+
+    const nav = await screen.findByRole("navigation", { name: "Miga de pan" });
+    expect(within(nav).getByRole("link", { name: "Inicio" })).toHaveAttribute("href", "/");
+    expect(within(nav).getByRole("link", { name: "Productos" })).toHaveAttribute("href", "/coleccion");
+    expect(within(nav).getByText(PRODUCTO_BASE.nombre)).toHaveAttribute("aria-current", "page");
+  });
+
+  it("con categoría, las migas suman el nivel de categoría enlazando a su ruta", async () => {
+    productsApi.getProductById.mockResolvedValue({
+      ...PRODUCTO_BASE,
+      categoria: { id: 9, nombre: "Iluminación" },
+    });
+
+    renderPagina();
+
+    const nav = await screen.findByRole("navigation", { name: "Miga de pan" });
+    expect(within(nav).getByRole("link", { name: "Productos" })).toHaveAttribute("href", "/coleccion");
+    expect(within(nav).getByRole("link", { name: "Iluminación" })).toHaveAttribute(
+      "href",
+      "/coleccion/categoria/iluminacion",
+    );
+    expect(within(nav).getByText(PRODUCTO_BASE.nombre)).toHaveAttribute("aria-current", "page");
+  });
+});
+
 describe("ProductoDetalle — JSON-LD del backend", () => {
   // Los bloques viajan EN la respuesta del detalle (los arma el backend con
   // las mismas funciones que el HTML de crawler). Esta pantalla solo los

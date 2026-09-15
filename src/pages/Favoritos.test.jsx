@@ -1,4 +1,4 @@
-import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
+import { act, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ToastProvider } from "../context/ToastContext.jsx";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -168,5 +168,22 @@ describe("Favoritos — limpieza de ids obsoletos", () => {
 
     expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
     expect(hook.result.current.favoritos).toEqual([1]);
+  });
+});
+
+describe("Favoritos — migas de pan", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("muestra las migas Inicio › Favoritos", async () => {
+    productsApi.getProductsByIds.mockResolvedValue([]);
+
+    renderFavoritos();
+
+    await screen.findByRole("heading", { level: 1, name: "Favoritos" });
+    const nav = screen.getByRole("navigation", { name: "Miga de pan" });
+    expect(within(nav).getByRole("link", { name: "Inicio" })).toHaveAttribute("href", "/");
+    expect(within(nav).getByText("Favoritos")).toHaveAttribute("aria-current", "page");
   });
 });

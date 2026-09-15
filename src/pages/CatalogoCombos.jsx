@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import TarjetaCombo from "../components/TarjetaCombo.jsx";
 import GrillaCombos from "../components/GrillaCombos.jsx";
+import Migas from "../components/Migas.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import useCombosCatalogo from "../hooks/useCombosCatalogo.js";
 import useResumenCombos from "../hooks/useResumenCombos.js";
@@ -78,6 +79,10 @@ function CatalogoCombos() {
         descripcion="Conjuntos de productos con un descuento que se aplica solo si los llevás juntos."
         canonical={urlAbsoluta("/combos")}
       />
+      <div className="mx-auto w-full max-w-container-max px-margin-mobile md:px-margin-desktop">
+        <Migas items={[{ label: "Inicio", to: "/" }, { label: "Combos" }]} />
+      </div>
+
       <section className={CLASE_SECCION_CATALOGO_COMBOS}>
         <EncabezadoCombos resumen={resumen} ocultarDatos={Boolean(error)} />
 

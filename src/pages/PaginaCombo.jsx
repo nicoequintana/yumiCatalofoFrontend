@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import MetaSeo from "../components/MetaSeo.jsx";
+import Migas from "../components/Migas.jsx";
 import NoEncontrado from "./NoEncontrado.jsx";
 import CargandoPagina from "../components/CargandoPagina.jsx";
 import EstadoVacio from "../components/EstadoVacio.jsx";
@@ -79,24 +80,9 @@ function PaginaCombo({ comboForzado = null }) {
       )}
 
       <div className="pc-contenedor mx-auto w-full max-w-container-max">
-        <nav
-          aria-label="Miga de pan"
-          className="flex flex-wrap items-center gap-1.5 py-3.5 font-body-sm text-[13px] text-on-surface-variant"
-        >
-          <Link to="/" className="text-primary-container">
-            Inicio
-          </Link>
-          <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-outline">
-            chevron_right
-          </span>
-          <Link to="/combos" className="text-primary-container">
-            Combos
-          </Link>
-          <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-outline">
-            chevron_right
-          </span>
-          <span>{combo.nombre}</span>
-        </nav>
+        <Migas
+          items={[{ label: "Inicio", to: "/" }, { label: "Combos", to: "/combos" }, { label: combo.nombre }]}
+        />
 
         {combo.heroUrl ? (
           <div className="pc-hero relative max-w-full overflow-hidden">

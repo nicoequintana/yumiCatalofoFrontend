@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ToastProvider } from "../context/ToastContext.jsx";
 import CatalogoCombos from "./CatalogoCombos.jsx";
@@ -104,5 +104,14 @@ describe("CatalogoCombos", () => {
     renderizar();
     expect(screen.queryByText(/Muy pronto/)).not.toBeInTheDocument();
     expect(screen.queryByText("Revisá tu conexión e intentá de nuevo.")).not.toBeInTheDocument();
+  });
+
+  it("muestra las migas Inicio › Combos", () => {
+    combosCatalogoMock.mockReturnValue({ combos: [combo(1)], cargando: false, error: null });
+    renderizar();
+
+    const nav = screen.getByRole("navigation", { name: "Miga de pan" });
+    expect(within(nav).getByRole("link", { name: "Inicio" })).toHaveAttribute("href", "/");
+    expect(within(nav).getByText("Combos")).toHaveAttribute("aria-current", "page");
   });
 });

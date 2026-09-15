@@ -115,6 +115,20 @@ describe("FichaProducto — modo preview", () => {
     expect(botones.length).toBeGreaterThan(0);
   });
 
+  // Las migas de pan viven en `ProductoDetalle.jsx` (la página pública), no
+  // acá: esta ficha es la que el editor del panel embebe como vista previa en
+  // vivo (`modoPreview`), y un breadcrumb de navegación pública ahí no tiene
+  // adónde llevar — mismo criterio que "Ver producto" en los relacionados.
+  // Guard de regresión: ni en modo público ni en preview este componente
+  // renderiza el `<nav>` de migas.
+  it("nunca renderiza migas de pan, ni en público ni en modoPreview", () => {
+    renderFicha();
+    expect(screen.queryByRole("navigation", { name: "Miga de pan" })).not.toBeInTheDocument();
+
+    renderFicha(PRODUCTO_BASE, { modoPreview: true });
+    expect(screen.queryByRole("navigation", { name: "Miga de pan" })).not.toBeInTheDocument();
+  });
+
   // El editor del panel EMBEBE esta ficha como vista previa en vivo, dentro de
   // una pantalla que ya tiene su propio `h1` ("Agregar producto"). Con el
   // título fijo en `h1` quedaban DOS encabezados de nivel 1 visibles a la vez
