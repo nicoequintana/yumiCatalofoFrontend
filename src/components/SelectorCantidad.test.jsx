@@ -138,4 +138,18 @@ describe("SelectorCantidad", () => {
 
     expect(screen.getByText("1")).toHaveClass("min-w-8", "text-body-sm");
   });
+  // Varios steppers en la misma pantalla (filas del editor de combos): sin el
+  // producto en el nombre, un lector de pantalla oye N veces "Aumentar cantidad".
+  it("con `etiqueta` nombra de qué es la cantidad; sin ella el nombre no cambia", () => {
+    const { unmount } = render(<SelectorCantidad value={2} onChange={vi.fn()} etiqueta="Lámpara" />);
+
+    expect(screen.getByRole("button", { name: "Aumentar cantidad de Lámpara" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Disminuir cantidad de Lámpara" })).toBeInTheDocument();
+    unmount();
+
+    render(<SelectorCantidad value={2} onChange={vi.fn()} max={2} etiqueta="Lámpara" />);
+    expect(screen.getByRole("button", { name: /aumentar/i })).toHaveAccessibleName(
+      "Aumentar cantidad de Lámpara — ya alcanzaste el máximo disponible (2)",
+    );
+  });
 });

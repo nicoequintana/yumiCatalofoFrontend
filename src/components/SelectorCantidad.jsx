@@ -12,17 +12,23 @@ import { AREA_TACTIL_ICONO } from "../utils/areaTactil.js";
  * `max` es opcional y simétrico a `min`: en el tope, incrementar es un no-op
  * y el botón + queda deshabilitado. Sin `max` no hay tope — los llamadores
  * solo lo pasan cuando conocen el stock vivo; el widget no inventa límites.
+ *
+ * `etiqueta` es opcional: con varios steppers en la misma pantalla (las filas
+ * del editor de combos) nombra DE QUÉ es la cantidad — "Aumentar cantidad de
+ * Lámpara" —, así un lector de pantalla no oye N botones idénticos. Sin ella
+ * los nombres son los de siempre.
  */
-function SelectorCantidad({ value, onChange, min = 1, max }) {
+function SelectorCantidad({ value, onChange, min = 1, max, etiqueta }) {
   const enMaximo = Number.isInteger(max) && value >= max;
 
   // Un botón deshabilitado sin motivo se lee como una app rota. El nombre
   // accesible del propio botón dice por qué, en vez de dejar que el motivo
   // exista solo en el CTA de al lado ("Máximo en carrito"), que un lector de
   // pantalla no asocia con este control.
+  const deQue = etiqueta ? ` de ${etiqueta}` : "";
   const etiquetaAumentar = enMaximo
-    ? `Aumentar cantidad — ya alcanzaste el máximo disponible (${max})`
-    : "Aumentar cantidad";
+    ? `Aumentar cantidad${deQue} — ya alcanzaste el máximo disponible (${max})`
+    : `Aumentar cantidad${deQue}`;
 
   function disminuir() {
     if (value <= min) return;
@@ -54,7 +60,7 @@ function SelectorCantidad({ value, onChange, min = 1, max }) {
       <button
         type="button"
         onClick={disminuir}
-        aria-label="Disminuir cantidad"
+        aria-label={`Disminuir cantidad${deQue}`}
         disabled={value <= min}
         className={`${claseBoton} rounded-l-full`}
       >
