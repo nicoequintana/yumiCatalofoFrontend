@@ -40,6 +40,15 @@ export async function getOpcionesCombo() {
   return cuerpoOError(await fetchConTimeout(`${BASE}/combos/opciones`));
 }
 
+/**
+ * `GET /combos/resumen` — `{cantidad, porcentajeMaximo}` para el encabezado de
+ * `/combos` ("Hasta N% off", "N combos disponibles"). Los dos números los
+ * resuelve el backend sobre los vigentes: acá no se cuenta ni se busca el máximo.
+ */
+export async function getResumenCombos() {
+  return cuerpoOError(await fetchConTimeout(`${BASE}/combos/resumen`));
+}
+
 export async function getAdminCombos() {
   return pedir(`${BASE}/combos/admin/combos`);
 }

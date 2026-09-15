@@ -1,34 +1,32 @@
 import { Link } from "react-router-dom";
 import useCarrito from "../hooks/useCarrito.js";
 import { useToast } from "../context/useToast.js";
-import { formatPrecio } from "../utils/formato.js";
-
-const MAX_FICHAS = 4;
+import FichasCombo, { AhorroCombo, ChipsCombo, PreciosCombo, SelloCombo } from "./FichasCombo.jsx";
 
 /**
- * La card de combo aprobada (spec §7.1). Container query propia
- * (`.tarjeta-combo-wrap`/`.tarjeta-combo` en `index.css`): ticket horizontal
- * en ancho ≥ 720px, apilada por debajo. No calcula nada — todo llega
+ * La card de combo (rediseño del 15/09/2026, `combos-rediseno.html`, pestaña
+ * "Card"). Container query propia (`.tarjeta-combo-wrap`/`.tarjeta-combo` en
+ * `index.css`): ticket horizontal en ancho ≥ 720px, apilada por debajo, fichas
+ * más chicas y una menos por debajo de 380px. No calcula nada — todo llega
  * resuelto de `GET /combos` (`mapComboPublico`).
  *
- * "Agregar combo" usa `useCarrito().agregar({comboId}, cantidad)` — LA MISMA
- * mutación que un producto suelto, nunca un hook propio: `useCombosCarrito`
- * (Task 25) es solo refresco en vivo para `Carrito.jsx`/`Checkout.jsx`, no
- * agrega nada al carrito. El shape `{ comboId }` todavía no lo distingue
- * `useCarrito` en sí (eso llega con la Tarea 24); esta card ya llama la API
- * final para no volver a tocar este archivo cuando esa tarea aterrice.
+ * Decisiones del rediseño: SIN hover (ni lift ni cambio de sombra; la sombra
+ * fija `shadow-sombra-ticket` la despega del fondo), troquel SIN muescas (solo
+ * la línea punteada), sello en rojo propio (`bg-sello`) y SIN la lista de
+ * nombres de productos: el chip "N productos" alcanza y el detalle vive en la
+ * página del combo. REGLA DE CLOAKING: `listaTarjetasCombo` (`seo.cuerpo.js`)
+ * repite estos textos; si cambia uno, cambia el otro.
  *
- * `Link` del cuerpo y botón/`Link` del talón son HERMANOS, no anidados —
- * mismo motivo que `BotonFavorito`/`BotonAgregar` en `ProductCard`: un
- * `<button>` (o un segundo `<a>`) dentro de un `<a>` es HTML inválido y le
- * rompe el nombre accesible al enlace exterior.
+ * Sin `overflow-hidden` en el `<article>`: el sello apilado sube sobre el
+ * troquel. Las esquinas las redondean el cuerpo y el talón por separado.
+ *
+ * "Agregar combo" usa `useCarrito().agregar({comboId}, cantidad)` — LA MISMA
+ * mutación que un producto suelto. `Link` del cuerpo y botón/`Link` del talón
+ * son HERMANOS, no anidados: un `<button>` dentro de un `<a>` es HTML inválido.
  */
 function TarjetaCombo({ combo }) {
   const { agregar } = useCarrito();
   const { mostrarToast } = useToast();
-
-  const visibles = combo.items.slice(0, combo.items.length > MAX_FICHAS ? MAX_FICHAS - 1 : MAX_FICHAS);
-  const resto = combo.items.length - visibles.length;
 
   function handleAgregar() {
     agregar({ comboId: combo.id }, 1);
@@ -40,141 +38,48 @@ function TarjetaCombo({ combo }) {
 
   return (
     <div className="tarjeta-combo-wrap h-full min-w-0">
-      <article className="tarjeta-combo grid h-full grid-cols-1 grid-rows-[1fr_auto] overflow-hidden rounded-[20px] bg-surface-container-lowest shadow-sombra-2 transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_18px_40px_-10px_rgb(var(--color-primary)/0.4)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
-        <Link to={combo.ruta} className="flex min-w-0 flex-col gap-3.5 p-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 font-label-sm text-[11px] font-extrabold uppercase tracking-[0.14em] text-on-primary">
-              <span aria-hidden="true" className="material-symbols-outlined text-[13px]">
-                redeem
-              </span>
-              Combo
-            </span>
-            <span className="font-label-md text-label-sm text-on-surface-variant">{combo.unidades} productos</span>
+      <article className="tarjeta-combo relative grid h-full rounded-[22px] bg-surface-container-lowest shadow-sombra-ticket">
+        <Link
+          to={combo.ruta}
+          className="tarjeta-combo-cuerpo grid min-w-0 rounded-t-[22px] bg-surface-container-lowest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-secondary-container"
+        >
+          <ChipsCombo combo={combo} />
+
+          <div className="grid content-start gap-1.5">
+            <h3 className="tarjeta-combo-titulo line-clamp-2 text-balance font-display-lg font-extrabold leading-[1.06] tracking-[-0.035em] text-primary">
+              {combo.nombre}
+            </h3>
+            <p className="tarjeta-combo-frase line-clamp-2 max-w-[52ch] font-body-md leading-[1.45] text-on-surface-variant">
+              {combo.frase}
+            </p>
           </div>
 
-          <h3 className="line-clamp-2 min-h-[2lh] font-display-lg text-[26px] font-extrabold leading-[1.02] tracking-[-0.035em] text-primary">
-            {combo.nombre}
-          </h3>
-          <p className="line-clamp-2 min-h-[2lh] max-w-[46ch] font-body-md text-body-sm text-on-surface-variant">
-            {combo.frase}
-          </p>
-
-          <div className="flex flex-nowrap items-center gap-1.5" aria-label={`Incluye ${combo.unidades} productos`}>
-            {visibles.map((item, indice) => (
-              <span key={item.productId} className="contents">
-                {indice > 0 ? (
-                  <span aria-hidden="true" className="text-outline">
-                    +
-                  </span>
-                ) : null}
-                <span
-                  data-testid="ficha-item"
-                  title={item.nombre}
-                  className="relative grid aspect-square w-16 flex-none place-items-center rounded-2xl bg-surface-container"
-                >
-                  {item.foto ? (
-                    <img src={item.foto} alt="" className="absolute inset-0 h-full w-full rounded-2xl object-contain" />
-                  ) : (
-                    <span aria-hidden="true" className="material-symbols-outlined text-on-surface-variant">
-                      inventory_2
-                    </span>
-                  )}
-                  {item.cantidad > 1 ? (
-                    <span className="absolute -right-1.5 -top-1.5 rounded-full bg-secondary px-1.5 py-0.5 font-label-sm text-[12px] font-extrabold text-on-secondary shadow-sm">
-                      ×{item.cantidad}
-                    </span>
-                  ) : null}
-                </span>
-              </span>
-            ))}
-            {resto > 0 ? (
-              <>
-                <span aria-hidden="true" className="text-outline">
-                  +
-                </span>
-                <span className="grid aspect-square w-16 flex-none place-items-center rounded-2xl bg-surface-container-high font-display-lg text-[17px] font-extrabold text-primary">
-                  +{resto}
-                </span>
-              </>
-            ) : null}
-          </div>
-
-          <p className="line-clamp-2 min-h-[2lh] font-body-sm text-body-sm text-on-surface-variant">
-            {combo.items.map((item) => `${item.cantidad > 1 ? item.cantidad + "× " : ""}${item.nombre}`).join(" · ")}
-          </p>
+          <FichasCombo items={combo.items} unidades={combo.unidades} />
         </Link>
 
-        <div className="talon-combo relative grid gap-3.5 bg-primary bg-[radial-gradient(120%_80%_at_100%_0%,rgb(var(--color-on-primary)/0.14),transparent_60%),radial-gradient(80%_60%_at_0%_100%,rgb(var(--color-secondary)/0.2),transparent_60%)] p-5 text-on-primary">
-          {/* Las "muescas": dos círculos del color de fondo de la PÁGINA (no
-              de la card) que se superponen al troquel punteado, simulando que
-              lo perforaron — mismo truco que un ticket de verdad. Posición
-              fija por `.muesca-b`/el contenedor en `index.css`: apilada van
-              en las dos puntas de la línea horizontal de arriba, ticket
-              horizontal en las dos puntas de la línea vertical de la
-              izquierda. */}
-          <span aria-hidden="true" className="muesca-a absolute -left-[11px] -top-[11px] z-10 h-[22px] w-[22px] rounded-full bg-background" />
-          <span aria-hidden="true" className="muesca-b absolute z-10 h-[22px] w-[22px] rounded-full bg-background" />
-          {!combo.disponible ? (
-            <span className="absolute right-4 top-3 rounded-full bg-error-container px-2.5 py-1 font-label-sm text-[11px] font-bold uppercase text-on-error-container">
-              Agotado
-            </span>
-          ) : combo.quedanPocos ? (
-            <span className="absolute right-4 top-3 rounded-full bg-secondary-container px-2.5 py-1 font-label-sm text-[11px] font-bold uppercase text-on-secondary-container">
-              Quedan {combo.alcanza}
-            </span>
-          ) : null}
-
-          {/* Sin `overflow-hidden` en el talón: el sello apilado sube 30px
-              sobre el troquel y lo recortaba. Las esquinas y las muescas las
-              recorta el `<article>`. Ancho ≥ 720px lo baja adentro del talón
-              (`.sello-combo` en `index.css`). */}
-          <div
-            aria-hidden="true"
-            className="sello-combo absolute right-4 top-[-30px] z-20 grid h-[74px] w-[74px] rotate-[-12deg] place-items-center rounded-full bg-secondary-container text-center leading-none text-on-secondary-container shadow-[0_6px_16px_-4px_rgb(var(--color-on-secondary-container)/0.45),inset_0_0_0_3px_rgb(var(--color-on-primary)/0.35)]"
-          >
-            <span className="grid gap-0.5">
-              <span className="sello-combo-numero font-display-lg text-[22px] font-black leading-none tracking-[-0.04em]">-{combo.porcentaje}%</span>
-              <span className="font-display-lg text-[11px] font-extrabold uppercase leading-none tracking-[0.06em]">Combo</span>
-            </span>
-          </div>
-
-          <div className="grid gap-0.5 tabular-nums">
-            <span className="flex items-baseline gap-2 font-label-md text-[13px] text-on-primary-container">
-              Por separado
-              <s className="font-display-lg text-[18px] font-semibold text-on-primary/70 decoration-secondary-container">
-                {formatPrecio(combo.precioSeparado)}
-              </s>
-            </span>
-            <span className="mt-1.5 font-label-sm text-[11px] font-semibold uppercase tracking-[0.12em] text-on-primary-container">
-              Precio combo
-            </span>
-            <span className="font-display-xl text-[40px] font-black leading-none tracking-[-0.045em] text-on-primary">
-              {formatPrecio(combo.precioCombo)}
-            </span>
-          </div>
-
-          <span className="w-fit rounded-full border border-secondary-container/45 bg-secondary-container/[0.16] px-2.5 py-1 font-label-md text-[14px] font-bold text-secondary-container">
-            Ahorrás {formatPrecio(combo.ahorro)}
-          </span>
+        <div className="talon-combo relative grid content-start gap-3 rounded-b-[22px] bg-primary bg-[radial-gradient(120%_80%_at_100%_0%,rgb(var(--color-on-primary-container)/0.2),transparent_60%),radial-gradient(80%_60%_at_0%_100%,rgb(var(--color-secondary-container)/0.14),transparent_60%)] text-on-primary">
+          <SelloCombo porcentaje={combo.porcentaje} />
+          <PreciosCombo combo={combo} />
+          <AhorroCombo ahorro={combo.ahorro} />
 
           <div className="grid gap-2">
             <button
               type="button"
               disabled={!combo.disponible}
               onClick={handleAgregar}
-              className="flex h-12 items-center justify-center gap-2 rounded-xl bg-secondary-container font-label-lg text-label-md font-bold text-on-secondary-container transition-colors enabled:hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-secondary-container px-4 font-label-lg text-[15px] font-bold tracking-normal text-on-secondary-container transition-colors enabled:hover:bg-secondary-container/90 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
             >
-              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-                shopping_cart
+              <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
+                shopping_bag
               </span>
               Agregar combo
             </button>
             <Link
               to={combo.ruta}
-              className="flex h-12 items-center justify-center gap-2 rounded-xl text-label-md font-bold text-on-primary ring-1 ring-inset ring-on-primary/35 transition-shadow hover:ring-on-primary"
+              className="flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 font-label-lg text-[15px] font-bold tracking-normal text-on-primary shadow-[inset_0_0_0_1.5px_rgb(var(--color-on-primary)/0.35)] transition-shadow hover:shadow-[inset_0_0_0_1.5px_rgb(var(--color-on-primary))] motion-reduce:transition-none"
             >
               Ver el combo
-              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+              <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                 arrow_forward
               </span>
             </Link>

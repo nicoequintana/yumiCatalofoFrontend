@@ -54,6 +54,9 @@ export default {
         // Teal de marca (el del logo). Ver el comentario en `index.css`: es
         // fijo, no cambia con el tema del admin.
         "brand-teal": "rgb(var(--color-brand-teal) / <alpha-value>)",
+        // Rojo del sello de descuento de los combos. Definido SOLO en
+        // `.tema-publico` (ver `index.css`): no es un token del admin.
+        sello: "rgb(var(--color-sello) / <alpha-value>)",
       },
       borderRadius: {
         DEFAULT: "0.25rem",
@@ -180,6 +183,13 @@ export default {
         // Botón flotante de WhatsApp: más densa que `sombra-2` porque flota
         // sobre contenido que scrollea (`.wa a` del mockup).
         "sombra-flotante": "0 8px 24px -4px rgba(20, 72, 85, 0.3)",
+        // Ticket de combo (`TarjetaCombo`, `PaginaCombo`, rediseño del
+        // 15/09/2026): sombra FIJA en capas —contacto, cuerpo y caída larga—
+        // teñida del teal de `primary` (0 49 60), que lo despega del fondo sin
+        // efecto hover. La caída larga baja ~48px: ningún padre con borde recto
+        // y `overflow` puede quedar a menos de eso (ver `.fila-combos-pista`).
+        "sombra-ticket":
+          "0 1px 2px rgba(0, 49, 60, 0.08), 0 3px 6px -1px rgba(0, 49, 60, 0.08), 0 12px 24px -8px rgba(0, 49, 60, 0.18), 0 28px 48px -20px rgba(0, 49, 60, 0.26)",
       },
       keyframes: {
         fadeIn: {

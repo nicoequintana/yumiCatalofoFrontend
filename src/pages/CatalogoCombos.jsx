@@ -3,14 +3,69 @@ import EstadoVacio from "../components/EstadoVacio.jsx";
 import TarjetaCombo from "../components/TarjetaCombo.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import useCombosCatalogo from "../hooks/useCombosCatalogo.js";
+import useResumenCombos from "../hooks/useResumenCombos.js";
 import { urlAbsoluta } from "../constants/seo.js";
+
+/**
+ * Franja teal del encabezado (rediseño del 15/09/2026, `.cat-hero`). Los dos
+ * números llegan de `GET /combos/resumen`: la página no cuenta combos ni busca
+ * el máximo. Sin resumen (falló) o sin combos, la línea de datos no se muestra.
+ * REGLA DE CLOAKING: `encabezadoCatalogoCombos` (`seo.controller.js`) repite
+ * estos textos.
+ */
+function EncabezadoCombos({ resumen }) {
+  const hayDatos = resumen && resumen.cantidad > 0;
+
+  return (
+    <header className="relative isolate grid gap-2.5 overflow-hidden rounded-[26px] bg-primary p-6 text-on-primary md:p-10 lg:p-11">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-[120px] -right-[60px] -z-10 h-[360px] w-[360px] rounded-full bg-[radial-gradient(circle,rgb(var(--color-secondary-container)/0.35),transparent_65%)]"
+      />
+      <span className="inline-flex items-center gap-1.5 font-label-sm text-[12px] font-bold uppercase leading-none tracking-[0.12em] text-secondary-container">
+        <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
+          redeem
+        </span>
+        Combos
+      </span>
+      <h1 className="max-w-[18ch] text-balance font-display-xl text-[clamp(30px,4.6vw,52px)] font-black leading-none tracking-[-0.04em]">
+        Llevá el set completo y pagá menos
+      </h1>
+      <p className="max-w-[52ch] font-body-md text-[17px] leading-normal text-on-primary/[0.84]">
+        Productos elegidos para usarse juntos, con un descuento que solo tenés comprando el combo.
+      </p>
+      {hayDatos ? (
+        <div className="mt-1.5 flex flex-wrap gap-x-[18px] gap-y-2 font-label-md text-[14px] font-semibold tracking-normal text-on-primary-container">
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+              sell
+            </span>
+            <span>Hasta {resumen.porcentajeMaximo}% off</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+              inventory_2
+            </span>
+            <span>
+              {resumen.cantidad} {resumen.cantidad === 1 ? "combo disponible" : "combos disponibles"}
+            </span>
+          </span>
+        </div>
+      ) : null}
+    </header>
+  );
+}
 
 /** `/combos` — catálogo de combos, spec §7.4. Grilla doble; vacío y error
  * son DOS estados distintos y NUNCA se confunden: el vacío promete "muy
  * pronto", y afirmar eso ante un error de carga sería mentirle a quien tuvo
- * un problema de conexión. */
+ * un problema de conexión.
+ *
+ * `pb-32`: en celular la isla flotante y el FAB de WhatsApp quedan fijos
+ * abajo; sin ese aire tapaban para siempre los botones de la última card. */
 function CatalogoCombos() {
   const { combos, cargando, error } = useCombosCatalogo();
+  const { resumen } = useResumenCombos();
 
   return (
     <>
@@ -19,8 +74,8 @@ function CatalogoCombos() {
         descripcion="Conjuntos de productos con un descuento que se aplica solo si los llevás juntos."
         canonical={urlAbsoluta("/combos")}
       />
-      <section className="mx-auto w-full max-w-container-max px-margin-mobile py-12 md:px-margin-desktop md:py-16">
-        <h1 className="mb-8 font-headline-lg text-headline-lg text-primary">Combos</h1>
+      <section className="mx-auto grid w-full max-w-container-max gap-7 px-margin-mobile pb-32 pt-5 md:gap-8 md:px-margin-desktop md:pb-24 md:pt-8">
+        <EncabezadoCombos resumen={resumen} />
 
         {cargando ? null : error ? (
           <EstadoVacio icono="cloud_off" titulo="No se pudieron cargar los combos" mensaje={error} />
@@ -39,7 +94,7 @@ function CatalogoCombos() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 auto-rows-fr gap-5 md:grid-cols-2">
+          <div className="grilla-combos grid auto-rows-fr grid-cols-1 gap-[26px] md:grid-cols-2 md:gap-x-[26px] md:gap-y-8">
             {combos.map((combo) => (
               <TarjetaCombo key={combo.id} combo={combo} />
             ))}

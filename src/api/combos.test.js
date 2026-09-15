@@ -3,6 +3,7 @@ import {
   getCombos,
   getCombo,
   getOpcionesCombo,
+  getResumenCombos,
   getAdminCombos,
   cotizarCombo,
   guardarHeroCombo,
@@ -72,6 +73,22 @@ describe("públicas (sin JWT)", () => {
     await getOpcionesCombo();
 
     expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/combos/opciones`);
+  });
+});
+
+describe("getResumenCombos", () => {
+  it("pide GET /combos/resumen sin JWT y devuelve {cantidad, porcentajeMaximo}", async () => {
+    respuestaPublica({ cantidad: 3, porcentajeMaximo: 25 });
+
+    await expect(getResumenCombos()).resolves.toEqual({ cantidad: 3, porcentajeMaximo: 25 });
+    expect(global.fetch.mock.calls[0][0]).toBe(`${BASE}/combos/resumen`);
+    expect(fetchAutenticado).not.toHaveBeenCalled();
+  });
+
+  it("tira con el mensaje del servidor ante un error", async () => {
+    respuestaPublica({ error: "Demasiadas solicitudes" }, { ok: false, status: 429 });
+
+    await expect(getResumenCombos()).rejects.toThrow("Demasiadas solicitudes");
   });
 });
 

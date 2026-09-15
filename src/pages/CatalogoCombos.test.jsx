@@ -6,6 +6,8 @@ import CatalogoCombos from "./CatalogoCombos.jsx";
 
 const combosCatalogoMock = vi.fn();
 vi.mock("../hooks/useCombosCatalogo.js", () => ({ default: () => combosCatalogoMock() }));
+const resumenMock = vi.fn(() => ({ resumen: { cantidad: 3, porcentajeMaximo: 25 } }));
+vi.mock("../hooks/useResumenCombos.js", () => ({ default: () => resumenMock() }));
 vi.mock("../hooks/useCarrito.js", () => ({ default: () => ({ agregar: vi.fn() }) }));
 
 function renderizar() {
@@ -32,6 +34,47 @@ describe("CatalogoCombos", () => {
     combosCatalogoMock.mockReturnValue({ combos: [combo(1), combo(2)], cargando: false, error: null });
     renderizar();
     expect(screen.getAllByRole("link", { name: /Ver el combo/i })).toHaveLength(2);
+  });
+
+  it("encabezado: eyebrow, h1 y la promesa, con los dos números que manda el backend", () => {
+    combosCatalogoMock.mockReturnValue({ combos: [combo(1), combo(2), combo(3)], cargando: false, error: null });
+    renderizar();
+    expect(screen.getByRole("heading", { level: 1, name: "Llevá el set completo y pagá menos" })).toBeInTheDocument();
+    expect(screen.getByText("Productos elegidos para usarse juntos, con un descuento que solo tenés comprando el combo.")).toBeInTheDocument();
+    expect(screen.getByText("Hasta 25% off")).toBeInTheDocument();
+    expect(screen.getByText("3 combos disponibles")).toBeInTheDocument();
+  });
+
+  it("encabezado: con un solo combo dice 1 combo disponible", () => {
+    resumenMock.mockReturnValueOnce({ resumen: { cantidad: 1, porcentajeMaximo: 10 } });
+    combosCatalogoMock.mockReturnValue({ combos: [combo(1)], cargando: false, error: null });
+    renderizar();
+    expect(screen.getByText("1 combo disponible")).toBeInTheDocument();
+  });
+
+  it("si el resumen falla, el encabezado sale igual pero sin la línea de datos", () => {
+    resumenMock.mockReturnValueOnce({ resumen: null });
+    combosCatalogoMock.mockReturnValue({ combos: [combo(1)], cargando: false, error: null });
+    renderizar();
+    expect(screen.getByRole("heading", { level: 1, name: "Llevá el set completo y pagá menos" })).toBeInTheDocument();
+    expect(screen.queryByText(/% off/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/disponible/)).not.toBeInTheDocument();
+  });
+
+  it("con cantidad 0 no muestra la línea de datos", () => {
+    resumenMock.mockReturnValueOnce({ resumen: { cantidad: 0, porcentajeMaximo: null } });
+    combosCatalogoMock.mockReturnValue({ combos: [], cargando: false, error: null });
+    renderizar();
+    expect(screen.queryByText(/% off/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Muy pronto los vas a ver acá/)).toBeInTheDocument();
+  });
+
+  it("la grilla es de filas iguales y centra la última card impar (clase grilla-combos)", () => {
+    combosCatalogoMock.mockReturnValue({ combos: [combo(1), combo(2), combo(3)], cargando: false, error: null });
+    renderizar();
+    const grilla = screen.getAllByRole("article")[0].closest(".grilla-combos");
+    expect(grilla).not.toBeNull();
+    expect(grilla).toHaveClass("auto-rows-fr", "md:grid-cols-2");
   });
 
   it("vacío: el mensaje de 'muy pronto' y el botón a /coleccion", () => {

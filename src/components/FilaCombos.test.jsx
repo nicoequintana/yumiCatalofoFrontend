@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { ToastProvider } from "../context/ToastContext.jsx";
 import FilaCombos from "./FilaCombos.jsx";
@@ -54,6 +55,43 @@ describe("FilaCombos", () => {
     fireEvent.scroll(fila);
 
     expect(puntos()).toEqual(["false", "true"]);
+  });
+
+  it("escritorio: flechas Anteriores/Siguientes que se ocultan en mobile y desplazan una card (ancho + hueco)", async () => {
+    renderizar();
+    const anteriores = screen.getByRole("button", { name: "Anteriores" });
+    const siguientes = screen.getByRole("button", { name: "Siguientes" });
+    // jsdom no aplica @media: se afirma sobre las clases de las que depende.
+    expect(anteriores).toHaveClass("hidden", "md:grid");
+    expect(siguientes).toHaveClass("hidden", "md:grid");
+
+    const fila = screen.getByRole("list");
+    fila.scrollBy = vi.fn();
+    const [primera] = screen.getAllByRole("listitem");
+    Object.defineProperty(primera, "offsetWidth", { configurable: true, value: 1000 });
+    fila.style.columnGap = "32px";
+
+    await userEvent.click(siguientes);
+    expect(fila.scrollBy).toHaveBeenLastCalledWith(expect.objectContaining({ left: 1032 }));
+    await userEvent.click(anteriores);
+    expect(fila.scrollBy).toHaveBeenLastCalledWith(expect.objectContaining({ left: -1032 }));
+  });
+
+  it("con un solo combo no hay flechas ni puntos", () => {
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <FilaCombos combos={[combo(1)]} titulo="X" />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole("button", { name: "Siguientes" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("punto-fila-combos")).not.toBeInTheDocument();
+  });
+
+  it("la pista lleva el padding que deja caer la sombra del ticket sin recortarla", () => {
+    renderizar();
+    expect(screen.getByRole("list")).toHaveClass("fila-combos-pista");
   });
 
   it("sin combos, no renderiza nada", () => {

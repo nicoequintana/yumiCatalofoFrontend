@@ -522,3 +522,33 @@ describe("piso de 11px: nada por debajo, ni badges ni legales", () => {
     expect(violaciones).toEqual([]);
   });
 });
+
+/**
+ * Sello de descuento de los combos (rediseño del 15/09/2026): rojo PROPIO con
+ * texto blanco. No reusa `error` — un sello de oferta no es un error, y atar los
+ * dos haría que ajustar el rojo de error cambie el sello (o al revés) sin que
+ * nadie lo decida. Vive solo en `.tema-publico`: la tienda es la única que lo pinta.
+ */
+describe("token sello (combos)", () => {
+  const publico = () => extraerBloque(indexCss, /\.tema-publico\s*\{/);
+
+  it("se declara en CANALES dentro de .tema-publico", () => {
+    expect(publico()).toMatch(/--color-sello:\s*207 46 31;/);
+    expect(indexCss).not.toMatch(/--color-sello:\s*#/);
+  });
+
+  it("no es el mismo valor que error", () => {
+    expect(valorColor(publico(), "sello")).not.toEqual(valorColor(publico(), "error"));
+  });
+
+  it("el texto blanco (on-primary) sobre el sello llega a 4.5:1", () => {
+    expect(contraste(valorColor(publico(), "on-primary"), valorColor(publico(), "sello"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("está expuesto en tailwind.config.js con el wrapper de alpha, y la sombra del ticket como boxShadow", () => {
+    expect(tailwindConfig).toMatch(/sello:\s*"rgb\(var\(--color-sello\) \/ <alpha-value>\)"/);
+    expect(configTailwind.theme.extend.boxShadow["sombra-ticket"]).toBe(
+      "0 1px 2px rgba(0, 49, 60, 0.08), 0 3px 6px -1px rgba(0, 49, 60, 0.08), 0 12px 24px -8px rgba(0, 49, 60, 0.18), 0 28px 48px -20px rgba(0, 49, 60, 0.26)",
+    );
+  });
+});

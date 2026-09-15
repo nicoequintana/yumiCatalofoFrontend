@@ -286,6 +286,10 @@
   --color-error-container: 255 218 214; /* #ffdad6 */
   --color-on-error-container: 147 0 10; /* #93000a */
   --color-inverse-surface: 49 48 44; /* #31302c */
+  /* Sello de descuento de los combos (rediseño del 15/09/2026). Rojo PROPIO,
+     no `error`: una oferta no es un error, y atarlos haría que ajustar uno
+     mueva el otro. Blanco encima da 5,17:1 (guard en `tokens.test.js`). */
+  --color-sello: 207 46 31; /* #cf2e1f */
 
   --font-display: "Outfit", sans-serif;
   --font-label: "Outfit", sans-serif;
@@ -450,125 +454,271 @@ h6 {
   }
 }
 
-/* Card de combo (`TarjetaCombo.jsx`): decide su forma por el ANCHO QUE LE
-   TOCA, no por la pantalla — container query nativa, sin plugin (Tailwind 3
-   no la cubre como utilidad; mismo criterio que `.vidrio-header`/`.vidrio-isla`
-   para un efecto que Tailwind no tiene). Ticket horizontal en ancho ≥ 720px,
-   apilada por debajo. */
+/* Ticket de combo (`TarjetaCombo.jsx` y el ticket de `PaginaCombo.jsx`,
+   rediseño del 15/09/2026, `combos-rediseno.html`). Decide su forma por el
+   ANCHO QUE LE TOCA, no por la pantalla — container query nativa, sin plugin
+   (Tailwind 3 no la cubre como utilidad). Tres formas:
+   - apilada (default): cuerpo arriba, talón abajo;
+   - ancha (≥ 720px): ticket horizontal, contenido centrado en vertical, fichas de 88px;
+   - angosta (≤ 380px): fichas de 50px y una menos visible, para no desbordar.
+   Lo que no depende del ancho (colores, tipografía base) va en Tailwind en el
+   markup; acá solo lo que cambia con el contenedor. Sin hover y sin muescas:
+   decisión del rediseño (ver `docs/reglas/combos.md`). */
 .tarjeta-combo-wrap {
   container-type: inline-size;
 }
-/* Troquel apilado (default): línea punteada arriba del talón, entre las dos
-   "muescas" que la perforan en las puntas — ver `.muesca-b` más abajo para su
-   reposición en el ticket horizontal. */
-.tarjeta-combo .talon-combo {
-  border-top: 2px dashed rgb(var(--color-on-primary) / 0.28);
+.tarjeta-combo {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
 }
-/* `.muesca-a` no cambia de esquina entre los dos layouts (siempre arriba a la
-   izquierda del talón); `.muesca-b` sí — apilada va arriba a la derecha,
-   ticket horizontal va abajo a la izquierda, sobre el troquel vertical. */
-.tarjeta-combo .muesca-b {
-  right: -11px;
-  top: -11px;
-  left: auto;
-  bottom: auto;
+/* El espacio libre va a UN solo lugar: entre el texto y las fichas (fila
+   `1fr`). Sin `min-h` reservados — el título de una línea no deja hueco. */
+.tarjeta-combo-cuerpo {
+  padding: 20px 20px 22px;
+  gap: 14px;
+  grid-template-rows: auto 1fr auto;
+}
+.tarjeta-combo-titulo {
+  font-size: 24px;
+}
+.tarjeta-combo-frase {
+  font-size: 15px;
+}
+.fichas-combo {
+  gap: 6px;
+  align-self: end;
+}
+.ficha-combo {
+  width: 62px;
+  aspect-ratio: 1;
+  padding: 5px;
+  border-radius: 16px;
+}
+.ficha-combo-foto {
+  border-radius: 11px;
+}
+.signo-combo {
+  font-size: 18px;
+}
+.fichas-solo-ancho {
+  display: contents;
+}
+.fichas-solo-angosto {
+  display: none;
+}
+.talon-combo {
+  padding: 24px 20px 20px;
+}
+/* El troquel: SOLO la línea punteada (sin muescas). Apilado va arriba,
+   con aire a los costados; en el ticket ancho pasa a la izquierda. */
+.talon-combo::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 0;
+  border-top: 2px dashed rgb(var(--color-on-primary) / 0.26);
+}
+/* Apilado, el sello sube sobre el troquel (por eso el `<article>` no lleva
+   `overflow-hidden`); en el ticket ancho baja adentro del talón. */
+.sello-combo {
+  right: 18px;
+  top: -34px;
+  width: 78px;
+  height: 78px;
+}
+.sello-combo-numero {
+  font-size: 25px;
+}
+.precio-combo {
+  font-size: 42px;
 }
 @container (min-width: 720px) {
   .tarjeta-combo {
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(0, 1fr) 330px;
     grid-template-rows: 1fr;
   }
-  .tarjeta-combo .talon-combo {
-    border-top: 0;
-    border-left: 2px dashed rgb(var(--color-on-primary) / 0.28);
+  .tarjeta-combo-cuerpo {
+    padding: 32px 36px;
+    gap: 18px;
+    grid-template-rows: auto auto auto;
+    align-content: center;
+    border-radius: 22px 0 0 22px;
   }
-  .tarjeta-combo .muesca-b {
-    left: -11px;
-    bottom: -11px;
+  .tarjeta-combo-titulo {
+    font-size: 36px;
+  }
+  .tarjeta-combo-frase {
+    font-size: 17px;
+  }
+  .fichas-combo {
+    gap: 10px;
+    align-self: start;
+  }
+  .ficha-combo {
+    width: 88px;
+    padding: 6px;
+    border-radius: 20px;
+  }
+  .ficha-combo-foto {
+    border-radius: 14px;
+  }
+  .signo-combo {
+    font-size: 22px;
+  }
+  .talon-combo {
+    padding: 30px 28px;
+    align-content: center;
+    border-radius: 0 22px 22px 0;
+  }
+  .talon-combo::before {
+    left: 0;
     right: auto;
-    top: auto;
-  }
-  /* Apilada el sello sube sobre el troquel; en el ticket horizontal no hay
-     troquel arriba y el `overflow-hidden` del `<article>` lo recortaba: va
-     adentro del talón (diseño aprobado, `.sello` a ≥ 720px). */
-  .tarjeta-combo .sello-combo {
     top: 18px;
-    right: 20px;
-    width: 84px;
-    height: 84px;
+    bottom: 18px;
+    border-top: 0;
+    border-left: 2px dashed rgb(var(--color-on-primary) / 0.26);
   }
-  .tarjeta-combo .sello-combo-numero {
-    font-size: 27px;
+  .sello-combo {
+    top: 20px;
+    right: 22px;
+    width: 86px;
+    height: 86px;
+  }
+  .sello-combo-numero {
+    font-size: 28px;
+  }
+  .precio-combo {
+    font-size: 52px;
+  }
+  /* El talón de la página suma cantidad + "Agregar combo" en una fila: a
+     330px el botón partía el texto en dos líneas. */
+  .tarjeta-combo-pagina {
+    grid-template-columns: minmax(0, 1fr) 380px;
+  }
+}
+@container (max-width: 380px) {
+  .fichas-combo {
+    gap: 4px;
+  }
+  .ficha-combo {
+    width: 50px;
+    padding: 4px;
+    border-radius: 14px;
+  }
+  .ficha-combo-foto {
+    border-radius: 10px;
+  }
+  .signo-combo {
+    font-size: 15px;
+  }
+  .fichas-solo-ancho {
+    display: none;
+  }
+  .fichas-solo-angosto {
+    display: contents;
+  }
+}
+@container (max-width: 340px) {
+  .tarjeta-combo-titulo {
+    font-size: 22px;
+  }
+  .precio-combo {
+    font-size: 38px;
   }
 }
 
-/* Página del combo (`PaginaCombo.jsx`, spec §7.3, diseño aprobado
-   "combos-pagina-admin.html"). MISMO criterio que la card de arriba — decide
-   su forma por el ANCHO QUE LE TOCA, nunca por el viewport — y por el MISMO
-   motivo: la vista previa del editor del panel (Tarea 28) va a embeber esta
-   página real dentro de un marco angosto de ~390px con el viewport ENTERO del
-   panel de admin, así que un breakpoint `md:` de Tailwind (que mide viewport)
-   jamás cambiaría de forma ahí. Container query nativa, breakpoint 820px —el
-   del diseño aprobado—, mismo mecanismo que `.tarjeta-combo-wrap` de arriba. */
+/* Fila de combos (`FilaCombos.jsx`, home y ficha). Un contenedor con scroll
+   recorta TODO lo que sale de su caja, también la sombra del ticket: la pista
+   se agranda con padding y lo compensa con margen negativo, así la sombra cae
+   entera y difusa. La caída larga de `sombra-ticket` baja ~48px, de ahí el
+   padding inferior. Mobile: los costados sangran hasta el borde del viewport
+   (`margin-mobile`), y la card siguiente asoma cortada contra el borde real. */
+.fila-combos-pista {
+  grid-auto-columns: 86%;
+  gap: 16px;
+  padding: 20px 20px 52px;
+  margin: -20px -20px -32px;
+  scroll-padding-inline: 20px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.fila-combos-pista::-webkit-scrollbar {
+  display: none;
+}
+.fila-combos-pista > * {
+  scroll-snap-align: start;
+}
+@media (min-width: 768px) {
+  .fila-combos-pista {
+    grid-auto-columns: 100%;
+    /* 64px y no 32px a los costados (medido en la revisión visual): con 32px
+       la sombra se cortaba contra el borde de la pista y en la ficha asomaba
+       la card siguiente. 64px es el `margin-desktop` de la sección, así que
+       la pista llega justo a su borde. El hueco (96px) es MAYOR que el padding:
+       así la card siguiente y también el borde izquierdo de SU sombra quedan
+       fuera de la caja; con 64px la sombra asomaba cortada en seco. */
+    gap: 96px;
+    padding: 24px 64px 64px;
+    margin: -24px -64px -40px;
+    scroll-padding-inline: 64px;
+  }
+}
+
+/* Grilla de `/combos` (`CatalogoCombos.jsx`): filas del mismo alto y, con
+   cantidad impar, la última card centrada a media columna en vez de quedar
+   sola a la izquierda. */
+@media (min-width: 768px) {
+  .grilla-combos > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc(50% - 13px);
+  }
+}
+
+/* Página del combo (`PaginaCombo.jsx`). MISMO criterio que la card — decide
+   por el ANCHO DEL CONTENEDOR, nunca por el viewport — porque la vista previa
+   del editor del panel embebe esta página en un marco de ~390px con el
+   viewport entero del panel: un `md:` jamás cambiaría de forma ahí.
+   `.pc-contenedor` es el ÚNICO contenedor de migas, hero, ticket y secciones:
+   todo comparte bordes. En el sitio `.pagina-combo` mide lo que el viewport,
+   así que 768px acá coincide con el `md` del resto del público. */
 .pagina-combo {
   container-type: inline-size;
 }
+.pc-contenedor {
+  padding-inline: 20px;
+}
 .pc-hero {
   aspect-ratio: 4 / 3;
+  border-radius: 20px;
 }
+/* El ticket se superpone al hero y queda metido hacia adentro. */
 .pc-ticket {
-  grid-template-columns: minmax(0, 1fr);
-}
-/* Troquel del talón: línea punteada arriba (apilado) que pasa a la izquierda
-   (ticket horizontal) — mismo lenguaje que `.tarjeta-combo .talon-combo`,
-   copia aparte porque el breakpoint (820px acá, 720px en la card) y el
-   contenedor (`.pagina-combo`, no `.tarjeta-combo-wrap`) son otros. */
-.pc-talon {
-  border-top: 2px dashed rgb(var(--color-on-primary) / 0.28);
-}
-.pc-muesca-b {
-  right: -11px;
-  top: -11px;
-  left: auto;
-  bottom: auto;
+  margin-top: -40px;
+  padding-inline: 8px;
 }
 .pc-incluye {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(230px, 280px));
+  justify-content: center;
 }
 .pc-cuenta {
   grid-template-columns: minmax(0, 1fr);
 }
-@container (min-width: 820px) {
+@container (min-width: 768px) {
+  .pc-contenedor {
+    padding-inline: 64px;
+  }
   .pc-hero {
     aspect-ratio: 12 / 5;
+    border-radius: 26px;
   }
   .pc-ticket {
-    grid-template-columns: minmax(0, 1fr) 360px;
+    margin-top: -84px;
+    padding-inline: clamp(12px, 3cqi, 36px);
   }
-  .pc-talon {
-    border-top: 0;
-    border-left: 2px dashed rgb(var(--color-on-primary) / 0.28);
-  }
-  .pc-muesca-b {
-    left: -11px;
-    bottom: -11px;
-    right: auto;
-    top: auto;
-  }
-  /* Mismo motivo que `.tarjeta-combo .sello-combo`: en horizontal el sello va
-     adentro del talón, no por encima del borde del ticket. */
-  .pc-sello {
-    top: 18px;
-    right: 22px;
-    width: 88px;
-    height: 88px;
-  }
-  .pc-sello-numero {
-    font-size: 29px;
-  }
-  .pc-incluye {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+}
+@container (min-width: 820px) {
   .pc-cuenta {
     grid-template-columns: minmax(0, 1fr) 420px;
     align-items: center;

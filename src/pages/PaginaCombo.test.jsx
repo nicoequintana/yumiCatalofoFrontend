@@ -79,6 +79,33 @@ describe("PaginaCombo", () => {
     expect(await within(ticket).findByRole("link", { name: "Contactar por WhatsApp" })).toBeInTheDocument();
   });
 
+  // Rediseño del 15/09/2026: el ticket de la página habla el mismo idioma que
+  // la card (sin muescas, sello rojo propio, sombra fija, fichas enmarcadas).
+  it("el ticket va como la card: sin muescas, sello rojo, sombra de ticket y fichas enmarcadas", () => {
+    mockUseCombo.mockReturnValue({ combo: combo(), cargando: false, error: null, noEncontrado: false });
+    const { container } = renderizar();
+
+    const ticket = screen.getByRole("region", { name: "Comprar combo" });
+    expect(ticket.className).toContain("shadow-sombra-ticket");
+    expect(ticket.className).not.toMatch(/hover:/);
+    expect(container.querySelector(".muesca-a, .pc-muesca-b, .muesca-b")).toBeNull();
+    expect(within(ticket).getByLabelText("15% de descuento").className).toContain("bg-sello");
+    expect(within(ticket).getAllByTestId("ficha-item")).toHaveLength(2);
+    expect(within(ticket).getByText(/Ahorrás/).querySelector(".material-symbols-outlined")).toHaveTextContent("savings");
+  });
+
+  it("un solo contenedor: migas, hero, ticket y secciones cuelgan del mismo ancho", () => {
+    mockUseCombo.mockReturnValue({ combo: combo(), cargando: false, error: null, noEncontrado: false });
+    renderizar();
+
+    const contenedor = screen.getByRole("navigation", { name: "Miga de pan" }).parentElement;
+    expect(contenedor).toHaveClass("pc-contenedor");
+    expect(contenedor).toContainElement(screen.getByRole("img", { name: "Kit Living Cálido" }));
+    expect(contenedor).toContainElement(screen.getByRole("region", { name: "Comprar combo" }));
+    expect(contenedor).toContainElement(screen.getByRole("heading", { name: "3 productos, un solo precio" }));
+    expect(contenedor).toContainElement(screen.getByText("La cuenta"));
+  });
+
   it("Agregar combo agrega la cantidad elegida con el selector", async () => {
     mockUseCombo.mockReturnValue({ combo: combo(), cargando: false, error: null, noEncontrado: false });
     renderizar();
