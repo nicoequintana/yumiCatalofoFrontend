@@ -69,8 +69,8 @@ describe("Navbar - badge de carrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1, 2);
-      result.current.agregar(2, 3);
+      result.current.agregar({ productId: 1 }, 2);
+      result.current.agregar({ productId: 2 }, 3);
     });
 
     expect(screen.getByText("5")).toBeInTheDocument();

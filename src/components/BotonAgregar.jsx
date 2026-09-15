@@ -55,7 +55,7 @@ function BotonAgregar({ producto, className = "", variante = "claro" }) {
     evento.preventDefault();
     evento.stopPropagation();
     if (deshabilitado) return;
-    agregar(producto.id, 1);
+    agregar({ productId: producto.id }, 1);
     mostrarToast(`${producto.nombre} agregado al carrito`, {
       foto: producto.fotos?.[0] ? { url: producto.fotos[0].url, alt: producto.nombre } : null,
       accion: { texto: "Ver carrito", to: "/carrito" },

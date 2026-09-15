@@ -80,7 +80,7 @@ function BotonAgregarCarrito({
     // AGREGADO_CARRITO event.
     if (agregado) return;
 
-    agregar(producto.id, cantidadEfectiva);
+    agregar({ productId: producto.id }, cantidadEfectiva);
 
     // Fire-and-forget analytics, same non-blocking pattern as
     // BotonCompartir/BotonFavorito — never awaited, never allowed to affect

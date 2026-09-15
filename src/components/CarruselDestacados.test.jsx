@@ -243,7 +243,7 @@ describe("CarruselDestacados — arrastre", () => {
     await userEvent.click(boton);
 
     expect(agregarMock).toHaveBeenCalledTimes(1);
-    expect(agregarMock).toHaveBeenCalledWith(1, 1);
+    expect(agregarMock).toHaveBeenCalledWith({ productId: 1 }, 1);
   });
 
   it("un arrastre real sobre la tarjeta cancela el click de Agregar, igual que cancela la navegación", () => {

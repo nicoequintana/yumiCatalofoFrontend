@@ -211,7 +211,7 @@ describe("ProductCard — Agregar al carrito", () => {
       </MemoryRouter>,
     );
     await userEvent.click(screen.getByRole("button", { name: "Agregar" }));
-    expect(agregarMock).toHaveBeenCalledWith(7, 1);
+    expect(agregarMock).toHaveBeenCalledWith({ productId: 7 }, 1);
     expect(ruta).toBe("/");
   });
 });

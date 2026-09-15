@@ -27,16 +27,26 @@ export function storageDisponible() {
 // Una línea corrupta en storage (cantidad null/"abc"/negativa, id inválido —
 // posible por una versión vieja del shape o una edición manual) produciría
 // `cantidadTotal: NaN` en el badge del Navbar. Se filtra al leer: solo
-// enteros positivos en ambos campos.
-function esLineaValida(linea) {
-  return (
-    linea !== null &&
-    typeof linea === "object" &&
-    Number.isInteger(linea.productId) &&
-    linea.productId > 0 &&
-    Number.isInteger(linea.cantidad) &&
-    linea.cantidad > 0
-  );
+// enteros positivos en ambos campos. Una línea es de producto O de combo,
+// nunca las dos ni ninguna — ver spec 7.7.
+export function esLineaValida(linea) {
+  if (linea === null || typeof linea !== "object") return false;
+  const esProducto = Number.isInteger(linea.productId) && linea.productId > 0;
+  const esCombo = Number.isInteger(linea.comboId) && linea.comboId > 0;
+  // Exactamente una de las dos: una línea con ambas o con ninguna es basura.
+  if (esProducto === esCombo) return false;
+  if (linea.productId !== undefined && linea.comboId !== undefined) return false;
+  return Number.isInteger(linea.cantidad) && linea.cantidad > 0;
+}
+
+/** Por qué campo se identifica una línea: `productId` o `comboId`. */
+function claveDe(referencia) {
+  return referencia.productId !== undefined ? "productId" : "comboId";
+}
+
+function coincide(linea, referencia) {
+  const clave = claveDe(referencia);
+  return linea[clave] === referencia[clave];
 }
 
 /**
@@ -111,8 +121,8 @@ function manejarStorageDeOtraPestana(evento) {
 }
 
 /**
- * Cart lines are stored as a JSON array of `{ productId, cantidad }` objects
- * under one localStorage key. Multiple components (a future
+ * Cart lines are stored as a JSON array of `{ productId, cantidad }` or
+ * `{ comboId, cantidad }` objects under one localStorage key. Multiple components (a future
  * BotonAgregarCarrito, Navbar's cart-count badge, the future Carrito page)
  * can each hold their own instance of this hook and stay in sync: writes go
  * through `escribirCarrito`, which notifies every mounted instance via a
@@ -148,27 +158,26 @@ function useCarrito() {
     };
   }, []);
 
-  function agregar(productId, cantidad = 1) {
+  function agregar(referencia, cantidad = 1) {
     // Guard against non-positive OR non-integer quantities (NaN included:
     // `Math.max(1, NaN)` is NaN, so the old floor didn't cover it).
-    // `agregar(id, -5)` must not silently shrink or delete a line — only
-    // `actualizarCantidad`/`quitar` are allowed to do that, and only
+    // `agregar(referencia, -5)` must not silently shrink or delete a line —
+    // only `actualizarCantidad`/`quitar` are allowed to do that, and only
     // explicitly. Adding always adds.
     const cantidadValida = Number.isInteger(cantidad) && cantidad > 0 ? cantidad : 1;
+    const clave = claveDe(referencia);
     const actual = carritoActual;
-    const existente = actual.find((linea) => linea.productId === productId);
+    const existente = actual.find((linea) => coincide(linea, referencia));
     const siguiente = existente
       ? actual.map((linea) =>
-          linea.productId === productId
-            ? { ...linea, cantidad: linea.cantidad + cantidadValida }
-            : linea,
+          coincide(linea, referencia) ? { ...linea, cantidad: linea.cantidad + cantidadValida } : linea,
         )
-      : [...actual, { productId, cantidad: cantidadValida }];
+      : [...actual, { [clave]: referencia[clave], cantidad: cantidadValida }];
     escribirCarrito(siguiente);
   }
 
-  function quitar(productId) {
-    escribirCarrito(carritoActual.filter((linea) => linea.productId !== productId));
+  function quitar(referencia) {
+    escribirCarrito(carritoActual.filter((linea) => !coincide(linea, referencia)));
   }
 
   /**
@@ -178,22 +187,20 @@ function useCarrito() {
    * A line with cantidad <= 0 has no meaningful UI representation (nothing
    * to display/checkout), so this API collapses that state instead of
    * letting callers create it.
-   * @param {number} productId
+   * @param {{productId: number}|{comboId: number}} referencia
    * @param {number} cantidad - new quantity; `<= 0` removes the line.
    */
-  function actualizarCantidad(productId, cantidad) {
+  function actualizarCantidad(referencia, cantidad) {
     // NaN o una cantidad no entera no tienen representación posible en una
     // línea: se ignora en vez de escribir basura (NaN <= 0 es false, así que
     // sin este guard una cantidad NaN pasaba de largo y quedaba persistida).
     if (!Number.isInteger(cantidad)) return;
     if (cantidad <= 0) {
-      quitar(productId);
+      quitar(referencia);
       return;
     }
     escribirCarrito(
-      carritoActual.map((linea) =>
-        linea.productId === productId ? { ...linea, cantidad } : linea,
-      ),
+      carritoActual.map((linea) => (coincide(linea, referencia) ? { ...linea, cantidad } : linea)),
     );
   }
 

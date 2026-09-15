@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import useCarrito, { STORAGE_KEY, storageDisponible } from "./useCarrito.js";
+import useCarrito, { STORAGE_KEY, esLineaValida, storageDisponible } from "./useCarrito.js";
 
 // Fake de Storage para los tests que necesitan un localStorage FUNCIONAL
 // (lectura inicial con basura, evento `storage` de otra pestaña). El global
@@ -54,7 +54,7 @@ describe("useCarrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1);
+      result.current.agregar({ productId: 1 });
     });
 
     expect(result.current.carrito).toEqual([{ productId: 1, cantidad: 1 }]);
@@ -64,7 +64,7 @@ describe("useCarrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1, -5);
+      result.current.agregar({ productId: 1 }, -5);
     });
 
     expect(result.current.carrito).toEqual([{ productId: 1, cantidad: 1 }]);
@@ -74,7 +74,7 @@ describe("useCarrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1, 3);
+      result.current.agregar({ productId: 1 }, 3);
     });
 
     expect(result.current.carrito).toEqual([{ productId: 1, cantidad: 3 }]);
@@ -84,10 +84,10 @@ describe("useCarrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1, 2);
+      result.current.agregar({ productId: 1 }, 2);
     });
     act(() => {
-      result.current.agregar(1, 3);
+      result.current.agregar({ productId: 1 }, 3);
     });
 
     expect(result.current.carrito).toEqual([{ productId: 1, cantidad: 5 }]);
@@ -97,11 +97,11 @@ describe("useCarrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1);
-      result.current.agregar(2);
+      result.current.agregar({ productId: 1 });
+      result.current.agregar({ productId: 2 });
     });
     act(() => {
-      result.current.quitar(1);
+      result.current.quitar({ productId: 1 });
     });
 
     expect(result.current.carrito).toEqual([{ productId: 2, cantidad: 1 }]);
@@ -111,10 +111,10 @@ describe("useCarrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1);
+      result.current.agregar({ productId: 1 });
     });
     act(() => {
-      result.current.actualizarCantidad(1, 7);
+      result.current.actualizarCantidad({ productId: 1 }, 7);
     });
 
     expect(result.current.carrito).toEqual([{ productId: 1, cantidad: 7 }]);
@@ -124,10 +124,10 @@ describe("useCarrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1, 5);
+      result.current.agregar({ productId: 1 }, 5);
     });
     act(() => {
-      result.current.actualizarCantidad(1, 0);
+      result.current.actualizarCantidad({ productId: 1 }, 0);
     });
 
     expect(result.current.carrito).toEqual([]);
@@ -137,8 +137,8 @@ describe("useCarrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1);
-      result.current.agregar(2);
+      result.current.agregar({ productId: 1 });
+      result.current.agregar({ productId: 2 });
     });
     act(() => {
       result.current.vaciar();
@@ -151,10 +151,10 @@ describe("useCarrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1, 2);
+      result.current.agregar({ productId: 1 }, 2);
     });
     act(() => {
-      result.current.agregar(2, 5);
+      result.current.agregar({ productId: 2 }, 5);
     });
 
     expect(result.current.cantidadTotal).toBe(7);
@@ -177,7 +177,7 @@ describe("useCarrito", () => {
     const b = renderHook(() => useCarrito());
 
     act(() => {
-      a.result.current.agregar(1, 2);
+      a.result.current.agregar({ productId: 1 }, 2);
     });
 
     expect(a.result.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);
@@ -195,8 +195,8 @@ describe("useCarrito", () => {
     const b = renderHook(() => useCarrito());
 
     act(() => {
-      a.result.current.agregar(1, 1);
-      b.result.current.agregar(1, 1);
+      a.result.current.agregar({ productId: 1 }, 1);
+      b.result.current.agregar({ productId: 1 }, 1);
     });
 
     expect(a.result.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);
@@ -207,7 +207,7 @@ describe("useCarrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1, Number("abc"));
+      result.current.agregar({ productId: 1 }, Number("abc"));
     });
 
     expect(result.current.carrito).toEqual([{ productId: 1, cantidad: 1 }]);
@@ -218,7 +218,7 @@ describe("useCarrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1, 2.5);
+      result.current.agregar({ productId: 1 }, 2.5);
     });
 
     expect(result.current.carrito).toEqual([{ productId: 1, cantidad: 1 }]);
@@ -228,10 +228,10 @@ describe("useCarrito", () => {
     const { result } = renderHook(() => useCarrito());
 
     act(() => {
-      result.current.agregar(1, 3);
+      result.current.agregar({ productId: 1 }, 3);
     });
     act(() => {
-      result.current.actualizarCantidad(1, Number("abc"));
+      result.current.actualizarCantidad({ productId: 1 }, Number("abc"));
     });
 
     expect(result.current.carrito).toEqual([{ productId: 1, cantidad: 3 }]);
@@ -247,13 +247,88 @@ describe("useCarrito", () => {
 
     expect(() => {
       act(() => {
-        result.current.agregar(1);
+        result.current.agregar({ productId: 1 });
       });
     }).not.toThrow();
 
     expect(result.current.carrito).toEqual([{ productId: 1, cantidad: 1 }]);
 
     Storage.prototype.setItem = originalSetItem;
+  });
+
+  describe("líneas discriminadas", () => {
+    it("agrega un producto suelto con {productId}", () => {
+      const { result } = renderHook(() => useCarrito());
+      act(() => result.current.agregar({ productId: 5 }, 1));
+      expect(result.current.carrito).toEqual([{ productId: 5, cantidad: 1 }]);
+    });
+
+    it("agrega un combo con {comboId}", () => {
+      const { result } = renderHook(() => useCarrito());
+      act(() => result.current.agregar({ comboId: 3 }, 1));
+      expect(result.current.carrito).toEqual([{ comboId: 3, cantidad: 1 }]);
+    });
+
+    it("agregar el mismo combo dos veces suma cantidad", () => {
+      const { result } = renderHook(() => useCarrito());
+      act(() => result.current.agregar({ comboId: 3 }, 1));
+      act(() => result.current.agregar({ comboId: 3 }, 2));
+      expect(result.current.carrito).toEqual([{ comboId: 3, cantidad: 3 }]);
+    });
+
+    it("un combo y un producto con el mismo id numérico conviven como líneas distintas", () => {
+      const { result } = renderHook(() => useCarrito());
+      act(() => result.current.agregar({ productId: 3 }, 1));
+      act(() => result.current.agregar({ comboId: 3 }, 1));
+      expect(result.current.carrito).toEqual([
+        { productId: 3, cantidad: 1 },
+        { comboId: 3, cantidad: 1 },
+      ]);
+    });
+
+    it("guarda solo la clave de la referencia: una referencia con claves de más no las persiste", () => {
+      const { result } = renderHook(() => useCarrito());
+      act(() => result.current.agregar({ comboId: 3, nombre: "Kit" }, 1));
+      expect(result.current.carrito).toEqual([{ comboId: 3, cantidad: 1 }]);
+    });
+
+    it("actualizarCantidad y quitar distinguen combo de producto", () => {
+      const { result } = renderHook(() => useCarrito());
+      act(() => result.current.agregar({ productId: 3 }, 1));
+      act(() => result.current.agregar({ comboId: 3 }, 1));
+
+      act(() => result.current.actualizarCantidad({ comboId: 3 }, 4));
+      expect(result.current.carrito).toEqual([
+        { productId: 3, cantidad: 1 },
+        { comboId: 3, cantidad: 4 },
+      ]);
+
+      act(() => result.current.quitar({ comboId: 3 }));
+      expect(result.current.carrito).toEqual([{ productId: 3, cantidad: 1 }]);
+    });
+
+    it("cantidadTotal suma las unidades de todas las líneas, sin distinguir tipo", () => {
+      const { result } = renderHook(() => useCarrito());
+      act(() => result.current.agregar({ productId: 1 }, 2));
+      act(() => result.current.agregar({ comboId: 3 }, 1));
+      expect(result.current.cantidadTotal).toBe(3);
+    });
+  });
+
+  describe("esLineaValida", () => {
+    it("acepta una línea de producto o de combo", () => {
+      expect(esLineaValida({ productId: 1, cantidad: 1 })).toBe(true);
+      expect(esLineaValida({ comboId: 1, cantidad: 1 })).toBe(true);
+    });
+
+    it("rechaza las dos claves, ninguna, o una cantidad inválida", () => {
+      expect(esLineaValida({ productId: 1, comboId: 2, cantidad: 1 })).toBe(false);
+      expect(esLineaValida({ cantidad: 1 })).toBe(false);
+      expect(esLineaValida({ comboId: 0, cantidad: 1 })).toBe(false);
+      expect(esLineaValida({ productId: 1, cantidad: 0 })).toBe(false);
+      expect(esLineaValida({ productId: 1, cantidad: "1" })).toBe(false);
+      expect(esLineaValida(null)).toBe(false);
+    });
   });
 });
 
@@ -354,7 +429,7 @@ describe("useCarrito — sincronización entre pestañas (evento storage)", () =
       dispararStorage(estado.valor);
     });
     act(() => {
-      result.current.agregar(9, 1);
+      result.current.agregar({ productId: 9 }, 1);
     });
 
     expect(result.current.carrito).toEqual([{ productId: 9, cantidad: 4 }]);
@@ -408,7 +483,7 @@ describe("useCarrito — sincronización entre pestañas (evento storage)", () =
     expect(segunda.result.current.carrito).toEqual([{ productId: 9, cantidad: 3 }]);
 
     act(() => {
-      segunda.result.current.agregar(1, 1);
+      segunda.result.current.agregar({ productId: 1 }, 1);
     });
 
     // Sin el refresh del estado de módulo, esto daría [{ productId: 1,
@@ -501,7 +576,7 @@ describe("useCarrito — con el storage roto, la memoria es la fuente de verdad"
     // de vuelta a /carrito: el carrito se evapora en el momento de comprar.
     const primera = renderHook(() => useCarrito());
     act(() => {
-      primera.result.current.agregar(1, 2);
+      primera.result.current.agregar({ productId: 1 }, 2);
     });
     expect(primera.result.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);
 
@@ -519,13 +594,13 @@ describe("useCarrito — con el storage roto, la memoria es la fuente de verdad"
     // carrito bueno: la realineación solo vale si el storage se pudo leer.
     const primera = renderHook(() => useCarrito());
     act(() => {
-      primera.result.current.agregar(7, 3);
+      primera.result.current.agregar({ productId: 7 }, 3);
     });
     primera.unmount();
 
     const segunda = renderHook(() => useCarrito());
     act(() => {
-      segunda.result.current.agregar(7, 1);
+      segunda.result.current.agregar({ productId: 7 }, 1);
     });
     expect(segunda.result.current.carrito).toEqual([{ productId: 7, cantidad: 4 }]);
     segunda.unmount();

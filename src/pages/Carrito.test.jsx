@@ -77,7 +77,7 @@ describe("Carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(1, 2);
+      carritoHook.current.agregar({ productId: 1 }, 2);
     });
 
     expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe("Carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(2, 1);
+      carritoHook.current.agregar({ productId: 2 }, 1);
     });
 
     expect(await screen.findByText("Anillo Elegance")).toBeInTheDocument();
@@ -109,8 +109,8 @@ describe("Carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(1, 1);
-      carritoHook.current.agregar(99, 1); // 99 no existe en el fetch en vivo
+      carritoHook.current.agregar({ productId: 1 }, 1);
+      carritoHook.current.agregar({ productId: 99 }, 1); // 99 no existe en el fetch en vivo
     });
 
     expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
@@ -130,8 +130,8 @@ describe("Carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(1, 1);
-      carritoHook.current.agregar(99, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
+      carritoHook.current.agregar({ productId: 99 }, 1);
     });
 
     await screen.findByText(/ya no está disponible/i);
@@ -148,8 +148,8 @@ describe("Carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(1, 1);
-      carritoHook.current.agregar(99, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
+      carritoHook.current.agregar({ productId: 99 }, 1);
     });
 
     await screen.findByText(/ya no está disponible/i);
@@ -170,7 +170,7 @@ describe("Carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
     });
 
     expect(await screen.findByText("Reloj Clásico")).toBeInTheDocument();
@@ -189,7 +189,7 @@ describe("Carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
     });
 
     await screen.findByText("Reloj Clásico");
@@ -208,7 +208,7 @@ describe("Carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
     });
 
     await screen.findByText("Reloj Clásico");
@@ -240,9 +240,9 @@ describe("Carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(10, 1);
-      carritoHook.current.agregar(11, 1);
-      carritoHook.current.agregar(12, 1);
+      carritoHook.current.agregar({ productId: 10 }, 1);
+      carritoHook.current.agregar({ productId: 11 }, 1);
+      carritoHook.current.agregar({ productId: 12 }, 1);
     });
 
     await screen.findByText("A");
@@ -285,7 +285,7 @@ describe("Carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
     });
 
     await screen.findByText("Reloj Clásico");
@@ -304,7 +304,7 @@ describe("Carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(1, 2);
+      carritoHook.current.agregar({ productId: 1 }, 2);
     });
 
     await screen.findByText("Reloj Clásico");
@@ -335,7 +335,7 @@ describe("Carrito — tope de cantidad contra el stock disponible", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(3, 5); // el stock vivo es 2
+      carritoHook.current.agregar({ productId: 3 }, 5); // el stock vivo es 2
     });
 
     expect(await screen.findByText(/solo hay 2 unidades disponibles/i)).toBeInTheDocument();
@@ -353,7 +353,7 @@ describe("Carrito — tope de cantidad contra el stock disponible", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(3, 5);
+      carritoHook.current.agregar({ productId: 3 }, 5);
     });
 
     await screen.findByText(/solo hay 2 unidades disponibles/i);
@@ -370,7 +370,7 @@ describe("Carrito — tope de cantidad contra el stock disponible", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(3, 2);
+      carritoHook.current.agregar({ productId: 3 }, 2);
     });
 
     await screen.findByText("Vela de soja");
@@ -389,7 +389,7 @@ describe("Carrito — tope de cantidad contra el stock disponible", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(1, 50);
+      carritoHook.current.agregar({ productId: 1 }, 50);
     });
 
     await screen.findByText("Reloj Clásico");
@@ -437,8 +437,8 @@ describe("Carrito — fetch acotado a los productos del carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(1, 2);
-      carritoHook.current.agregar(2, 1);
+      carritoHook.current.agregar({ productId: 1 }, 2);
+      carritoHook.current.agregar({ productId: 2 }, 1);
     });
 
     await screen.findByText("Reloj Clásico");
@@ -453,13 +453,13 @@ describe("Carrito — fetch acotado a los productos del carrito", () => {
     renderCarrito();
 
     act(() => {
-      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
     });
     await screen.findByText("Reloj Clásico");
 
     const llamadasPrevias = productsApi.getProductsByIds.mock.calls.length;
     act(() => {
-      carritoHook.current.actualizarCantidad(1, 5);
+      carritoHook.current.actualizarCantidad({ productId: 1 }, 5);
     });
 
     expect(productsApi.getProductsByIds.mock.calls.length).toBe(llamadasPrevias);
@@ -479,7 +479,7 @@ describe("Carrito — volver al carrito no parpadea (stale-while-revalidate)", (
   async function montarYSalir(carritoHook) {
     const vista = renderCarrito();
     act(() => {
-      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
     });
     await screen.findByText("Reloj Clásico");
     vista.unmount();
@@ -513,7 +513,7 @@ describe("Carrito — volver al carrito no parpadea (stale-while-revalidate)", (
     const { result: carritoHook } = renderHook(() => useCarrito());
     await montarYSalir(carritoHook);
     act(() => {
-      carritoHook.current.actualizarCantidad(1, 3);
+      carritoHook.current.actualizarCantidad({ productId: 1 }, 3);
     });
 
     let resolver;

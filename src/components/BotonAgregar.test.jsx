@@ -28,7 +28,7 @@ describe("BotonAgregar", () => {
       </MemoryRouter>,
     );
     await userEvent.click(screen.getByRole("button", { name: /agregar/i }));
-    expect(agregarMock).toHaveBeenCalledWith(1, 1);
+    expect(agregarMock).toHaveBeenCalledWith({ productId: 1 }, 1);
     expect(await screen.findByText(/agregado al carrito/i)).toBeInTheDocument();
   });
 

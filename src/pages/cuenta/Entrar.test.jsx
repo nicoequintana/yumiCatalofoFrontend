@@ -186,7 +186,7 @@ describe("Entrar — carrito y storage bloqueado", () => {
   it("avisa si el storage está bloqueado Y el carrito tiene líneas", async () => {
     const { result } = renderHook(() => useCarrito());
     act(() => {
-      result.current.agregar(1, 1);
+      result.current.agregar({ productId: 1 }, 1);
     });
 
     renderEntrar();

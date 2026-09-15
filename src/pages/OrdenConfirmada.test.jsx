@@ -56,7 +56,7 @@ describe("OrdenConfirmada", () => {
   it("vacía el carrito al montar", async () => {
     const { result: carritoHook } = renderHook(() => useCarrito());
     act(() => {
-      carritoHook.current.agregar(1, 2);
+      carritoHook.current.agregar({ productId: 1 }, 2);
     });
     expect(carritoHook.current.carrito).toEqual([{ productId: 1, cantidad: 2 }]);
 

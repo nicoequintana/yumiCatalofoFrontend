@@ -23,7 +23,7 @@ import { precioAPagar } from "../utils/precioEfectivo.js";
  * línea cuyo producto ya no existe (borrado u oculto) — hay plata de por
  * medio (esto alimenta un checkout en Sprint 6), así que se muestra un
  * aviso inline en esa línea puntual y se deja que el usuario la quite a
- * mano vía `quitar(productId)`. `getProductsByIds()` sin `admin: true` aplica
+ * mano vía `quitar({ productId })`. `getProductsByIds()` sin `admin: true` aplica
  * las mismas guardas públicas que el listado (excluye ocultos y agotados), así
  * que "no encontrado en el fetch en vivo" cubre los tres casos —borrado,
  * oculto y agotado— sin necesidad de chequear esos campos aparte.
@@ -202,7 +202,7 @@ function Carrito() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => quitar(l.productId)}
+                        onClick={() => quitar({ productId: l.productId })}
                         aria-label="Quitar producto no disponible del carrito"
                         className="font-label-lg text-label-lg text-on-error-container underline"
                       >
@@ -219,7 +219,7 @@ function Carrito() {
                           </span>
                           <button
                             type="button"
-                            onClick={() => actualizarCantidad(l.productId, l.producto.stock)}
+                            onClick={() => actualizarCantidad({ productId: l.productId }, l.producto.stock)}
                             className="font-label-lg text-label-lg shrink-0 text-on-error-container underline"
                           >
                             Ajustar a {l.producto.stock}
@@ -229,12 +229,12 @@ function Carrito() {
                     <div className="flex items-center justify-between">
                       <SelectorCantidad
                         value={l.cantidad}
-                        onChange={(cantidad) => actualizarCantidad(l.productId, cantidad)}
+                        onChange={(cantidad) => actualizarCantidad({ productId: l.productId }, cantidad)}
                         max={l.maxCantidad}
                       />
                       <button
                         type="button"
-                        onClick={() => quitar(l.productId)}
+                        onClick={() => quitar({ productId: l.productId })}
                         aria-label="Eliminar del carrito"
                         className="inline-flex items-center gap-1 font-label-lg text-label-lg text-on-surface-variant hover:text-error"
                       >

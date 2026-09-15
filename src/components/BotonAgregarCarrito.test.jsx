@@ -154,7 +154,7 @@ describe("BotonAgregarCarrito", () => {
       render(<BotonAgregarCarrito producto={{ id: 7, nombre: "Poco stock", stock: 2 }} />);
 
       act(() => {
-        carritoHook.current.agregar(7, 1);
+        carritoHook.current.agregar({ productId: 7 }, 1);
       });
 
       // Stock 2 con 1 ya en el carrito: solo se puede agregar 1 más.
@@ -167,7 +167,7 @@ describe("BotonAgregarCarrito", () => {
       render(<BotonAgregarCarrito producto={{ id: 7, nombre: "Poco stock", stock: 2 }} />);
 
       act(() => {
-        carritoHook.current.agregar(7, 2);
+        carritoHook.current.agregar({ productId: 7 }, 2);
       });
 
       const boton = screen.getByRole("button", { name: /máximo en carrito/i });

@@ -85,7 +85,7 @@ async function prepararCheckout(cantidad = 1) {
   const { result: carritoHook } = renderHook(() => useCarrito());
   const vista = renderCheckout();
   act(() => {
-    carritoHook.current.agregar(1, cantidad);
+    carritoHook.current.agregar({ productId: 1 }, cantidad);
   });
   await screen.findByText("Cliente Prueba");
   return { carritoHook, vista, user: userEvent.setup() };
@@ -240,7 +240,7 @@ describe("Checkout — sesión", () => {
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCheckout({ perfil: null, resuelto: false, error: null });
     act(() => {
-      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
     });
 
     await waitFor(() =>
@@ -256,7 +256,7 @@ describe("Checkout — sesión", () => {
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCheckout({ perfil: null, resuelto: true, error: "No pudimos verificar tu sesión." });
     act(() => {
-      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
     });
 
     expect(await screen.findByText("No pudimos verificar tu sesión")).toBeInTheDocument();
@@ -273,7 +273,7 @@ describe("Checkout — sesión", () => {
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCheckout({ perfil: null, resuelto: true, error: null });
     act(() => {
-      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
     });
 
     const enlace = await screen.findByRole("link", { name: "Iniciar sesión" });
@@ -292,7 +292,7 @@ describe("Checkout — sesión", () => {
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCheckout({ perfil: null, resuelto: true, error: null });
     act(() => {
-      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
     });
 
     await screen.findByRole("link", { name: "Iniciar sesión" });
@@ -317,7 +317,7 @@ describe("Checkout — sesión", () => {
       const { result: carritoHook } = renderHook(() => useCarrito());
       renderCheckout({ perfil: null, resuelto: true, error: null });
       act(() => {
-        carritoHook.current.agregar(1, 1);
+        carritoHook.current.agregar({ productId: 1 }, 1);
       });
 
       await screen.findByRole("link", { name: "Iniciar sesión" });
@@ -393,7 +393,7 @@ describe("Checkout — carrito, total y carga (regresiones)", () => {
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCheckout();
     act(() => {
-      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
     });
 
     await waitFor(() =>
@@ -407,9 +407,9 @@ describe("Checkout — carrito, total y carga (regresiones)", () => {
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCheckout();
     act(() => {
-      carritoHook.current.agregar(1, 2);
-      carritoHook.current.agregar(2, 1);
-      carritoHook.current.agregar(99, 3); // producto inexistente: no suma
+      carritoHook.current.agregar({ productId: 1 }, 2);
+      carritoHook.current.agregar({ productId: 2 }, 1);
+      carritoHook.current.agregar({ productId: 99 }, 3); // producto inexistente: no suma
     });
 
     await screen.findByText("Cliente Prueba");
@@ -423,7 +423,7 @@ describe("Checkout — carrito, total y carga (regresiones)", () => {
     const { result: carritoHook } = renderHook(() => useCarrito());
     renderCheckout();
     act(() => {
-      carritoHook.current.agregar(1, 1);
+      carritoHook.current.agregar({ productId: 1 }, 1);
     });
 
     expect(await screen.findByText(/No pudimos cargar tu pedido/i)).toBeInTheDocument();
