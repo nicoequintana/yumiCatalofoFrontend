@@ -40,7 +40,7 @@ describe("useComboEditor — alta", () => {
 
     act(() => result.current.agregarProducto(LAMPARA));
     act(() => result.current.agregarProducto(LAMPARA));
-    expect(result.current.cambios.items).toEqual([{ productId: 1, nombre: "Lámpara", sku: "LAM-01", precio: "10000", stock: 9, cantidad: 1 }]);
+    expect(result.current.cambios.items).toEqual([{ productId: 1, nombre: "Lámpara", sku: "LAM-01", precio: "10000", stock: 9, foto: null, cantidad: 1 }]);
 
     act(() => result.current.quitarProducto(1));
     expect(result.current.cambios.items).toEqual([]);
@@ -119,7 +119,7 @@ describe("useComboEditor — edición", () => {
     expect(result.current.combo).toEqual(DETALLE);
     expect(result.current.cambios).toEqual({
       nombre: "Kit Living", frase: "Frase.", porcentaje: 15, vigencia: "CAMPANIA", activo: true, heroUrl: "https://x/hero.jpg",
-      items: [{ productId: 1, nombre: "Lámpara", sku: "LAM-01", precio: "10000", stock: 9, cantidad: 2 }],
+      items: [{ productId: 1, nombre: "Lámpara", sku: "LAM-01", precio: "10000", stock: 9, foto: null, cantidad: 2 }],
     });
   });
 
@@ -404,5 +404,29 @@ describe("useComboEditor — desmontar antes de que resuelva una lectura", () =>
 
     errorConsola.mockRestore();
     warnConsola.mockRestore();
+  });
+});
+
+// Spec §8.3.2: cada fila del editor lleva su miniatura. Del buscador llega
+// `fotos[0].url` (`GET /products`); del detalle, `foto` ya resuelta.
+describe("useComboEditor — miniatura de cada fila", () => {
+  it("agregar un resultado del buscador guarda la primera foto en la fila", () => {
+    const { result } = renderHook(() => useComboEditor(null));
+
+    act(() => result.current.agregarProducto({ ...LAMPARA, fotos: [{ id: 5, url: "https://x/lampara.jpg", orden: 0 }] }));
+    act(() => result.current.agregarProducto({ ...LAMPARA, id: 2, nombre: "Mesa", fotos: [] }));
+
+    expect(result.current.cambios.items.map((i) => i.foto)).toEqual(["https://x/lampara.jpg", null]);
+  });
+
+  it("el detalle cargado conserva la foto que resolvió el backend", async () => {
+    combosApi.getAdminCombo.mockResolvedValue({
+      id: 3, nombre: "Kit", frase: "F.", porcentaje: 15, activo: false, vigencia: "SIEMPRE", heroUrl: null, campanias: [],
+      items: [{ productId: 1, nombre: "Lámpara", sku: "LAM-01", precio: "10000", stock: 9, cantidad: 2, foto: "https://x/l.jpg" }],
+    });
+    const { result } = renderHook(() => useComboEditor(3));
+
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+    expect(result.current.cambios.items[0].foto).toBe("https://x/l.jpg");
   });
 });

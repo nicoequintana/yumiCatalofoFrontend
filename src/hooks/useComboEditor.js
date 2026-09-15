@@ -16,8 +16,21 @@ const COMBO_EN_BLANCO = { nombre: "", frase: "", porcentaje: 15, vigencia: "SIEM
 const DEBOUNCE_COTIZAR_MS = 400;
 const RESULTADOS_BUSQUEDA = 8;
 
+/**
+ * `foto` es la miniatura de la fila (spec §8.3.2): el detalle del combo la
+ * trae resuelta (`items[].foto`) y un resultado del buscador (`GET /products`)
+ * trae `fotos[0].url`. Solo se elige cuál campo leer; la URL la arma el backend.
+ */
 function filaDeProducto(producto, cantidad) {
-  return { productId: producto.id ?? producto.productId, nombre: producto.nombre, sku: producto.sku, precio: producto.precio, stock: producto.stock, cantidad };
+  return {
+    productId: producto.id ?? producto.productId,
+    nombre: producto.nombre,
+    sku: producto.sku,
+    precio: producto.precio,
+    stock: producto.stock,
+    foto: producto.foto ?? producto.fotos?.[0]?.url ?? null,
+    cantidad,
+  };
 }
 
 /**
