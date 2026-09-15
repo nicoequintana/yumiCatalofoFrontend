@@ -5,6 +5,7 @@ import BotonCompartir from "./BotonCompartir.jsx";
 import BotonFavorito from "./BotonFavorito.jsx";
 import BotonWhatsapp from "./BotonWhatsapp.jsx";
 import BotonAgregarCarrito from "./BotonAgregarCarrito.jsx";
+import FilaCombos from "./FilaCombos.jsx";
 import ProductCard from "./ProductCard.jsx";
 import PrecioProducto from "./PrecioProducto.jsx";
 
@@ -484,6 +485,14 @@ function FichaProducto({
             ))}
           </div>
         </section>
+      ) : null}
+
+      {/* Mismo guard `!modoPreview` que los relacionados (spec §7.6). La
+          sección SEO equivalente vive en `seo.cuerpo.js` (regla de cloaking). */}
+      {!modoPreview && producto.combos?.length > 0 ? (
+        <div className="mt-16 border-t border-outline-variant pt-4 md:mt-24 md:pt-8">
+          <FilaCombos combos={producto.combos} titulo="Llevalo en combo y ahorrá" />
+        </div>
       ) : null}
 
       {!modoPreview ? <div ref={finalContenidoRef} aria-hidden="true" /> : null}

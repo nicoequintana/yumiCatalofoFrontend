@@ -44,6 +44,15 @@ const PRODUCTO_BASE = {
   stock: 10,
 };
 
+function comboDeMuestra() {
+  return {
+    id: 3, ruta: "/combos/3-kit-living", nombre: "Kit Living", frase: "Luz y mesa.", porcentaje: 15,
+    precioSeparado: "45000", precioCombo: "38250", ahorro: "6750", unidades: 3, alcanza: 4,
+    disponible: true, quedanPocos: false, heroUrl: null,
+    items: [{ productId: 1, nombre: "Reloj Clásico", cantidad: 3, precioLista: "15000", foto: null, ruta: "/producto/1-reloj-clasico", categoria: null }],
+  };
+}
+
 function renderFicha(producto = PRODUCTO_BASE, props = {}) {
   return render(
     <MemoryRouter>
@@ -502,5 +511,30 @@ describe("FichaProducto — la cantidad es una sola entre las dos instancias del
       carritoHook.current.vaciar();
     });
     fetchSpy.mockRestore();
+  });
+});
+
+describe("FichaProducto — Llevalo en combo y ahorrá", () => {
+  it("con combos, la sección va al final, después de 'También te puede interesar'", () => {
+    renderFicha({
+      ...PRODUCTO_BASE,
+      relacionados: [{ id: 2, nombre: "Reloj Deportivo", precio: "800", etiqueta: null, categoria: null, fotos: [] }],
+      combos: [comboDeMuestra()],
+    });
+
+    const titulos = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(titulos.indexOf("Llevalo en combo y ahorrá")).toBeGreaterThan(titulos.indexOf("También te puede interesar"));
+    expect(titulos.indexOf("También te puede interesar")).toBeGreaterThanOrEqual(0);
+    expect(screen.getByRole("link", { name: /Ver el combo/i })).toHaveAttribute("href", "/combos/3-kit-living");
+  });
+
+  it("sin combos, no muestra la sección", () => {
+    renderFicha({ ...PRODUCTO_BASE, combos: [] });
+    expect(screen.queryByText("Llevalo en combo y ahorrá")).not.toBeInTheDocument();
+  });
+
+  it("en modoPreview, la sección se omite aunque haya combos", () => {
+    renderFicha({ ...PRODUCTO_BASE, combos: [comboDeMuestra()] }, { modoPreview: true });
+    expect(screen.queryByText("Llevalo en combo y ahorrá")).not.toBeInTheDocument();
   });
 });
