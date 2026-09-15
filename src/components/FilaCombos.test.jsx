@@ -81,7 +81,9 @@ describe("FilaCombos", () => {
     expect(fila.scrollBy).toHaveBeenLastCalledWith(expect.objectContaining({ left: -1032 }));
   });
 
-  it("Anteriores se deshabilita al inicio de la pista y Siguientes al final", () => {
+  // `aria-disabled` y no `disabled`: un botón nativo deshabilitado pierde el foco
+  // (cae a <body>) y quien navega con teclado pierde su lugar en la fila.
+  it("en las puntas las flechas quedan aria-disabled pero enfocables: Anteriores al inicio, Siguientes al final", () => {
     renderizar();
     const anteriores = screen.getByRole("button", { name: "Anteriores" });
     const siguientes = screen.getByRole("button", { name: "Siguientes" });
@@ -91,18 +93,51 @@ describe("FilaCombos", () => {
 
     Object.defineProperty(fila, "scrollLeft", { configurable: true, value: 0 });
     fireEvent.scroll(fila);
-    expect(anteriores).toBeDisabled();
-    expect(siguientes).toBeEnabled();
+    expect(anteriores).toHaveAttribute("aria-disabled", "true");
+    expect(siguientes).toHaveAttribute("aria-disabled", "false");
 
     Object.defineProperty(fila, "scrollLeft", { configurable: true, value: 500 });
     fireEvent.scroll(fila);
-    expect(anteriores).toBeEnabled();
-    expect(siguientes).toBeEnabled();
+    expect(anteriores).toHaveAttribute("aria-disabled", "false");
+    expect(siguientes).toHaveAttribute("aria-disabled", "false");
 
     Object.defineProperty(fila, "scrollLeft", { configurable: true, value: 1000 });
     fireEvent.scroll(fila);
-    expect(anteriores).toBeEnabled();
-    expect(siguientes).toBeDisabled();
+    expect(anteriores).toHaveAttribute("aria-disabled", "false");
+    expect(siguientes).toHaveAttribute("aria-disabled", "true");
+    // Nunca el atributo nativo: seguiría sacando el foco.
+    expect(anteriores).not.toBeDisabled();
+    expect(siguientes).not.toBeDisabled();
+  });
+
+  it("con teclado, Siguientes hasta el final conserva el foco en la flecha y un click aria-disabled no desplaza", async () => {
+    renderizar({ combos: [combo(1), combo(2), combo(3)] });
+    const siguientes = screen.getByRole("button", { name: "Siguientes" });
+    const fila = screen.getByRole("list");
+    let posicion = 0;
+    Object.defineProperty(fila, "scrollWidth", { configurable: true, value: 3000 });
+    Object.defineProperty(fila, "clientWidth", { configurable: true, value: 1000 });
+    Object.defineProperty(fila, "scrollLeft", { configurable: true, get: () => posicion });
+    const [primera] = screen.getAllByRole("listitem");
+    Object.defineProperty(primera, "offsetWidth", { configurable: true, value: 1000 });
+    // El navegador movería la pista y dispararía scroll: se simula lo mismo.
+    fila.scrollBy = vi.fn(({ left }) => {
+      posicion = Math.max(0, Math.min(2000, posicion + left));
+      fireEvent.scroll(fila);
+    });
+
+    siguientes.focus();
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{Enter}");
+    expect(siguientes).toHaveAttribute("aria-disabled", "true");
+    expect(document.activeElement).toBe(siguientes);
+    expect(document.activeElement).not.toBe(document.body);
+
+    fila.scrollBy.mockClear();
+    await userEvent.keyboard("{Enter}");
+    await userEvent.click(siguientes);
+    expect(fila.scrollBy).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(siguientes);
   });
 
   it("con un solo combo no hay flechas ni puntos", () => {

@@ -3,7 +3,7 @@ import CabezaSeccion, { EyebrowSeccion } from "./CabezaSeccion.jsx";
 import TarjetaCombo from "./TarjetaCombo.jsx";
 
 const CLASE_FLECHA =
-  "hidden h-11 w-11 place-items-center rounded-full bg-surface-container-lowest text-primary shadow-sombra-1 transition-colors enabled:hover:bg-primary enabled:hover:text-on-primary disabled:cursor-default disabled:opacity-40 md:grid motion-reduce:transition-none";
+  "hidden h-11 w-11 place-items-center rounded-full bg-surface-container-lowest text-primary shadow-sombra-1 transition-colors [&:not([aria-disabled=true])]:hover:bg-primary [&:not([aria-disabled=true])]:hover:text-on-primary aria-disabled:cursor-default aria-disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 focus-visible:ring-offset-background md:grid motion-reduce:transition-none";
 
 /**
  * ¿La pista está en el inicio / en el final? Con `scrollWidth` en 0 (sin layout:
@@ -34,7 +34,9 @@ function FilaCombos({ combos = [], titulo, bajada, enlace }) {
   const [visible, setVisible] = useState(0);
   const pistaRef = useRef(null);
   // Las flechas se deshabilitan en las puntas: "Anteriores" al inicio y
-  // "Siguientes" al final, así nunca hay un click que no mueve nada.
+  // "Siguientes" al final. Con `aria-disabled`, NUNCA con `disabled`: un botón
+  // nativo deshabilitado suelta el foco a <body> y quien navega con teclado
+  // pierde su lugar en la fila. El click se ignora en `desplazar`.
   const [limites, setLimites] = useState({ inicio: true, final: false });
 
   useEffect(() => {
@@ -67,6 +69,7 @@ function FilaCombos({ combos = [], titulo, bajada, enlace }) {
   function desplazar(direccion) {
     const pista = pistaRef.current;
     if (!pista) return;
+    if (direccion < 0 ? limites.inicio : limites.final) return;
     const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     pista.scrollBy({ left: direccion * pasoPorCard(pista), behavior: reducido ? "auto" : "smooth" });
   }
@@ -95,7 +98,7 @@ function FilaCombos({ combos = [], titulo, bajada, enlace }) {
       </div>
       {hayVarios ? (
         <div className="mt-2.5 flex items-center justify-center gap-3.5">
-          <button type="button" aria-label="Anteriores" disabled={limites.inicio} onClick={() => desplazar(-1)} className={CLASE_FLECHA}>
+          <button type="button" aria-label="Anteriores" aria-disabled={limites.inicio} onClick={() => desplazar(-1)} className={CLASE_FLECHA}>
             <span aria-hidden="true" className="material-symbols-outlined">
               chevron_left
             </span>
@@ -110,7 +113,7 @@ function FilaCombos({ combos = [], titulo, bajada, enlace }) {
               />
             ))}
           </div>
-          <button type="button" aria-label="Siguientes" disabled={limites.final} onClick={() => desplazar(1)} className={CLASE_FLECHA}>
+          <button type="button" aria-label="Siguientes" aria-disabled={limites.final} onClick={() => desplazar(1)} className={CLASE_FLECHA}>
             <span aria-hidden="true" className="material-symbols-outlined">
               chevron_right
             </span>
