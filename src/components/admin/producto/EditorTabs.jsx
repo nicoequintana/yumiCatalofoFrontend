@@ -11,6 +11,10 @@
  * `lg`: en pantallas anchas el formulario y las imágenes comparten la columna
  * izquierda y estos botones son lo único que elige cuál se ve. La vista previa
  * sigue ocupando la columna derecha por su cuenta en `lg`.
+ *
+ * `paneles` deja que otro editor elija los suyos (el de combos usa solo Editar /
+ * Vista previa). Si en `lg` queda UN solo panel elegible —el resto es
+ * `soloChico`—, no hay nada que alternar y la barra entera se oculta.
  */
 const PANELES = [
   { id: "form", etiqueta: "Editar", icono: "edit" },
@@ -18,7 +22,9 @@ const PANELES = [
   { id: "preview", etiqueta: "Vista previa", icono: "visibility", soloChico: true },
 ];
 
-function EditorTabs({ panelActivo, onCambiarPanel }) {
+function EditorTabs({ panelActivo, onCambiarPanel, paneles = PANELES }) {
+  const elegiblesEnEscritorio = paneles.filter((panel) => !panel.soloChico).length;
+
   return (
     <div
       // Única pieza sticky del editor: queda pegada justo debajo de la barra
@@ -34,11 +40,13 @@ function EditorTabs({ panelActivo, onCambiarPanel }) {
       // sumarla, la barra del admin YA se corre debajo de la cinta (ver
       // `AdminLayout.jsx`) pero esta pestaña seguía anclada al viejo
       // `topbar-admin` a secas y quedaba tapada por la cinta igual.
-      className="sticky top-[calc(var(--alto-cinta-ambiente)_+_theme(spacing.topbar-admin))] z-10 flex border-b border-outline-variant bg-surface px-4 lg:static"
+      className={`sticky top-[calc(var(--alto-cinta-ambiente)_+_theme(spacing.topbar-admin))] z-10 flex border-b border-outline-variant bg-surface px-4 lg:static ${
+        elegiblesEnEscritorio <= 1 ? "lg:hidden" : ""
+      }`}
       role="group"
       aria-label="Panel visible"
     >
-      {PANELES.map((panel) => (
+      {paneles.map((panel) => (
         <button
           key={panel.id}
           type="button"
