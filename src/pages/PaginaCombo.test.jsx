@@ -83,6 +83,16 @@ describe("PaginaCombo", () => {
     expect(agregarMock).toHaveBeenCalledWith({ comboId: 3 }, 2);
   });
 
+  // El talón es teal oscuro: el stepper con sus colores de siempre quedaba
+  // oscuro sobre oscuro (revisión visual del 15/09/2026).
+  it("el selector de cantidad del ticket va en su variante sobre fondo oscuro", () => {
+    mockUseCombo.mockReturnValue({ combo: combo(), cargando: false, error: null, noEncontrado: false });
+    renderizar();
+
+    const ticket = screen.getByRole("region", { name: "Comprar combo" });
+    expect(within(ticket).getByRole("button", { name: "Aumentar cantidad" })).toHaveClass("text-on-primary");
+  });
+
   it("agotado: botones deshabilitados y chip Agotado, sigue siendo la página (no NoEncontrado)", () => {
     mockUseCombo.mockReturnValue({ combo: combo({ disponible: false, alcanza: 0 }), cargando: false, error: null, noEncontrado: false });
     renderizar();

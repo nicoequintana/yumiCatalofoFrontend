@@ -105,4 +105,16 @@ describe("BotonWhatsapp — área táctil de la variante inline", () => {
     expect(enlace.className).toContain("before:content-['']");
     expect(enlace.className).toContain("before:w-full");
   });
+
+  // El talón de `PaginaCombo` es teal oscuro. Pasar el color por `className`
+  // no alcanzaba: competía con `text-on-surface-variant` de la variante y
+  // ganaba el orden del CSS generado, no el del string.
+  it("con `sobreOscuro` usa el teal claro en vez de los colores de siempre", async () => {
+    render(<BotonWhatsapp variant="inline" sobreOscuro contexto={{ tipo: "home" }} />);
+
+    const enlace = await screen.findByRole("link", { name: "Contactar por WhatsApp" });
+
+    expect(enlace).toHaveClass("text-on-primary-container", "hover:text-on-primary");
+    expect(enlace).not.toHaveClass("text-on-surface-variant");
+  });
 });

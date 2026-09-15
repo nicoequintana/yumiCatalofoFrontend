@@ -46,6 +46,20 @@ describe("NavFlotante", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  // Misma razón en la página del combo: su barra fija (`.pc-barra-fija`) lleva
+  // "Agregar combo" abajo a la derecha, justo bajo la píldora.
+  it("no se muestra en la página de un combo: ahí manda la barra de compra", () => {
+    const { container } = montar("/combos/3-kit-living");
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("sí se muestra en el listado de combos", () => {
+    montar("/combos");
+
+    expect(screen.getByLabelText("Abrir menú")).toBeInTheDocument();
+  });
+
   it("el botón de menú avisa al padre y refleja el estado abierto", async () => {
     const usuario = userEvent.setup();
     const alternar = vi.fn();

@@ -152,4 +152,23 @@ describe("SelectorCantidad", () => {
       "Aumentar cantidad de Lámpara — ya alcanzaste el máximo disponible (2)",
     );
   });
+  // El talón de `PaginaCombo` es teal oscuro: con los colores de siempre
+  // (`text-on-surface-variant`, `border-outline-variant`) el stepper quedaba
+  // oscuro sobre oscuro. `sobreOscuro` cambia SOLO los colores, no la forma.
+  it("con `sobreOscuro` usa aro, íconos y número claros; sin él, los de siempre", () => {
+    const { unmount } = render(<SelectorCantidad value={2} onChange={vi.fn()} sobreOscuro />);
+
+    const contenedor = screen.getByRole("button", { name: /aumentar/i }).parentElement;
+    expect(contenedor).toHaveClass("border-on-primary/40", "rounded-full");
+    expect(contenedor).not.toHaveClass("border-outline-variant");
+    expect(screen.getByRole("button", { name: /aumentar/i })).toHaveClass("text-on-primary");
+    expect(screen.getByRole("button", { name: /disminuir/i })).not.toHaveClass("text-on-surface-variant");
+    expect(screen.getByText("2")).toHaveClass("text-on-primary", "border-on-primary/40");
+    unmount();
+
+    render(<SelectorCantidad value={2} onChange={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /aumentar/i }).parentElement).toHaveClass("border-outline-variant");
+    expect(screen.getByRole("button", { name: /aumentar/i })).toHaveClass("text-on-surface-variant");
+    expect(screen.getByText("2")).toHaveClass("text-on-surface");
+  });
 });

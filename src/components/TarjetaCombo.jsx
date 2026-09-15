@@ -104,7 +104,7 @@ function TarjetaCombo({ combo }) {
           </p>
         </Link>
 
-        <div className="talon-combo relative grid gap-3.5 overflow-hidden bg-primary bg-[radial-gradient(120%_80%_at_100%_0%,rgb(var(--color-on-primary)/0.14),transparent_60%),radial-gradient(80%_60%_at_0%_100%,rgb(var(--color-secondary)/0.2),transparent_60%)] p-5 text-on-primary">
+        <div className="talon-combo relative grid gap-3.5 bg-primary bg-[radial-gradient(120%_80%_at_100%_0%,rgb(var(--color-on-primary)/0.14),transparent_60%),radial-gradient(80%_60%_at_0%_100%,rgb(var(--color-secondary)/0.2),transparent_60%)] p-5 text-on-primary">
           {/* Las "muescas": dos círculos del color de fondo de la PÁGINA (no
               de la card) que se superponen al troquel punteado, simulando que
               lo perforaron — mismo truco que un ticket de verdad. Posición
@@ -124,24 +124,28 @@ function TarjetaCombo({ combo }) {
             </span>
           ) : null}
 
+          {/* Sin `overflow-hidden` en el talón: el sello apilado sube 30px
+              sobre el troquel y lo recortaba. Las esquinas y las muescas las
+              recorta el `<article>`. Ancho ≥ 720px lo baja adentro del talón
+              (`.sello-combo` en `index.css`). */}
           <div
             aria-hidden="true"
-            className="absolute right-4 top-[-30px] z-20 grid h-[74px] w-[74px] rotate-[-12deg] place-items-center rounded-full bg-secondary-container text-center leading-none text-on-secondary-container shadow-[0_6px_16px_-4px_rgb(var(--color-on-secondary-container)/0.45),inset_0_0_0_3px_rgb(var(--color-on-primary)/0.35)]"
+            className="sello-combo absolute right-4 top-[-30px] z-20 grid h-[74px] w-[74px] rotate-[-12deg] place-items-center rounded-full bg-secondary-container text-center leading-none text-on-secondary-container shadow-[0_6px_16px_-4px_rgb(var(--color-on-secondary-container)/0.45),inset_0_0_0_3px_rgb(var(--color-on-primary)/0.35)]"
           >
             <span className="grid gap-0.5">
-              <span className="font-display-lg text-[22px] font-black leading-none tracking-[-0.04em]">-{combo.porcentaje}%</span>
+              <span className="sello-combo-numero font-display-lg text-[22px] font-black leading-none tracking-[-0.04em]">-{combo.porcentaje}%</span>
               <span className="font-display-lg text-[11px] font-extrabold uppercase leading-none tracking-[0.06em]">Combo</span>
             </span>
           </div>
 
           <div className="grid gap-0.5 tabular-nums">
-            <span className="flex items-baseline gap-2 font-label-md text-[13px] text-primary-container">
+            <span className="flex items-baseline gap-2 font-label-md text-[13px] text-on-primary-container">
               Por separado
               <s className="font-display-lg text-[18px] font-semibold text-on-primary/70 decoration-secondary-container">
                 {formatPrecio(combo.precioSeparado)}
               </s>
             </span>
-            <span className="mt-1.5 font-label-sm text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-container">
+            <span className="mt-1.5 font-label-sm text-[11px] font-semibold uppercase tracking-[0.12em] text-on-primary-container">
               Precio combo
             </span>
             <span className="font-display-xl text-[40px] font-black leading-none tracking-[-0.045em] text-on-primary">

@@ -46,6 +46,10 @@ export default function NavFlotante({ menuAbierto, onAlternarMenu }) {
   // hamburguesa es la única salida que no lleva a la compra. El header sigue
   // ahí arriba con lupa, favoritos y carrito, así que nadie queda encerrado.
   if (pathname.startsWith("/producto/")) return null;
+  // La página de un combo, igual (15/09/2026): su `.pc-barra-fija` lleva
+  // "Agregar combo" abajo a la derecha y la píldora lo tapaba. El listado
+  // `/combos` no tiene barra y conserva la isla.
+  if (pathname.startsWith("/combos/")) return null;
 
   return (
     <div

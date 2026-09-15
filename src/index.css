@@ -488,6 +488,18 @@ h6 {
     right: auto;
     top: auto;
   }
+  /* Apilada el sello sube sobre el troquel; en el ticket horizontal no hay
+     troquel arriba y el `overflow-hidden` del `<article>` lo recortaba: va
+     adentro del talón (diseño aprobado, `.sello` a ≥ 720px). */
+  .tarjeta-combo .sello-combo {
+    top: 18px;
+    right: 20px;
+    width: 84px;
+    height: 84px;
+  }
+  .tarjeta-combo .sello-combo-numero {
+    font-size: 27px;
+  }
 }
 
 /* Página del combo (`PaginaCombo.jsx`, spec §7.3, diseño aprobado
@@ -542,6 +554,17 @@ h6 {
     bottom: -11px;
     right: auto;
     top: auto;
+  }
+  /* Mismo motivo que `.tarjeta-combo .sello-combo`: en horizontal el sello va
+     adentro del talón, no por encima del borde del ticket. */
+  .pc-sello {
+    top: 18px;
+    right: 22px;
+    width: 88px;
+    height: 88px;
+  }
+  .pc-sello-numero {
+    font-size: 29px;
   }
   .pc-incluye {
     grid-template-columns: repeat(3, minmax(0, 1fr));

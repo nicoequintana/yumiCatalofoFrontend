@@ -50,7 +50,10 @@ import { AREA_TACTIL_ANCHA } from "../utils/areaTactil.js";
  * mismo (56px), sobre el mismo eje vertical. Medido a 390×844: FAB y píldora
  * con `x = 318`, `width = 56`. Si cambia uno, cambia el otro.
  */
-function BotonWhatsapp({ contexto, productId, className = "", variant = "fab" }) {
+// `sobreOscuro` (solo `inline`): teal claro para el talón oscuro de
+// `PaginaCombo`. Es prop y no `className` porque un color pasado por
+// `className` compite con el de la variante y gana el orden del CSS generado.
+function BotonWhatsapp({ contexto, productId, className = "", variant = "fab", sobreOscuro = false }) {
   const { url, textoHorario } = useWhatsapp(contexto);
 
   function handleClick() {
@@ -77,7 +80,7 @@ function BotonWhatsapp({ contexto, productId, className = "", variant = "fab" })
         // devuelve `null` sin número: el problema estaba igual, escondido
         // detrás de esa guarda. Mismo criterio que el vecino — pseudo-elemento
         // y no `min-h-11`, para no empujar la fila 26px.
-        className={`font-label-md text-label-md inline-flex items-center gap-2 text-on-surface-variant hover:text-on-surface ${AREA_TACTIL_ANCHA} ${className}`}
+        className={`font-label-md text-label-md inline-flex items-center gap-2 ${sobreOscuro ? "text-on-primary-container hover:text-on-primary" : "text-on-surface-variant hover:text-on-surface"} ${AREA_TACTIL_ANCHA} ${className}`}
       >
         <span className="inline-flex h-[18px] w-[18px] items-center justify-center">
           <svg viewBox="0 0 32 32" width="16" height="16" fill="currentColor" aria-hidden="true">

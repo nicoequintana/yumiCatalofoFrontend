@@ -14,6 +14,10 @@ import BotonWhatsapp from "./BotonWhatsapp.jsx";
  *   en la barra de compra (`variant="inline"`, `FichaProducto.jsx`) y un FAB
  *   fijo encima le tapaba el botón "Agregar al carrito" — el mismo motivo por
  *   el que `NavFlotante` tampoco se monta ahí.
+ * - `/combos/:idSlug`: no se monta, por el mismo motivo que la ficha —
+ *   `PaginaCombo.jsx` tiene WhatsApp inline en el talón y una barra fija con
+ *   "Agregar combo" que el FAB tapaba en celular (15/09/2026). El listado
+ *   `/combos` (sin barra) lo sigue mostrando.
  * - `/catalogo/admin/*`: no se monta. El panel no vende nada.
  * - `/favoritos`: no se monta ACÁ, a propósito. `Favoritos.jsx` arma su
  *   mensaje con los NOMBRES de los productos favoritos que esa página ya
@@ -37,6 +41,7 @@ function BotonWhatsappFlotante() {
 
   if (pathname.startsWith("/catalogo/admin")) return null;
   if (pathname.startsWith("/producto/")) return null;
+  if (pathname.startsWith("/combos/")) return null;
   if (pathname === "/favoritos") return null;
 
   return <BotonWhatsapp contexto={{ tipo: "home" }} />;

@@ -163,19 +163,22 @@ function PaginaCombo({ comboForzado = null }) {
           </div>
         </div>
 
-        <div className="pc-talon relative grid content-start gap-3.5 overflow-hidden bg-primary bg-[radial-gradient(120%_80%_at_100%_0%,rgb(var(--color-on-primary)/0.14),transparent_60%),radial-gradient(80%_60%_at_0%_100%,rgb(var(--color-secondary)/0.2),transparent_60%)] p-5 pt-7 text-on-primary md:p-9">
+        <div className="pc-talon relative grid content-start gap-3.5 bg-primary bg-[radial-gradient(120%_80%_at_100%_0%,rgb(var(--color-on-primary)/0.14),transparent_60%),radial-gradient(80%_60%_at_0%_100%,rgb(var(--color-secondary)/0.2),transparent_60%)] p-5 pt-7 text-on-primary md:p-9">
           <span
             aria-hidden="true"
             className="muesca-a absolute -left-[11px] -top-[11px] z-10 h-[22px] w-[22px] rounded-full bg-background"
           />
           <span aria-hidden="true" className="pc-muesca-b absolute z-10 h-[22px] w-[22px] rounded-full bg-background" />
 
+          {/* Sin `overflow-hidden` en el talón: el sello apilado sube 32px
+              sobre el troquel y lo recortaba; las esquinas las recorta el
+              ticket. Ticket horizontal lo baja adentro (`.pc-sello`). */}
           <div
             aria-label={`${combo.porcentaje}% de descuento`}
-            className="absolute right-4 top-[-32px] z-[3] grid h-[76px] w-[76px] rotate-[-12deg] place-items-center rounded-full bg-secondary-container text-center leading-none text-on-secondary-container shadow-[0_6px_16px_-4px_rgb(var(--color-on-secondary-container)/0.45),inset_0_0_0_3px_rgb(var(--color-on-primary)/0.35)]"
+            className="pc-sello absolute right-4 top-[-32px] z-[3] grid h-[76px] w-[76px] rotate-[-12deg] place-items-center rounded-full bg-secondary-container text-center leading-none text-on-secondary-container shadow-[0_6px_16px_-4px_rgb(var(--color-on-secondary-container)/0.45),inset_0_0_0_3px_rgb(var(--color-on-primary)/0.35)]"
           >
             <span className="grid gap-0.5">
-              <span className="font-display-lg text-[25px] font-black leading-[0.9] tracking-[-0.04em]">
+              <span className="pc-sello-numero font-display-lg text-[25px] font-black leading-[0.9] tracking-[-0.04em]">
                 -{combo.porcentaje}%
               </span>
               <span className="font-display-lg text-[11px] font-extrabold uppercase leading-none tracking-[0.12em]">
@@ -185,13 +188,13 @@ function PaginaCombo({ comboForzado = null }) {
           </div>
 
           <div className="mt-6 grid gap-0.5 tabular-nums">
-            <span className="flex items-baseline gap-2 font-label-md text-[13px] text-primary-container">
+            <span className="flex items-baseline gap-2 font-label-md text-[13px] text-on-primary-container">
               Por separado
               <s className="font-display-lg text-[18px] font-semibold text-on-primary/70 decoration-secondary-container">
                 {formatPrecio(combo.precioSeparado)}
               </s>
             </span>
-            <span className="mt-1.5 font-label-sm text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-container">
+            <span className="mt-1.5 font-label-sm text-[11px] font-semibold uppercase tracking-[0.12em] text-on-primary-container">
               Precio combo
             </span>
             <span className="font-display-xl text-[clamp(44px,9cqi,56px)] font-black leading-none tracking-[-0.045em] text-on-primary">
@@ -204,7 +207,7 @@ function PaginaCombo({ comboForzado = null }) {
           </span>
 
           <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
-            <SelectorCantidad value={cantidad} onChange={setCantidad} max={combo.alcanza} />
+            <SelectorCantidad value={cantidad} onChange={setCantidad} max={combo.alcanza} sobreOscuro />
             <button
               type="button"
               disabled={!combo.disponible}
@@ -218,7 +221,7 @@ function PaginaCombo({ comboForzado = null }) {
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 font-label-md text-[13px] text-primary-container">
+          <div className="flex flex-wrap items-center gap-4 font-label-md text-[13px] text-on-primary-container">
             <span className="inline-flex items-center gap-1.5">
               <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
                 local_shipping
@@ -228,7 +231,7 @@ function PaginaCombo({ comboForzado = null }) {
             <BotonWhatsapp
               variant="inline"
               contexto={{ tipo: "producto", producto: { nombre: combo.nombre } }}
-              className="text-primary-container hover:text-on-primary"
+              sobreOscuro
             />
           </div>
         </div>
