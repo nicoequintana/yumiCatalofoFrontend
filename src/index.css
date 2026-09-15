@@ -490,6 +490,76 @@ h6 {
   }
 }
 
+/* Página del combo (`PaginaCombo.jsx`, spec §7.3, diseño aprobado
+   "combos-pagina-admin.html"). MISMO criterio que la card de arriba — decide
+   su forma por el ANCHO QUE LE TOCA, nunca por el viewport — y por el MISMO
+   motivo: la vista previa del editor del panel (Tarea 28) va a embeber esta
+   página real dentro de un marco angosto de ~390px con el viewport ENTERO del
+   panel de admin, así que un breakpoint `md:` de Tailwind (que mide viewport)
+   jamás cambiaría de forma ahí. Container query nativa, breakpoint 820px —el
+   del diseño aprobado—, mismo mecanismo que `.tarjeta-combo-wrap` de arriba. */
+.pagina-combo {
+  container-type: inline-size;
+}
+.pc-hero {
+  aspect-ratio: 4 / 3;
+}
+.pc-ticket {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* Troquel del talón: línea punteada arriba (apilado) que pasa a la izquierda
+   (ticket horizontal) — mismo lenguaje que `.tarjeta-combo .talon-combo`,
+   copia aparte porque el breakpoint (820px acá, 720px en la card) y el
+   contenedor (`.pagina-combo`, no `.tarjeta-combo-wrap`) son otros. */
+.pc-talon {
+  border-top: 2px dashed rgb(var(--color-on-primary) / 0.28);
+}
+.pc-muesca-b {
+  right: -11px;
+  top: -11px;
+  left: auto;
+  bottom: auto;
+}
+.pc-incluye {
+  grid-template-columns: minmax(0, 1fr);
+}
+.pc-cuenta {
+  grid-template-columns: minmax(0, 1fr);
+}
+@container (min-width: 820px) {
+  .pc-hero {
+    aspect-ratio: 12 / 5;
+  }
+  .pc-ticket {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+  .pc-talon {
+    border-top: 0;
+    border-left: 2px dashed rgb(var(--color-on-primary) / 0.28);
+  }
+  .pc-muesca-b {
+    left: -11px;
+    bottom: -11px;
+    right: auto;
+    top: auto;
+  }
+  .pc-incluye {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .pc-cuenta {
+    grid-template-columns: minmax(0, 1fr) 420px;
+    align-items: center;
+    gap: 40px;
+  }
+  /* Barra fija del celular (spec §7.3, bloque 6): sigue montada en el DOM
+     —los tres "Agregar combo" (ticket, recibo, barra) existen siempre, el
+     test de "agotado" los recorre los tres—, esto solo la oculta cuando el
+     CONTENEDOR alcanza el ancho de escritorio. */
+  .pc-barra-fija {
+    display: none;
+  }
+}
+
 /* Tabla apilada del panel admin (`.tabla-apilada`; contrato de atributos en
    components/admin/clasesTabla.js). Va fuera de @layer y con un elemento de
    más en cada selector: tiene que ganarle a utilidades de escritorio de las
