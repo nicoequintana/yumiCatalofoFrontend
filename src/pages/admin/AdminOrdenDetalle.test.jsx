@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import AdminOrdenDetalle from "./AdminOrdenDetalle.jsx";
@@ -20,7 +20,12 @@ vi.mock("../../api/ordenes.js", () => ({
 
 const { getOrdenById, actualizarEstadoOrden } = await import("../../api/ordenes.js");
 
-const ORDEN = {
+/** `mapOrden` emite `lineas` junto a `items` (Task 14). */
+function conLineas(orden) {
+  return { ...orden, lineas: orden.items.map((item) => ({ tipo: "PRODUCTO", item })) };
+}
+
+const ORDEN = conLineas({
   id: 42,
   estado: "PENDIENTE",
   notas: null,
@@ -36,13 +41,13 @@ const ORDEN = {
       fotoPortada: "https://res.cloudinary.com/demo/difusor.jpg",
     },
   ],
-};
+});
 
 // Fixture de las tres pruebas preexistentes (info de cliente, link de DNI,
 // los 4 estados habilitados). Se mantiene aparte de ORDEN porque ejercita un
 // caso que ORDEN no cubre: la suma en centavos de dos precios que en floats
 // arrastran error (0.10 + 0.20).
-const ORDEN_ENTREGADA = {
+const ORDEN_ENTREGADA = conLineas({
   id: 42,
   estado: "ENTREGADA",
   notas: "Entregar por la tarde",
@@ -52,7 +57,7 @@ const ORDEN_ENTREGADA = {
     { id: 1, nombreProducto: "Producto A", precioUnitario: "1250", cantidad: 3 },
     { id: 2, nombreProducto: "Producto B", precioUnitario: "2000", cantidad: 1 },
   ],
-};
+});
 
 function renderDetalle() {
   return render(
@@ -254,10 +259,12 @@ describe("AdminOrdenDetalle — portada de cada producto", () => {
     // borrado (productId null), producto sin fotos, y respuesta vieja sin la
     // clave. El trabajo de la columna es reconocer el producto, no explicar
     // por que no hay foto.
-    getOrdenById.mockResolvedValue({
-      ...ORDEN,
-      items: [{ ...ORDEN.items[0], productId: null, fotoPortada: null }],
-    });
+    getOrdenById.mockResolvedValue(
+      conLineas({
+        ...ORDEN,
+        items: [{ ...ORDEN.items[0], productId: null, fotoPortada: null }],
+      }),
+    );
     const { container } = renderDetalle();
 
     expect(await screen.findByTestId("sin-foto-1")).toBeInTheDocument();
@@ -313,6 +320,40 @@ describe("AdminOrdenDetalle — advertencias de stock", () => {
  * resuelve de forma estable. El ancho ya sobraba, así que copia el propio con
  * `before:w-full` en vez de fijar 44 e invadir a los vecinos de la fila.
  */
+describe("AdminOrdenDetalle — líneas de combo", () => {
+  it("agrupa un combo en una fila con su nombre, sus productos, la cantidad de combos y el subtotal", async () => {
+    getOrdenById.mockResolvedValue({
+      ...ORDEN,
+      items: [
+        { id: 1, productId: 1, nombreProducto: "Lámpara", precioUnitario: "8500", cantidad: 2, comboId: 3 },
+        { id: 2, productId: 2, nombreProducto: "Mesa", precioUnitario: "21250", cantidad: 1, comboId: 3 },
+      ],
+      lineas: [
+        {
+          tipo: "COMBO",
+          comboId: 3,
+          comboNombre: "Kit Living",
+          comboCantidad: 1,
+          productos: [
+            { nombreProducto: "Lámpara", cantidad: 2 },
+            { nombreProducto: "Mesa", cantidad: 1 },
+          ],
+          total: "38250",
+        },
+      ],
+    });
+
+    renderDetalle();
+
+    const fila = (await screen.findByText("Kit Living")).closest("tr");
+    expect(within(fila).getByText("2× Lámpara · Mesa")).toBeInTheDocument();
+    expect(within(fila).getByText("$ 38.250")).toBeInTheDocument();
+    // Una sola fila: los productos del combo no aparecen como filas sueltas.
+    expect(screen.queryByText("Lámpara")).not.toBeInTheDocument();
+    expect(screen.queryByText("Mesa")).not.toBeInTheDocument();
+  });
+});
+
 describe("AdminOrdenDetalle — área táctil", () => {
   it("el link al DNI del cliente extiende su área a 44 de alto", async () => {
     renderDetalle();

@@ -4,13 +4,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import OrdenConfirmada from "./OrdenConfirmada.jsx";
 import useCarrito from "../hooks/useCarrito.js";
 
-const ORDEN = {
-  id: 42,
-  items: [
-    { id: 1, productId: 1, nombreProducto: "Reloj Clásico", precioUnitario: "1500", cantidad: 2 },
-    { id: 2, productId: 2, nombreProducto: "Anillo Elegance", precioUnitario: "2300", cantidad: 1 },
-  ],
-};
+const ITEMS = [
+  { id: 1, productId: 1, nombreProducto: "Reloj Clásico", precioUnitario: "1500", cantidad: 2 },
+  { id: 2, productId: 2, nombreProducto: "Anillo Elegance", precioUnitario: "2300", cantidad: 1 },
+];
+
+// El 201 de `POST /ordenes` con sesión pasa por `mapOrdenCuenta`: trae `lineas`.
+const ORDEN = { id: 42, items: ITEMS, lineas: ITEMS.map((item) => ({ tipo: "PRODUCTO", item })) };
 
 function renderConState(state) {
   return render(
@@ -72,5 +72,35 @@ describe("OrdenConfirmada", () => {
 
     const link = await screen.findByRole("link", { name: /volver al catálogo/i });
     expect(link).toHaveAttribute("href", "/");
+  });
+
+  it("muestra un combo como una sola línea con su total", async () => {
+    const items = [
+      { id: 1, productId: 1, nombreProducto: "Lámpara", precioUnitario: "8500", cantidad: 2 },
+      { id: 2, productId: 2, nombreProducto: "Mesa", precioUnitario: "21250", cantidad: 1 },
+    ];
+    renderConState({
+      orden: {
+        id: 43,
+        items,
+        lineas: [
+          {
+            tipo: "COMBO",
+            comboId: 3,
+            comboNombre: "Kit Living",
+            comboCantidad: 1,
+            productos: [
+              { nombreProducto: "Lámpara", cantidad: 2 },
+              { nombreProducto: "Mesa", cantidad: 1 },
+            ],
+            total: "38250",
+          },
+        ],
+      },
+    });
+
+    expect(await screen.findByText("1 × Kit Living")).toBeInTheDocument();
+    expect(screen.getByText("2× Lámpara · Mesa")).toBeInTheDocument();
+    expect(screen.queryByText("2 × Lámpara")).not.toBeInTheDocument();
   });
 });

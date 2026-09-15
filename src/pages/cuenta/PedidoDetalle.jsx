@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import ProductosDeCombo from "../../components/ProductosDeCombo.jsx";
 import { formatFecha, formatPrecio } from "../../utils/formato.js";
 import { usePedidoCliente } from "../../hooks/usePedidosCliente.js";
 
@@ -54,22 +55,31 @@ function PedidoDetalle() {
         </span>
       </div>
 
-      {/* Sin `items` todavía = el resumen del listado: la lista entra con el
+      {/* Sin `lineas` todavía = el resumen del listado: la lista entra con el
           refetch, sin placeholder de carga. */}
-      {pedido.items ? (
+      {pedido.lineas ? (
         <ul className="flex flex-col gap-3">
-          {pedido.items.map((item, indice) => (
+          {pedido.lineas.map((linea, indice) => (
             // eslint-disable-next-line react/no-array-index-key -- el backend no manda un id por item
             <li
               key={indice}
               className="flex items-center justify-between gap-4 rounded-lg border border-outline-variant bg-surface-container-lowest p-4"
             >
-              <div className="flex flex-col gap-1">
-                <span className="text-body-md text-on-surface">{item.nombreProducto}</span>
-                <span className="text-body-md text-on-surface-variant">
-                  {item.cantidad} × {formatPrecio(item.precioUnitario)}
-                </span>
-              </div>
+              {linea.tipo === "COMBO" ? (
+                <div className="flex flex-col gap-1">
+                  <span className="text-body-md text-on-surface">
+                    {linea.comboNombre} × {linea.comboCantidad} — {formatPrecio(linea.total)}
+                  </span>
+                  <ProductosDeCombo productos={linea.productos} className="text-body-md text-on-surface-variant" />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <span className="text-body-md text-on-surface">{linea.item.nombreProducto}</span>
+                  <span className="text-body-md text-on-surface-variant">
+                    {linea.item.cantidad} × {formatPrecio(linea.item.precioUnitario)}
+                  </span>
+                </div>
+              )}
             </li>
           ))}
         </ul>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
+import ProductosDeCombo from "../../components/ProductosDeCombo.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import { getOrdenById, actualizarEstadoOrden, getEstadosOrden } from "../../api/ordenes.js";
 import { formatFecha, formatPrecio, precioACentavos } from "../../utils/formato.js";
@@ -302,45 +303,70 @@ function AdminOrdenDetalle() {
             </tr>
           </thead>
           <tbody role="rowgroup">
-            {orden.items.map((item) => (
-              <tr key={item.id} role="row" className="border-b border-outline-variant last:border-b-0">
-                {/* La portada, para reconocer el producto de un vistazo.
-                    `alt=""` a proposito —a diferencia de `AdminPrecios`, que
-                    repite el nombre—: la celda de al lado ya lo dice, y un alt
-                    poblado se lo haria leer dos veces por fila a un lector de
-                    pantalla. El placeholder cubre por igual los tres casos sin
-                    foto: producto borrado, producto sin fotos, y una respuesta
-                    anterior a que el backend emitiera la clave. */}
-                <td role="cell" data-celda="control" className="px-4 py-3">
-                  {item.fotoPortada ? (
-                    <img
-                      src={item.fotoPortada}
-                      alt=""
-                      className="h-9 w-9 rounded-lg object-cover xl:h-12 xl:w-12"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <div
-                      data-testid={`sin-foto-${item.id}`}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant xl:h-12 xl:w-12"
-                    >
-                      <span className="material-symbols-outlined text-[16px] xl:text-[20px]">
-                        image
-                      </span>
+            {orden.lineas.map((linea) =>
+              linea.tipo === "COMBO" ? (
+                <tr key={`combo-${linea.comboId}`} role="row" className="border-b border-outline-variant last:border-b-0">
+                  <td role="cell" data-celda="control" className="px-4 py-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant xl:h-12 xl:w-12">
+                      <span aria-hidden="true" className="material-symbols-outlined text-[16px] xl:text-[20px]">redeem</span>
                     </div>
-                  )}
-                </td>
-                <td role="cell" data-celda="identidad" className="font-body-md text-body-md px-4 py-3 text-on-surface">{item.nombreProducto}</td>
-                <td role="cell" data-label="Precio unitario" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
-                  {formatPrecio(item.precioUnitario)}
-                </td>
-                <td role="cell" data-label="Cantidad" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">{item.cantidad}</td>
-                <td role="cell" data-label="Subtotal" className="font-body-md text-body-md px-4 py-3 text-on-surface">
-                  {formatPrecio((precioACentavos(item.precioUnitario) * item.cantidad) / 100)}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td role="cell" data-celda="identidad" className="font-body-md text-body-md px-4 py-3 text-on-surface">
+                    <span className="block">{linea.comboNombre}</span>
+                    <ProductosDeCombo productos={linea.productos} className="block text-[13px] text-on-surface-variant" />
+                  </td>
+                  {/* Sin precio unitario: el combo no tiene uno propio por producto
+                      y el reparto interno no se muestra (spec §3.6). */}
+                  <td role="cell" data-label="Precio unitario" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
+                    —
+                  </td>
+                  <td role="cell" data-label="Cantidad" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
+                    {linea.comboCantidad}
+                  </td>
+                  <td role="cell" data-label="Subtotal" className="font-body-md text-body-md px-4 py-3 text-on-surface">
+                    {formatPrecio(linea.total)}
+                  </td>
+                </tr>
+              ) : (
+                <tr key={linea.item.id} role="row" className="border-b border-outline-variant last:border-b-0">
+                  {/* La portada, para reconocer el producto de un vistazo.
+                      `alt=""` a proposito —a diferencia de `AdminPrecios`, que
+                      repite el nombre—: la celda de al lado ya lo dice, y un alt
+                      poblado se lo haria leer dos veces por fila a un lector de
+                      pantalla. El placeholder cubre por igual los tres casos sin
+                      foto: producto borrado, producto sin fotos, y una respuesta
+                      anterior a que el backend emitiera la clave. */}
+                  <td role="cell" data-celda="control" className="px-4 py-3">
+                    {linea.item.fotoPortada ? (
+                      <img
+                        src={linea.item.fotoPortada}
+                        alt=""
+                        className="h-9 w-9 rounded-lg object-cover xl:h-12 xl:w-12"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div
+                        data-testid={`sin-foto-${linea.item.id}`}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-container text-on-surface-variant xl:h-12 xl:w-12"
+                      >
+                        <span className="material-symbols-outlined text-[16px] xl:text-[20px]">
+                          image
+                        </span>
+                      </div>
+                    )}
+                  </td>
+                  <td role="cell" data-celda="identidad" className="font-body-md text-body-md px-4 py-3 text-on-surface">{linea.item.nombreProducto}</td>
+                  <td role="cell" data-label="Precio unitario" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">
+                    {formatPrecio(linea.item.precioUnitario)}
+                  </td>
+                  <td role="cell" data-label="Cantidad" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">{linea.item.cantidad}</td>
+                  <td role="cell" data-label="Subtotal" className="font-body-md text-body-md px-4 py-3 text-on-surface">
+                    {formatPrecio((precioACentavos(linea.item.precioUnitario) * linea.item.cantidad) / 100)}
+                  </td>
+                </tr>
+              ),
+            )}
           </tbody>
         </table>
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import MetaSeo from "../components/MetaSeo.jsx";
+import ProductosDeCombo from "../components/ProductosDeCombo.jsx";
 import useCarrito from "../hooks/useCarrito.js";
 import { formatPrecio } from "../utils/formato.js";
 import { urlAbsoluta } from "../constants/seo.js";
@@ -78,16 +79,33 @@ function OrdenConfirmada() {
           </p>
 
           <ul className="flex w-full flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 text-left">
-            {orden.items.map((item) => (
-              <li key={item.id ?? item.productId} className="flex items-center justify-between gap-4">
-                <span className="font-body-md text-body-md text-on-surface">
-                  {item.cantidad} × {item.nombreProducto}
-                </span>
-                <span className="font-body-md text-body-md text-on-surface-variant">
-                  {formatPrecio(item.precioUnitario)}
-                </span>
-              </li>
-            ))}
+            {orden.lineas.map((linea) =>
+              linea.tipo === "COMBO" ? (
+                <li key={`combo-${linea.comboId}`} className="flex items-start justify-between gap-4">
+                  <span className="flex flex-col">
+                    <span className="font-body-md text-body-md text-on-surface">
+                      {linea.comboCantidad} × {linea.comboNombre}
+                    </span>
+                    <ProductosDeCombo
+                      productos={linea.productos}
+                      className="font-body-md text-[13px] text-on-surface-variant"
+                    />
+                  </span>
+                  <span className="font-body-md text-body-md text-on-surface-variant">
+                    {formatPrecio(linea.total)}
+                  </span>
+                </li>
+              ) : (
+                <li key={linea.item.id ?? linea.item.productId} className="flex items-center justify-between gap-4">
+                  <span className="font-body-md text-body-md text-on-surface">
+                    {linea.item.cantidad} × {linea.item.nombreProducto}
+                  </span>
+                  <span className="font-body-md text-body-md text-on-surface-variant">
+                    {formatPrecio(linea.item.precioUnitario)}
+                  </span>
+                </li>
+              ),
+            )}
           </ul>
 
           <div className="flex w-full items-center justify-between border-t border-outline-variant pt-4">

@@ -18,7 +18,12 @@ function renderConId(id) {
   );
 }
 
-const PEDIDO = {
+/** `mapOrdenCuenta` emite `lineas` junto a `items` (Task 14). */
+function conLineas(pedido) {
+  return { ...pedido, lineas: pedido.items.map((item) => ({ tipo: "PRODUCTO", item })) };
+}
+
+const PEDIDO = conLineas({
   id: 42,
   estado: "ENTREGADA",
   estadoEtiqueta: "Entregada",
@@ -27,7 +32,7 @@ const PEDIDO = {
   updatedAt: "2026-09-02T12:00:00.000Z",
   items: [{ nombreProducto: "Reloj Clásico", cantidad: 2, precioUnitario: "750", fotoPortada: null }],
   total: "1500",
-};
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -63,6 +68,36 @@ describe("PedidoDetalle — éxito", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Volver a mis pedidos" }));
     expect(screen.getByText("listado de pedidos")).toBeInTheDocument();
+  });
+
+  it("un combo se ve como UNA línea con su total y sus productos, sin precio por producto", async () => {
+    cuentaApi.getPedidoPorId.mockResolvedValue({
+      ...PEDIDO,
+      items: [
+        { nombreProducto: "Lámpara", cantidad: 2, precioUnitario: "8500", fotoPortada: null },
+        { nombreProducto: "Mesa", cantidad: 1, precioUnitario: "21250", fotoPortada: null },
+      ],
+      lineas: [
+        {
+          tipo: "COMBO",
+          comboId: 3,
+          comboNombre: "Kit Living",
+          comboCantidad: 1,
+          productos: [
+            { nombreProducto: "Lámpara", cantidad: 2 },
+            { nombreProducto: "Mesa", cantidad: 1 },
+          ],
+          total: "38250",
+        },
+      ],
+      total: "38250",
+    });
+
+    renderConId(42);
+
+    expect(await screen.findByText("Kit Living × 1 — $ 38.250")).toBeInTheDocument();
+    expect(screen.getByText("2× Lámpara · Mesa")).toBeInTheDocument();
+    expect(screen.queryByText(/8\.500/)).not.toBeInTheDocument();
   });
 });
 
