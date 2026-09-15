@@ -474,6 +474,43 @@ function AdminVentas() {
               </div>
             )}
           </SeccionAdmin>
+
+          <SeccionAdmin titulo="Combos más vendidos" etiqueta="Ranking de combos">
+            {resumen.rankingCombos.length === 0 ? (
+              <p className="font-body-md text-body-md rounded-xl bg-surface-container-lowest p-5 text-on-surface-variant shadow-ambient">
+                Todavía no hay combos vendidos en el período.
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
+                <table role="table" className={`${claseTablaApilada} w-full min-w-[560px] text-left`}>
+                  <thead role="rowgroup">
+                    <tr role="row" className="border-b border-outline-variant">
+                      <th role="columnheader" className={claseEncabezado}>Combo</th>
+                      <th role="columnheader" className={claseEncabezado}>Combos vendidos</th>
+                      <th role="columnheader" className={claseEncabezado}>Facturación</th>
+                      <th role="columnheader" className={claseEncabezado}>Ahorro otorgado</th>
+                    </tr>
+                  </thead>
+                  <tbody role="rowgroup">
+                    {resumen.rankingCombos.map((combo) => (
+                      <tr key={combo.comboId} role="row" className="border-b border-outline-variant last:border-b-0">
+                        <td role="cell" data-celda="identidad" className={`${claseCelda} text-on-surface`}>{combo.nombre}</td>
+                        <td role="cell" data-label="Combos vendidos" className={`${claseCeldaNumerica} text-on-surface-variant`}>
+                          {combo.combosVendidos}
+                        </td>
+                        <td role="cell" data-label="Facturación" className={`${claseCeldaNumerica} whitespace-nowrap text-on-surface`}>
+                          {formatPrecio(combo.facturacion)}
+                        </td>
+                        <td role="cell" data-label="Ahorro otorgado" className={`${claseCeldaNumerica} whitespace-nowrap text-on-surface-variant`}>
+                          {formatPrecio(combo.ahorroOtorgado)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </SeccionAdmin>
         </>
       )}
     </main>

@@ -6,6 +6,7 @@ import Spinner from "../../components/Spinner.jsx";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Paginador from "../../components/Paginador.jsx";
 import { getProducts } from "../../api/products.js";
+import { getAdminCombos } from "../../api/combos.js";
 import { claseTablaApilada } from "../../components/admin/clasesTabla.js";
 
 /**
@@ -28,6 +29,8 @@ function AdminMetricas() {
   // re-dispara el efecto de fetch sin tocar la página. Sin él, tras un fallo
   // la única salida era recargar la pantalla entera.
   const [reintento, setReintento] = useState(0);
+  const [combos, setCombos] = useState(null);
+  const [errorCombos, setErrorCombos] = useState(null);
 
   function irAPagina(numero, { reemplazar = false } = {}) {
     setSearchParams(
@@ -74,6 +77,26 @@ function AdminMetricas() {
       activo = false;
     };
   }, [pagina, reintento]);
+
+  // Los combos no se paginan (son pocos) y fallan por su cuenta: sin ellos la
+  // tabla de productos sigue siendo útil.
+  useEffect(() => {
+    let activo = true;
+    getAdminCombos()
+      .then((datos) => {
+        if (!activo) return;
+        // El listado del panel viene por fecha de creación; acá se muestran
+        // por vistas, que es la pregunta de esta pantalla.
+        setCombos([...datos].sort((a, b) => b.vistas - a.vistas));
+        setErrorCombos(null);
+      })
+      .catch(() => {
+        if (activo) setErrorCombos("No se pudieron cargar los combos.");
+      });
+    return () => {
+      activo = false;
+    };
+  }, [reintento]);
 
   // Un link viejo o un catálogo que se achicó pueden dejar la URL apuntando a
   // una página que ya no existe. Mismo patrón que AdminProductos: se corrige
@@ -178,6 +201,36 @@ function AdminMetricas() {
           etiqueta="Paginación de métricas"
         />
       ) : null}
+
+      <section aria-labelledby="titulo-metricas-combos" className="mt-10">
+        <h2 id="titulo-metricas-combos" className="font-headline-md text-headline-md mb-4 text-primary">
+          Combos
+        </h2>
+        {errorCombos ? (
+          <p className="font-body-md text-body-md rounded-lg bg-error-container px-4 py-3 text-on-error-container">{errorCombos}</p>
+        ) : combos === null ? null : combos.length === 0 ? (
+          <p className="font-body-md text-body-md text-on-surface-variant">Todavía no hay combos.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl bg-surface-container-lowest shadow-ambient">
+            <table role="table" className={`${claseTablaApilada} w-full min-w-[400px] text-left`}>
+              <thead role="rowgroup">
+                <tr role="row" className="border-b border-outline-variant">
+                  <th role="columnheader" className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">Combo</th>
+                  <th role="columnheader" className="font-label-sm text-label-sm px-4 py-3 uppercase tracking-widest text-on-surface-variant">Vistas</th>
+                </tr>
+              </thead>
+              <tbody role="rowgroup">
+                {combos.map((combo) => (
+                  <tr key={combo.id} role="row" className="border-b border-outline-variant last:border-b-0">
+                    <td role="cell" data-celda="identidad" className="font-body-md text-body-md px-4 py-3 text-on-surface">{combo.nombre}</td>
+                    <td role="cell" data-label="Vistas" className="font-body-md text-body-md px-4 py-3 text-on-surface-variant">{combo.vistas}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </main>
   );
 }

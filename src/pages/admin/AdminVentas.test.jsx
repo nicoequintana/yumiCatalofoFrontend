@@ -35,6 +35,9 @@ const RESUMEN = {
     { productId: 2, nombre: "Perfume", unidades: 2, facturacion: "1000" },
     { productId: 1, nombre: "Jabón", unidades: 10, facturacion: "100" },
   ],
+  rankingCombos: [
+    { comboId: 3, nombre: "Kit Living", combosVendidos: 5, facturacion: "191250", ahorroOtorgado: "33750" },
+  ],
   serieTemporal: [
     { fecha: "2026-08-10", ingresos: "150" },
     { fecha: "2026-08-11", ingresos: "0" },
@@ -68,6 +71,7 @@ const RESUMEN_VACIO = {
   ordenesCanceladas: 0,
   tasaCancelacion: 0,
   rankingProductos: [],
+  rankingCombos: [],
   serieTemporal: [],
 };
 
@@ -416,6 +420,35 @@ describe("AdminVentas", () => {
       await screen.findByTestId("estado-ENTREGADA");
       expect(screen.queryByTestId("aviso-cobertura-costo")).toBeNull();
     });
+  });
+});
+
+describe("AdminVentas — combos más vendidos", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("muestra el ranking con combos vendidos, facturación y ahorro otorgado", async () => {
+    adminVentasApi.getResumenVentas.mockResolvedValue(RESUMEN);
+    renderPagina();
+
+    const seccion = await screen.findByRole("region", { name: "Ranking de combos" });
+    const fila = within(seccion).getByText("Kit Living").closest("tr");
+    expect(within(fila).getByText("5")).toBeInTheDocument();
+    expect(within(fila).getByText("$ 191.250")).toBeInTheDocument();
+    expect(within(fila).getByText("$ 33.750")).toBeInTheDocument();
+  });
+
+  it("sin combos vendidos en el período lo dice", async () => {
+    // No usa RESUMEN_VACIO: ahí `porEstado` no tiene ninguna orden y la
+    // pantalla entera cae en el estado vacío global ("No hubo ventas en este
+    // período"), que tapa toda sección — incluida esta. El caso real de "hubo
+    // ventas, pero ninguna con combo" necesita un resumen CON órdenes y un
+    // `rankingCombos` vacío, igual que el ranking de productos de al lado.
+    adminVentasApi.getResumenVentas.mockResolvedValue({ ...RESUMEN, rankingCombos: [] });
+    renderPagina();
+
+    expect(await screen.findByText("Todavía no hay combos vendidos en el período.")).toBeInTheDocument();
   });
 });
 

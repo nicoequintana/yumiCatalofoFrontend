@@ -1,12 +1,14 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminMetricas from "./AdminMetricas.jsx";
 import * as productsApi from "../../api/products.js";
+import * as combosApi from "../../api/combos.js";
 import { esperarTablaApilada } from "../../test/tablaApilada.js";
 
 vi.mock("../../api/products.js");
+vi.mock("../../api/combos.js");
 
 function renderPagina() {
   return render(
@@ -19,6 +21,7 @@ function renderPagina() {
 describe("AdminMetricas", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    combosApi.getAdminCombos.mockResolvedValue([]);
   });
 
   it("pide el ranking ordenado al backend y respeta ese orden", async () => {
@@ -128,5 +131,36 @@ describe("AdminMetricas", () => {
 
     await screen.findByText("Reloj Clásico");
     esperarTablaApilada(screen.getByRole("table"));
+  });
+
+  it("muestra la tabla Combos con las vistas de cada combo, más vistos primero", async () => {
+    productsApi.getProducts.mockResolvedValue({
+      data: [{ id: 1, sku: "A-1", nombre: "Reloj", vistas: 3, compartidos: 0 }],
+      page: 1,
+      pageSize: 12,
+      total: 1,
+    });
+    combosApi.getAdminCombos.mockResolvedValue([
+      { id: 1, nombre: "Kit Living", vistas: 12 },
+      { id: 2, nombre: "Kit Dormitorio", vistas: 42 },
+    ]);
+
+    renderPagina();
+
+    const seccion = await screen.findByRole("region", { name: "Combos" });
+    const filas = await within(seccion).findAllByRole("row");
+    expect(filas[1]).toHaveTextContent("Kit Dormitorio");
+    expect(filas[1]).toHaveTextContent("42");
+    expect(filas[2]).toHaveTextContent("Kit Living");
+  });
+
+  it("sin combos la sección lo dice, y un fallo de combos no tapa la tabla de productos", async () => {
+    productsApi.getProducts.mockResolvedValue({ data: [{ id: 1, sku: "A-1", nombre: "Reloj", vistas: 3, compartidos: 0 }], page: 1, pageSize: 12, total: 1 });
+    combosApi.getAdminCombos.mockRejectedValue(new Error("Failed to fetch"));
+
+    renderPagina();
+
+    expect(await screen.findByText("Reloj")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudieron cargar los combos.")).toBeInTheDocument();
   });
 });
