@@ -1,9 +1,20 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CabezaSeccion, { EyebrowSeccion } from "./CabezaSeccion.jsx";
 import TarjetaCombo from "./TarjetaCombo.jsx";
 
 const CLASE_FLECHA =
-  "hidden h-11 w-11 place-items-center rounded-full bg-surface-container-lowest text-primary shadow-sombra-1 transition-colors hover:bg-primary hover:text-on-primary md:grid motion-reduce:transition-none";
+  "hidden h-11 w-11 place-items-center rounded-full bg-surface-container-lowest text-primary shadow-sombra-1 transition-colors enabled:hover:bg-primary enabled:hover:text-on-primary disabled:cursor-default disabled:opacity-40 md:grid motion-reduce:transition-none";
+
+/**
+ * ¿La pista está en el inicio / en el final? Con `scrollWidth` en 0 (sin layout:
+ * jsdom, o antes del primer pintado) no se sabe dónde termina: no se deshabilita
+ * "Siguientes" por las dudas. 1px de tolerancia por el redondeo del scroll.
+ */
+function limitesDePista(pista) {
+  const inicio = pista.scrollLeft <= 1;
+  const final = pista.scrollWidth > 0 && pista.scrollLeft + pista.clientWidth >= pista.scrollWidth - 1;
+  return { inicio, final };
+}
 
 /**
  * Fila deslizable de `TarjetaCombo`, ancho completo — spec §7.1, rediseño del
@@ -22,6 +33,18 @@ function FilaCombos({ combos = [], titulo, bajada, enlace }) {
   // scroll), no un dato del negocio: se deriva del DOM, no de la API.
   const [visible, setVisible] = useState(0);
   const pistaRef = useRef(null);
+  // Las flechas se deshabilitan en las puntas: "Anteriores" al inicio y
+  // "Siguientes" al final, así nunca hay un click que no mueve nada.
+  const [limites, setLimites] = useState({ inicio: true, final: false });
+
+  useEffect(() => {
+    const pista = pistaRef.current;
+    if (!pista) return undefined;
+    const actualizar = () => setLimites(limitesDePista(pista));
+    actualizar();
+    window.addEventListener("resize", actualizar);
+    return () => window.removeEventListener("resize", actualizar);
+  }, [combos.length]);
 
   if (combos.length === 0) return null;
 
@@ -38,6 +61,7 @@ function FilaCombos({ combos = [], titulo, bajada, enlace }) {
     // Sin layout (jsdom, o antes del primer pintado) se cae al promedio.
     const paso = pasoPorCard(pista) || pista.scrollWidth / combos.length;
     setVisible(paso > 0 ? Math.min(combos.length - 1, Math.round(pista.scrollLeft / paso)) : 0);
+    setLimites(limitesDePista(pista));
   }
 
   function desplazar(direccion) {
@@ -71,7 +95,7 @@ function FilaCombos({ combos = [], titulo, bajada, enlace }) {
       </div>
       {hayVarios ? (
         <div className="mt-2.5 flex items-center justify-center gap-3.5">
-          <button type="button" aria-label="Anteriores" onClick={() => desplazar(-1)} className={CLASE_FLECHA}>
+          <button type="button" aria-label="Anteriores" disabled={limites.inicio} onClick={() => desplazar(-1)} className={CLASE_FLECHA}>
             <span aria-hidden="true" className="material-symbols-outlined">
               chevron_left
             </span>
@@ -86,7 +110,7 @@ function FilaCombos({ combos = [], titulo, bajada, enlace }) {
               />
             ))}
           </div>
-          <button type="button" aria-label="Siguientes" onClick={() => desplazar(1)} className={CLASE_FLECHA}>
+          <button type="button" aria-label="Siguientes" disabled={limites.final} onClick={() => desplazar(1)} className={CLASE_FLECHA}>
             <span aria-hidden="true" className="material-symbols-outlined">
               chevron_right
             </span>

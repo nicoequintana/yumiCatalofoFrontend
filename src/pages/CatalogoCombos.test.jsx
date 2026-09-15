@@ -61,6 +61,14 @@ describe("CatalogoCombos", () => {
     expect(screen.queryByText(/disponible/)).not.toBeInTheDocument();
   });
 
+  it("si falló la lista de combos, el encabezado no afirma cuántos hay aunque el resumen haya llegado", () => {
+    combosCatalogoMock.mockReturnValue({ combos: [], cargando: false, error: "Revisá tu conexión e intentá de nuevo." });
+    renderizar();
+    expect(screen.getByText("Revisá tu conexión e intentá de nuevo.")).toBeInTheDocument();
+    expect(screen.queryByText(/combos disponibles/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/% off/)).not.toBeInTheDocument();
+  });
+
   it("con cantidad 0 no muestra la línea de datos", () => {
     resumenMock.mockReturnValueOnce({ resumen: { cantidad: 0, porcentajeMaximo: null } });
     combosCatalogoMock.mockReturnValue({ combos: [], cargando: false, error: null });

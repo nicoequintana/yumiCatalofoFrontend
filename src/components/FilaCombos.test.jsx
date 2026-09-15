@@ -73,8 +73,36 @@ describe("FilaCombos", () => {
 
     await userEvent.click(siguientes);
     expect(fila.scrollBy).toHaveBeenLastCalledWith(expect.objectContaining({ left: 1032 }));
+    Object.defineProperty(fila, "scrollWidth", { configurable: true, value: 3000 });
+    Object.defineProperty(fila, "clientWidth", { configurable: true, value: 1000 });
+    Object.defineProperty(fila, "scrollLeft", { configurable: true, value: 1032 });
+    fireEvent.scroll(fila);
     await userEvent.click(anteriores);
     expect(fila.scrollBy).toHaveBeenLastCalledWith(expect.objectContaining({ left: -1032 }));
+  });
+
+  it("Anteriores se deshabilita al inicio de la pista y Siguientes al final", () => {
+    renderizar();
+    const anteriores = screen.getByRole("button", { name: "Anteriores" });
+    const siguientes = screen.getByRole("button", { name: "Siguientes" });
+    const fila = screen.getByRole("list");
+    Object.defineProperty(fila, "scrollWidth", { configurable: true, value: 2000 });
+    Object.defineProperty(fila, "clientWidth", { configurable: true, value: 1000 });
+
+    Object.defineProperty(fila, "scrollLeft", { configurable: true, value: 0 });
+    fireEvent.scroll(fila);
+    expect(anteriores).toBeDisabled();
+    expect(siguientes).toBeEnabled();
+
+    Object.defineProperty(fila, "scrollLeft", { configurable: true, value: 500 });
+    fireEvent.scroll(fila);
+    expect(anteriores).toBeEnabled();
+    expect(siguientes).toBeEnabled();
+
+    Object.defineProperty(fila, "scrollLeft", { configurable: true, value: 1000 });
+    fireEvent.scroll(fila);
+    expect(anteriores).toBeEnabled();
+    expect(siguientes).toBeDisabled();
   });
 
   it("con un solo combo no hay flechas ni puntos", () => {

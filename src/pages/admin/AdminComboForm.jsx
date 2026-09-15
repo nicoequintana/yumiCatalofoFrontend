@@ -5,6 +5,7 @@ import useGuardaSalida from "../../hooks/useGuardaSalida.js";
 import useDialogo from "../../hooks/useDialogo.js";
 import { useToast } from "../../context/useToast.js";
 import TarjetaCombo from "../../components/TarjetaCombo.jsx";
+import GrillaCombos from "../../components/GrillaCombos.jsx";
 import FilaCombos from "../../components/FilaCombos.jsx";
 import LienzoTienda from "../../components/admin/combos/LienzoTienda.jsx";
 import { FILA_COMBOS_HOME } from "../../constants/combos.js";
@@ -67,8 +68,7 @@ const ALTO_MAXIMO_PAGINA = "min(75vh, 760px)";
  * - `home`: `FilaCombos` con los mismos textos que la home (`FILA_COMBOS_HOME`).
  * - `catalogo`: la grilla de `/combos` (`CatalogoCombos.jsx`) con este combo
  *   SOLO — impar, la card queda centrada a media columna, como en la tienda.
- *   Las clases del contenedor y la grilla copian las de `CatalogoCombos.jsx`:
- *   si cambian allá, cambian acá.
+ *   La grilla es `GrillaCombos`, el MISMO componente que usa la tienda.
  * - `pagina`: `PaginaCombo` con `comboForzado`.
  */
 function PreviaEnTienda({ modo, combo }) {
@@ -76,9 +76,9 @@ function PreviaEnTienda({ modo, combo }) {
   if (modo === "catalogo") {
     return (
       <section className="mx-auto w-full max-w-container-max px-margin-mobile py-7 md:px-margin-desktop md:py-10">
-        <div className="grilla-combos grid auto-rows-fr grid-cols-1 gap-[26px] md:grid-cols-2 md:gap-x-[26px] md:gap-y-8">
+        <GrillaCombos>
           <TarjetaCombo combo={combo} />
-        </div>
+        </GrillaCombos>
       </section>
     );
   }

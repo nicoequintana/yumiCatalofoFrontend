@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import EstadoVacio from "../components/EstadoVacio.jsx";
 import TarjetaCombo from "../components/TarjetaCombo.jsx";
+import GrillaCombos from "../components/GrillaCombos.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import useCombosCatalogo from "../hooks/useCombosCatalogo.js";
 import useResumenCombos from "../hooks/useResumenCombos.js";
@@ -9,12 +10,14 @@ import { urlAbsoluta } from "../constants/seo.js";
 /**
  * Franja teal del encabezado (rediseño del 15/09/2026, `.cat-hero`). Los dos
  * números llegan de `GET /combos/resumen`: la página no cuenta combos ni busca
- * el máximo. Sin resumen (falló) o sin combos, la línea de datos no se muestra.
+ * el máximo. Sin resumen (falló), sin combos o con la LISTA en error, la línea
+ * de datos no se muestra: no se afirma "N combos disponibles" arriba de un
+ * "No se pudieron cargar los combos".
  * REGLA DE CLOAKING: `encabezadoCatalogoCombos` (`seo.controller.js`) repite
  * estos textos.
  */
-function EncabezadoCombos({ resumen }) {
-  const hayDatos = resumen && resumen.cantidad > 0;
+function EncabezadoCombos({ resumen, ocultarDatos }) {
+  const hayDatos = !ocultarDatos && resumen && resumen.cantidad > 0;
 
   return (
     <header className="relative isolate grid gap-2.5 overflow-hidden rounded-[26px] bg-primary p-6 text-on-primary md:p-10 lg:p-11">
@@ -75,7 +78,7 @@ function CatalogoCombos() {
         canonical={urlAbsoluta("/combos")}
       />
       <section className="mx-auto grid w-full max-w-container-max gap-7 px-margin-mobile pb-32 pt-5 md:gap-8 md:px-margin-desktop md:pb-24 md:pt-8">
-        <EncabezadoCombos resumen={resumen} />
+        <EncabezadoCombos resumen={resumen} ocultarDatos={Boolean(error)} />
 
         {cargando ? null : error ? (
           <EstadoVacio icono="cloud_off" titulo="No se pudieron cargar los combos" mensaje={error} />
@@ -94,11 +97,11 @@ function CatalogoCombos() {
             </Link>
           </div>
         ) : (
-          <div className="grilla-combos grid auto-rows-fr grid-cols-1 gap-[26px] md:grid-cols-2 md:gap-x-[26px] md:gap-y-8">
+          <GrillaCombos>
             {combos.map((combo) => (
               <TarjetaCombo key={combo.id} combo={combo} />
             ))}
-          </div>
+          </GrillaCombos>
         )}
       </section>
     </>

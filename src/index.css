@@ -597,6 +597,56 @@ h6 {
     grid-template-columns: minmax(0, 1fr) 380px;
   }
 }
+/* Paso intermedio del ticket ancho: fichas de 88px + signos + huecos piden
+   ~454px de contenido, y el cuerpo mide contenedor − talón − 72px de padding.
+   Con el talón de la card (330px) eso recién entra a partir de ~860px de
+   contenedor; entre 720 y 870 (fila de la home a 900px de viewport, ficha a
+   1024px) la cuarta ficha se metía debajo del talón. Ahí van fichas de 62px
+   con huecos de 4px (~302px, entra desde 720). Medido en navegador el
+   15/09/2026: ver `docs/reglas/combos.md`. */
+@container (min-width: 720px) and (max-width: 869.98px) {
+  .fichas-combo {
+    gap: 4px;
+  }
+  .ficha-combo {
+    width: 62px;
+    padding: 5px;
+    border-radius: 16px;
+  }
+  .ficha-combo-foto {
+    border-radius: 11px;
+  }
+  .signo-combo {
+    font-size: 15px;
+  }
+}
+/* El ticket de la página tiene el talón de 380px: todo el paso se corre 50px.
+   88px desde 920; 62px entre 760 y 920; y entre 720 y 760 ni 4 fichas de 62px
+   entran (~268px de contenido), así que muestra la variante angosta (2 + "+N"). */
+@container (min-width: 720px) and (max-width: 919.98px) {
+  .tarjeta-combo-pagina .fichas-combo {
+    gap: 4px;
+  }
+  .tarjeta-combo-pagina .ficha-combo {
+    width: 62px;
+    padding: 5px;
+    border-radius: 16px;
+  }
+  .tarjeta-combo-pagina .ficha-combo-foto {
+    border-radius: 11px;
+  }
+  .tarjeta-combo-pagina .signo-combo {
+    font-size: 15px;
+  }
+}
+@container (min-width: 720px) and (max-width: 759.98px) {
+  .tarjeta-combo-pagina .fichas-solo-ancho {
+    display: none;
+  }
+  .tarjeta-combo-pagina .fichas-solo-angosto {
+    display: contents;
+  }
+}
 @container (max-width: 380px) {
   .fichas-combo {
     gap: 4px;

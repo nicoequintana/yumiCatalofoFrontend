@@ -13,12 +13,18 @@ describe("useResumenCombos", () => {
     await waitFor(() => expect(result.current.resumen).toEqual({ cantidad: 2, porcentajeMaximo: 30 }));
   });
 
-  it("si falla, el resumen queda en null (el encabezado sale sin la línea de datos)", async () => {
+  it("empieza sin error, y sin resumen",() => {
+    getResumenCombosMock.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useResumenCombos());
+    expect(result.current).toEqual({ resumen: null, error: false });
+  });
+
+  it("si falla, marca error y el resumen queda en null (el encabezado sale sin la línea de datos)", async () => {
     let rechazar;
     getResumenCombosMock.mockImplementation(() => new Promise((_, r) => { rechazar = r; }));
     const { result } = renderHook(() => useResumenCombos());
     rechazar(new Error("caído"));
-    await new Promise((r) => setTimeout(r, 0));
+    await waitFor(() => expect(result.current.error).toBe(true));
     expect(result.current.resumen).toBeNull();
   });
 });
