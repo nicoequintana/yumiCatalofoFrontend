@@ -57,6 +57,8 @@ vi.mock("./pages/Privacidad.jsx", () => ({ default: () => <p>pantalla: privacida
 
 vi.mock("./pages/CatalogoCombos.jsx", () => ({ default: () => <p>pantalla: catálogo de combos</p> }));
 vi.mock("./pages/PaginaCombo.jsx", () => ({ default: () => <p>pantalla: página del combo</p> }));
+vi.mock("./pages/admin/AdminCombos.jsx", () => ({ default: () => <p>pantalla: listado de combos</p> }));
+vi.mock("./pages/admin/AdminComboForm.jsx", () => ({ default: () => <p>pantalla: editor de combo</p> }));
 
 /**
  * JWT de juguete con `exp` futuro, codificado en base64url real — mismo
@@ -217,6 +219,18 @@ describe("rutas públicas de combos", () => {
   it.each([
     ["/combos", "pantalla: catálogo de combos"],
     ["/combos/3-kit-living", "pantalla: página del combo"],
+  ])("%s muestra %s", async (ruta, pantalla) => {
+    renderEnRuta(ruta);
+
+    expect(await screen.findByText(pantalla)).toBeInTheDocument();
+  });
+});
+
+describe("rutas del panel de combos", () => {
+  it.each([
+    ["/catalogo/admin/combos", "pantalla: listado de combos"],
+    ["/catalogo/admin/combos/nuevo", "pantalla: editor de combo"],
+    ["/catalogo/admin/combos/7", "pantalla: editor de combo"],
   ])("%s muestra %s", async (ruta, pantalla) => {
     renderEnRuta(ruta);
 

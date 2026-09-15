@@ -44,6 +44,8 @@ const AdminOrdenes = lazy(() => import("./pages/admin/AdminOrdenes.jsx"));
 const AdminCampanias = lazy(() => import("./pages/admin/AdminCampanias.jsx"));
 const AdminCampaniaEditor = lazy(() => import("./pages/admin/AdminCampaniaEditor.jsx"));
 const AdminPromociones = lazy(() => import("./pages/admin/AdminPromociones.jsx"));
+const AdminCombos = lazy(() => import("./pages/admin/AdminCombos.jsx"));
+const AdminComboForm = lazy(() => import("./pages/admin/AdminComboForm.jsx"));
 const AdminOrdenDetalle = lazy(() => import("./pages/admin/AdminOrdenDetalle.jsx"));
 const AdminProductosSolicitados = lazy(
   () => import("./pages/admin/AdminProductosSolicitados.jsx"),
@@ -197,6 +199,10 @@ function App() {
           {/* Solo escritorio, igual que Campañas: la tabla comercial tiene diez
               columnas. Es un módulo APARTE porque acá no se programa nada. */}
           <Route path="/catalogo/admin/promociones" element={<AdminPromociones />} />
+          {/* El literal `nuevo` va ANTES de `:id`, mismo criterio que campañas. */}
+          <Route path="/catalogo/admin/combos" element={<AdminCombos />} />
+          <Route path="/catalogo/admin/combos/nuevo" element={<AdminComboForm />} />
+          <Route path="/catalogo/admin/combos/:id" element={<AdminComboForm />} />
           {/* Segmento literal dentro de `/ordenes/`: convive con `/:id` de
               abajo porque react-router resuelve por especificidad, no por
               orden de declaración. Hay un test que lo fija. */}
