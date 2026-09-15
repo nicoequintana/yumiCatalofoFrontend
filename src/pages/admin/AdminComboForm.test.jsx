@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { ToastProvider } from "../../context/ToastContext.jsx";
@@ -322,27 +322,93 @@ describe("AdminComboForm — descuento, imagen y vigencia", () => {
 });
 
 describe("AdminComboForm — vista previa y acciones", () => {
-  it("alterna la vista previa entre Card y Página con los datos de la cotización", async () => {
+  /**
+   * La tienda se dibuja DENTRO de un iframe del ancho real (1280 / 390): así los
+   * `md:`/`lg:` y las `@media` de la tienda responden a ese ancho y no al del
+   * panel. Devuelve el `body` del iframe cuando el portal ya pintó.
+   */
+  async function lienzo() {
+    const previa = screen.getByRole("complementary", { name: "Vista previa" });
+    const marco = previa.querySelector("iframe");
+    expect(marco).not.toBeNull();
+    await waitFor(() => expect(marco.contentDocument.body.querySelector(".tema-publico")).not.toBeNull());
+    return { previa, marco, tienda: marco.contentDocument.body };
+  }
+
+  it("arranca en 'Card en la home' + Escritorio, a 1280 px, con la fila de combos de la home", async () => {
     comboEditorMock.mockReturnValue(estado({ cotizacion: { ...COTIZACION, disponible: false, alcanza: 0 } }));
     renderizar();
 
-    const previa = screen.getByRole("complementary", { name: "Vista previa" });
-    // Card: el chip sale de `cotizacion.disponible`, no de un cálculo propio.
-    expect(within(previa).getByText("Agotado")).toBeInTheDocument();
+    const { previa, marco, tienda } = await lienzo();
+    expect(within(previa).getByText("Así lo ve el cliente")).toBeInTheDocument();
+    const que = within(previa).getByRole("group", { name: "Qué previsualizar" });
+    expect(within(que).getByRole("button", { name: /Card en la home/ })).toHaveAttribute("aria-pressed", "true");
+    expect(within(que).getByRole("button", { name: /Card en el catálogo/ })).toHaveAttribute("aria-pressed", "false");
+    expect(within(que).getByRole("button", { name: /Página/ })).toHaveAttribute("aria-pressed", "false");
+    const dispositivo = within(previa).getByRole("group", { name: "Dispositivo" });
+    expect(within(dispositivo).getByRole("button", { name: "Escritorio" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(dispositivo).getByRole("button", { name: "Celular" })).toHaveAttribute("aria-pressed", "false");
 
-    await userEvent.click(within(previa).getByRole("button", { name: "Página" }));
-    expect(within(previa).getByRole("button", { name: "Página" })).toHaveAttribute("aria-pressed", "true");
-    expect(within(previa).getByRole("heading", { level: 1, name: "Kit Living" })).toBeInTheDocument();
+    expect(marco).toHaveAttribute("width", "1280");
+    expect(within(previa).getByText("1280 px · escritorio")).toBeInTheDocument();
+    // La fila REAL de la home, con sus textos, y el chip que resolvió el backend.
+    expect(tienda.querySelector(".fila-combos-pista")).not.toBeNull();
+    expect(within(tienda).getByRole("heading", { name: "Combos que te ahorran plata" })).toBeInTheDocument();
+    expect(within(tienda).getByText("Agotado")).toBeInTheDocument();
   });
 
-  it("la vista previa va con la paleta pública y es inerte: no agrega al carrito ni navega", () => {
+  it("Celular redibuja a 390 px y lo dice en la etiqueta", async () => {
     comboEditorMock.mockReturnValue(estado());
     renderizar();
 
-    const previa = screen.getByRole("complementary", { name: "Vista previa" });
-    const marco = previa.querySelector(".paleta-clara");
-    expect(marco).not.toBeNull();
+    const { previa, marco } = await lienzo();
+    await userEvent.click(within(previa).getByRole("button", { name: "Celular" }));
+
+    expect(within(previa).getByRole("button", { name: "Celular" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(previa).getByRole("button", { name: "Escritorio" })).toHaveAttribute("aria-pressed", "false");
+    expect(previa.querySelector("iframe")).toHaveAttribute("width", "390");
+    expect(within(previa).getByText("390 px · celular")).toBeInTheDocument();
+    expect(marco).toBeTruthy();
+  });
+
+  it("'Card en el catálogo' pinta la grilla de /combos con el combo solo, sin inventar otros", async () => {
+    comboEditorMock.mockReturnValue(estado());
+    renderizar();
+
+    const { previa } = await lienzo();
+    await userEvent.click(within(previa).getByRole("button", { name: /Card en el catálogo/ }));
+
+    const { tienda } = await lienzo();
+    expect(within(previa).getByRole("button", { name: /Card en el catálogo/ })).toHaveAttribute("aria-pressed", "true");
+    const grilla = tienda.querySelector(".grilla-combos");
+    expect(grilla).not.toBeNull();
+    expect(grilla.children).toHaveLength(1);
+    expect(tienda.querySelector(".fila-combos-pista")).toBeNull();
+  });
+
+  it("'Página' pinta la página del combo con los datos del formulario", async () => {
+    comboEditorMock.mockReturnValue(estado());
+    renderizar();
+
+    const { previa } = await lienzo();
+    await userEvent.click(within(previa).getByRole("button", { name: /Página/ }));
+
+    const { tienda } = await lienzo();
+    expect(within(previa).getByRole("button", { name: /Página/ })).toHaveAttribute("aria-pressed", "true");
+    expect(tienda.querySelector(".pagina-combo")).not.toBeNull();
+    expect(within(tienda).getByRole("heading", { level: 1, name: "Kit Living" })).toBeInTheDocument();
+  });
+
+  it("la vista previa va con la paleta de la TIENDA (tema-publico, no paleta-clara) y es inerte", async () => {
+    comboEditorMock.mockReturnValue(estado());
+    renderizar();
+
+    const { previa, marco, tienda } = await lienzo();
+    expect(previa.querySelector(".paleta-clara")).toBeNull();
+    expect(tienda.querySelector(".paleta-clara")).toBeNull();
     // jsdom no implementa `inert`: se verifica el atributo (ver AdminSidebar.test.jsx).
+    expect(tienda.querySelector(".tema-publico")).toHaveAttribute("inert");
+    expect(within(tienda).getByRole("link", { name: /Ver el combo/ }).closest("[inert]")).not.toBeNull();
     expect(marco).toHaveAttribute("inert");
   });
 

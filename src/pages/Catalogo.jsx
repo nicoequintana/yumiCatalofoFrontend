@@ -24,6 +24,7 @@ import usePromoDestacada from "../hooks/usePromoDestacada.js";
 import useTechoDeEspera from "../hooks/useTechoDeEspera.js";
 import useVitrinasCampania from "../hooks/useVitrinasCampania.js";
 import { urlAbsoluta } from "../constants/seo.js";
+import { FILA_COMBOS_HOME } from "../constants/combos.js";
 
 /**
  * Revelado escalonado de la entrada del hero.
@@ -249,12 +250,7 @@ function Catalogo() {
               mensaje — la home no le afirma nada al visitante. Sin combos,
               `FilaCombos` devuelve null solo. */}
           {errorCombos ? null : (
-            <FilaCombos
-              combos={combos}
-              titulo="Combos que te ahorran plata"
-              bajada="Llevá el set completo y pagá menos que comprando cada cosa por separado."
-              enlace={{ texto: "Ver todos los combos", to: "/combos" }}
-            />
+            <FilaCombos combos={combos} {...FILA_COMBOS_HOME} />
           )}
         </div>
         <div data-seccion-home="producto-icono">

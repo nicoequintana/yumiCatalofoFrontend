@@ -5,6 +5,9 @@ import useGuardaSalida from "../../hooks/useGuardaSalida.js";
 import useDialogo from "../../hooks/useDialogo.js";
 import { useToast } from "../../context/useToast.js";
 import TarjetaCombo from "../../components/TarjetaCombo.jsx";
+import FilaCombos from "../../components/FilaCombos.jsx";
+import LienzoTienda from "../../components/admin/combos/LienzoTienda.jsx";
+import { FILA_COMBOS_HOME } from "../../constants/combos.js";
 import SelectorCantidad from "../../components/SelectorCantidad.jsx";
 import BotonVolver from "../../components/BotonVolver.jsx";
 import Spinner from "../../components/Spinner.jsx";
@@ -38,6 +41,49 @@ const claseBotonChico =
   "font-label-md text-label-md inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface px-3 uppercase tracking-widest text-on-surface-variant transition-colors hover:border-outline";
 const claseLabel = "font-label-md text-label-md block text-on-surface";
 const claseAyuda = "font-body-sm text-body-sm text-on-surface-variant";
+const claseSegmentado = "flex max-w-full flex-wrap gap-1 rounded-lg bg-surface-container-highest p-1";
+const claseOpcionSegmentado =
+  "font-label-md text-label-md inline-flex min-h-11 items-center rounded-md transition-colors";
+const claseOpcionElegida = "bg-surface-container-lowest text-primary shadow-sm";
+
+/** Dónde aparece el combo en la tienda. */
+const MODOS_PREVIA = [
+  { id: "home", texto: "Card en la home", icono: "view_agenda" },
+  { id: "catalogo", texto: "Card en el catálogo", icono: "grid_view" },
+  { id: "pagina", texto: "Página", icono: "web" },
+];
+
+/** Anchos REALES a los que se dibuja la tienda antes de achicarla. */
+const DISPOSITIVOS = [
+  { id: "escritorio", etiqueta: "Escritorio", icono: "desktop_windows", ancho: 1280 },
+  { id: "celular", etiqueta: "Celular", icono: "smartphone", ancho: 390 },
+];
+
+/** La página es larga: el marco se corta acá y se recorre con scroll. */
+const ALTO_MAXIMO_PAGINA = "min(75vh, 760px)";
+
+/**
+ * Lo que se dibuja dentro del lienzo, con los componentes REALES de la tienda:
+ * - `home`: `FilaCombos` con los mismos textos que la home (`FILA_COMBOS_HOME`).
+ * - `catalogo`: la grilla de `/combos` (`CatalogoCombos.jsx`) con este combo
+ *   SOLO — impar, la card queda centrada a media columna, como en la tienda.
+ *   Las clases del contenedor y la grilla copian las de `CatalogoCombos.jsx`:
+ *   si cambian allá, cambian acá.
+ * - `pagina`: `PaginaCombo` con `comboForzado`.
+ */
+function PreviaEnTienda({ modo, combo }) {
+  if (modo === "pagina") return <PaginaCombo comboForzado={combo} />;
+  if (modo === "catalogo") {
+    return (
+      <section className="mx-auto w-full max-w-container-max px-margin-mobile py-7 md:px-margin-desktop md:py-10">
+        <div className="grilla-combos grid auto-rows-fr grid-cols-1 gap-[26px] md:grid-cols-2 md:gap-x-[26px] md:gap-y-8">
+          <TarjetaCombo combo={combo} />
+        </div>
+      </section>
+    );
+  }
+  return <FilaCombos combos={[combo]} {...FILA_COMBOS_HOME} />;
+}
 
 /**
  * El objeto de vista previa: textos del formulario + números de `cotizacion`
@@ -122,7 +168,9 @@ function AdminComboForm() {
   const confirmarSalida = useGuardaSalida(Boolean(editor.sucio));
 
   const [panelActivo, setPanelActivo] = useState("form");
-  const [vistaPrevia, setVistaPrevia] = useState("card");
+  const [vistaPrevia, setVistaPrevia] = useState("home");
+  const [dispositivoId, setDispositivoId] = useState("escritorio");
+  const dispositivo = DISPOSITIVOS.find((opcion) => opcion.id === dispositivoId);
   const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
   const dialogoBorradoRef = useDialogo({
     abierto: confirmandoBorrado,
@@ -683,47 +731,53 @@ function AdminComboForm() {
               </span>
               Así lo ve el cliente
             </span>
-            <div role="group" aria-label="Qué previsualizar" className="flex gap-1 rounded-lg bg-surface-container-highest p-1">
-              {[
-                ["card", "Card", "view_agenda"],
-                ["pagina", "Página", "web"],
-              ].map(([valor, texto, icono]) => (
+            <div role="group" aria-label="Qué previsualizar" className={claseSegmentado}>
+              {MODOS_PREVIA.map((modo) => (
                 <button
-                  key={valor}
+                  key={modo.id}
                   type="button"
-                  aria-pressed={vistaPrevia === valor}
-                  onClick={() => setVistaPrevia(valor)}
-                  className={`font-label-md text-label-md inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 transition-colors ${
-                    vistaPrevia === valor ? "bg-surface-container-lowest text-primary shadow-sm" : "text-on-surface-variant"
+                  aria-pressed={vistaPrevia === modo.id}
+                  onClick={() => setVistaPrevia(modo.id)}
+                  className={`${claseOpcionSegmentado} gap-1.5 whitespace-nowrap px-2.5 sm:px-3 ${
+                    vistaPrevia === modo.id ? claseOpcionElegida : "text-on-surface-variant"
+                  }`}
+                >
+                  {/* Sin ícono en celular: con él, los tres rótulos no entran en 390px y se partían. */}
+                  <span aria-hidden="true" className="material-symbols-outlined hidden text-[18px] sm:inline">
+                    {modo.icono}
+                  </span>
+                  {modo.texto}
+                </button>
+              ))}
+            </div>
+            <div role="group" aria-label="Dispositivo" className={claseSegmentado}>
+              {DISPOSITIVOS.map((opcion) => (
+                <button
+                  key={opcion.id}
+                  type="button"
+                  aria-label={opcion.etiqueta}
+                  aria-pressed={dispositivo.id === opcion.id}
+                  onClick={() => setDispositivoId(opcion.id)}
+                  className={`${claseOpcionSegmentado} w-11 justify-center ${
+                    dispositivo.id === opcion.id ? claseOpcionElegida : "text-on-surface-variant"
                   }`}
                 >
                   <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
-                    {icono}
+                    {opcion.icono}
                   </span>
-                  {texto}
                 </button>
               ))}
             </div>
           </div>
 
           {preview ? (
-            vistaPrevia === "card" ? (
-              // `paleta-clara`: la tienda no tiene tema oscuro, así que la card
-              // se pinta con los tokens públicos aunque el panel esté oscuro.
-              // `inert`: es una foto de cómo queda, no una tienda — sin esto
-              // "Agregar combo" metería el combo en el carrito del admin.
-              <div inert className="paleta-clara rounded-xl border border-outline-variant bg-background px-4 py-6">
-                <TarjetaCombo combo={preview} />
-              </div>
-            ) : (
-              // El scroll va AFUERA del subárbol inerte: `inert` saca al
-              // contenido del hit-testing y la rueda tiene que caer en el marco.
-              <div className="mx-auto h-[640px] w-full max-w-[390px] overflow-y-auto rounded-xl border border-outline-variant shadow-ambient">
-                <div inert className="paleta-clara min-h-full bg-background">
-                  <PaginaCombo comboForzado={preview} />
-                </div>
-              </div>
-            )
+            <LienzoTienda
+              ancho={dispositivo.ancho}
+              etiqueta={`${dispositivo.ancho} px · ${dispositivo.etiqueta.toLowerCase()}`}
+              altoMaximo={vistaPrevia === "pagina" ? ALTO_MAXIMO_PAGINA : null}
+            >
+              <PreviaEnTienda modo={vistaPrevia} combo={preview} />
+            </LienzoTienda>
           ) : (
             <p className={`${claseAyuda} rounded-xl border border-dashed border-outline-variant px-4 py-10 text-center`}>
               La vista previa aparece cuando el combo tiene al menos {opciones?.minUnidades ?? 2} unidades y un descuento
