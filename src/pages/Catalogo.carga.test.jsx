@@ -46,6 +46,9 @@ vi.mock("../api/campanias.js", () => ({
   getVitrinasCampania: (...args) => getVitrinasCampaniaMock(...args),
 }));
 vi.mock("../api/authClient.js", () => ({ getToken: () => null }));
+// Esta suite usa los hooks reales; sin este mock, `useCombosCatalogo` saldría
+// a la red de verdad.
+vi.mock("../api/combos.js", () => ({ getCombos: () => Promise.resolve([]) }));
 
 const { default: Catalogo } = await import("./Catalogo.jsx");
 const { reiniciarContextoComercial } = await import("../hooks/useContextoComercial.js");

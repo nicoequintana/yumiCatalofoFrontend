@@ -28,6 +28,19 @@ vi.mock("../hooks/useContextoComercial.js", () => ({ default: () => contextoMock
 const vitrinasCampaniaMock = vi.fn();
 vi.mock("../hooks/useVitrinasCampania.js", () => ({ default: () => vitrinasCampaniaMock() }));
 
+// Mismo motivo que `useVitrinasCampania`: el hook pega a `api/combos.js`.
+const combosCatalogoMock = vi.fn();
+vi.mock("../hooks/useCombosCatalogo.js", () => ({ default: () => combosCatalogoMock() }));
+
+function comboDeHome(id) {
+  return {
+    id, ruta: `/combos/${id}-kit`, nombre: `Kit ${id}`, frase: "Frase.", porcentaje: 10,
+    precioSeparado: "10000", precioCombo: "9000", ahorro: "1000", unidades: 2, alcanza: 5,
+    disponible: true, quedanPocos: false, heroUrl: null,
+    items: [{ productId: 1, nombre: "A", cantidad: 2, precioLista: "5000", foto: null, ruta: "/producto/1-a", categoria: null }],
+  };
+}
+
 const TITULO_HERO = "Objetos singulares que transforman tu cotidiano.";
 
 const PRODUCTO = {
@@ -113,6 +126,7 @@ describe("Catalogo - home editorial", () => {
     // Default sin vitrinas: la sección no dibuja nada, mismo estado inicial
     // que el catálogo real sin ninguna campaña con vidriera completa.
     vitrinasCampaniaMock.mockReturnValue({ vitrinas: [], error: null, resuelto: true });
+    combosCatalogoMock.mockReturnValue({ combos: [], cargando: false, error: null });
   });
 
   it("en el DOM hay un solo h1, con el copy del hero", async () => {
@@ -188,7 +202,7 @@ describe("Catalogo - home editorial", () => {
     ).toBeInTheDocument();
   });
 
-  it("el orden en el DOM es: campañas, hero, buscador, círculos, promos, vidrieras de campaña, más vendidos, ícono, nuevos, destacados, confianza", async () => {
+  it("el orden en el DOM es: campañas, hero, buscador, círculos, promos, vidrieras de campaña, más vendidos, combos, ícono, nuevos, destacados, confianza", async () => {
     const { container } = await renderPaginaLista();
 
     const secciones = [...container.querySelectorAll("[data-seccion-home]")].map(
@@ -202,11 +216,36 @@ describe("Catalogo - home editorial", () => {
       "promos",
       "vitrinas-campania",
       "mas-vendidos",
+      "combos",
       "producto-icono",
       "nuevos-ingresos",
       "destacados",
       "confianza",
     ]);
+  });
+
+  it("con combos vigentes, la fila de combos aparece con su título y el link a /combos", async () => {
+    combosCatalogoMock.mockReturnValue({ combos: [comboDeHome(1), comboDeHome(2)], cargando: false, error: null });
+    const { container } = await renderPaginaLista();
+
+    const seccion = container.querySelector('[data-seccion-home="combos"]');
+    expect(within(seccion).getByRole("heading", { name: "Combos que te ahorran plata" })).toBeInTheDocument();
+    expect(within(seccion).getAllByRole("link", { name: /Ver el combo/i })).toHaveLength(2);
+    expect(within(seccion).getByRole("link", { name: /Ver todos los combos/i })).toHaveAttribute("href", "/combos");
+  });
+
+  it("sin combos vigentes, la sección no dibuja nada", async () => {
+    const { container } = await renderPaginaLista();
+
+    expect(container.querySelector('[data-seccion-home="combos"]')).toBeEmptyDOMElement();
+  });
+
+  it("si la carga de combos falla, la sección no aparece (falla blando)", async () => {
+    combosCatalogoMock.mockReturnValue({ combos: [], cargando: false, error: "Revisá tu conexión e intentá de nuevo." });
+    const { container } = await renderPaginaLista();
+
+    expect(container.querySelector('[data-seccion-home="combos"]')).toBeEmptyDOMElement();
+    expect(screen.queryByText("Revisá tu conexión e intentá de nuevo.")).not.toBeInTheDocument();
   });
 
   it("pasa las vitrinas de campaña a su sección", async () => {

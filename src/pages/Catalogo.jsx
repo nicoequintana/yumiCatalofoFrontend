@@ -5,6 +5,7 @@ import CarruselCampanias from "../components/CarruselCampanias.jsx";
 import CarruselDestacados from "../components/CarruselDestacados.jsx";
 import CirculosCategoria from "../components/CirculosCategoria.jsx";
 import Confianza from "../components/Confianza.jsx";
+import FilaCombos from "../components/FilaCombos.jsx";
 import MasVendidos from "../components/MasVendidos.jsx";
 import MetaSeo from "../components/MetaSeo.jsx";
 import NuevosIngresos from "../components/NuevosIngresos.jsx";
@@ -12,6 +13,7 @@ import ProductoIcono from "../components/ProductoIcono.jsx";
 import PromosActivas from "../components/PromosActivas.jsx";
 import VitrinasCampania from "../components/VitrinasCampania.jsx";
 import { useCategoriasHome } from "../hooks/useCategoriasNavbar.js";
+import useCombosCatalogo from "../hooks/useCombosCatalogo.js";
 import useContextoComercial from "../hooks/useContextoComercial.js";
 import useDestacados from "../hooks/useDestacados.js";
 import useMasVendidos from "../hooks/useMasVendidos.js";
@@ -72,6 +74,7 @@ function Catalogo() {
     error: errorVitrinasCampania,
     resuelto: vitrinasResueltas,
   } = useVitrinasCampania();
+  const { combos, cargando: combosCargando, error: errorCombos } = useCombosCatalogo();
 
   /**
    * ⚠️ **ESTE LOADER ESCONDE UN PROBLEMA, NO LO ARREGLA.**
@@ -86,8 +89,8 @@ function Catalogo() {
    * ocurra sin nadie mirando. **La causa queda intacta**: quien sume una
    * sección que también empiece en `null` va a agrandar el salto escondido.
    *
-   * Las nueve fuentes van enumeradas y no derivadas de una lista: si mañana
-   * hay una décima, tiene que aparecer acá a mano, y eso es deliberado — una
+   * Las diez fuentes van enumeradas y no derivadas de una lista: si mañana
+   * hay una undécima, tiene que aparecer acá a mano, y eso es deliberado — una
    * fuente nueva sin su `resuelto` es justo lo que el techo de abajo cubre.
    */
   const fuentesResueltas =
@@ -99,7 +102,8 @@ function Catalogo() {
     masVendidosResueltos &&
     productoIconoResuelto &&
     nuevosResueltos &&
-    vitrinasResueltas;
+    vitrinasResueltas &&
+    !combosCargando;
 
   // La red de seguridad: pasado el techo la home se dibuja con lo que haya.
   // Un loader sin techo es un sitio caído — ver `useTechoDeEspera.js`.
@@ -239,6 +243,19 @@ function Catalogo() {
         </div>
         <div data-seccion-home="mas-vendidos">
           <MasVendidos productos={masVendidos} error={errorMasVendidos} />
+        </div>
+        <div data-seccion-home="combos">
+          {/* Falla blando (spec §7.5): con error no se dibuja nada, ni el
+              mensaje — la home no le afirma nada al visitante. Sin combos,
+              `FilaCombos` devuelve null solo. */}
+          {errorCombos ? null : (
+            <FilaCombos
+              combos={combos}
+              titulo="Combos que te ahorran plata"
+              bajada="Llevá el set completo y pagá menos que comprando cada cosa por separado."
+              enlace={{ texto: "Ver todos los combos", to: "/combos" }}
+            />
+          )}
         </div>
         <div data-seccion-home="producto-icono">
           <ProductoIcono producto={productoIcono} />
