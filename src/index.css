@@ -450,6 +450,46 @@ h6 {
   }
 }
 
+/* Card de combo (`TarjetaCombo.jsx`): decide su forma por el ANCHO QUE LE
+   TOCA, no por la pantalla — container query nativa, sin plugin (Tailwind 3
+   no la cubre como utilidad; mismo criterio que `.vidrio-header`/`.vidrio-isla`
+   para un efecto que Tailwind no tiene). Ticket horizontal en ancho ≥ 720px,
+   apilada por debajo. */
+.tarjeta-combo-wrap {
+  container-type: inline-size;
+}
+/* Troquel apilado (default): línea punteada arriba del talón, entre las dos
+   "muescas" que la perforan en las puntas — ver `.muesca-b` más abajo para su
+   reposición en el ticket horizontal. */
+.tarjeta-combo .talon-combo {
+  border-top: 2px dashed rgb(var(--color-on-primary) / 0.28);
+}
+/* `.muesca-a` no cambia de esquina entre los dos layouts (siempre arriba a la
+   izquierda del talón); `.muesca-b` sí — apilada va arriba a la derecha,
+   ticket horizontal va abajo a la izquierda, sobre el troquel vertical. */
+.tarjeta-combo .muesca-b {
+  right: -11px;
+  top: -11px;
+  left: auto;
+  bottom: auto;
+}
+@container (min-width: 720px) {
+  .tarjeta-combo {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-rows: 1fr;
+  }
+  .tarjeta-combo .talon-combo {
+    border-top: 0;
+    border-left: 2px dashed rgb(var(--color-on-primary) / 0.28);
+  }
+  .tarjeta-combo .muesca-b {
+    left: -11px;
+    bottom: -11px;
+    right: auto;
+    top: auto;
+  }
+}
+
 /* Tabla apilada del panel admin (`.tabla-apilada`; contrato de atributos en
    components/admin/clasesTabla.js). Va fuera de @layer y con un elemento de
    más en cada selector: tiene que ganarle a utilidades de escritorio de las
