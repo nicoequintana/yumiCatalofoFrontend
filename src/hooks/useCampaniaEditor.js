@@ -16,6 +16,7 @@ import {
   subirArte,
   subirDoodle,
 } from "../api/campanias.js";
+import { getAdminCombos, guardarCombosDeCampania } from "../api/combos.js";
 import { getPromociones } from "../api/promociones.js";
 import useGuardaSalida from "./useGuardaSalida.js";
 import { DEBOUNCE_BUSQUEDA_MS } from "./useTablaAdmin.js";
@@ -123,6 +124,7 @@ export default function useCampaniaEditor() {
   const [opciones, setOpciones] = useState(null);
   const [campania, setCampania] = useState(null);
   const [promociones, setPromociones] = useState([]);
+  const [combos, setCombos] = useState([]);
   const [valores, setValores] = useState(() => valoresIniciales(null, diaElegido));
   const [diasFaltantes, setDiasFaltantes] = useState(null);
 
@@ -144,6 +146,7 @@ export default function useCampaniaEditor() {
   // como un botón que no hace nada, y el admin lo vuelve a apretar.
   const [errorProductos, setErrorProductos] = useState(null);
   const [errorPromociones, setErrorPromociones] = useState(null);
+  const [errorCombos, setErrorCombos] = useState(null);
   const [sucio, setSucio] = useState(false);
   const confirmarSalida = useGuardaSalida(sucio);
 
@@ -173,6 +176,24 @@ export default function useCampaniaEditor() {
       })
       .catch(() => {
         if (activo) setPromociones([]);
+      });
+    return () => {
+      activo = false;
+    };
+  }, [esEdicion]);
+
+  // Mismo criterio que las promociones: la lista COMPLETA del panel, no la de
+  // esta campaña — los checkboxes ofrecen todos los combos y marcan los
+  // asociados. Falla blanda.
+  useEffect(() => {
+    if (!esEdicion) return undefined;
+    let activo = true;
+    getAdminCombos()
+      .then((datos) => {
+        if (activo) setCombos(datos);
+      })
+      .catch(() => {
+        if (activo) setCombos([]);
       });
     return () => {
       activo = false;
@@ -434,11 +455,25 @@ export default function useCampaniaEditor() {
     }, setErrorPromociones);
   }
 
+  /**
+   * Qué combos programa la campaña (`PUT /:id/combos`). Como el de promociones,
+   * el endpoint no devuelve el detalle: se relee para que los checkboxes
+   * reflejen lo guardado.
+   */
+  async function guardarCombos(comboIds) {
+    await conGuardado(async () => {
+      await guardarCombosDeCampania(Number(id), comboIds);
+      const detalle = await getCampania(id);
+      setCampania(detalle);
+    }, setErrorCombos);
+  }
+
   return {
     esEdicion,
     opciones,
     campania,
     promociones,
+    combos,
     valores,
     diasFaltantes,
     cargando,
@@ -450,6 +485,7 @@ export default function useCampaniaEditor() {
     errorEliminar,
     errorProductos,
     errorPromociones,
+    errorCombos,
     sucio,
     confirmarSalida,
     editar,
@@ -464,5 +500,6 @@ export default function useCampaniaEditor() {
     borrarArte,
     guardarProductos,
     guardarPromociones,
+    guardarCombos,
   };
 }

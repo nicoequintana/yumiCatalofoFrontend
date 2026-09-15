@@ -67,6 +67,7 @@ const ITEMS_NAV = [
   { to: "/catalogo/admin/ordenes", icono: "receipt_long", label: "Órdenes" },
   { to: "/catalogo/admin/campanias", icono: "calendar_month", label: "Campañas", soloEscritorio: true },
   { to: "/catalogo/admin/promociones", icono: "sell", label: "Promociones", soloEscritorio: true },
+  { to: "/catalogo/admin/combos", icono: "redeem", label: "Combos" },
   { to: "/catalogo/admin/logs", icono: "history", label: "Logs" },
 ];
 

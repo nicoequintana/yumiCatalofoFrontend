@@ -2,6 +2,7 @@ import { useState } from "react";
 import EstadoVacio from "../../components/EstadoVacio.jsx";
 import Spinner from "../../components/Spinner.jsx";
 import SoloEscritorio from "../../components/admin/SoloEscritorio.jsx";
+import CombosDeCampania from "../../components/admin/campanias/CombosDeCampania.jsx";
 import DialogoCampania from "../../components/admin/campanias/DialogoCampania.jsx";
 import EditorCampaniaHeader from "../../components/admin/campanias/EditorCampaniaHeader.jsx";
 import PromocionesDeCampania from "../../components/admin/campanias/PromocionesDeCampania.jsx";
@@ -39,13 +40,13 @@ import useCampaniaEditor from "../../hooks/useCampaniaEditor.js";
  * El `<h1>` es el nombre de la campaña, en el encabezado. Productos y
  * Promociones llegaron a ser `<h3>`: para la vista da igual —todas usan la
  * misma clase—, pero un lector de pantalla las anunciaba como subsecciones del
- * Cartel, que es donde nada de eso vive. Hoy son SEIS: Campaña, Cartel, Banner,
- * Destino del CTA, Productos y Promociones.
+ * Cartel, que es donde nada de eso vive. Hoy son SIETE: Campaña, Cartel, Banner,
+ * Destino del CTA, Productos, Promociones y Combos.
  *
- * ⚠️ **Doodle, Productos y Promociones solo existen con id.** En `/nueva` no se
- * renderizan: el Doodle sube a `PUT /:id/doodle` y no se le puede subir una
- * imagen a algo que todavía no fue creado. Mismo patrón que `SolapaImagenes`
- * con los bloques de IA.
+ * ⚠️ **Doodle, Productos, Promociones y Combos solo existen con id.** En
+ * `/nueva` no se renderizan: el Doodle sube a `PUT /:id/doodle` y no se le
+ * puede subir una imagen a algo que todavía no fue creado. Mismo patrón que
+ * `SolapaImagenes` con los bloques de IA.
  *
  * Va envuelto en `SoloEscritorio` por el mismo motivo que el calendario: el item
  * no aparece en el drawer de < lg, pero la ruta sigue existiendo para un enlace
@@ -105,6 +106,7 @@ export default function AdminCampaniaEditor() {
     opciones,
     campania,
     promociones,
+    combos,
     valores,
     diasFaltantes,
     cargando,
@@ -116,6 +118,7 @@ export default function AdminCampaniaEditor() {
     errorEliminar,
     errorProductos,
     errorPromociones,
+    errorCombos,
     sucio,
     confirmarSalida,
     editar,
@@ -130,6 +133,7 @@ export default function AdminCampaniaEditor() {
     borrarArte,
     guardarProductos,
     guardarPromociones,
+    guardarCombos,
   } = useCampaniaEditor();
 
   const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
@@ -299,6 +303,30 @@ export default function AdminCampaniaEditor() {
               <AunNoDisponible>
                 Guardá la campaña para elegir qué promociones aplica.
               </AunNoDisponible>
+            )}
+          </section>
+
+          <section
+            aria-labelledby="titulo-seccion-combos"
+            className="mt-6 rounded-xl border border-outline-variant bg-surface-container-lowest p-6"
+          >
+            <h2 id="titulo-seccion-combos" className="font-headline-sm text-headline-sm mb-2 text-primary">
+              Combos de la campaña
+            </h2>
+            <p className="font-body-md text-body-md mb-5 text-on-surface-variant">
+              Los combos programados desde campañas se ven mientras esta campaña esté activa. Las fechas
+              siguen siendo las de la campaña.
+            </p>
+            <ErrorDeSeccion>{errorCombos}</ErrorDeSeccion>
+            {esEdicion ? (
+              <CombosDeCampania
+                combos={combos}
+                asociados={campania?.combos}
+                guardando={guardando}
+                onGuardar={guardarCombos}
+              />
+            ) : (
+              <AunNoDisponible>Guardá la campaña para elegir qué combos programa.</AunNoDisponible>
             )}
           </section>
         </main>

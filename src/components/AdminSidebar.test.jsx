@@ -94,6 +94,22 @@ describe("AdminSidebar", () => {
     expect(configuracionEscritorio).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("muestra Combos después de Promociones, visible también en el drawer del celular", () => {
+    const { container } = renderSidebar();
+
+    const destinos = screen.getAllByRole("link").map((enlace) => enlace.getAttribute("href"));
+    const indicePromociones = destinos.indexOf("/catalogo/admin/promociones");
+    expect(indicePromociones).toBeGreaterThanOrEqual(0);
+    expect(destinos[indicePromociones + 1]).toBe("/catalogo/admin/combos");
+
+    const aside = container.querySelector("aside");
+    const enElDrawer = screen
+      .getAllByRole("link", { name: /combos/i })
+      .find((enlace) => aside.contains(enlace));
+    expect(enElDrawer).toBeDefined();
+    expect(enElDrawer).not.toHaveClass("hidden");
+  });
+
   it("apunta la ruta nueva de analítica de campañas con un rótulo que no colisiona con el editor", () => {
     renderSidebar();
 
@@ -124,22 +140,25 @@ describe("AdminSidebar", () => {
  *
  * Existe porque `e2e/admin-desktop-layout.spec.js` (el guard REAL del
  * breakpoint) está fuera del CI a propósito, y este archivo fija las clases
- * pero no el TAMAÑO de la barra. Sin este test, sumar un sexto ítem a
+ * pero no el TAMAÑO de la barra. Sin este test, sumar un séptimo ítem a
  * `ITEMS_NAV` deja la suite entera en verde y reabre el bug de "no se puede
  * cerrar sesión entre 1024 y N" descrito en el comentario del `<nav>` de
  * `AdminSidebar.jsx` — silencioso hasta que alguien lo mide en navegador.
  * **Si tocás `ITEMS_NAV`, corré `e2e/admin-desktop-layout.spec.js` antes de
  * mergear.**
+ *
+ * Subió a seis con Combos (15/09/2026), sin volver a medir en navegador
+ * — pendiente correr `e2e/admin-desktop-layout.spec.js` antes de publicar.
  */
 describe("AdminSidebar — ITEMS_NAV no crece en silencio", () => {
-  it("la bottom nav tiene hoy cinco ítems sueltos (más los dos acordeones)", () => {
+  it("la bottom nav tiene hoy seis ítems sueltos (más los dos acordeones)", () => {
     const { container } = renderSidebar();
     const bottomNav = container.querySelector("nav.fixed.inset-x-0.bottom-0");
 
     // Los links directos de la bottom nav (no los de adentro de un dropdown,
     // que solo existen cuando el acordeón está abierto).
     const linksSueltos = within(bottomNav).getAllByRole("link");
-    expect(linksSueltos).toHaveLength(5);
+    expect(linksSueltos).toHaveLength(6);
   });
 });
 

@@ -7,11 +7,13 @@ import * as campaniasApi from "../../api/campanias.js";
 import * as productsApi from "../../api/products.js";
 import * as categoriasApi from "../../api/categorias.js";
 import * as promocionesApi from "../../api/promociones.js";
+import * as combosApi from "../../api/combos.js";
 
 vi.mock("../../api/campanias.js");
 vi.mock("../../api/products.js");
 vi.mock("../../api/categorias.js");
 vi.mock("../../api/promociones.js");
+vi.mock("../../api/combos.js");
 
 /**
  * El editor de campaña, que es una PÁGINA y no un diálogo.
@@ -68,6 +70,7 @@ function detalle(extra = {}) {
     modalCtaReferencia: null,
     modalFechaObjetivo: "2026-09-21",
     promociones: [],
+    combos: [],
     productos: [],
     ...extra,
   };
@@ -92,6 +95,7 @@ beforeEach(() => {
   campaniasApi.getContadorCampania.mockResolvedValue({ diasFaltantes: 17 });
   categoriasApi.getCategorias.mockResolvedValue([{ id: 4, nombre: "Hogar" }]);
   promocionesApi.getPromociones.mockResolvedValue([]);
+  combosApi.getAdminCombos.mockResolvedValue([]);
   productsApi.getEtiquetas.mockResolvedValue({ etiquetas: [] });
   productsApi.getProducts.mockResolvedValue({ data: [], page: 1, pageSize: 24, total: 0 });
 });
@@ -428,5 +432,43 @@ describe("AdminCampaniaEditor — el destino del CTA", () => {
     await usuario.click(await within(destinos).findByRole("button", { name: /Reloj Clásico/ }));
 
     await waitFor(() => expect(elegido()).toBe("Elegido: Reloj Clásico"));
+  });
+});
+
+describe("AdminCampaniaEditor — combos de la campaña", () => {
+  it("en el alta la sección existe y explica que hace falta guardar", async () => {
+    renderEditor("/catalogo/admin/campanias/nueva");
+
+    expect(await screen.findByRole("heading", { name: "Combos de la campaña" })).toBeInTheDocument();
+    expect(screen.getByText("Guardá la campaña para elegir qué combos programa.")).toBeInTheDocument();
+  });
+
+  it("en la edición ofrece los combos, marca los asociados y guarda al tildar", async () => {
+    const usuario = userEvent.setup();
+    campaniasApi.getCampania.mockResolvedValue(detalle({ combos: [{ id: 4, nombre: "Kit Living" }] }));
+    combosApi.getAdminCombos.mockResolvedValue([
+      { id: 4, nombre: "Kit Living", vigencia: "CAMPANIA" },
+      { id: 5, nombre: "Kit Dormitorio", vigencia: "CAMPANIA" },
+    ]);
+    combosApi.guardarCombosDeCampania.mockResolvedValue({ comboIds: [4, 5] });
+    renderEditor("/catalogo/admin/campanias/31/editar");
+
+    const seccion = await screen.findByRole("region", { name: "Combos de la campaña" });
+    expect(await within(seccion).findByRole("checkbox", { name: /Kit Living/ })).toBeChecked();
+    await usuario.click(within(seccion).getByRole("checkbox", { name: /Kit Dormitorio/ }));
+
+    expect(combosApi.guardarCombosDeCampania).toHaveBeenCalledWith(31, [4, 5]);
+  });
+
+  it("el fallo al guardar los combos se ve DENTRO de su sección", async () => {
+    const usuario = userEvent.setup();
+    combosApi.getAdminCombos.mockResolvedValue([{ id: 5, nombre: "Kit Dormitorio", vigencia: "CAMPANIA" }]);
+    combosApi.guardarCombosDeCampania.mockRejectedValue(new Error("No se pudo guardar la lista de combos."));
+    renderEditor("/catalogo/admin/campanias/31/editar");
+
+    await usuario.click(await screen.findByRole("checkbox", { name: /Kit Dormitorio/ }));
+
+    const seccion = screen.getByRole("region", { name: "Combos de la campaña" });
+    expect(await within(seccion).findByText("No se pudo guardar la lista de combos.")).toBeInTheDocument();
   });
 });

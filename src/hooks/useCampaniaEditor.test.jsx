@@ -22,6 +22,12 @@ vi.mock("../api/campanias.js", () => ({
   guardarPromocionesDeCampania: vi.fn(),
 }));
 vi.mock("../api/promociones.js", () => ({ getPromociones: () => Promise.resolve([]) }));
+const getAdminCombosMock = vi.fn();
+const guardarCombosDeCampaniaMock = vi.fn();
+vi.mock("../api/combos.js", () => ({
+  getAdminCombos: (...a) => getAdminCombosMock(...a),
+  guardarCombosDeCampania: (...a) => guardarCombosDeCampaniaMock(...a),
+}));
 vi.mock("react-router-dom", async (importar) => ({
   ...(await importar()),
   useParams: () => ({ id: "1" }),
@@ -50,6 +56,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   getCampaniaMock.mockResolvedValue(DETALLE);
   actualizarCampaniaMock.mockResolvedValue(DETALLE);
+  getAdminCombosMock.mockResolvedValue([{ id: 4, nombre: "Kit Living" }]);
 });
 
 describe("useCampaniaEditor — el bloque del banner", () => {
@@ -91,5 +98,37 @@ describe("useCampaniaEditor — el bloque del banner", () => {
     const [, payload] = actualizarCampaniaMock.mock.calls[0];
     expect(payload).not.toHaveProperty("bannerColor");
     expect(payload).not.toHaveProperty("bannerCtaTexto");
+  });
+});
+
+describe("useCampaniaEditor — combos de la campaña", () => {
+  it("trae todos los combos del panel para ofrecerlos", async () => {
+    const { result } = renderHook(() => useCampaniaEditor(), { wrapper: envoltorio });
+
+    await waitFor(() => expect(result.current.combos).toEqual([{ id: 4, nombre: "Kit Living" }]));
+  });
+
+  it("guardarCombos manda la lista completa y relee el detalle", async () => {
+    guardarCombosDeCampaniaMock.mockResolvedValue({ comboIds: [4] });
+    getCampaniaMock.mockResolvedValueOnce(DETALLE).mockResolvedValueOnce({ ...DETALLE, combos: [{ id: 4, nombre: "Kit Living" }] });
+    const { result } = renderHook(() => useCampaniaEditor(), { wrapper: envoltorio });
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    await act(() => result.current.guardarCombos([4]));
+
+    expect(guardarCombosDeCampaniaMock).toHaveBeenCalledWith(1, [4]);
+    expect(result.current.campania.combos).toEqual([{ id: 4, nombre: "Kit Living" }]);
+    expect(result.current.errorCombos).toBeNull();
+  });
+
+  it("un fallo al guardar queda en errorCombos, no en el error general", async () => {
+    guardarCombosDeCampaniaMock.mockRejectedValue(new Error("Estos combos ya no existen: 9. Recargá la pantalla."));
+    const { result } = renderHook(() => useCampaniaEditor(), { wrapper: envoltorio });
+    await waitFor(() => expect(result.current.cargando).toBe(false));
+
+    await act(() => result.current.guardarCombos([9]));
+
+    expect(result.current.errorCombos).toBe("Estos combos ya no existen: 9. Recargá la pantalla.");
+    expect(result.current.error).toBeNull();
   });
 });
