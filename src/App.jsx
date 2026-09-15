@@ -9,6 +9,8 @@ import { cargarRequireAuthCliente } from "./components/cargarRequireAuthCliente.
 import { cargarMisPedidos } from "./pages/cuenta/cargarMisPedidos.js";
 import { cargarPedidoDetalle } from "./pages/cuenta/cargarPedidoDetalle.js";
 import Catalogo from "./pages/Catalogo.jsx";
+import CatalogoCombos from "./pages/CatalogoCombos.jsx";
+import PaginaCombo from "./pages/PaginaCombo.jsx";
 import Coleccion from "./pages/Coleccion.jsx";
 import Favoritos from "./pages/Favoritos.jsx";
 import Carrito from "./pages/Carrito.jsx";
@@ -107,6 +109,8 @@ function App() {
         <Route path="/" element={<Catalogo />} />
         <Route path="/coleccion" element={<Coleccion />} />
         <Route path="/coleccion/categoria/:slugCategoria" element={<Coleccion />} />
+        <Route path="/combos" element={<CatalogoCombos />} />
+        <Route path="/combos/:idSlug" element={<PaginaCombo />} />
         <Route path="/favoritos" element={<Favoritos />} />
         <Route path="/carrito" element={<Carrito />} />
         <Route path="/checkout/confirmacion" element={<OrdenConfirmada />} />

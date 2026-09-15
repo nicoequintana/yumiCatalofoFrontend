@@ -200,4 +200,14 @@ describe("HojaMenu", () => {
 
     expect(categoriasMock).toHaveBeenCalledWith({ activo: true });
   });
+
+  it("muestra el link Combos y cierra la hoja al tocarlo", async () => {
+    const onCerrar = vi.fn();
+    montar({ onCerrar });
+
+    const link = screen.getByRole("link", { name: "Combos" });
+    expect(link).toHaveAttribute("href", "/combos");
+    await userEvent.click(link);
+    expect(onCerrar).toHaveBeenCalled();
+  });
 });

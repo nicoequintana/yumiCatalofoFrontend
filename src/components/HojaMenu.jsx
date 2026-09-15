@@ -126,6 +126,13 @@ export default function HojaMenu({ abierta, onCerrar }) {
           Inicio
         </Link>
 
+        <Link to="/combos" onClick={onCerrar} className={CLASE_FILA}>
+          <span aria-hidden="true" className="material-symbols-outlined text-on-surface-variant">
+            redeem
+          </span>
+          Combos
+        </Link>
+
         {/* "Buscar" y NO "Buscar productos": ese nombre ya lo lleva la lupa
             del header, visible también en móvil desde este reparto y montada
             a la vez que esta hoja. El destino es el mismo que la lupa: no hay

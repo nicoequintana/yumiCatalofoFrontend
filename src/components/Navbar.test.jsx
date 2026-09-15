@@ -433,6 +433,20 @@ describe("Navbar - carga de categorías", () => {
  * otros dos ya sobran de ancho y copian el propio con `before:w-full` para no
  * invadir al vecino.
  */
+describe("Navbar - link Combos", () => {
+  it("muestra Combos en la navegación principal, siempre visible, hacia /combos", () => {
+    renderNavbar();
+
+    expect(navPrincipal().getByRole("link", { name: "Combos" })).toHaveAttribute("href", "/combos");
+  });
+
+  it("marca Combos como página actual dentro de /combos/:idSlug", () => {
+    renderNavbar("/combos/3-kit-living");
+
+    expect(navPrincipal().getByRole("link", { name: "Combos" })).toHaveAttribute("aria-current", "page");
+  });
+});
+
 describe("Navbar — área táctil", () => {
   it("el logo extiende su área a 44 de alto", () => {
     renderNavbar("/");

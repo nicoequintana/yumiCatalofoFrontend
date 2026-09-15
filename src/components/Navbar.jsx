@@ -25,7 +25,10 @@ import { AREA_TACTIL_ANCHA, AREA_TACTIL_ICONO } from "../utils/areaTactil.js";
  * única escritura a mano de "Productos": la que tenía el panel móvil viejo se
  * fue con él.
  */
-const DESTINOS = [{ to: "/", texto: "Inicio", esActivo: (pathname) => pathname === "/" }];
+const DESTINOS = [
+  { to: "/", texto: "Inicio", esActivo: (pathname) => pathname === "/" },
+  { to: "/combos", texto: "Combos", esActivo: (pathname) => pathname.startsWith("/combos") },
+];
 
 /**
  * Header público: wordmark a la izquierda, navegación al centro y acciones a la

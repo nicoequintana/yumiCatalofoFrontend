@@ -55,6 +55,9 @@ vi.mock("./pages/cuenta/Completar.jsx", () => ({ default: () => <p>pantalla: com
 vi.mock("./pages/cuenta/MisPedidos.jsx", () => ({ default: () => <p>pantalla: pedidos</p> }));
 vi.mock("./pages/Privacidad.jsx", () => ({ default: () => <p>pantalla: privacidad</p> }));
 
+vi.mock("./pages/CatalogoCombos.jsx", () => ({ default: () => <p>pantalla: catálogo de combos</p> }));
+vi.mock("./pages/PaginaCombo.jsx", () => ({ default: () => <p>pantalla: página del combo</p> }));
+
 /**
  * JWT de juguete con `exp` futuro, codificado en base64url real — mismo
  * helper que `RequireAuth.test.jsx` — así `RequireAuth` deja pasar sin tocar
@@ -207,5 +210,16 @@ describe("política de privacidad", () => {
     renderEnRuta("/privacidad");
     expect(await screen.findByText("pantalla: privacidad")).toBeInTheDocument();
     expect(screen.getByTestId("sonda-ruta")).toHaveTextContent("/privacidad");
+  });
+});
+
+describe("rutas públicas de combos", () => {
+  it.each([
+    ["/combos", "pantalla: catálogo de combos"],
+    ["/combos/3-kit-living", "pantalla: página del combo"],
+  ])("%s muestra %s", async (ruta, pantalla) => {
+    renderEnRuta(ruta);
+
+    expect(await screen.findByText(pantalla)).toBeInTheDocument();
   });
 });
