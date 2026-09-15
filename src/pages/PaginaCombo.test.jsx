@@ -91,6 +91,13 @@ describe("PaginaCombo", () => {
     expect(container.querySelector(".muesca-a, .pc-muesca-b, .muesca-b")).toBeNull();
     expect(within(ticket).getByLabelText("15% de descuento").className).toContain("bg-sello");
     expect(within(ticket).getAllByTestId("ficha-item")).toHaveLength(2);
+    expect(within(ticket).getAllByTestId("ficha-item")[0]).toHaveClass("bg-surface-container-lowest", "shadow-sombra-ficha");
+    const cuerpo = ticket.querySelector(".tarjeta-combo-cuerpo");
+    expect(cuerpo).toHaveClass("fondo-ticket-combo");
+    expect(cuerpo.className).not.toMatch(/\bbg-surface-container-lowest\b/);
+    expect(cuerpo.querySelector(".tarjeta-combo-texto")).toContainElement(within(ticket).getByRole("heading", { level: 1 }));
+    expect(cuerpo.querySelector(".tarjeta-combo-texto")).toContainElement(within(ticket).getByText("3 productos"));
+    expect(within(ticket).queryByText(/Mejor juntos/i)).not.toBeInTheDocument();
     expect(within(ticket).getByText(/Ahorrás/).querySelector(".material-symbols-outlined")).toHaveTextContent("savings");
   });
 

@@ -190,6 +190,11 @@ export default {
         // y `overflow` puede quedar a menos de eso (ver `.fila-combos-pista`).
         "sombra-ticket":
           "0 1px 2px rgba(0, 49, 60, 0.08), 0 3px 6px -1px rgba(0, 49, 60, 0.08), 0 12px 24px -8px rgba(0, 49, 60, 0.18), 0 28px 48px -20px rgba(0, 49, 60, 0.26)",
+        // Fichas del ticket de combo (baldosa blanca sobre el fondo ilustrado,
+        // 15/09/2026): contacto + caída corta, mismo teal. Corta a propósito:
+        // la fila de fichas va pegada al padding del cuerpo y no puede
+        // ensuciar el troquel.
+        "sombra-ficha": "0 1px 2px rgba(0, 49, 60, 0.07), 0 6px 14px -6px rgba(0, 49, 60, 0.2)",
       },
       keyframes: {
         fadeIn: {

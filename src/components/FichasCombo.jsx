@@ -20,9 +20,9 @@ function Ficha({ item }) {
     <span
       data-testid="ficha-item"
       title={item.nombre}
-      className="ficha-combo relative flex-none rounded-2xl bg-surface-container"
+      className="ficha-combo relative flex-none rounded-2xl bg-surface-container-lowest shadow-sombra-ficha"
     >
-      <span className="ficha-combo-foto relative block h-full w-full overflow-hidden bg-surface-container-lowest shadow-[inset_0_0_0_1px_rgb(var(--color-primary)/0.05)]">
+      <span className="ficha-combo-foto relative block h-full w-full overflow-hidden">
         {item.foto ? (
           <img src={item.foto} alt="" className="absolute inset-0 h-full w-full object-contain p-[8%]" />
         ) : (
@@ -47,7 +47,7 @@ function FichaMas({ cantidad }) {
   return (
     <span
       data-testid="ficha-mas"
-      className="ficha-combo grid flex-none place-items-center rounded-2xl bg-surface-container font-display-lg text-[17px] font-extrabold leading-none text-primary-container"
+      className="ficha-combo grid flex-none place-items-center rounded-2xl bg-surface-container-high font-display-lg text-[17px] font-extrabold leading-none text-primary-container"
     >
       +{cantidad}
     </span>

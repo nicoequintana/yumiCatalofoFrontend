@@ -472,11 +472,62 @@ h6 {
   grid-template-rows: 1fr auto;
 }
 /* El espacio libre va a UN solo lugar: entre el texto y las fichas (fila
-   `1fr`). Sin `min-h` reservados — el título de una línea no deja hueco. */
+   `1fr`). Sin `min-h` reservados — el título de una línea no deja hueco.
+   `.tarjeta-combo-texto` agrupa chips + título/frase (dos filas internas). */
 .tarjeta-combo-cuerpo {
   padding: 20px 20px 22px;
   gap: 14px;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: 1fr auto;
+}
+/* Fondo ilustrado del cuerpo (arte del usuario, 15/09/2026): "Mejor juntos",
+   "COMBO", manchas y la curva punteada son PÍXELES de un background, nunca
+   texto del DOM (no entran a la regla de cloaking). Derivados WebP de los PNG
+   de `assets/combos/` (los PNG son la fuente, no se importan).
+   Qué arte va lo decide la PROPORCIÓN del cuerpo, no la forma del ticket:
+   - cuerpo casi cuadrado (contenedor < 460px, y el paso intermedio del ticket
+     ancho 720–870 / 720–920 en la página): arte vertical anclado arriba, que
+     deja "Mejor juntos" + "COMBO" detrás de chips y título;
+   - cuerpo apaisado (apilada ≥ 460px y ancha desde 870 / 920): arte apaisado
+     al 62% horizontal, que con el cuerpo más angosto recorta "COMBO" contra
+     el borde derecho (se lee como sangrado) y nunca corta "Mejor juntos".
+   El navegador baja SOLO la imagen del valor que gana: un celular nunca pide
+   el apaisado. Crema de respaldo = base del arte (`background`). */
+.fondo-ticket-combo {
+  background-color: rgb(var(--color-background));
+  background-image: url("./assets/combos/fondo-combo-alto-720.webp");
+  background-size: cover;
+  background-position: top center;
+  background-repeat: no-repeat;
+}
+/* Velo crema detrás del bloque de texto (chips, título y frase): donde el
+   trazo oscuro de "Mejor juntos" o "COMBO" cae debajo del texto, lo aclara
+   sin mover el texto. UN rectángulo difuminado del tamaño del bloque (se
+   achica al texto con `justify-self: start`; con dos velos, uno por fila, el
+   trazo asomaba cortado en el hueco entre chips y título): el arte sigue
+   entero alrededor y asoma, tenue, debajo. 0,84 de opacidad deja el píxel
+   más oscuro del arte dentro de la caja de cada texto en ≥ 4,5:1 (medido en
+   navegador, ver `docs/reglas/combos.md`). */
+.tarjeta-combo-texto {
+  justify-self: start;
+  gap: 14px;
+}
+.tarjeta-combo-texto::before {
+  content: "";
+  position: absolute;
+  inset: -8px -14px;
+  z-index: -1;
+  border-radius: 20px;
+  background: rgb(var(--color-background) / 0.84);
+  filter: blur(10px);
+  pointer-events: none;
+}
+@container (min-width: 460px) {
+  /* `url()` suelto primero: respaldo para un navegador sin `image-set`. */
+  .fondo-ticket-combo {
+    background-image: url("./assets/combos/fondo-combo-ancho-1100.webp");
+    background-image: image-set(url("./assets/combos/fondo-combo-ancho-1100.webp") 1x, url("./assets/combos/fondo-combo-ancho-1600.webp") 2x);
+    background-position: 62% 50%;
+  }
 }
 .tarjeta-combo-titulo {
   font-size: 24px;
@@ -491,11 +542,12 @@ h6 {
 .ficha-combo {
   width: 62px;
   aspect-ratio: 1;
-  padding: 5px;
   border-radius: 16px;
 }
+/* Baldosa blanca sin aro (15/09/2026): la foto ocupa la ficha entera y
+   hereda su radio, así que cada paso de tamaño define un solo radio. */
 .ficha-combo-foto {
-  border-radius: 11px;
+  border-radius: inherit;
 }
 .signo-combo {
   font-size: 18px;
@@ -541,9 +593,12 @@ h6 {
   .tarjeta-combo-cuerpo {
     padding: 32px 36px;
     gap: 18px;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto;
     align-content: center;
     border-radius: 22px 0 0 22px;
+  }
+  .tarjeta-combo-texto {
+    gap: 18px;
   }
   .tarjeta-combo-titulo {
     font-size: 36px;
@@ -557,11 +612,7 @@ h6 {
   }
   .ficha-combo {
     width: 88px;
-    padding: 6px;
     border-radius: 20px;
-  }
-  .ficha-combo-foto {
-    border-radius: 14px;
   }
   .signo-combo {
     font-size: 22px;
@@ -605,16 +656,17 @@ h6 {
    con huecos de 4px (~302px, entra desde 720). Medido en navegador el
    15/09/2026: ver `docs/reglas/combos.md`. */
 @container (min-width: 720px) and (max-width: 869.98px) {
+  /* Cuerpo casi cuadrado: vuelve el arte vertical (ver `.fondo-ticket-combo`). */
+  .fondo-ticket-combo {
+    background-image: url("./assets/combos/fondo-combo-alto-720.webp");
+    background-position: top center;
+  }
   .fichas-combo {
     gap: 4px;
   }
   .ficha-combo {
     width: 62px;
-    padding: 5px;
     border-radius: 16px;
-  }
-  .ficha-combo-foto {
-    border-radius: 11px;
   }
   .signo-combo {
     font-size: 15px;
@@ -624,16 +676,16 @@ h6 {
    88px desde 920; 62px entre 760 y 920; y entre 720 y 760 ni 4 fichas de 62px
    entran (~268px de contenido), así que muestra la variante angosta (2 + "+N"). */
 @container (min-width: 720px) and (max-width: 919.98px) {
+  .tarjeta-combo-pagina .fondo-ticket-combo {
+    background-image: url("./assets/combos/fondo-combo-alto-720.webp");
+    background-position: top center;
+  }
   .tarjeta-combo-pagina .fichas-combo {
     gap: 4px;
   }
   .tarjeta-combo-pagina .ficha-combo {
     width: 62px;
-    padding: 5px;
     border-radius: 16px;
-  }
-  .tarjeta-combo-pagina .ficha-combo-foto {
-    border-radius: 11px;
   }
   .tarjeta-combo-pagina .signo-combo {
     font-size: 15px;
@@ -653,11 +705,7 @@ h6 {
   }
   .ficha-combo {
     width: 50px;
-    padding: 4px;
     border-radius: 14px;
-  }
-  .ficha-combo-foto {
-    border-radius: 10px;
   }
   .signo-combo {
     font-size: 15px;

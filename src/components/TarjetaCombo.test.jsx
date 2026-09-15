@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -176,4 +179,68 @@ describe("TarjetaCombo", () => {
     expect(ahorro.querySelector(".material-symbols-outlined")).toHaveTextContent("savings");
   });
 
+  // Fondo ilustrado del cuerpo (15/09/2026): el arte ("Mejor juntos", "COMBO")
+  // son píxeles decorativos de un background CSS, nunca texto ni `<img>` —
+  // así no entra al DOM ni a la regla de cloaking.
+  it("el cuerpo lleva el fondo ilustrado por CSS, sin texto ni imagen decorativa en el DOM", () => {
+    const { container } = renderizar();
+    const cuerpo = container.querySelector(".tarjeta-combo-cuerpo");
+    expect(cuerpo).toHaveClass("fondo-ticket-combo");
+    expect(cuerpo.className).not.toMatch(/\bbg-surface-container-lowest\b/);
+    expect(screen.queryByText(/Mejor juntos/i)).not.toBeInTheDocument();
+    expect(container.querySelector('img[src*="fondo-combo"]')).toBeNull();
+    expect(container.querySelector(".tarjeta-combo-texto")).toContainElement(screen.getByText("Kit Living Cálido"));
+    // UN velo crema detrás de chips, título y frase: el mismo contenedor los agrupa.
+    expect(container.querySelector(".tarjeta-combo-texto")).toContainElement(screen.getByText("3 productos"));
+  });
+
+  it("las fichas son baldosas blancas con sombra suave, sin aro beige; el +N va en gris cálido", () => {
+    renderizar({ items: itemsDe(5) });
+    const ficha = screen.getAllByTestId("ficha-item")[0];
+    expect(ficha).toHaveClass("bg-surface-container-lowest", "shadow-sombra-ficha");
+    expect(ficha.className).not.toMatch(/\bbg-surface-container\b(?!-)/);
+    const mas = screen.getAllByTestId("ficha-mas")[0];
+    expect(mas).toHaveClass("bg-surface-container-high");
+    expect(mas.className).not.toMatch(/shadow-sombra-ficha/);
+  });
+});
+
+describe("fondo del ticket en index.css", () => {
+  const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../index.css"), "utf8").replace(/\r\n/g, "\n");
+  const bloque = (desde) => css.slice(css.indexOf(desde), css.indexOf("}", css.indexOf(desde)) + 1);
+  /** La regla `selector { ... }` dentro de `@container <condicion> {` (la primera con esa condición que la declara). */
+  function reglaEn(condicion, selector) {
+    let desde = 0;
+    for (;;) {
+      const inicio = css.indexOf(`@container ${condicion} {`, desde);
+      if (inicio === -1) return "";
+      const fin = css.indexOf("\n}", inicio);
+      const cuerpo = css.slice(inicio, fin);
+      const r = cuerpo.indexOf(`${selector} {`);
+      if (r !== -1) return cuerpo.slice(r, cuerpo.indexOf("}", r) + 1);
+      desde = fin;
+    }
+  }
+  const IMAGE_SET_ANCHO = /image-set\(\s*url\([^)]*fondo-combo-ancho-1100\.webp"?\)\s*1x,\s*url\([^)]*fondo-combo-ancho-1600\.webp"?\)\s*2x/;
+
+  it("angosta (< 460px) usa el arte vertical en WebP, cover y anclado arriba, con crema de respaldo", () => {
+    const base = bloque(".fondo-ticket-combo {");
+    expect(base).toMatch(/fondo-combo-alto-720\.webp/);
+    expect(base).toMatch(/background-size:\s*cover/);
+    expect(base).toMatch(/background-position:\s*top center/);
+    expect(base).toMatch(/background-color:\s*rgb\(var\(--color-background\)\)/);
+  });
+
+  it("desde 460px de contenedor (apilada media y ancha) usa el arte apaisado con image-set 1x/2x", () => {
+    expect(reglaEn("(min-width: 460px)", ".fondo-ticket-combo")).toMatch(IMAGE_SET_ANCHO);
+  });
+
+  it("en el paso intermedio del ticket ancho (cuerpo casi cuadrado) vuelve al arte vertical: 720–870 en la card, 720–920 en la página", () => {
+    expect(reglaEn("(min-width: 720px) and (max-width: 869.98px)", ".fondo-ticket-combo")).toMatch(/fondo-combo-alto-720\.webp/);
+    expect(reglaEn("(min-width: 720px) and (max-width: 919.98px)", ".tarjeta-combo-pagina .fondo-ticket-combo")).toMatch(/fondo-combo-alto-720\.webp/);
+  });
+
+  it("nunca se sirve un PNG del arte", () => {
+    expect(css).not.toMatch(/bg_(desktop|mobile)_card_combo\.png/);
+  });
 });

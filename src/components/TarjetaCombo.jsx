@@ -41,17 +41,21 @@ function TarjetaCombo({ combo }) {
       <article className="tarjeta-combo relative grid h-full rounded-[22px] bg-surface-container-lowest shadow-sombra-ticket">
         <Link
           to={combo.ruta}
-          className="tarjeta-combo-cuerpo grid min-w-0 rounded-t-[22px] bg-surface-container-lowest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-secondary-container"
+          className="tarjeta-combo-cuerpo fondo-ticket-combo grid min-w-0 rounded-t-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-secondary-container"
         >
-          <ChipsCombo combo={combo} />
+          {/* Chips, título y frase en UN contenedor: lleva el velo crema que
+              separa el texto del arte del fondo (`.tarjeta-combo-texto::before`). */}
+          <div className="tarjeta-combo-texto relative isolate grid content-start">
+            <ChipsCombo combo={combo} />
 
-          <div className="grid content-start gap-1.5">
-            <h3 className="tarjeta-combo-titulo line-clamp-2 text-balance font-display-lg font-extrabold leading-[1.06] tracking-[-0.035em] text-primary">
-              {combo.nombre}
-            </h3>
-            <p className="tarjeta-combo-frase line-clamp-2 max-w-[52ch] font-body-md leading-[1.45] text-on-surface-variant">
-              {combo.frase}
-            </p>
+            <div className="grid content-start gap-1.5">
+              <h3 className="tarjeta-combo-titulo line-clamp-2 text-balance font-display-lg font-extrabold leading-[1.06] tracking-[-0.035em] text-primary">
+                {combo.nombre}
+              </h3>
+              <p className="tarjeta-combo-frase line-clamp-2 max-w-[52ch] font-body-md leading-[1.45] text-on-surface-variant">
+                {combo.frase}
+              </p>
+            </div>
           </div>
 
           <FichasCombo items={combo.items} unidades={combo.unidades} />

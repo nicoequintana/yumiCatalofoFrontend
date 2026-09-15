@@ -112,16 +112,20 @@ function PaginaCombo({ comboForzado = null }) {
               aria-label="Comprar combo"
               className="tarjeta-combo tarjeta-combo-pagina relative grid rounded-[22px] bg-surface-container-lowest shadow-sombra-ticket"
             >
-              <div className="tarjeta-combo-cuerpo grid min-w-0 rounded-t-[22px] bg-surface-container-lowest">
-                <ChipsCombo combo={combo} />
+              <div className="tarjeta-combo-cuerpo fondo-ticket-combo grid min-w-0 rounded-t-[22px]">
+                {/* Chips, título y frase en UN contenedor: lleva el velo crema que
+                    separa el texto del arte del fondo (`.tarjeta-combo-texto::before`). */}
+                <div className="tarjeta-combo-texto relative isolate grid content-start">
+                  <ChipsCombo combo={combo} />
 
-                <div className="grid content-start gap-1.5">
-                  <h1 className="tarjeta-combo-titulo m-0 text-balance font-display-lg font-extrabold leading-[1.06] tracking-[-0.035em] text-primary">
-                    {combo.nombre}
-                  </h1>
-                  <p className="tarjeta-combo-frase max-w-[52ch] font-body-md leading-[1.45] text-on-surface-variant">
-                    {combo.frase}
-                  </p>
+                  <div className="grid content-start gap-1.5">
+                    <h1 className="tarjeta-combo-titulo m-0 text-balance font-display-lg font-extrabold leading-[1.06] tracking-[-0.035em] text-primary">
+                      {combo.nombre}
+                    </h1>
+                    <p className="tarjeta-combo-frase max-w-[52ch] font-body-md leading-[1.45] text-on-surface-variant">
+                      {combo.frase}
+                    </p>
+                  </div>
                 </div>
 
                 <FichasCombo items={combo.items} unidades={combo.unidades} />
