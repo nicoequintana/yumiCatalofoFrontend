@@ -432,7 +432,11 @@ function AdminComboForm() {
                           </span>
                         </span>
                         <span className="col-span-2 flex items-center justify-end gap-2 sm:col-span-1">
-                          <SelectorCantidad value={item.cantidad} onChange={(cantidad) => editor.cambiarCantidad(item.productId, cantidad)} />
+                          <SelectorCantidad
+                            value={item.cantidad}
+                            etiqueta={item.nombre}
+                            onChange={(cantidad) => editor.cambiarCantidad(item.productId, cantidad)}
+                          />
                           <button
                             type="button"
                             aria-label={`Quitar ${item.nombre}`}
@@ -582,20 +586,28 @@ function AdminComboForm() {
             </Seccion>
 
             <Seccion id="combo-vigencia" icono="event_available" titulo="Vigencia" bajada="Cuándo se puede comprar este combo.">
-              <div role="radiogroup" aria-label="Vigencia" className="grid gap-2 sm:grid-cols-2">
+              {/* Radios NATIVOS pintados como tarjetas: el navegador ya resuelve las
+                  flechas, el foco único del grupo y Espacio, sin reimplementar el
+                  patrón ARIA de radiogroup. */}
+              <fieldset className="grid gap-2 sm:grid-cols-2">
+                <legend className="sr-only">Vigencia</legend>
                 {VIGENCIAS.map((opcion) => {
                   const elegida = cambios.vigencia === opcion.valor;
                   return (
-                    <button
+                    <label
                       key={opcion.valor}
-                      type="button"
-                      role="radio"
-                      aria-checked={elegida}
-                      onClick={() => editarCampo("vigencia", opcion.valor)}
-                      className={`grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 rounded-lg border-[1.5px] px-3.5 py-3 text-left transition-colors ${
+                      className={`grid cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-2.5 rounded-lg border-[1.5px] px-3.5 py-3 text-left transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary ${
                         elegida ? "border-primary bg-primary-container/10" : "border-outline-variant bg-surface hover:border-outline"
                       }`}
                     >
+                      <input
+                        type="radio"
+                        name="combo-vigencia"
+                        value={opcion.valor}
+                        checked={elegida}
+                        onChange={() => editarCampo("vigencia", opcion.valor)}
+                        className="sr-only"
+                      />
                       <span
                         aria-hidden="true"
                         className={`mt-0.5 grid h-5 w-5 place-items-center rounded-full border-2 ${elegida ? "border-primary" : "border-outline"}`}
@@ -606,10 +618,10 @@ function AdminComboForm() {
                         <span className="font-body-md text-body-md block font-semibold text-on-surface">{opcion.titulo}</span>
                         <span className={claseAyuda}>{opcion.detalle}</span>
                       </span>
-                    </button>
+                    </label>
                   );
                 })}
-              </div>
+              </fieldset>
 
               {cambios.vigencia === "CAMPANIA" ? (
                 campanias.length === 0 ? (
@@ -630,8 +642,13 @@ function AdminComboForm() {
                           <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-on-surface-variant">
                             calendar_month
                           </span>
-                          <span className="font-semibold">
-                            {campania.nombre} · {campania.estado}
+                          <span className="font-semibold">{campania.nombre}</span>
+                          <span
+                            className={`font-label-sm rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                              campania.activa ? "bg-secondary-container text-on-secondary-container" : "bg-surface-container-high text-on-surface-variant"
+                            }`}
+                          >
+                            {campania.etiquetaEstado} · {campania.etiquetaTemporal}
                           </span>
                           {campania.desde ? (
                             <span className="ml-auto tabular-nums text-on-surface-variant">

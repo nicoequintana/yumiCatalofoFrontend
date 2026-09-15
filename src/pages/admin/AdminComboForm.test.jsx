@@ -47,8 +47,8 @@ function estado(extra = {}) {
   };
 }
 
-function renderizar(ruta = "/catalogo/admin/combos/nuevo") {
-  return render(
+function arbol(ruta) {
+  return (
     <MemoryRouter initialEntries={[ruta]}>
       <ToastProvider>
         <Routes>
@@ -57,8 +57,12 @@ function renderizar(ruta = "/catalogo/admin/combos/nuevo") {
           <Route path="/catalogo/admin/combos/:id" element={<AdminComboForm />} />
         </Routes>
       </ToastProvider>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+}
+
+function renderizar(ruta = "/catalogo/admin/combos/nuevo") {
+  return render(arbol(ruta));
 }
 
 beforeEach(() => {
@@ -176,7 +180,7 @@ describe("AdminComboForm — datos y productos", () => {
     renderizar();
 
     const fila = screen.getByText("Lámpara").closest("li");
-    await userEvent.click(within(fila).getByRole("button", { name: "Aumentar cantidad" }));
+    await userEvent.click(within(fila).getByRole("button", { name: "Aumentar cantidad de Lámpara" }));
     expect(cambiarCantidad).toHaveBeenCalledWith(1, 3);
     await userEvent.click(within(fila).getByRole("button", { name: "Quitar Lámpara" }));
     expect(quitarProducto).toHaveBeenCalledWith(1);
@@ -272,16 +276,36 @@ describe("AdminComboForm — descuento, imagen y vigencia", () => {
     expect(screen.getByText("Este combo no está asociado a ninguna campaña: no se va a ver en la tienda.")).toBeInTheDocument();
   });
 
-  it("vigencia CAMPANIA con campañas las lista con su estado", () => {
+  it("vigencia CAMPANIA con campañas las lista con las etiquetas de estado que resolvió el backend", () => {
     comboEditorMock.mockReturnValue(
       estado({
-        combo: { id: 3, ruta: "/combos/3-kit", campanias: [{ id: 4, nombre: "Navidad", estado: "HABILITADA" }] },
+        combo: {
+          id: 3,
+          ruta: "/combos/3-kit",
+          campanias: [{ id: 4, nombre: "Navidad", estado: "HABILITADA", etiquetaEstado: "Habilitada", etiquetaTemporal: "Programada", activa: false }],
+        },
         cambios: { ...estado().cambios, vigencia: "CAMPANIA" },
       }),
     );
     renderizar("/catalogo/admin/combos/3");
 
-    expect(screen.getByText("Navidad · HABILITADA")).toBeInTheDocument();
+    const fila = screen.getByText("Navidad").closest("li");
+    expect(within(fila).getByText("Habilitada · Programada")).toBeInTheDocument();
+    expect(screen.queryByText(/HABILITADA/)).toBeNull();
+  });
+
+  it("la vigencia se elige con el teclado: flecha pasa a la otra opción", async () => {
+    const setCambios = vi.fn();
+    comboEditorMock.mockReturnValue(estado({ setCambios }));
+    renderizar();
+
+    const siempre = screen.getByRole("radio", { name: /Siempre vigente/ });
+    expect(siempre).toBeChecked();
+    siempre.focus();
+    await userEvent.keyboard("{ArrowDown}");
+
+    expect(setCambios).toHaveBeenCalled();
+    expect(setCambios.mock.calls.at(-1)[0](estado().cambios).vigencia).toBe("CAMPANIA");
   });
 
   it("elegir 'Programado desde campañas' y prender 'Combo activo' actualizan los cambios", async () => {
@@ -363,6 +387,26 @@ describe("AdminComboForm — vista previa y acciones", () => {
 
     expect(eliminar).toHaveBeenCalled();
     expect(await screen.findByText("pantalla: listado de combos")).toBeInTheDocument();
+  });
+
+  it("si eliminar falla (403) el diálogo queda abierto y muestra el mensaje del backend", async () => {
+    const MENSAJE = "No tenés permiso para eliminar.";
+    const combo = { id: 3, ruta: "/combos/3-kit", campanias: [] };
+    const eliminar = vi.fn(async () => {
+      // Lo que hace el hook real ante el 403: deja el mensaje en `error` y devuelve null.
+      comboEditorMock.mockReturnValue(estado({ combo, eliminar, error: MENSAJE }));
+      return null;
+    });
+    comboEditorMock.mockReturnValue(estado({ combo, eliminar }));
+    const { rerender } = renderizar("/catalogo/admin/combos/3");
+
+    await userEvent.click(screen.getByRole("button", { name: "Eliminar" }));
+    await userEvent.click(screen.getByRole("button", { name: "Sí, eliminar" }));
+    rerender(arbol("/catalogo/admin/combos/3"));
+
+    const dialogo = screen.getByRole("dialog", { name: "Eliminar combo" });
+    expect(within(dialogo).getByRole("alert")).toHaveTextContent(MENSAJE);
+    expect(screen.queryByText("pantalla: listado de combos")).toBeNull();
   });
 
   it("muestra el error del backend", () => {
