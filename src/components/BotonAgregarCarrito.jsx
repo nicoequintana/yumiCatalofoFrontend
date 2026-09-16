@@ -3,6 +3,7 @@ import SelectorCantidad from "./SelectorCantidad.jsx";
 import useCarrito from "../hooks/useCarrito.js";
 import { registrarEvento } from "../api/products.js";
 import { AREA_TACTIL_ANCHA } from "../utils/areaTactil.js";
+import { useToast } from "../context/useToast.js";
 
 /**
  * Price-panel CTA for the product detail page (Sprint 5 Task 2) — the first
@@ -32,6 +33,7 @@ function BotonAgregarCarrito({
   onCantidadChange,
 }) {
   const { carrito, agregar } = useCarrito();
+  const { mostrarToast } = useToast();
   const [cantidadInterna, setCantidadInterna] = useState(1);
   const [agregado, setAgregado] = useState(false);
 
@@ -81,6 +83,22 @@ function BotonAgregarCarrito({
     if (agregado) return;
 
     agregar({ productId: producto.id }, cantidadEfectiva);
+
+    // Mismo toast que ya muestran `BotonAgregar.jsx` (tarjeta de catálogo) y
+    // los combos (`TarjetaCombo.jsx`/`PaginaCombo.jsx`) — este era el único
+    // punto de alta que solo daba el feedback inline "Agregado", sin avisar
+    // con el toast global. A diferencia de esos, este CTA puede agregar MÁS
+    // de 1 unidad por click: con `cantidadEfectiva > 1` el mensaje lo dice,
+    // para no sugerir que se cargó una sola unidad.
+    mostrarToast(
+      cantidadEfectiva > 1
+        ? `${cantidadEfectiva} × ${producto.nombre} agregados al carrito`
+        : `${producto.nombre} agregado al carrito`,
+      {
+        foto: producto.fotos?.[0] ? { url: producto.fotos[0].url, alt: producto.nombre } : null,
+        accion: { texto: "Ver carrito", to: "/carrito" },
+      },
+    );
 
     // Fire-and-forget analytics, same non-blocking pattern as
     // BotonCompartir/BotonFavorito — never awaited, never allowed to affect

@@ -5,6 +5,7 @@ import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
 import AdminProductoForm from "./AdminProductoForm.jsx";
 import * as productsApi from "../../api/products.js";
 import * as categoriasApi from "../../api/categorias.js";
+import { ToastProvider } from "../../context/ToastContext.jsx";
 
 vi.mock("../../api/products.js");
 vi.mock("../../api/categorias.js");
@@ -13,14 +14,21 @@ vi.mock("../../api/categorias.js");
 // anyway, so keep the real button out of these tests.
 vi.mock("../../components/BotonWhatsapp.jsx", () => ({ default: () => null }));
 
+// El preview en vivo del panel es `FichaProducto.jsx` REAL (ver el doc
+// comment de `AdminProductoForm.jsx`), y monta `BotonAgregarCarrito` aunque
+// esté `inert` en `modoPreview` — desde que ese CTA también dispara el toast
+// (15/09/2026), `useToast()` exige el Provider acá igual que en cualquier
+// pantalla pública.
 function renderForm(ruta = "/catalogo/admin/productos/nuevo") {
   return render(
     <MemoryRouter initialEntries={[ruta]}>
-      <Routes>
-        <Route path="/catalogo/admin/productos" element={<div>Listado (mock)</div>} />
-        <Route path="/catalogo/admin/productos/nuevo" element={<AdminProductoForm />} />
-        <Route path="/catalogo/admin/productos/:id/editar" element={<AdminProductoForm />} />
-      </Routes>
+      <ToastProvider>
+        <Routes>
+          <Route path="/catalogo/admin/productos" element={<div>Listado (mock)</div>} />
+          <Route path="/catalogo/admin/productos/nuevo" element={<AdminProductoForm />} />
+          <Route path="/catalogo/admin/productos/:id/editar" element={<AdminProductoForm />} />
+        </Routes>
+      </ToastProvider>
     </MemoryRouter>,
   );
 }

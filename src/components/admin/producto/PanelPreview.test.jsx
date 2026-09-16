@@ -1,20 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import PanelPreview from "./PanelPreview.jsx";
+import { ToastProvider } from "../../../context/ToastContext.jsx";
 
 const PRODUCTO = { nombre: "Producto de prueba", precio: "1000", stock: 5 };
 
+// `PanelPreview` monta el `FichaProducto` REAL (línea 8 de `PanelPreview.jsx`),
+// que a su vez monta `BotonAgregarCarrito` — desde que ese CTA también
+// dispara el toast (15/09/2026), `useToast()` exige el Provider acá aunque
+// ningún test de este archivo llegue a clickear el botón.
 function montar(extra = {}) {
   return render(
-    <PanelPreview
-      producto={PRODUCTO}
-      visible
-      plantillaCompleta={false}
-      onAlternarPlantilla={() => {}}
-      anchoPreview="desktop"
-      onCambiarAncho={() => {}}
-      {...extra}
-    />,
+    <ToastProvider>
+      <PanelPreview
+        producto={PRODUCTO}
+        visible
+        plantillaCompleta={false}
+        onAlternarPlantilla={() => {}}
+        anchoPreview="desktop"
+        onCambiarAncho={() => {}}
+        {...extra}
+      />
+    </ToastProvider>,
   );
 }
 

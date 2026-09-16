@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import BotonAgregarCarrito from "./BotonAgregarCarrito.jsx";
 import useCarrito from "../hooks/useCarrito.js";
 import * as productsApi from "../api/products.js";
+import { ToastProvider } from "../context/ToastContext.jsx";
 
 vi.mock("../api/products.js");
 
@@ -13,11 +16,30 @@ const PRODUCTO = {
   stock: 10,
 };
 
+const PRODUCTO_CON_FOTO = {
+  id: 9,
+  nombre: "Reloj con foto",
+  stock: 10,
+  fotos: [{ url: "http://x/reloj.jpg" }],
+};
+
 const PRODUCTO_AGOTADO = {
   id: 6,
   nombre: "Reloj Agotado",
   stock: 0,
 };
+
+// `useToast()` tira fuera de un `ToastProvider` (ver `context/useToast.js`):
+// desde que el CTA muestra el toast al agregar, TODO render del componente
+// necesita el Provider — y el `Link` de la acción "Ver carrito" necesita
+// Router. Mismo patrón que `BotonAgregar.test.jsx`.
+function renderConToast(ui) {
+  return render(
+    <MemoryRouter>
+      <ToastProvider>{ui}</ToastProvider>
+    </MemoryRouter>,
+  );
+}
 
 describe("BotonAgregarCarrito", () => {
   beforeEach(() => {
@@ -47,7 +69,7 @@ describe("BotonAgregarCarrito", () => {
     const { result: carritoHook } = renderHook(() => useCarrito());
 
     const user = userEvent.setup();
-    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     await user.click(screen.getByRole("button", { name: /aumentar/i }));
     await user.click(screen.getByRole("button", { name: /agregar al carrito/i }));
@@ -57,23 +79,28 @@ describe("BotonAgregarCarrito", () => {
 
   it("dispara el evento AGREGADO_CARRITO sin bloquear el feedback del botón", async () => {
     const user = userEvent.setup();
-    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     await user.click(screen.getByRole("button", { name: /agregar al carrito/i }));
 
     expect(productsApi.registrarEvento).toHaveBeenCalledWith("AGREGADO_CARRITO", 5);
-    expect(await screen.findByText(/agregado/i)).toBeInTheDocument();
+    // `getByRole` con nombre en vez de `getByText`: desde que el CTA también
+    // muestra el toast, la pantalla tiene DOS textos con "agregado" (el botón
+    // y el mensaje del toast) y `findByText(/agregado/i)` es ambiguo.
+    expect(await screen.findByRole("button", { name: /agregado/i })).toBeInTheDocument();
   });
 
   it("muestra feedback temporal después de agregar, que luego revierte", () => {
     vi.useFakeTimers();
-    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     act(() => {
       fireEvent.click(screen.getByRole("button", { name: /agregar al carrito/i }));
     });
 
-    expect(screen.getByText(/agregado/i)).toBeInTheDocument();
+    // Mismo motivo que arriba: con el toast también en pantalla, se afirma
+    // por rol/nombre para no chocar con "Reloj Clásico agregado al carrito".
+    expect(screen.getByRole("button", { name: /agregado/i })).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(2500);
@@ -88,7 +115,7 @@ describe("BotonAgregarCarrito", () => {
     // comment on the first test above re: broken real localStorage).
     const { result: carritoHook } = renderHook(() => useCarrito());
 
-    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     const boton = screen.getByRole("button", { name: /agregar al carrito/i });
     fireEvent.click(boton);
@@ -99,7 +126,7 @@ describe("BotonAgregarCarrito", () => {
   });
 
   it("el botón queda deshabilitado durante la ventana de feedback, evitando un segundo click", () => {
-    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     const boton = screen.getByRole("button", { name: /agregar al carrito/i });
     fireEvent.click(boton);
@@ -108,7 +135,7 @@ describe("BotonAgregarCarrito", () => {
   });
 
   it("resetea la cantidad del selector a 1 después de agregar", () => {
-    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     fireEvent.click(screen.getByRole("button", { name: /aumentar/i }));
     fireEvent.click(screen.getByRole("button", { name: /aumentar/i }));
@@ -121,7 +148,7 @@ describe("BotonAgregarCarrito", () => {
 
   it("limpia el timer de feedback al desmontar (sin timers vivos)", () => {
     vi.useFakeTimers();
-    const { unmount } = render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    const { unmount } = renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     act(() => {
       fireEvent.click(screen.getByRole("button", { name: /agregar al carrito/i }));
@@ -130,13 +157,25 @@ describe("BotonAgregarCarrito", () => {
 
     unmount();
 
+    // El click también dispara el toast (`ToastProvider`, `DURACION_MS =
+    // 4000` en `context/ToastContext.jsx`), con su PROPIO timer de
+    // auto-cierre — uno que sigue vivo a propósito después de desmontar este
+    // botón: en la app real el Provider vive en la raíz y el toast se cierra
+    // solo aunque el CTA que lo disparó ya no esté en pantalla. Se avanza ese
+    // timer para confirmar que lo único que quedaba vivo era ÉSE, no uno del
+    // propio `BotonAgregarCarrito` (que si tuviera fugas dejaría más de uno).
+    expect(vi.getTimerCount()).toBe(1);
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
+
     expect(vi.getTimerCount()).toBe(0);
     vi.useRealTimers();
   });
 
   describe("tope de cantidad contra el stock disponible", () => {
     it("no deja seleccionar más unidades que el stock", () => {
-      render(<BotonAgregarCarrito producto={{ id: 7, nombre: "Poco stock", stock: 2 }} />);
+      renderConToast(<BotonAgregarCarrito producto={{ id: 7, nombre: "Poco stock", stock: 2 }} />);
 
       const aumentar = screen.getByRole("button", { name: /aumentar/i });
       fireEvent.click(aumentar); // 1 -> 2
@@ -151,7 +190,7 @@ describe("BotonAgregarCarrito", () => {
       // Mount ANTES de mutar (ver la nota del beforeEach: el localStorage
       // real está roto acá, la sincronización llega por los listeners).
       const { result: carritoHook } = renderHook(() => useCarrito());
-      render(<BotonAgregarCarrito producto={{ id: 7, nombre: "Poco stock", stock: 2 }} />);
+      renderConToast(<BotonAgregarCarrito producto={{ id: 7, nombre: "Poco stock", stock: 2 }} />);
 
       act(() => {
         carritoHook.current.agregar({ productId: 7 }, 1);
@@ -164,7 +203,7 @@ describe("BotonAgregarCarrito", () => {
 
     it("con todo el stock ya en el carrito deshabilita el CTA y lo dice", () => {
       const { result: carritoHook } = renderHook(() => useCarrito());
-      render(<BotonAgregarCarrito producto={{ id: 7, nombre: "Poco stock", stock: 2 }} />);
+      renderConToast(<BotonAgregarCarrito producto={{ id: 7, nombre: "Poco stock", stock: 2 }} />);
 
       act(() => {
         carritoHook.current.agregar({ productId: 7 }, 2);
@@ -183,7 +222,7 @@ describe("BotonAgregarCarrito", () => {
     it("sin stock conocido no inventa un tope", () => {
       // Un producto sin el campo `stock` (payload viejo o parcial): el clamp
       // solo aplica cuando el stock vivo se conoce.
-      render(<BotonAgregarCarrito producto={{ id: 8, nombre: "Sin dato" }} />);
+      renderConToast(<BotonAgregarCarrito producto={{ id: 8, nombre: "Sin dato" }} />);
 
       const aumentar = screen.getByRole("button", { name: /aumentar/i });
       fireEvent.click(aumentar);
@@ -197,7 +236,7 @@ describe("BotonAgregarCarrito", () => {
 
   describe("producto agotado (stock 0)", () => {
     it("deshabilita el CTA y lo etiqueta 'Sin stock'", () => {
-      render(<BotonAgregarCarrito producto={PRODUCTO_AGOTADO} />);
+      renderConToast(<BotonAgregarCarrito producto={PRODUCTO_AGOTADO} />);
 
       const boton = screen.getByRole("button", { name: /sin stock/i });
       expect(boton).toBeDisabled();
@@ -205,7 +244,7 @@ describe("BotonAgregarCarrito", () => {
     });
 
     it("oculta el selector de cantidad", () => {
-      render(<BotonAgregarCarrito producto={PRODUCTO_AGOTADO} />);
+      renderConToast(<BotonAgregarCarrito producto={PRODUCTO_AGOTADO} />);
 
       expect(screen.queryByRole("button", { name: /aumentar/i })).toBeNull();
     });
@@ -213,11 +252,66 @@ describe("BotonAgregarCarrito", () => {
     it("no agrega nada al carrito aunque se dispare el click", () => {
       const { result: carritoHook } = renderHook(() => useCarrito());
 
-      render(<BotonAgregarCarrito producto={PRODUCTO_AGOTADO} />);
+      renderConToast(<BotonAgregarCarrito producto={PRODUCTO_AGOTADO} />);
       fireEvent.click(screen.getByRole("button", { name: /sin stock/i }));
 
       expect(carritoHook.current.carrito).toEqual([]);
       expect(productsApi.registrarEvento).not.toHaveBeenCalled();
+    });
+  });
+
+  // Mismo toast que ya muestran `BotonAgregar.jsx` (tarjeta de catálogo) y los
+  // combos (`TarjetaCombo.jsx`/`PaginaCombo.jsx`) al agregar — este CTA de la
+  // ficha era el único que solo daba el feedback inline "Agregado" sin avisar
+  // por toast.
+  describe("toast al agregar", () => {
+    it("muestra el toast con el nombre, la foto del producto y la acción 'Ver carrito'", () => {
+      renderConToast(<BotonAgregarCarrito producto={PRODUCTO_CON_FOTO} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /agregar al carrito/i }));
+
+      expect(screen.getByText("Reloj con foto agregado al carrito")).toBeInTheDocument();
+      const foto = screen.getByRole("img", { name: "Reloj con foto" });
+      expect(foto).toHaveAttribute("src", "http://x/reloj.jpg");
+      expect(screen.getByRole("link", { name: "Ver carrito" })).toHaveAttribute("href", "/carrito");
+    });
+
+    it("con cantidad mayor a 1, el mensaje dice cuántas unidades se agregaron", () => {
+      renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /aumentar/i }));
+      fireEvent.click(screen.getByRole("button", { name: /agregar al carrito/i }));
+
+      expect(screen.getByText("2 × Reloj Clásico agregados al carrito")).toBeInTheDocument();
+    });
+
+    it("un producto sin fotos muestra el toast sin miniatura y no revienta", () => {
+      renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /agregar al carrito/i }));
+
+      expect(screen.getByText("Reloj Clásico agregado al carrito")).toBeInTheDocument();
+      expect(screen.queryByRole("img")).toBeNull();
+    });
+
+    it("dos instancias del CTA para el mismo producto (bloque de precio + barra fija) muestran UN solo toast", () => {
+      // Espeja cómo `FichaProducto.jsx` monta el CTA dos veces con la misma
+      // `cantidad` controlada (bloque de precio + barra fija sticky mobile).
+      function DosInstancias() {
+        const [cantidad, setCantidad] = useState(1);
+        return (
+          <>
+            <BotonAgregarCarrito producto={PRODUCTO} cantidad={cantidad} onCantidadChange={setCantidad} />
+            <BotonAgregarCarrito producto={PRODUCTO} cantidad={cantidad} onCantidadChange={setCantidad} />
+          </>
+        );
+      }
+      renderConToast(<DosInstancias />);
+
+      const [primerBoton] = screen.getAllByRole("button", { name: /agregar al carrito/i });
+      fireEvent.click(primerBoton);
+
+      expect(screen.getAllByRole("status")).toHaveLength(1);
     });
   });
 });
@@ -236,7 +330,7 @@ describe("BotonAgregarCarrito", () => {
  */
 describe("BotonAgregarCarrito — forma única compacta", () => {
   it("la fila no permite que el botón baje de renglón", () => {
-    const { container } = render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    const { container } = renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     const fila = container.firstElementChild;
     expect(fila).toHaveClass("flex-nowrap", "gap-2");
@@ -246,7 +340,7 @@ describe("BotonAgregarCarrito — forma única compacta", () => {
   // A 360px el ícono eran los 20px que faltaban para la línea única: el CTA
   // no lleva ícono en ningún estado.
   it("el botón no lleva ícono, ni antes ni después de agregar", () => {
-    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     const boton = screen.getByRole("button", { name: /agregar/i });
     expect(boton.querySelector(".material-symbols-outlined")).toBeNull();
@@ -259,7 +353,7 @@ describe("BotonAgregarCarrito — forma única compacta", () => {
   });
 
   it("se dibuja en 36px y extiende el área táctil a 44 por pseudo-elemento", () => {
-    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     const clases = screen.getByRole("button", { name: /agregar/i }).className.split(" ");
     expect(clases).toContain("h-9");
@@ -275,7 +369,7 @@ describe("BotonAgregarCarrito — forma única compacta", () => {
   // hace: "Agregar al carrito" (contiene el texto visible, WCAG 2.5.3). En
   // "Agregado", "Sin stock" o "Máximo en carrito" manda el texto del estado.
   it("muestra 'Agregar' y conserva el nombre accesible 'Agregar al carrito'", () => {
-    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     const boton = screen.getByRole("button", { name: "Agregar al carrito" });
     expect(boton).toHaveTextContent(/^Agregar$/);
@@ -286,7 +380,7 @@ describe("BotonAgregarCarrito — forma única compacta", () => {
   });
 
   it("es angosto: poco padding, sin espaciado de letras y sin partir el texto", () => {
-    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     const clases = screen.getByRole("button", { name: /agregar/i }).className.split(" ");
     expect(clases).toContain("px-3");
@@ -295,7 +389,7 @@ describe("BotonAgregarCarrito — forma única compacta", () => {
   });
 
   it("ya no acepta la variante: no hay texto largo ni forma grande", () => {
-    render(<BotonAgregarCarrito producto={PRODUCTO} compacto={false} />);
+    renderConToast(<BotonAgregarCarrito producto={PRODUCTO} compacto={false} />);
 
     const boton = screen.getByRole("button", { name: "Agregar al carrito" });
     expect(boton).toHaveTextContent(/^Agregar$/);
@@ -314,7 +408,7 @@ describe("BotonAgregarCarrito — forma única compacta", () => {
  */
 describe("BotonAgregarCarrito — nombre accesible", () => {
   it("se anuncia solo como “Agregar al carrito”, sin el ligature del ícono", () => {
-    render(<BotonAgregarCarrito producto={PRODUCTO} />);
+    renderConToast(<BotonAgregarCarrito producto={PRODUCTO} />);
 
     expect(screen.getByRole("button", { name: "Agregar al carrito" })).toBeInTheDocument();
   });
