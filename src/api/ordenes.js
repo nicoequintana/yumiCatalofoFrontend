@@ -228,8 +228,3 @@ export async function getEstadosOrden() {
   estadosCacheados = body?.estados ?? [];
   return estadosCacheados;
 }
-
-/** Solo para tests: olvida el cache entre casos. */
-export function _limpiarCacheEstados() {
-  estadosCacheados = null;
-}
