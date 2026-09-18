@@ -597,7 +597,7 @@ function AdminCategorias() {
                         }`}
                       >
                         <span
-                          className={`inline-block size-4 transform rounded-full bg-surface-container-lowest shadow transition-transform md:size-3.5 xl:size-4 ${
+                          className={`sombra-suave inline-block size-4 transform rounded-full bg-surface-container-lowest transition-transform md:size-3.5 xl:size-4 ${
                             categoria.destacadaEnHome
                               ? "translate-x-6 md:translate-x-5 xl:translate-x-6"
                               : "translate-x-1 md:translate-x-0.5 xl:translate-x-1"

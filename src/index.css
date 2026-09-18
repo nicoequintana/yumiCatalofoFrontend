@@ -355,7 +355,20 @@ h6 {
 }
 
 
-.shadow{
+/*
+  Sombra difusa y neutra del header público y de las perillas de los toggles del
+  panel. Se llamaba `.shadow` a secas, y por venir declarada DESPUÉS de
+  `@tailwind utilities` con la misma especificidad le ganaba a la utilidad
+  `shadow` de Tailwind: quien escribiera `className="shadow"` creyendo pedir la
+  sombra por defecto del framework recibía esta, en silencio y sin forma de
+  notarlo. El nombre propio corta esa colisión — `shadow` vuelve a ser de
+  Tailwind y esta sombra hay que pedirla por su nombre.
+
+  No es un token de `tailwind.config.js` a propósito: `sombra-1/2/3/flotante`
+  son la escala del PÚBLICO (ver docs/reglas/diseno-y-tema.md) y esta cruza las
+  dos paletas, así que vive acá como clase suelta, igual que `.vidrio-header`.
+*/
+.sombra-suave {
   box-shadow: 0px 5px 10px rgba(128, 128, 128, 0.199);
 }
 

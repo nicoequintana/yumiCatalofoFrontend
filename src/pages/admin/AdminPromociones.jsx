@@ -611,7 +611,7 @@ export default function AdminPromociones() {
                                   }`}
                                 >
                                   <span
-                                    className={`inline-block size-4 transform rounded-full bg-surface-container-lowest shadow transition-transform ${
+                                    className={`sombra-suave inline-block size-4 transform rounded-full bg-surface-container-lowest transition-transform ${
                                       promocion.destacadaEnHome ? "translate-x-6" : "translate-x-1"
                                     }`}
                                   />

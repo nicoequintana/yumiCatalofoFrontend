@@ -159,7 +159,7 @@ function Navbar() {
     // `top-0` de siempre, así que el sitio publicado no cambia. Sin esto la
     // cinta, `fixed` y sin empujar el layout, tapaba la mitad superior del
     // header.
-    <header className="vidrio-header sticky top-[var(--alto-cinta-ambiente)] z-50 w-full bg-background/70 shadow backdrop-blur-[10px]">
+    <header className="vidrio-header sombra-suave sticky top-[var(--alto-cinta-ambiente)] z-50 w-full bg-background/70 backdrop-blur-[10px]">
       {/* Alto FIJO (`h-navbar-height`), no derivado del padding. Es la mitad
           de un contrato: `FiltrosCatalogo.jsx` se pega debajo con
           `top-navbar-height`, el MISMO token. Mientras el alto salía del
@@ -358,7 +358,7 @@ function Navbar() {
         <div
           id="panel-categorias"
           ref={panelCategoriasRef}
-          className="absolute inset-x-0 top-full z-50 hidden border-t border-outline-variant bg-surface-container-lowest shadow md:block"
+          className="sombra-suave absolute inset-x-0 top-full z-50 hidden border-t border-outline-variant bg-surface-container-lowest md:block"
         >
           <div className="mx-auto w-full max-w-container-max px-margin-desktop py-4">
             <PanelCategorias
